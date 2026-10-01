@@ -1,0 +1,7 @@
+- Intervals.icu is an adapter, not the product.
+- AI writes prose only. Classification is rules, not a model.
+- Every classification stores ontology_version.
+- No goal probability and no readiness score.
+- 800m is the only scored event in this phase.
+- Never commit .env or API keys.
+- One Pilot Agent at a time on this Cursor Ultra account.
