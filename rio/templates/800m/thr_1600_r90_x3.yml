@@ -1,0 +1,7 @@
+id: "thr_1600_r90_x3"
+name: "3 × 1600 m cruise, 90 s rest"
+family: "threshold"
+primary_stimulus: "threshold"
+secondary_stimulus: "aerobic"
+default_structure: "3 × 1600 m comfortably hard, 90 s rest."
+constraints: "Long reps. Cut the third if form goes heavy. Do not turn it into a time trial."

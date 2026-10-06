@@ -1,0 +1,7 @@
+id: "thr_up_800to1600_r60_x3"
+name: "Cruise ladder 800-1200-1600 m, 60 s"
+family: "threshold"
+primary_stimulus: "threshold"
+secondary_stimulus: "aerobic"
+default_structure: "3 steps: 800, 1200, 1600 m. 60 s rest. Same comfortably-hard effort on every step."
+constraints: "Not a ladder that gets faster. Effort stays flat."

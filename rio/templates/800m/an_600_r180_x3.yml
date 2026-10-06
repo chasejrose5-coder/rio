@@ -1,0 +1,7 @@
+id: "an_600_r180_x3"
+name: "3 × 600 m hard, 3 min rest"
+family: "anaerobic_capacity"
+primary_stimulus: "anaerobic_capacity"
+secondary_stimulus: "aerobic_power"
+default_structure: "3 × 600 m hard, 180 s rest. Ugly on purpose."
+constraints: "High recovery cost. Next day is easy or off."

@@ -1,0 +1,7 @@
+id: "ap_700_r90_x5"
+name: "5 × 700 m, 90 s rest"
+family: "aerobic_power"
+primary_stimulus: "aerobic_power"
+secondary_stimulus: ""
+default_structure: "5 × 700 m strong aerobic, 90 s rest. Between the 600 and the 800."
+constraints: "Pace rule is 'strong, not 800 pace,' tied to goal.md later. No invented split here."

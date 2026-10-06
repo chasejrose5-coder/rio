@@ -1,0 +1,7 @@
+id: "thr_1200_r60_x4"
+name: "4 × 1200 m cruise, 60 s rest"
+family: "threshold"
+primary_stimulus: "threshold"
+secondary_stimulus: "aerobic"
+default_structure: "4 × 1200 m comfortably hard, 60 s rest."
+constraints: "Not a quality 800 day. Do not add spikes."

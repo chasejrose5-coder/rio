@@ -1,0 +1,7 @@
+id: "an_400_r45_x6"
+name: "Broken 800s: 3 × (400 + 400), 45 s between pieces"
+family: "anaerobic_capacity"
+primary_stimulus: "anaerobic_capacity"
+secondary_stimulus: "speed_endurance"
+default_structure: "3 sets of 400 m + 45 s + 400 m, then 3 min between sets. Six work reps. Pace near goal 800 or faster."
+constraints: "The id uses the piece distance and the short rest. The long set rest is in the structure, not the id."

@@ -1,0 +1,7 @@
+id: "se_py_200to400_r90_x5"
+name: "Pyramid 200-300-400-300-200 m, 90 s"
+family: "speed_endurance"
+primary_stimulus: "speed_endurance"
+secondary_stimulus: "speed"
+default_structure: "5 steps: 200, 300, 400, 300, 200 m. 90 s rest after each. Pace near goal 800."
+constraints: "Rest is constant, so it stays in the id. A different pyramid gets a new id."

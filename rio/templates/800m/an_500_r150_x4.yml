@@ -1,0 +1,7 @@
+id: "an_500_r150_x4"
+name: "4 × 500 m hard, 2.5 min rest"
+family: "anaerobic_capacity"
+primary_stimulus: "anaerobic_capacity"
+secondary_stimulus: "speed_endurance"
+default_structure: "4 × 500 m faster than VO2 effort, 150 s rest. Tank-dumping, not tidy."
+constraints: "Not after a race. Not two days in a row."

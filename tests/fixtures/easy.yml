@@ -1,0 +1,7 @@
+source: fixture
+note: Chase did not run this. Practice sample only.
+laps: 1
+distance_m: 8000
+seconds: 2700
+rest_s: 0
+expected_family: aerobic

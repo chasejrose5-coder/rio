@@ -1,0 +1,7 @@
+id: "se_350_r90_x6"
+name: "6 × 350 m, 90 s rest"
+family: "speed_endurance"
+primary_stimulus: "speed_endurance"
+secondary_stimulus: ""
+default_structure: "6 × 350 m near goal 800 pace, 90 s rest."
+constraints: "Skip if yesterday was also speed endurance."

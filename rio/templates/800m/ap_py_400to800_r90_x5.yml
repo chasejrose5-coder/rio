@@ -1,0 +1,7 @@
+id: "ap_py_400to800_r90_x5"
+name: "Pyramid 400-600-800-600-400 m, 90 s"
+family: "aerobic_power"
+primary_stimulus: "aerobic_power"
+secondary_stimulus: "threshold"
+default_structure: "5 steps: 400, 600, 800, 600, 400 m. 90 s rest. Strong aerobic, not speed."
+constraints: "If the 400s are sprinted, this was the wrong template."

@@ -1,0 +1,7 @@
+id: "se_300_r75_x8"
+name: "8 × 300 m, 75 s rest"
+family: "speed_endurance"
+primary_stimulus: "speed_endurance"
+secondary_stimulus: "anaerobic_capacity"
+default_structure: "8 × 300 m near goal 800 pace, 75 s rest. Last reps should be honest."
+constraints: "Not the day after a race. Poor sleep: cut reps, do not cut rest."

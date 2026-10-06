@@ -1,0 +1,7 @@
+id: "rr_400_r240_x2"
+name: "Sharpen 2 × 400 m, 4 min rest"
+family: "race_readiness"
+primary_stimulus: "race_readiness"
+secondary_stimulus: "speed_endurance"
+default_structure: "2 × 400 m at goal 800 pace, 240 s rest. Dress rehearsal, not a 6 × 400."
+constraints: "Not in the same week as se_400_r90_x6."

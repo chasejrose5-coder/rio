@@ -1,0 +1,7 @@
+id: "aer_8000_r0_x1"
+name: "Easy 40–50 min, about 8 km"
+family: "aerobic"
+primary_stimulus: "aerobic"
+secondary_stimulus: ""
+default_structure: "One continuous easy run, planned 8000 m. The default easy day."
+constraints: "Heart-rate drift is fine. Pace chases are not."

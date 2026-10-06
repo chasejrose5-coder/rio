@@ -1,0 +1,7 @@
+id: "rr_800_r0_x1"
+name: "800 m race"
+family: "race_readiness"
+primary_stimulus: "race_readiness"
+secondary_stimulus: "speed_endurance"
+default_structure: "One race, 800 m, no training rest. High recovery cost."
+constraints: "Do not prescribe a hard session the next day. This id is the race, not a workout."

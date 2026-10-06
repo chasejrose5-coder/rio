@@ -1,0 +1,39 @@
+max_velocity:
+  useful: "2–4"
+  fade: "7–10"
+  recovery_cost: low
+  evidence: moderate
+speed:
+  useful: "2–4"
+  fade: "7–10"
+  recovery_cost: low
+  evidence: moderate
+speed_endurance:
+  useful: "4–7"
+  fade: "10–14"
+  recovery_cost: high
+  evidence: moderate
+anaerobic_capacity:
+  useful: "4–7"
+  fade: "10–14"
+  recovery_cost: high
+  evidence: moderate
+aerobic_power:
+  useful: "7–10"
+  fade: "14–21"
+  recovery_cost: moderate
+  evidence: moderate
+threshold:
+  useful: "7–14"
+  fade: "18–28"
+  recovery_cost: low
+  evidence: moderate
+aerobic:
+  useful: "7–14"
+  fade: "18–28"
+  recovery_cost: low
+  evidence: moderate
+race_readiness:
+  useful: "0–2"
+  recovery_cost: high
+  evidence: moderate

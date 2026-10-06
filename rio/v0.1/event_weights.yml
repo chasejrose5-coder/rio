@@ -1,0 +1,9 @@
+"800":
+  speed_endurance: 0.28
+  anaerobic_capacity: 0.18
+  speed: 0.16
+  aerobic_power: 0.16
+  max_velocity: 0.10
+  threshold: 0.07
+  aerobic: 0.03
+  race_readiness: 0.02

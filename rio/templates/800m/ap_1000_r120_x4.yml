@@ -1,0 +1,7 @@
+id: "ap_1000_r120_x4"
+name: "4 × 1000 m, 2 min rest"
+family: "aerobic_power"
+primary_stimulus: "aerobic_power"
+secondary_stimulus: "threshold"
+default_structure: "4 × 1000 m at VO2 effort, 120 s rest."
+constraints: "Skip if the athlete is sick or the day after a race."

@@ -1,0 +1,7 @@
+id: "thr_2000_r90_x3"
+name: "3 × 2000 m cruise, 90 s rest"
+family: "threshold"
+primary_stimulus: "threshold"
+secondary_stimulus: "aerobic"
+default_structure: "3 × 2000 m comfortably hard, 90 s rest."
+constraints: "One threshold session in a week in v0.1. A second needs a reason."

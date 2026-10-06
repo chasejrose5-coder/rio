@@ -1,0 +1,7 @@
+id: "spd_py_150to300_r150_x5"
+name: "Pyramid 150-200-300-200-150 m"
+family: "speed"
+primary_stimulus: "speed"
+secondary_stimulus: "max_velocity"
+default_structure: "5 steps: 150, 200, 300, 200, 150 m. 150 s rest after each. Pace at or faster than goal 800."
+constraints: "Constant rest. If rest shortens on the 300, change the id or the session."

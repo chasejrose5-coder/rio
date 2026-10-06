@@ -1,0 +1,8 @@
+source: fixture
+note: Chase did not run this. Practice sample only.
+detail: Strong aerobic, not 800 race pace.
+laps: 5
+distance_m: 800
+seconds: 150
+rest_s: 90
+expected_family: aerobic_power

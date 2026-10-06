@@ -1,0 +1,7 @@
+id: "spd_300_r180_x5"
+name: "5 × 300 m, 3 min rest"
+family: "speed"
+primary_stimulus: "speed"
+secondary_stimulus: "speed_endurance"
+default_structure: "5 × 300 m near goal 800 pace, 180 s rest. Borderline with speed endurance because of the length."
+constraints: "Rest must stay long. Shorter rest moves this row to speed_endurance."

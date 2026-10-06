@@ -1,0 +1,7 @@
+id: "aer_5000_r0_x1"
+name: "Easy 30 min, about 5 km"
+family: "aerobic"
+primary_stimulus: "aerobic"
+secondary_stimulus: ""
+default_structure: "One continuous easy run, planned 5000 m, no rest. Talkable the whole way."
+constraints: "No strides in this id. Strides are a different template."

@@ -1,0 +1,7 @@
+id: "mv_up_40to120_r150_x4"
+name: "Acceleration ladder 40-60-80-120 m"
+family: "max_velocity"
+primary_stimulus: "max_velocity"
+secondary_stimulus: "speed"
+default_structure: "4 steps: 40, 60, 80, 120 m. 150 s rest after each. Build speed, do not race the last step."
+constraints: "One ladder only. Not a fitness session. Rest stays long."

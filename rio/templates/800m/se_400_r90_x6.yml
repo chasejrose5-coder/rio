@@ -1,0 +1,7 @@
+id: "se_400_r90_x6"
+name: "6 × 400 m at 800 pace, 90 s rest"
+family: "speed_endurance"
+primary_stimulus: "speed_endurance"
+secondary_stimulus: "anaerobic_capacity"
+default_structure: "6 × 400 m near goal 800 pace, 90 s rest. The reference speed-endurance session."
+constraints: "Do not prescribe the day after an 800 race. High recovery cost."

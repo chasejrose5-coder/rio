@@ -1,0 +1,7 @@
+id: "se_500_r120_x4"
+name: "4 × 500 m, 2 min rest"
+family: "speed_endurance"
+primary_stimulus: "speed_endurance"
+secondary_stimulus: "anaerobic_capacity"
+default_structure: "4 × 500 m near goal 800 pace, 120 s rest. Longer rep, still incomplete recovery."
+constraints: "Four reps is the cap in v0.1. Adding a fifth needs a new id."
