@@ -2,6 +2,6 @@ source: fixture
 note: Chase did not run this. Practice sample only.
 laps: 6
 distance_m: 400
-seconds: 72
+seconds: 58
 rest_s: 90
 expected_family: speed_endurance

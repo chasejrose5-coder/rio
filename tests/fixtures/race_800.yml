@@ -2,6 +2,6 @@ source: fixture
 note: Chase did not run this. Practice sample only.
 laps: 1
 distance_m: 800
-seconds: 130
+seconds: 115
 rest_s: 0
 expected_family: race_readiness
