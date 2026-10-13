@@ -1,6 +1,6 @@
 # streamlit_app.py — Last Session. Display only. No classification rules.
 
-"""One page. Laps come from normalize. Family, confidence, and reason codes come from classify."""
+"""One page. Laps come from normalize. Family, confidence, and reason codes come from classify. The paragraph comes from explain."""
 
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
 
 from db.load import fixture_paths, parse_fixture
 from engines.classify import classify
+from engines.explain import explain
 from engines.normalize import normalize
 
 FIXTURES_DIR = ROOT / "tests" / "fixtures"
@@ -54,7 +55,7 @@ def _lap_rows(laps: list[dict]) -> list[dict]:
 
 
 def render_session(payload: dict) -> None:
-    """Show one session. Labels are whatever classify returns."""
+    """Show one session. Labels are whatever classify returns. The paragraph is explain."""
     source = str(payload.get("source", "")).strip().lower()
     if source == "fixture":
         st.markdown("FIXTURE")
@@ -77,6 +78,8 @@ def render_session(payload: dict) -> None:
     st.markdown("**Reason codes**")
     codes = result.get("reason_codes") or []
     st.write(", ".join(str(code) for code in codes) if codes else "—")
+
+    st.write(explain(result))
 
 
 def selected_payload() -> dict | None:
