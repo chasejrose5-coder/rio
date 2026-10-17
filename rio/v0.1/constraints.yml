@@ -1,0 +1,21 @@
+# 800 constraints v0.1
+# Absolute rules must never be broken.
+# Preference rules are used only to rank options that already passed every absolute rule.
+
+ontology_version: "v0.1"
+
+absolute:
+  - id: no_quality_after_high_recovery
+    rule: "No quality session the day after a high recovery-cost deposit (race or any session marked high). Next day may only be easy or off."
+  - id: no_second_hard_day
+    rule: "No second hard day if yesterday's recovery cost was moderate or high. Supporting (0.4) is allowed; hard (1.0) is not."
+  - id: no_back_to_back_speed_endurance
+    rule: "No speed endurance if the last classified session was speed_endurance. At least one day must pass."
+  - id: closed_menu_only
+    rule: "Only choose from the template IDs already frozen in the Phase 1 Block D menu. No new IDs, no free-form workouts."
+
+preference:
+  - id: prefer_gap
+    rule: "When more than one template is legal, prefer the one that trains a capacity the goal lists as limiting and the ledger currently shows as low or decaying."
+  - id: prefer_variety
+    rule: "If two templates are equally legal and neither is a clearer gap, prefer the capacity that has not been deposited in the last three days."
