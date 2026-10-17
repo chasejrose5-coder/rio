@@ -1,11 +1,11 @@
-# streamlit_app.py — Last Session, Ledger, and Goal. Display only. No classification rules.
+# streamlit_app.py — Last Session, Next, Ledger, and Goal. Display only. No classification rules.
 
-"""Three pages. Last Session reads normalize, classify, and explain. Ledger and Goal read the ledger."""
+"""Four pages. Last Session reads normalize, classify, and explain. Next reads prescribe. Ledger and Goal read the ledger."""
 
 from __future__ import annotations
 
 import sys
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import streamlit as st
@@ -19,6 +19,7 @@ from engines.classify import classify
 from engines.explain import explain
 from engines.ledger import Ledger
 from engines.normalize import normalize
+from engines.prescribe import PARAMETER_KEYS, prescribe
 
 FIXTURES_DIR = ROOT / "tests" / "fixtures"
 
@@ -94,6 +95,15 @@ def _show_rows(rows: list[dict]) -> None:
         st.write("—")
 
 
+def _parameter_rows(parameters: dict) -> list[dict]:
+    rows: list[dict] = []
+    for key in PARAMETER_KEYS:
+        value = parameters.get(key)
+        text = "" if value is None else str(value).strip()
+        rows.append({"Parameter": key, "Value": text or "—"})
+    return rows
+
+
 def render_session(payload: dict) -> None:
     """Show one session. Labels are whatever classify returns. The paragraph is explain."""
     source = str(payload.get("source", "")).strip().lower()
@@ -122,13 +132,19 @@ def render_session(payload: dict) -> None:
     st.write(explain(result))
 
 
-def selected_payload() -> dict | None:
+def selected_fixture_path() -> Path | None:
     paths = fixture_paths(FIXTURES_DIR)
     if not paths:
         return None
     names = [path.stem for path in paths]
     selected = st.selectbox("Session", names)
-    path = paths[names.index(selected)]
+    return paths[names.index(selected)]
+
+
+def selected_payload() -> dict | None:
+    path = selected_fixture_path()
+    if path is None:
+        return None
     return parse_fixture(path.read_text(encoding="utf-8"))
 
 
@@ -139,6 +155,41 @@ def page_last_session() -> None:
         st.write("No session files.")
     else:
         render_session(payload)
+
+
+def page_next() -> None:
+    """Next templates for one fixture ledger. Ids, parameters, and reason codes from prescribe()."""
+    st.title("Next")
+    path = selected_fixture_path()
+    if path is None:
+        st.write("No session files.")
+        return
+
+    payload = parse_fixture(path.read_text(encoding="utf-8"))
+    if str(payload.get("source", "")).strip().lower() == "fixture":
+        st.markdown("FIXTURE")
+
+    today = date.today()
+    ledger = Ledger()
+    ledger.record_fixture(path, today - timedelta(days=1))
+    result = prescribe(ledger, today)
+
+    st.markdown("**limiting_capacities**")
+    limiting = ledger.goal.get("limiting_capacities")
+    st.write(limiting if limiting not in (None, "") else "—")
+
+    for index, row in enumerate(result["rows"]):
+        if index:
+            st.divider()
+        st.markdown("**prescribed_on**")
+        st.write(row.get("prescribed_on") or "—")
+        st.markdown("**template_id**")
+        st.write(row.get("template_id") or "—")
+        st.markdown("**parameters**")
+        _show_rows(_parameter_rows(row.get("parameters") or {}))
+        st.markdown("**Reason codes**")
+        codes = row.get("reason_codes") or []
+        st.write(", ".join(str(code) for code in codes) if codes else "—")
 
 
 def page_ledger() -> None:
@@ -176,6 +227,7 @@ st.set_page_config(page_title="rio", layout="centered")
 st.navigation(
     [
         st.Page(page_last_session, title="Last Session", default=True),
+        st.Page(page_next, title="Next", url_path="next"),
         st.Page(page_ledger, title="Ledger", url_path="ledger"),
         st.Page(page_goal, title="Goal", url_path="goal"),
     ],
