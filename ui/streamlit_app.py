@@ -1,10 +1,11 @@
-# streamlit_app.py — Last Session. Display only. No classification rules.
+# streamlit_app.py — Last Session, Ledger, and Goal. Display only. No classification rules.
 
-"""One page. Laps come from normalize. Family, confidence, and reason codes come from classify. The paragraph comes from explain."""
+"""Three pages. Last Session reads normalize, classify, and explain. Ledger and Goal read the ledger."""
 
 from __future__ import annotations
 
 import sys
+from datetime import date
 from pathlib import Path
 
 import streamlit as st
@@ -16,9 +17,17 @@ if str(ROOT) not in sys.path:
 from db.load import fixture_paths, parse_fixture
 from engines.classify import classify
 from engines.explain import explain
+from engines.ledger import Ledger
 from engines.normalize import normalize
 
 FIXTURES_DIR = ROOT / "tests" / "fixtures"
+
+GOAL_FIELDS = (
+    "current_mark",
+    "target_time",
+    "target_date",
+    "limiting_capacities",
+)
 
 
 def _date_text(payload: dict) -> str:
@@ -40,6 +49,14 @@ def _cell(value: object) -> object:
     return value
 
 
+def _dose_cell(value: object) -> str:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return "" if value is None else str(value)
+    if isinstance(value, float):
+        return repr(value)
+    return str(value)
+
+
 def _lap_rows(laps: list[dict]) -> list[dict]:
     rows: list[dict] = []
     for index, lap in enumerate(laps, start=1):
@@ -52,6 +69,29 @@ def _lap_rows(laps: list[dict]) -> list[dict]:
             }
         )
     return rows
+
+
+def _deposit_rows(entries: list[dict], with_windows: bool = False) -> list[dict]:
+    rows: list[dict] = []
+    for entry in entries:
+        row = {
+            "Capacity": entry["capacity"],
+            "Dose": _dose_cell(entry["dose"]),
+            "Date": entry["date"],
+            "Source": entry["source"],
+        }
+        if with_windows:
+            row["expression_window_days"] = entry["expression_window_days"]
+            row["decay_days"] = entry["decay_days"]
+        rows.append(row)
+    return rows
+
+
+def _show_rows(rows: list[dict]) -> None:
+    if rows:
+        st.table(rows)
+    else:
+        st.write("—")
 
 
 def render_session(payload: dict) -> None:
@@ -92,11 +132,52 @@ def selected_payload() -> dict | None:
     return parse_fixture(path.read_text(encoding="utf-8"))
 
 
-st.set_page_config(page_title="Last Session", layout="centered")
-st.title("Last Session")
+def page_last_session() -> None:
+    st.title("Last Session")
+    payload = selected_payload()
+    if payload is None:
+        st.write("No session files.")
+    else:
+        render_session(payload)
 
-payload = selected_payload()
-if payload is None:
-    st.write("No session files.")
-else:
-    render_session(payload)
+
+def page_ledger() -> None:
+    """Deposits from the four fixtures. Windows are the ledger's, as of today."""
+    st.title("Ledger")
+    today = date.today()
+    ledger = Ledger()
+    entries = ledger.record_fixtures(today)
+    if any(str(entry.get("source", "")).strip().lower() == "fixture" for entry in entries):
+        st.markdown("FIXTURE")
+
+    st.markdown("**Deposits**")
+    _show_rows(_deposit_rows(entries, with_windows=True))
+
+    windows = ledger.deposits_on(today)
+    st.markdown("**As of**")
+    st.write(today.isoformat())
+    st.markdown("**Emerging**")
+    _show_rows(_deposit_rows(windows["emerging"]))
+    st.markdown("**Decaying**")
+    _show_rows(_deposit_rows(windows["decaying"]))
+
+
+def page_goal() -> None:
+    """The four goal.yml fields, as written. unknown stays unknown."""
+    st.title("Goal")
+    goal = Ledger().goal
+    for key in GOAL_FIELDS:
+        st.markdown(f"**{key}**")
+        value = goal.get(key)
+        st.write(value if value not in (None, "") else "—")
+
+
+st.set_page_config(page_title="rio", layout="centered")
+st.navigation(
+    [
+        st.Page(page_last_session, title="Last Session", default=True),
+        st.Page(page_ledger, title="Ledger", url_path="ledger"),
+        st.Page(page_goal, title="Goal", url_path="goal"),
+    ],
+    position="top",
+).run()
