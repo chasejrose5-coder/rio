@@ -1,6 +1,6 @@
-# streamlit_app.py — Last Session, Next, Ledger, and Goal. Display only. No classification rules.
+# streamlit_app.py — Last Session, Next, Decisions, Ledger, and Goal. Display only. No classification rules.
 
-"""Four pages. Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Ledger and Goal read the ledger."""
+"""Five pages. Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger."""
 
 from __future__ import annotations
 
@@ -15,8 +15,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from db.load import fixture_paths, parse_fixture
+from engines.accept import PLANNED_DIR, load_planned
 from engines.classify import classify
-from engines.explain import explain, explain_prescription
+from engines.explain import explain, explain_decision, explain_prescription
 from engines.ledger import Ledger
 from engines.normalize import normalize
 from engines.prescribe import PARAMETER_KEYS, prescribe
@@ -205,6 +206,50 @@ def page_next() -> None:
             )
 
 
+def page_decisions() -> None:
+    """One planned row from tests/fixtures/planned. Fields are the stored acceptance.
+
+    The paragraph names that template id and those reason codes.
+    """
+    st.title("Decisions")
+    paths = sorted(PLANNED_DIR.glob("*.yml"))
+    if not paths:
+        st.write("No planned rows.")
+        return
+    if len(paths) == 1:
+        path = paths[0]
+    else:
+        names = [item.stem for item in paths]
+        selected = st.selectbox("Planned", names)
+        path = paths[names.index(selected)]
+
+    row = load_planned(path)
+    if str(row.get("source", "")).strip().lower() == "fixture":
+        st.markdown("FIXTURE")
+
+    st.markdown("**template_id**")
+    st.write(row.get("template_id") or "—")
+
+    st.markdown("**parameters**")
+    _show_rows(_parameter_rows(row.get("parameters") or {}))
+
+    st.markdown("**reason_codes**")
+    codes = row.get("reason_codes") or []
+    st.write(", ".join(str(code) for code in codes) if codes else "—")
+    template_id = str(row.get("template_id") or "").strip()
+    if template_id:
+        st.write(explain_decision(template_id, [str(code) for code in codes]))
+
+    st.markdown("**placeholder_date**")
+    st.write(row.get("placeholder_date") or "—")
+
+    st.markdown("**ontology_version**")
+    st.write(row.get("ontology_version") or "—")
+
+    st.markdown("**source**")
+    st.write(row.get("source") or "—")
+
+
 def page_ledger() -> None:
     """Deposits from the four fixtures. Windows are the ledger's, as of today."""
     st.title("Ledger")
@@ -241,6 +286,7 @@ st.navigation(
     [
         st.Page(page_last_session, title="Last Session", default=True),
         st.Page(page_next, title="Next", url_path="next"),
+        st.Page(page_decisions, title="Decisions", url_path="decisions"),
         st.Page(page_ledger, title="Ledger", url_path="ledger"),
         st.Page(page_goal, title="Goal", url_path="goal"),
     ],

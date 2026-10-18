@@ -1,4 +1,4 @@
-# test_explain.py — paragraphs for classifications and for prescribe() rows.
+# test_explain.py — paragraphs for classifications, prescribe() rows, and planned rows.
 
 from __future__ import annotations
 
@@ -16,16 +16,20 @@ if str(ROOT) not in sys.path:
 
 from db.load import parse_fixture
 from engines.classify import classify
+from engines.accept import PLANNED_DIR, load_planned
 from engines.explain import (
     GOAL_FIELDS,
     SPEND_CAP_MICRO_USD,
     STRUCTURE_WORDS,
     _complete,
+    _decision_acceptable,
+    _decision_restatement,
     _prescription_acceptable,
     _read_spend,
     _reserve_spend,
     _settle_spend,
     explain,
+    explain_decision,
     explain_prescription,
 )
 from engines.ledger import Ledger
@@ -154,6 +158,162 @@ def test_invented_structure_is_rejected() -> None:
         raise AssertionError("a different template id was accepted")
 
 
+def _check_decision_paragraph(text: str, template_id: str, reason_codes: list[str]) -> None:
+    if not text or "\n" in text:
+        raise AssertionError("paragraph is not one line")
+    if len(text.split()) > 60:
+        raise AssertionError("paragraph is over 60 words")
+    if template_id not in text:
+        raise AssertionError("paragraph dropped the stored template id")
+    menu_ids = {template["id"] for template in load_menu()}
+    for other in menu_ids:
+        if other != template_id and other in text:
+            raise AssertionError("paragraph named a different template id")
+    lowered = text.lower()
+    for word in STRUCTURE_WORDS:
+        if f" {word} " in f" {lowered} ":
+            raise AssertionError(f"paragraph invented structure: {word}")
+    if " x " in lowered or "×" in text:
+        raise AssertionError("paragraph invented interval math")
+    if "probability" in lowered or "readiness" in lowered:
+        raise AssertionError("paragraph added a score")
+    for goal_bit in ("2:02.90", "1:55.00", "current mark", "target time", "target date"):
+        if goal_bit in lowered:
+            raise AssertionError("paragraph invented a goal field")
+    families = _mentioned_from_decision(template_id, reason_codes)
+    if not _decision_acceptable(text, template_id, reason_codes, families):
+        raise AssertionError("paragraph broke the decision rules")
+
+
+def _mentioned_from_decision(template_id: str, reason_codes: list[str]) -> set[str]:
+    from engines.explain import _mentioned_families
+
+    return _mentioned_families(_decision_restatement(template_id, reason_codes))
+
+
+def explain_decisions() -> None:
+    paths = sorted(PLANNED_DIR.glob("*.yml"))
+    if not paths:
+        raise AssertionError("no planned rows")
+    for path in paths:
+        row = load_planned(path)
+        stored_id = row["template_id"]
+        stored_codes = list(row["reason_codes"])
+        paragraph = explain_decision(stored_id, stored_codes)
+        print(f"{path.stem}:")
+        print(paragraph)
+        if row["template_id"] != stored_id:
+            raise AssertionError("template_id was changed")
+        if row["reason_codes"] != stored_codes:
+            raise AssertionError("reason_codes were changed")
+        _check_decision_paragraph(paragraph, stored_id, stored_codes)
+        if "4000 m" in paragraph or "25 min" in paragraph.lower():
+            raise AssertionError("paragraph copied structure from the recipe")
+
+
+def test_explain_decisions() -> None:
+    explain_decisions()
+
+
+def test_decision_wrong_id_loses() -> None:
+    """A paragraph that names another id is dropped. The stored id stays."""
+    from engines import explain as explain_mod
+
+    chosen = "aer_4000_r0_x1"
+    real = explain_mod._complete
+
+    def disagree(*_args, **_kwargs):
+        return "The rules chose se_400_r90_x6. Run 6 x 400 with 90 s rest."
+
+    explain_mod._complete = disagree
+    try:
+        text = explain_decision(chosen, ["no_second_hard_day"])
+    finally:
+        explain_mod._complete = real
+    if chosen not in text:
+        raise AssertionError("stored id did not win")
+    if "se_400_r90_x6" in text or "6 x 400" in text:
+        raise AssertionError("disagreeing paragraph was kept")
+
+
+def test_decision_invented_structure_is_rejected() -> None:
+    template_id = "aer_4000_r0_x1"
+    codes = ["no_quality_after_high_recovery", "no_second_hard_day"]
+    text = _decision_restatement(template_id, codes)
+    families = _mentioned_from_decision(template_id, codes)
+    invented = text + " Do 6 x 400 m with 90 s rest."
+    if _decision_acceptable(invented, template_id, codes, families):
+        raise AssertionError("invented interval math was accepted")
+    other = text.replace(template_id, "se_400_r90_x6")
+    if _decision_acceptable(other, template_id, codes, families):
+        raise AssertionError("a different template id was accepted")
+    distances = text.replace(".", ". Planned 4000 m, truly easy.")
+    if _decision_acceptable(distances, template_id, codes, families):
+        raise AssertionError("invented distance was accepted")
+
+
+def test_explain_decision_requires_a_template_id() -> None:
+    try:
+        explain_decision("  ", ["no_second_hard_day"])
+    except ValueError as exc:
+        if "template_id" not in str(exc):
+            raise AssertionError("empty template id was not named") from exc
+    else:
+        raise AssertionError("empty template id was accepted")
+    try:
+        explain_decision("aer_4000_r0_x1", "no_second_hard_day")
+    except ValueError as exc:
+        if "reason_codes" not in str(exc):
+            raise AssertionError("reason_codes string was not named") from exc
+    else:
+        raise AssertionError("reason_codes string was accepted")
+
+
+def test_decision_stops_at_the_spend_cap() -> None:
+    directory = tempfile.mkdtemp()
+    path = Path(directory) / "spend.json"
+    path.write_text(
+        json.dumps({"micro_usd": SPEND_CAP_MICRO_USD}),
+        encoding="utf-8",
+    )
+    previous = {
+        name: os.environ.get(name)
+        for name in (
+            "RIO_EXPLAIN_SPEND_PATH",
+            "RIO_EXPLAIN_API_KEY",
+            "RIO_EXPLAIN_MODEL",
+            "RIO_EXPLAIN_BASE_URL",
+        )
+    }
+    called: list[bool] = []
+
+    def boom(*_args, **_kwargs):
+        called.append(True)
+        raise AssertionError("api was called")
+
+    real = urllib.request.urlopen
+    urllib.request.urlopen = boom
+    os.environ["RIO_EXPLAIN_SPEND_PATH"] = str(path)
+    os.environ["RIO_EXPLAIN_API_KEY"] = "test-key"
+    os.environ["RIO_EXPLAIN_MODEL"] = "test-model"
+    os.environ["RIO_EXPLAIN_BASE_URL"] = "https://example.com/v1"
+    try:
+        text = explain_decision("aer_4000_r0_x1", ["no_second_hard_day"])
+        if "aer_4000_r0_x1" not in text:
+            raise AssertionError("stored id was dropped when the cap blocked the call")
+        if called:
+            raise AssertionError("api was called at the $25 cap")
+        if _read_spend(path) != SPEND_CAP_MICRO_USD:
+            raise AssertionError("spend record changed")
+    finally:
+        urllib.request.urlopen = real
+        for name, value in previous.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
+
+
 def test_explain_prescription_requires_goal_fields() -> None:
     try:
         explain_prescription("aer_4000_r0_x1", ["no_second_hard_day"], {"current_mark": "2:02.90"})
@@ -241,8 +401,13 @@ def test_spend_reservation_stops_at_the_cap() -> None:
 if __name__ == "__main__":
     explain_fixtures()
     explain_prescriptions()
+    explain_decisions()
     test_wrong_id_loses()
     test_invented_structure_is_rejected()
+    test_decision_wrong_id_loses()
+    test_decision_invented_structure_is_rejected()
+    test_explain_decision_requires_a_template_id()
+    test_decision_stops_at_the_spend_cap()
     test_explain_prescription_requires_goal_fields()
     test_spend_cap_blocks_the_api()
     test_spend_reservation_stops_at_the_cap()

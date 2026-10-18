@@ -1,9 +1,10 @@
-# explain.py — prose for a stored classification, and for a prescription. No scores.
+# explain.py — prose for a stored classification, a prescription, and a decision. No scores.
 
 """Paragraphs only. This file is the only place a model is allowed.
 
 A prescription paragraph copies the template id prescribe() already chose.
-It does not decode that id into reps, rest, or distances.
+A decision paragraph copies the template id and the reason codes already
+stored on a planned row. Neither decodes an id into reps, rest, or distances.
 """
 
 from __future__ import annotations
@@ -138,6 +139,18 @@ Return the paragraph only.
 
 """
 
+DECISION_PROMPT = """Rephrase the paragraph below in one paragraph under 60 words.
+Keep the same template id. Do not name a different template id.
+Do not add reps, distances, rest, or any interval math.
+Do not add numbers that are not already in the paragraph.
+Keep every reason already in the paragraph.
+Do not add a goal, a date, parameters, or training advice.
+Do not invent intervals, distances, or structure.
+Cheesy is allowed. A different template id is not.
+Return the paragraph only.
+
+"""
+
 # Workout words a prescription paragraph may not add. They are not in the inputs.
 STRUCTURE_WORDS = (
     "rep",
@@ -222,6 +235,31 @@ def explain_prescription(template_id: str, reason_codes: list[str], goal: dict) 
     return rephrased
 
 
+def explain_decision(template_id: str, reason_codes: list[str]) -> str:
+    """Return one paragraph for a planned row on the Decisions page.
+
+    The template id and the reason codes are already stored. Nothing else
+    is read. A rephrase that names a different id, or that adds intervals,
+    distances, or structure, is dropped. The stored id stays.
+    """
+    if isinstance(reason_codes, (str, bytes)) or not isinstance(reason_codes, (list, tuple)):
+        raise ValueError("reason_codes must be a list")
+    chosen = str(template_id).strip()
+    codes = [str(code).strip() for code in reason_codes if str(code).strip()]
+    if not chosen:
+        raise ValueError("template_id is empty")
+
+    paragraph = _decision_restatement(chosen, codes)
+    allowed_families = _mentioned_families(paragraph)
+    if not _decision_acceptable(paragraph, chosen, codes, allowed_families):
+        raise ValueError("explanation broke its own rules")
+
+    rephrased = _rephrase_decision(paragraph, chosen, codes, allowed_families)
+    if rephrased is None:
+        return paragraph
+    return rephrased
+
+
 def _plain_family(family: str) -> str:
     return FAMILY_TEXT.get(family, family.replace("_", " "))
 
@@ -291,6 +329,30 @@ def _rephrase_prescription(
         return None
     if text is None or not _prescription_acceptable(
         text, template_id, reason_codes, goal, allowed_families
+    ):
+        return None
+    return text
+
+
+def _rephrase_decision(
+    paragraph: str,
+    template_id: str,
+    reason_codes: list[str],
+    allowed_families: set[str],
+) -> str | None:
+    try:
+        text = _complete(paragraph, DECISION_PROMPT)
+    except (
+        OSError,
+        urllib.error.URLError,
+        json.JSONDecodeError,
+        KeyError,
+        ValueError,
+        TypeError,
+    ):
+        return None
+    if text is None or not _decision_acceptable(
+        text, template_id, reason_codes, allowed_families
     ):
         return None
     return text
@@ -415,6 +477,25 @@ def _word_count(text: str) -> int:
 
 def _plain_prescription_code(code: str) -> str:
     return PRESCRIPTION_REASON_TEXT.get(code, code.replace("_", " "))
+
+
+def _decision_restatement(template_id: str, reason_codes: list[str]) -> str:
+    parts = [_plain_prescription_code(code) for code in reason_codes]
+    lead = f"The rules chose {template_id}."
+    reasons = _join_clauses(parts)
+    if not reasons:
+        return lead
+    return f"{lead} {reasons}"
+
+
+def _decision_acceptable(
+    text: str,
+    template_id: str,
+    reason_codes: list[str],
+    allowed_families: set[str],
+) -> bool:
+    """Same guards as a prescription. A decision has no goal fields to copy."""
+    return _prescription_acceptable(text, template_id, reason_codes, {}, allowed_families)
 
 
 def _prescription_restatement(
