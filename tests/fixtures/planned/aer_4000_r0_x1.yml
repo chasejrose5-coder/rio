@@ -1,0 +1,15 @@
+template_id: "aer_4000_r0_x1"
+parameters:
+  id: "aer_4000_r0_x1"
+  name: "Recovery 25 min, about 4 km"
+  family: "aerobic"
+  primary_stimulus: "aerobic"
+  secondary_stimulus: ""
+  default_structure: "One continuous very easy run, planned 4000 m. Truly easy."
+  constraints: "This is the day-after-hard or day-after-race aerobic row."
+placeholder_date: "2026-10-17"
+ontology_version: "v0.1"
+source: fixture
+reason_codes:
+  - "no_quality_after_high_recovery"
+  - "no_second_hard_day"
