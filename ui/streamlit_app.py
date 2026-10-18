@@ -1,6 +1,6 @@
 # streamlit_app.py — Last Session, Next, Ledger, and Goal. Display only. No classification rules.
 
-"""Four pages. Last Session reads normalize, classify, and explain. Next reads prescribe. Ledger and Goal read the ledger."""
+"""Four pages. Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Ledger and Goal read the ledger."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ if str(ROOT) not in sys.path:
 
 from db.load import fixture_paths, parse_fixture
 from engines.classify import classify
-from engines.explain import explain
+from engines.explain import explain, explain_prescription
 from engines.ledger import Ledger
 from engines.normalize import normalize
 from engines.prescribe import PARAMETER_KEYS, prescribe
@@ -158,7 +158,11 @@ def page_last_session() -> None:
 
 
 def page_next() -> None:
-    """Next templates for one fixture ledger. Ids, parameters, and reason codes from prescribe()."""
+    """Next templates for one fixture ledger.
+
+    Ids, parameters, and reason codes come from prescribe().
+    The paragraph names that template id, those reason codes, and the goal.
+    """
     st.title("Next")
     path = selected_fixture_path()
     if path is None:
@@ -190,6 +194,15 @@ def page_next() -> None:
         st.markdown("**Reason codes**")
         codes = row.get("reason_codes") or []
         st.write(", ".join(str(code) for code in codes) if codes else "—")
+        template_id = str(row.get("template_id") or "").strip()
+        if template_id:
+            st.write(
+                explain_prescription(
+                    template_id,
+                    [str(code) for code in codes],
+                    ledger.goal,
+                )
+            )
 
 
 def page_ledger() -> None:

@@ -220,3 +220,5 @@ __marimo__/
 .env.*
 *.db
 data/rio.sqlite
+data/explain_spend.json
+data/explain_spend.json.tmp
