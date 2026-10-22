@@ -240,12 +240,15 @@ def test_plan_rules() -> None:
     phase_4 = [week for week in weeks if _phase(week) == 4]
     if any("spd_150_r150_x8" in _id_list(week) for week in phase_4):
         raise AssertionError("phase 4 added a third hard session")
-    if not any(
-        "ten_percent_easier_template" in session["reason_codes"]
-        for week in phase_4
-        for session in week
-    ):
-        raise AssertionError("phase 4 did not record the 10% cut")
+    opening = {session["day_of_week"]: session for session in phase_4[0]}
+    if opening["Tuesday"]["template_id"] != "se_300_r75_x8":
+        raise AssertionError("phase 4 Tuesday is not speed endurance")
+    if "capacity_weight" not in opening["Tuesday"]["reason_codes"]:
+        raise AssertionError("phase 4 did not record the weight choice")
+    if opening["Thursday"]["template_id"] != "ap_600_r75_x6":
+        raise AssertionError("phase 4 Thursday did not keep aerobic power")
+    if "capacity_weight" in opening["Thursday"]["reason_codes"]:
+        raise AssertionError("equal weights were marked as a weight choice")
     if any(
         session["template_id"].startswith(("se_", "an_"))
         for week in weeks
@@ -394,6 +397,103 @@ def test_calendar_dates() -> None:
         raise AssertionError("adaptation dated a session before the start date")
 
 
+def test_quality_weights() -> None:
+    """Higher primary-capacity weight wins a quality day. Equal weights do not."""
+    plan = sequence("2:02.9", START, "1:55.0", GOAL_DAY)
+    weeks = _weeks(plan)
+    by_phase: dict[int, list[list[dict]]] = {}
+    for week in weeks:
+        by_phase.setdefault(_phase(week), []).append(week)
+
+    def day(week: list[dict], name: str) -> dict:
+        for session in week:
+            if session["day_of_week"] == name:
+                return session
+        raise AssertionError(f"{name} is missing")
+
+    # speed 0.16 over max velocity 0.10. Thursday has nothing left to compare.
+    first = by_phase[1][0]
+    if day(first, "Tuesday")["template_id"] != "spd_150_r150_x8":
+        raise AssertionError("phase 1 Tuesday did not prefer speed")
+    if "capacity_weight" not in day(first, "Tuesday")["reason_codes"]:
+        raise AssertionError("phase 1 Tuesday did not record the weight")
+    if day(first, "Thursday")["template_id"] != "mv_60_r120_x10":
+        raise AssertionError("phase 1 Thursday is not max velocity")
+    if "capacity_weight" in day(first, "Thursday")["reason_codes"]:
+        raise AssertionError("phase 1 Thursday recorded a weight it did not use")
+    if "capacity_weight" in day(first, "Sunday")["reason_codes"]:
+        raise AssertionError("the easy day recorded a quality-day weight")
+    if "capacity_weight" in day(first, "Saturday")["reason_codes"]:
+        raise AssertionError("the long run recorded a quality-day weight")
+
+    # aerobic power 0.16 over threshold 0.07. Same-weight threshold rotation stays.
+    if day(by_phase[3][0], "Tuesday")["template_id"] != "ap_600_r75_x6":
+        raise AssertionError("phase 3 Tuesday did not prefer aerobic power")
+    if "capacity_weight" not in day(by_phase[3][0], "Tuesday")["reason_codes"]:
+        raise AssertionError("phase 3 Tuesday did not record the weight")
+    if day(by_phase[3][0], "Thursday")["template_id"] != "thr_1000_r60_x5":
+        raise AssertionError("phase 3 did not keep the threshold rotation")
+    if day(by_phase[3][1], "Thursday")["template_id"] != "thr_1200_r60_x4":
+        raise AssertionError("phase 3 did not alternate threshold templates")
+    if "capacity_weight" in day(by_phase[3][0], "Thursday")["reason_codes"]:
+        raise AssertionError("phase 3 Thursday recorded a weight it did not use")
+
+    # speed endurance 0.28 then aerobic power 0.16. Rotation inside the weight stays.
+    fifth = [(_id_list(week)[2], _id_list(week)[4]) for week in by_phase[5]]
+    if fifth != [
+        ("se_400_r90_x6", "ap_800_r90_x5"),
+        ("se_500_r120_x4", "ap_700_r90_x5"),
+        ("se_400_r90_x6", "ap_700_r90_x5"),
+    ]:
+        raise AssertionError(f"phase 5 rotation changed: {fifth}")
+    if "capacity_weight" not in day(by_phase[5][0], "Tuesday")["reason_codes"]:
+        raise AssertionError("phase 5 Tuesday did not record the weight")
+    if "capacity_weight" in day(by_phase[5][0], "Thursday")["reason_codes"]:
+        raise AssertionError("phase 5 Thursday recorded a weight it did not use")
+
+    # speed endurance 0.28, then anaerobic 0.18 over speed 0.16.
+    if day(by_phase[6][0], "Tuesday")["template_id"] != "se_400_r90_x6":
+        raise AssertionError("phase 6 Tuesday did not prefer speed endurance")
+    if day(by_phase[6][0], "Thursday")["template_id"] != "an_400_r45_x6":
+        raise AssertionError("phase 6 Thursday did not prefer anaerobic capacity")
+    if day(by_phase[6][1], "Thursday")["template_id"] != "an_600_r180_x3":
+        raise AssertionError("phase 6 did not alternate anaerobic templates")
+    if any("spd_150_r150_x8" in _id_list(week) for week in by_phase[6]):
+        raise AssertionError("phase 6 kept the lower-weight speed day")
+    for name in ("Tuesday", "Thursday"):
+        if "capacity_weight" not in day(by_phase[6][0], name)["reason_codes"]:
+            raise AssertionError(f"phase 6 {name} did not record the weight")
+
+    # Race readiness is 0.02. Speed endurance stays on both pre-comp weeks.
+    # rr_400 cannot share a week with se_400.
+    for week in by_phase[7]:
+        ids = _id_list(week)
+        if "se_400_r90_x6" not in ids or "rr_300_r180_x3" not in ids:
+            raise AssertionError(f"phase 7 did not prefer speed endurance: {ids}")
+        if "rr_400_r240_x2" in ids:
+            raise AssertionError("phase 7 paired the sharpen with speed endurance")
+        if "capacity_weight" not in day(week, "Tuesday")["reason_codes"]:
+            raise AssertionError("phase 7 Tuesday did not record the weight")
+
+    # Taper quality prefers max velocity 0.10 over race readiness 0.02.
+    # The race stays on the last Saturday.
+    taper = by_phase[8]
+    if day(taper[0], "Tuesday")["template_id"] != "mv_60_r120_x10":
+        raise AssertionError("taper Tuesday did not prefer max velocity")
+    if "capacity_weight" not in day(taper[0], "Tuesday")["reason_codes"]:
+        raise AssertionError("taper Tuesday did not record the weight")
+    if day(taper[0], "Thursday")["template_id"] != "rr_300_r180_x3":
+        raise AssertionError("taper Thursday is not the race-readiness touch")
+    if "capacity_weight" in day(taper[0], "Thursday")["reason_codes"]:
+        raise AssertionError("taper Thursday recorded a weight it did not use")
+    if day(taper[1], "Tuesday")["template_id"] != "mv_60_r120_x10":
+        raise AssertionError("race week quality did not prefer max velocity")
+    if day(taper[1], "Saturday")["template_id"] != "rr_800_r0_x1":
+        raise AssertionError("the race left Saturday")
+    if "capacity_weight" in day(taper[1], "Saturday")["reason_codes"]:
+        raise AssertionError("the race recorded a quality-day weight")
+
+
 def test_seventeen_week_season() -> None:
     goal = START + timedelta(days=17 * 7)
     plan = sequence("2:02.9", START, "1:55.0", goal)
@@ -481,6 +581,7 @@ if __name__ == "__main__":
     test_dates_and_times()
     test_plan_rules()
     test_calendar_dates()
+    test_quality_weights()
     test_seventeen_week_season()
     test_short_season()
     test_adaptation()

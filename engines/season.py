@@ -12,6 +12,12 @@ and its day of the week. Week 1 is the Sunday–Saturday week that contains
 start_date, and days before start_date are left out. Later weeks are full
 Sunday–Saturday weeks.
 
+Quality days use the locked 800 m capacity weights. The phase menu is the
+allowed set. The six-day week places Tuesday and Thursday quality, the
+Saturday long run, and three aer_5000 recovery days. When a quality day
+has more than one eligible template, the higher primary-capacity weight
+wins, and that session records capacity_weight.
+
 No model. No spend. Prose spend stays capped at $25 in engines/explain.py.
 This file does not write the exam file.
 """
@@ -27,7 +33,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from engines.ledger import ONTOLOGY_VERSION
+from engines.ledger import ONTOLOGY_VERSION, load_paper
 from engines.prescribe import load_menu
 
 # new * 10 <= previous * 11  is a rise of at most 10%.
@@ -156,6 +162,40 @@ _PRIORITY = {
     "anaerobic_capacity": "priority_anaerobic_capacity",
 }
 
+# Locked 800 m weights from rio/v0.1/event_weights.yml. They sum to 1.
+_LOCKED_800_WEIGHTS = {
+    "speed_endurance": 0.28,
+    "anaerobic_capacity": 0.18,
+    "speed": 0.16,
+    "aerobic_power": 0.16,
+    "max_velocity": 0.10,
+    "threshold": 0.07,
+    "aerobic": 0.03,
+    "race_readiness": 0.02,
+}
+_WEIGHTS_PATH = ROOT / "rio" / "v0.1" / "event_weights.yml"
+_CACHED_WEIGHTS: dict[str, float] | None = None
+
+# Same-weight templates keep the existing week-index rotation.
+# Weight does not choose among them.
+_SAME_WEIGHT_ORDER = {
+    (3, "threshold"): ("thr_1000_r60_x5", "thr_1200_r60_x4"),
+    (5, "speed_endurance"): (
+        "se_400_r90_x6",
+        "se_500_r120_x4",
+        "se_400_r90_x6",
+        "se_500_r120_x4",
+    ),
+    (5, "aerobic_power"): (
+        "ap_800_r90_x5",
+        "ap_700_r90_x5",
+        "ap_700_r90_x5",
+        "ap_800_r90_x5",
+    ),
+    (6, "anaerobic_capacity"): ("an_400_r45_x6", "an_600_r180_x3"),
+    (8, "race_readiness"): ("rr_300_r180_x3", "rr_200_r180_x4"),
+}
+
 # One step along the frozen menu. Used only when a phase cannot move.
 _HARDER = {
     "mv_60_r120_x10": "mv_80_r180_x8",
@@ -183,6 +223,7 @@ _REASON_ORDER = (
     "priority_speed_endurance",
     "priority_aerobic_power",
     "priority_anaerobic_capacity",
+    "capacity_weight",
     "ten_percent_hold",
     "ten_percent_easier_template",
     "extra_easy_day",
@@ -252,7 +293,10 @@ _TIME = re.compile(r"^(\d+):(\d{2})(\.\d+)?$")
 _ISO_DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _WORK = re.compile(r"_(\d+)_r\d+_x(\d+)$")
 _PHASE_CODE = re.compile(r"^phase_([1-8])$")
-_GOAL_IN_TEXT = re.compile(r"\(([0-9]+:[0-9]{2}(?:\.[0-9]+)?)\)")
+# Hits write the goal as "(1:55.0)" or, on the race, "for 1:55.0".
+_GOAL_IN_TEXT = re.compile(
+    r"(?:\(|\bfor )([0-9]+:[0-9]{2}(?:\.[0-9]+)?)\)?"
+)
 
 _BANNED_PHASE_8 = {"speed_endurance", "anaerobic_capacity"}
 _RACE_SHARPEN = "rr_400_r240_x2"
@@ -507,7 +551,7 @@ def _build_week(slot, menu, prev_volume, prev_hard, peak, hook: str, nxt) -> dic
     if hook in ("moved_back_one_phase", "advanced_one_phase"):
         codes.add(hook)
     if hook == "extra_easy_week" and phase == 8:
-        easy = _easy_ids(slot)
+        easy, weighted = _easy_ids(slot, menu)
         # Skip the easy week when the next week's natural volume could not
         # return within 10%. The cap wins.
         if nxt is None or nxt * _RISE_DEN <= _work(easy) * _RISE_NUM:
@@ -515,10 +559,10 @@ def _build_week(slot, menu, prev_volume, prev_hard, peak, hook: str, nxt) -> dic
             if dropped:
                 codes.add("ten_percent_easier_template")
             codes.add("extra_easy_week")
-            return _pack(easy, phase, menu, codes)
+            return _pack(easy, phase, menu, codes, weighted)
         hook = ""
     if phase == 8:
-        ids = _natural_ids(slot)
+        ids, weighted = _natural_ids(slot, menu)
         if hook == "harder_template":
             hardened = _harden(ids, phase, menu, prev_volume, prev_hard)
             if hardened != ids:
@@ -527,9 +571,9 @@ def _build_week(slot, menu, prev_volume, prev_hard, peak, hook: str, nxt) -> dic
         ids, dropped = _trim(ids, phase, menu, prev_volume, prev_hard)
         if dropped:
             codes.add("ten_percent_easier_template")
-        return _pack(ids, phase, menu, codes)
+        return _pack(ids, phase, menu, codes, weighted)
 
-    required = _natural_ids(slot)
+    required, weighted = _natural_ids(slot, menu)
     required, dropped = _trim_hard(required, phase, menu, prev_hard)
     if dropped:
         codes.add("ten_percent_easier_template")
@@ -547,20 +591,20 @@ def _build_week(slot, menu, prev_volume, prev_hard, peak, hook: str, nxt) -> dic
         if eased != chosen and (nxt is None or nxt * _RISE_DEN <= _work(eased) * _RISE_NUM):
             chosen = eased
             codes.add("extra_easy_week")
-    return _pack(chosen, phase, menu, codes)
+    return _pack(chosen, phase, menu, codes, weighted)
 
 
-def _easy_ids(slot: dict) -> list[str]:
+def _easy_ids(slot: dict, menu) -> tuple[list[str], set[str]]:
     """Phase 8 drops the longer non-race session. The race stays."""
-    ids = _natural_ids(slot)
+    ids, weighted = _natural_ids(slot, menu)
     if len(ids) < 2:
-        return ids
+        return ids, weighted
     droppable = [template_id for template_id in ids if template_id != "rr_800_r0_x1"]
     victim = max(droppable, key=work_meters)
-    return [template_id for template_id in ids if template_id != victim]
+    return [template_id for template_id in ids if template_id != victim], weighted
 
 
-def _pack(ids, phase, menu, codes: set[str]) -> dict:
+def _pack(ids, phase, menu, codes: set[str], weight_capacities=None) -> dict:
     placed = _place(ids, phase, menu)
     return {
         "phase": phase,
@@ -568,6 +612,7 @@ def _pack(ids, phase, menu, codes: set[str]) -> dict:
         "days": [day for day, _ in placed],
         "holds": set(),
         "codes": codes,
+        "weight_capacities": set(weight_capacities or ()),
     }
 
 
@@ -773,38 +818,164 @@ def _harden(ids, phase, menu, prev_volume, prev_hard) -> list[str]:
     return chosen
 
 
-def _natural_ids(slot: dict) -> list[str]:
+def _capacity_weights() -> dict[str, float]:
+    """Locked 800 m weights. The paper file is the source."""
+    global _CACHED_WEIGHTS
+    if _CACHED_WEIGHTS is not None:
+        return _CACHED_WEIGHTS
+    paper = load_paper(_WEIGHTS_PATH)
+    block = None
+    for key, value in paper.items():
+        if str(key).strip().strip("\"'") == "800" and isinstance(value, dict):
+            block = value
+            break
+    if block is None:
+        raise ValueError("800 m weights are missing")
+    if set(block) != set(_LOCKED_800_WEIGHTS):
+        raise ValueError("800 m weights are not the locked capacities")
+    weights: dict[str, float] = {}
+    for name, expected in _LOCKED_800_WEIGHTS.items():
+        value = block[name]
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(f"{name} weight is not a number")
+        if abs(float(value) - expected) > 1e-9:
+            raise ValueError(f"{name} weight is not the locked value")
+        weights[name] = float(value)
+    if abs(sum(weights.values()) - 1) > 1e-9:
+        raise ValueError("800 m weights do not sum to 1")
+    _CACHED_WEIGHTS = weights
+    return weights
+
+
+def _stimulus(template_id: str, menu) -> str:
+    """Primary capacity of a frozen template."""
+    template = menu[template_id]
+    stimulus = template.get("primary_stimulus") or template["family"]
+    if not isinstance(stimulus, str) or not stimulus.strip():
+        raise ValueError(f"{template_id} has no primary capacity")
+    return stimulus.strip()
+
+
+def _quality_pool(phase: int, menu) -> list[str]:
+    """Phase-menu templates that can fill Tuesday or Thursday."""
+    pool = []
+    for template_id in _PHASE_MENU[phase]:
+        if template_id in _LONG_RUNS or template_id == "rr_800_r0_x1":
+            continue
+        if _family(template_id, menu) == "aerobic":
+            continue
+        pool.append(template_id)
+    return pool
+
+
+def _pair_ok(ids: list[str]) -> bool:
+    return not (_RACE_SHARPEN in ids and _RACE_SE in ids)
+
+
+def _choose_quality(slot: dict, menu) -> tuple[list[str], set[str]]:
+    """Tuesday-then-Thursday quality ids, and capacities the weight picked.
+
+    One capacity per quality day, highest locked weight first. A second
+    template of a capacity already used is only taken when nothing else
+    is eligible. Equal weights do not count as a weight decision.
+    """
     phase = slot["phase"]
-    index = slot["index"]
-    count = slot["count"]
-    if phase == 1:
-        return ["mv_60_r120_x10", "aer_10000_r0_x1", "spd_150_r150_x8"]
-    if phase == 2:
-        return ["spd_150_r150_x8", "mv_80_r180_x8"]
-    if phase == 3:
-        threshold = "thr_1000_r60_x5" if index % 2 == 0 else "thr_1200_r60_x4"
-        return [threshold, "ap_600_r75_x6"]
-    if phase == 4:
-        return ["se_300_r75_x8", "ap_600_r75_x6", "spd_150_r150_x8"]
-    if phase == 5:
-        pairs = (
-            ("se_400_r90_x6", "ap_800_r90_x5"),
-            ("se_500_r120_x4", "ap_700_r90_x5"),
-            ("se_400_r90_x6", "ap_700_r90_x5"),
-            ("se_500_r120_x4", "ap_800_r90_x5"),
-        )
-        speed, power = pairs[index % 4]
-        return [speed, power]
-    if phase == 6:
-        anaerobic = "an_400_r45_x6" if index % 2 == 0 else "an_600_r180_x3"
-        return [anaerobic, "se_400_r90_x6", "spd_150_r150_x8"]
-    if phase == 7:
-        if count == 1 or index == count - 1:
-            return ["rr_400_r240_x2", "rr_300_r180_x3"]
-        return ["se_400_r90_x6", "rr_300_r180_x3"]
-    if slot["last"]:
-        return ["rr_200_r180_x4", "rr_800_r0_x1"]
-    return ["mv_60_r120_x10", "rr_300_r180_x3"]
+    pool = _quality_pool(phase, menu)
+    count = 1 if phase == 8 and slot["last"] else 2
+    chosen: list[str] = []
+    used: list[str] = []
+    weighted: set[str] = set()
+    for _ in range(count):
+        fresh = [
+            template_id
+            for template_id in pool
+            if template_id not in chosen
+            and _stimulus(template_id, menu) not in used
+            and _pair_ok(chosen + [template_id])
+        ]
+        eligible = fresh
+        repeated = False
+        if not eligible:
+            eligible = [
+                template_id
+                for template_id in pool
+                if template_id not in chosen and _pair_ok(chosen + [template_id])
+            ]
+            repeated = True
+        if not eligible:
+            break
+        groups: dict[str, list[str]] = {}
+        for template_id in eligible:
+            groups.setdefault(_stimulus(template_id, menu), []).append(template_id)
+        capacity, decided = _winning_capacity(groups, phase, menu)
+        if repeated:
+            # Same capacity as a day already filled. Weight did not pick it.
+            decided = False
+        chosen.append(_rotate(groups[capacity], slot, phase, menu))
+        used.append(capacity)
+        if decided:
+            weighted.add(capacity)
+    if len(chosen) < count:
+        raise ValueError(f"phase {phase} does not have enough quality templates")
+    return chosen, weighted
+
+
+def _winning_capacity(groups: dict[str, list[str]], phase: int, menu) -> tuple[str, bool]:
+    """Highest 800 m weight. A tie is not a weight decision."""
+    weights = _capacity_weights()
+
+    def rank_weight(capacity: str) -> float:
+        if capacity not in weights:
+            raise ValueError(f"{capacity} has no 800 m weight")
+        return weights[capacity]
+
+    best = max(rank_weight(capacity) for capacity in groups)
+    tied = [
+        capacity
+        for capacity in groups
+        if abs(rank_weight(capacity) - best) < 1e-9
+    ]
+    # capacity_weight is recorded only when one capacity is strictly heavier.
+    if len(tied) == 1 and len(groups) > 1:
+        return tied[0], True
+    if len(tied) == 1:
+        return tied[0], False
+    winner = max(
+        tied,
+        key=lambda capacity: max(
+            _keep_rank(template_id, phase, menu) for template_id in groups[capacity]
+        ),
+    )
+    return winner, False
+
+
+def _rotate(candidates: list[str], slot: dict, phase: int, menu) -> str:
+    """Pick one template inside a capacity. Weight does not do this."""
+    if len(candidates) == 1:
+        return candidates[0]
+    family = _stimulus(candidates[0], menu)
+    order = _SAME_WEIGHT_ORDER.get((phase, family))
+    if order is None:
+        order = [template_id for template_id in _PHASE_MENU[phase] if template_id in candidates]
+    else:
+        order = [template_id for template_id in order if template_id in set(candidates)]
+    if not order:
+        order = sorted(candidates)
+    return order[slot["index"] % len(order)]
+
+
+def _natural_ids(slot: dict, menu) -> tuple[list[str], set[str]]:
+    """Quality templates for the week, Tuesday first, plus weight winners.
+
+    The phase menu is the allowed set. Two quality days (one on the last
+    taper week) take the higher primary-capacity weight when more than one
+    template is eligible. The race is added on the last taper Saturday.
+    """
+    quality, weighted = _choose_quality(slot, menu)
+    ids = list(quality)
+    if slot["phase"] == 8 and slot["last"]:
+        ids.append("rr_800_r0_x1")
+    return ids, weighted
 
 
 def _natural_volume(slot: dict, menu) -> int:
@@ -813,7 +984,8 @@ def _natural_volume(slot: dict, menu) -> int:
     Phases 1–7 count two quality sessions, three easy 5 km runs, and the
     8 km long run. That is the floor the previous week has to support.
     """
-    quality = _cap_quality(_natural_ids(slot), slot["phase"], menu)
+    ids, _weighted = _natural_ids(slot, menu)
+    quality = _cap_quality(ids, slot["phase"], menu)
     meters = _work(quality)
     if slot["phase"] < 8:
         meters += 3 * work_meters(_RECOVERY_ID) + _LONG_METERS[_LONG_8]
@@ -914,6 +1086,8 @@ def _codes(template_id: str, phase: int, week: dict, menu) -> list[str]:
         codes.append("weekly_aerobic_long_run")
     if phase >= 4 and family in _PRIORITY:
         codes.append(_PRIORITY[family])
+    if _stimulus(template_id, menu) in week.get("weight_capacities", ()):
+        codes.append("capacity_weight")
     if phase == 8:
         codes.append("phase_8_freshness")
         codes.append("phase_8_no_hard_se_or_an")
