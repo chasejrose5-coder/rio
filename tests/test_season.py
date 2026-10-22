@@ -23,6 +23,19 @@ EXAM = ROOT / "tests" / "labeled_sessions.yml"
 START = date(2026, 4, 19)
 GOAL_DAY = date(2027, 3, 19)
 LONG_RUNS = {"aer_8000_r0_x1", "aer_12000_r0_x1"}
+RECOVERY = "aer_5000_r0_x1"
+WEEK_DAYS = {
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+}
+STANDARD_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Saturday"]
+EASY_DAYS = ("Sunday", "Monday", "Wednesday")
+QUALITY_DAYS = ("Tuesday", "Thursday")
 PHASE_8 = {
     "rr_200_r180_x4",
     "rr_300_r180_x3",
@@ -138,11 +151,10 @@ def test_plan_rules() -> None:
     long_ids: set[str] = set()
     for number, week in enumerate(weeks, start=1):
         ids = [session["template_id"] for session in week]
-        if len(ids) != len(set(ids)):
-            raise AssertionError(f"week {number} repeats a template")
         for session in week:
             if tuple(session) != (
                 "week_number",
+                "day_of_week",
                 "template_id",
                 "reason_codes",
                 "target_outcome",
@@ -173,6 +185,7 @@ def test_plan_rules() -> None:
                 raise AssertionError(f"taper week {number} left the phase 8 menu")
             if "phase_8_freshness" not in week[0]["reason_codes"]:
                 raise AssertionError("taper week does not name freshness")
+        _assert_week_shape(number, week, phase, families)
         if "rr_400_r240_x2" in ids and "se_400_r90_x6" in ids:
             raise AssertionError(f"week {number} pairs the sharpen with 6 × 400")
         volume = _volume(week)
@@ -240,6 +253,36 @@ def _id_list(week: list[dict]) -> list[str]:
     return [session["template_id"] for session in week]
 
 
+def _assert_week_shape(number: int, week: list[dict], phase: int, families: dict) -> None:
+    days = [session["day_of_week"] for session in week]
+    ids = [session["template_id"] for session in week]
+    if any(day not in WEEK_DAYS for day in days):
+        raise AssertionError(f"week {number} has a day outside Sunday–Saturday")
+    if len(days) != len(set(days)):
+        raise AssertionError(f"week {number} repeats a day")
+    repeated = [template_id for template_id in ids if template_id != RECOVERY]
+    if len(repeated) != len(set(repeated)):
+        raise AssertionError(f"week {number} repeats a template")
+    if phase == 8:
+        if len(week) >= 6:
+            raise AssertionError(f"taper week {number} is not shorter")
+        if any(template_id in LONG_RUNS for template_id in ids):
+            raise AssertionError(f"taper week {number} kept a long run")
+        return
+    if days != STANDARD_DAYS:
+        raise AssertionError(f"week {number} days are {days}")
+    by_day = {session["day_of_week"]: session["template_id"] for session in week}
+    for day in EASY_DAYS:
+        if by_day[day] != RECOVERY:
+            raise AssertionError(f"week {number} {day} is {by_day[day]}")
+    if by_day["Saturday"] not in LONG_RUNS:
+        raise AssertionError(f"week {number} Saturday is {by_day['Saturday']}")
+    for day in QUALITY_DAYS:
+        template_id = by_day[day]
+        if families[template_id] == "aerobic" or template_id in LONG_RUNS:
+            raise AssertionError(f"week {number} {day} is not quality")
+
+
 def test_short_season() -> None:
     plan = sequence("2:02.9", START, "1:55.0", START + timedelta(days=14))
     weeks = _weeks(plan)
@@ -304,6 +347,7 @@ def _assert_ten_percent(plan: dict) -> None:
             raise AssertionError(f"adapted week {number} lost its one long run")
         if phase == 8 and any(template_id.startswith(BANNED_TAPER) for template_id in ids):
             raise AssertionError("adapted taper added hard specific work")
+        _assert_week_shape(number, week, phase, menu)
         for session in week:
             if session["template_id"] not in menu:
                 raise AssertionError("adapt invented a template")

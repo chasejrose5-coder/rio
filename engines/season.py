@@ -4,8 +4,8 @@
 
 Inputs are the current 800 time, the start date, the goal 800 time, and the
 goal date. The plan is an ordered list of sessions. Each session has a week
-number, a frozen template id, reason codes, and the target outcome that
-counts as a hit.
+number, a day of the week, a frozen template id, reason codes, and the target
+outcome that counts as a hit.
 
 No model. No spend. Prose spend stays capped at $25 in engines/explain.py.
 This file does not write the exam file.
@@ -36,6 +36,31 @@ _LONG_METERS = {_LONG_8: 8000, _LONG_12: 12000}
 
 # Easy days the 10% rule may insert. They are frozen menu ids.
 _HOLDS = ("aer_4000_r0_x1", "aer_5000_r0_x1", "aer_10000_r0_x1")
+
+# Phases 1–7 are six sessions. Friday is the off day. Sunday, Monday, and
+# Wednesday are the three easy runs. Tuesday and Thursday are quality.
+# Saturday is the long run.
+_WEEK_DAYS = (
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+)
+_EASY_DAYS = ("Sunday", "Monday", "Wednesday")
+_QUALITY_DAYS = ("Tuesday", "Thursday")
+_LONG_DAY = "Saturday"
+_RECOVERY_ID = "aer_5000_r0_x1"
+_STANDARD_DAYS = (
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Saturday",
+)
 
 # Phase 8 is the last 14 days (two whole weeks) when the season has them.
 # A one-week season is only that week: the window itself is shorter than 10 days.
@@ -164,6 +189,7 @@ _REASON_ORDER = (
 
 _SESSION_FIELDS = (
     "week_number",
+    "day_of_week",
     "template_id",
     "reason_codes",
     "target_outcome",
@@ -373,10 +399,18 @@ def show_season(
     print(
         f"{plan['season_length_weeks']} weeks  {start.isoformat()} → {goal_day.isoformat()}"
     )
-    for number, ids in enumerate(_ids_by_week(plan), start=1):
-        phase = _phase_of_ids(plan, number)
+    grouped: dict[int, list[dict]] = {}
+    for session in plan["sessions"]:
+        grouped.setdefault(session["week_number"], []).append(session)
+    for number in range(1, plan["season_length_weeks"] + 1):
+        week = grouped[number]
+        ids = [session["template_id"] for session in week]
+        phase = _one_phase(week, number)
+        bits = [
+            f"{session['day_of_week'][:3]} {session['template_id']}" for session in week
+        ]
         print(
-            f"week {number:02d}  phase {phase}  {_work(ids):5d} m  hard {_hard(ids, menu)}  {ids}"
+            f"week {number:02d}  phase {phase}  {_work(ids):5d} m  hard {_hard(ids, menu)}  {bits}"
         )
 
 
@@ -385,7 +419,7 @@ def _assemble(phases, menu, locked=None, hooks=None) -> list[dict]:
     locked = list(locked or [])
     hooks = dict(hooks or {})
     slots = _slots(phases)
-    naturals = [_natural_volume(slot) for slot in slots]
+    naturals = [_natural_volume(slot, menu) for slot in slots]
     built: list[dict] = []
     prev_volume = None
     prev_hard = None
@@ -420,7 +454,7 @@ def _build_week(slot, menu, prev_volume, prev_hard, peak, hook: str, nxt) -> dic
     codes: set[str] = set()
     if hook in ("moved_back_one_phase", "advanced_one_phase"):
         codes.add(hook)
-    if hook == "extra_easy_week":
+    if hook == "extra_easy_week" and phase == 8:
         easy = _easy_ids(slot)
         # Skip the easy week when the next week's natural volume could not
         # return within 10%. The cap wins.
@@ -429,17 +463,7 @@ def _build_week(slot, menu, prev_volume, prev_hard, peak, hook: str, nxt) -> dic
             if dropped:
                 codes.add("ten_percent_easier_template")
             codes.add("extra_easy_week")
-            holds = {
-                template_id
-                for template_id in easy
-                if template_id in _HOLDS and template_id not in _PHASE_MENU[phase]
-            }
-            return {
-                "phase": phase,
-                "ids": _order(easy, phase, menu),
-                "holds": holds,
-                "codes": codes,
-            }
+            return _pack(easy, phase, menu, codes)
         hook = ""
     if phase == 8:
         ids = _natural_ids(slot)
@@ -451,96 +475,166 @@ def _build_week(slot, menu, prev_volume, prev_hard, peak, hook: str, nxt) -> dic
         ids, dropped = _trim(ids, phase, menu, prev_volume, prev_hard)
         if dropped:
             codes.add("ten_percent_easier_template")
-        return {
-            "phase": phase,
-            "ids": _order(ids, phase, menu),
-            "holds": set(),
-            "codes": codes,
-        }
+        return _pack(ids, phase, menu, codes)
 
     required = _natural_ids(slot)
     required, dropped = _trim_hard(required, phase, menu, prev_hard)
     if dropped:
         codes.add("ten_percent_easier_template")
+    quality = _cap_quality(required, phase, menu)
     floor = _floor_for(peak)
-    chosen = _best(required, phase, prev_volume, prev_hard, floor, menu)
-    holds = {template_id for template_id in chosen if template_id in _HOLDS}
-    holds -= set(_PHASE_MENU[phase])
+    chosen = _best(quality, phase, prev_volume, prev_hard, floor, menu)
     if hook == "harder_template":
         hardened = _harden(chosen, phase, menu, prev_volume, prev_hard)
         if hardened != chosen:
             chosen = hardened
             codes.add("harder_template")
+    if hook == "extra_easy_week":
+        eased = _ease(chosen, phase, menu, prev_volume, prev_hard, floor)
+        # Keep the cut only when the next week can still return within 10%.
+        if eased != chosen and (nxt is None or nxt * _RISE_DEN <= _work(eased) * _RISE_NUM):
+            chosen = eased
+            codes.add("extra_easy_week")
+    return _pack(chosen, phase, menu, codes)
+
+
+def _easy_ids(slot: dict) -> list[str]:
+    """Phase 8 drops the longer non-race session. The race stays."""
+    ids = _natural_ids(slot)
+    if len(ids) < 2:
+        return ids
+    droppable = [template_id for template_id in ids if template_id != "rr_800_r0_x1"]
+    victim = max(droppable, key=work_meters)
+    return [template_id for template_id in ids if template_id != victim]
+
+
+def _pack(ids, phase, menu, codes: set[str]) -> dict:
+    placed = _place(ids, phase, menu)
     return {
         "phase": phase,
-        "ids": _order(chosen, phase, menu),
-        "holds": holds,
+        "ids": [template_id for _, template_id in placed],
+        "days": [day for day, _ in placed],
+        "holds": set(),
         "codes": codes,
     }
 
 
-def _easy_ids(slot: dict) -> list[str]:
-    """Aerobic sessions only. Phase 8 drops the longer non-race session."""
-    phase = slot["phase"]
+def _place(ids, phase, menu) -> list[tuple[str, str]]:
+    """(day_of_week, template_id) in Sunday–Saturday order."""
     if phase == 8:
-        ids = _natural_ids(slot)
-        if len(ids) < 2:
-            return ids
-        droppable = [template_id for template_id in ids if template_id != "rr_800_r0_x1"]
-        victim = max(droppable, key=work_meters)
-        return [template_id for template_id in ids if template_id != victim]
-    easy = [
+        return _place_taper(ids, menu)
+    quality = _quality_in(ids, menu)
+    longs = [template_id for template_id in ids if template_id in _LONG_RUNS]
+    if len(quality) != 2 or len(longs) != 1:
+        raise ValueError("week does not have two quality sessions and one long run")
+    placed = {
+        "Sunday": _RECOVERY_ID,
+        "Monday": _RECOVERY_ID,
+        "Tuesday": quality[0],
+        "Wednesday": _RECOVERY_ID,
+        "Thursday": quality[1],
+        "Saturday": longs[0],
+    }
+    return [(day, placed[day]) for day in _STANDARD_DAYS]
+
+
+def _place_taper(ids, menu) -> list[tuple[str, str]]:
+    """Fewer sessions. Quality on Tuesday then Thursday. The race is Saturday."""
+    race = [template_id for template_id in ids if template_id == "rr_800_r0_x1"]
+    quality: list[str] = []
+    easy_count = 0
+    for template_id in ids:
+        if template_id == "rr_800_r0_x1" or template_id in _LONG_RUNS:
+            continue
+        if template_id == _RECOVERY_ID or _family(template_id, menu) == "aerobic":
+            easy_count += 1
+            continue
+        quality.append(template_id)
+    placed: dict[str, str] = {}
+    for day in ("Sunday", "Monday", "Wednesday", "Friday"):
+        if easy_count <= 0:
+            break
+        placed[day] = _RECOVERY_ID
+        easy_count -= 1
+    for day, template_id in zip(_QUALITY_DAYS, quality):
+        placed[day] = template_id
+    if race:
+        placed[_LONG_DAY] = race[0]
+    if not placed:
+        raise ValueError("taper week has no session")
+    return [(day, placed[day]) for day in _WEEK_DAYS if day in placed]
+
+
+def _quality_in(ids, menu) -> list[str]:
+    return [
         template_id
-        for template_id in _PHASE_MENU[phase]
-        if template_id not in _LONG_RUNS and _family_of(template_id) == "aerobic"
+        for template_id in ids
+        if template_id not in _LONG_RUNS and _family(template_id, menu) != "aerobic"
     ]
-    if not easy:
-        easy = ["aer_4000_r0_x1"]
-    return easy + [_LONG_8]
+
+
+def _cap_quality(ids, phase, menu) -> list[str]:
+    """Tuesday and Thursday. A third hard session does not fit the week."""
+    quality = _quality_in(ids, menu)
+    while len(quality) > 2:
+        victim = _drop_one(quality, phase, menu)
+        if victim is None:
+            return quality[:2]
+        quality.remove(victim)
+    return quality
+
+
+def _ease(ids, phase, menu, prev_volume, prev_hard, floor) -> list[str]:
+    """One easier step that keeps six sessions, two quality days, and the floor."""
+    chosen = list(ids)
+    if _LONG_12 in chosen:
+        trial = [_LONG_8 if template_id == _LONG_12 else template_id for template_id in chosen]
+        if _work(trial) >= floor and _fits(trial, prev_volume, prev_hard, menu):
+            chosen = trial
+    easier = {harder: prior for prior, harder in _HARDER.items()}
+    for index, template_id in enumerate(list(chosen)):
+        prior = easier.get(template_id)
+        if not prior or prior in chosen:
+            continue
+        if phase == 8 and _family(prior, menu) in _BANNED_PHASE_8:
+            continue
+        trial = list(chosen)
+        trial[index] = prior
+        if _RACE_SHARPEN in trial and _RACE_SE in trial:
+            continue
+        if _work(trial) >= floor and _fits(trial, prev_volume, prev_hard, menu):
+            return trial
+    return chosen
 
 
 def _best(required, phase, prev_volume, prev_hard, floor, menu) -> list[str]:
-    """Smallest week that keeps the quality, supports the next peak, and fits 10%."""
-    required = list(required)
-    while True:
-        candidates = _candidates(required, phase)
-        legal = [
-            ids
-            for ids in candidates
-            if _fits(ids, prev_volume, prev_hard, menu)
-            and not (_RACE_SHARPEN in ids and _RACE_SE in ids)
-        ]
-        meeting = [ids for ids in legal if _work(ids) >= floor]
-        if meeting:
-            return min(meeting, key=_candidate_key)
-        if legal and floor > 0:
-            # Cannot reach the floor without breaking 10%. Take the closest.
-            return max(legal, key=lambda ids: (_work(ids), tuple(ids)))
-        if legal and floor <= 0:
-            return min(legal, key=_candidate_key)
-        dropped = _drop_one(required, phase, menu)
-        if dropped is None:
-            if phase < 8 and _fits([_LONG_8], prev_volume, prev_hard, menu):
-                return [_LONG_8]
-            raise ValueError("no week fits the 10% rule")
-        required.remove(dropped)
+    """Smallest six-session week that keeps both quality days and fits 10%."""
+    candidates = _candidates(required, phase)
+    legal = [
+        ids
+        for ids in candidates
+        if _fits(ids, prev_volume, prev_hard, menu)
+        and not (_RACE_SHARPEN in ids and _RACE_SE in ids)
+    ]
+    meeting = [ids for ids in legal if _work(ids) >= floor]
+    if meeting:
+        return min(meeting, key=_candidate_key)
+    if legal and floor > 0:
+        # Cannot reach the floor without breaking 10%. Take the closest.
+        return max(legal, key=lambda ids: (_work(ids), tuple(ids)))
+    if legal and floor <= 0:
+        return min(legal, key=_candidate_key)
+    raise ValueError("no week fits the 10% rule")
 
 
 def _candidates(required: list[str], phase: int) -> list[list[str]]:
-    holds = [template_id for template_id in _HOLDS if template_id not in required]
-    subsets: list[tuple[str, ...]] = [()]
-    subsets.extend((hold,) for hold in holds)
-    for left in range(len(holds)):
-        for right in range(left + 1, len(holds)):
-            subsets.append((holds[left], holds[right]))
-    found: list[list[str]] = []
-    for long_run in _LONG_RUNS:
-        for extra in subsets:
-            ids = list(required) + list(extra) + [long_run]
-            if len(ids) == len(set(ids)):
-                found.append(ids)
+    """Two quality sessions, three easy 5 km runs, and one long run."""
     if phase >= 8:
         return []
+    found: list[list[str]] = []
+    recovery = [_RECOVERY_ID, _RECOVERY_ID, _RECOVERY_ID]
+    for long_run in _LONG_RUNS:
+        found.append(list(required) + recovery + [long_run])
     return found
 
 
@@ -661,10 +755,16 @@ def _natural_ids(slot: dict) -> list[str]:
     return ["mv_60_r120_x10", "rr_300_r180_x3"]
 
 
-def _natural_volume(slot: dict) -> int:
-    meters = _work(_natural_ids(slot))
+def _natural_volume(slot: dict, menu) -> int:
+    """Volume of the week before a longer long run is added.
+
+    Phases 1–7 count two quality sessions, three easy 5 km runs, and the
+    8 km long run. That is the floor the previous week has to support.
+    """
+    quality = _cap_quality(_natural_ids(slot), slot["phase"], menu)
+    meters = _work(quality)
     if slot["phase"] < 8:
-        meters += _LONG_METERS[_LONG_8]
+        meters += 3 * work_meters(_RECOVERY_ID) + _LONG_METERS[_LONG_8]
     return meters
 
 
@@ -695,11 +795,12 @@ def _sessions(weeks: list[dict], goal: str, menu, first_week: int = 1) -> list[d
     for offset, week in enumerate(weeks):
         number = first_week + offset
         phase = week["phase"]
-        for template_id in week["ids"]:
+        for day, template_id in zip(week["days"], week["ids"]):
             codes = _codes(template_id, phase, week, menu)
             sessions.append(
                 {
                     "week_number": number,
+                    "day_of_week": day,
                     "template_id": template_id,
                     "reason_codes": codes,
                     "target_outcome": _outcome(template_id, goal),
@@ -712,6 +813,7 @@ def _locked_sessions(plan: dict, through_week: int) -> list[dict]:
     return [
         {
             "week_number": session["week_number"],
+            "day_of_week": session["day_of_week"],
             "template_id": session["template_id"],
             "reason_codes": list(session["reason_codes"]),
             "target_outcome": session["target_outcome"],
@@ -752,31 +854,10 @@ def _outcome(template_id: str, goal: str) -> str:
     return text.replace("{goal}", goal)
 
 
-def _order(ids: list[str], phase: int, menu) -> list[str]:
-    long_runs = [template_id for template_id in ids if template_id in _LONG_RUNS]
-    easy = [
-        template_id
-        for template_id in ids
-        if template_id not in _LONG_RUNS and _family(template_id, menu) == "aerobic"
-    ]
-    hard = [
-        template_id
-        for template_id in ids
-        if template_id not in long_runs and template_id not in easy
-    ]
-    if phase == 8:
-        race = [template_id for template_id in hard if template_id == "rr_800_r0_x1"]
-        other = [template_id for template_id in hard if template_id not in race]
-        return other + easy + race
-    if len(hard) >= 2 and easy:
-        return [hard[0], *easy, *hard[1:], *long_runs]
-    if len(hard) >= 2 and long_runs:
-        return [hard[0], *long_runs, *hard[1:]]
-    return hard + easy + long_runs
-
-
 def _allowed(template_id: str, phase: int, codes: list[str]) -> bool:
-    """Phase menu, the weekly long run, or a 10% / adaptation exception."""
+    """Phase menu, the weekly long run, the easy 5 km, or an adaptation exception."""
+    if template_id == _RECOVERY_ID:
+        return True
     if phase == 8:
         return template_id in _PHASE_MENU[8]
     if template_id in _PHASE_MENU[phase] or template_id in _LONG_RUNS:
@@ -786,6 +867,8 @@ def _allowed(template_id: str, phase: int, codes: list[str]) -> bool:
     ):
         return True
     if "harder_template" in codes and template_id in _HARDER.values():
+        return True
+    if "extra_easy_week" in codes and template_id in _HARDER:
         return True
     return False
 
@@ -824,6 +907,8 @@ def _check(plan: dict, menu) -> None:
         template_id = session["template_id"]
         if template_id not in menu:
             raise ValueError(f"{template_id} is not in the frozen menu")
+        if session["day_of_week"] not in _WEEK_DAYS:
+            raise ValueError(f"week {number} day is not Sunday–Saturday")
         phase_codes = [
             code for code in session["reason_codes"] if _PHASE_CODE.fullmatch(code)
         ]
@@ -854,23 +939,16 @@ def _check(plan: dict, menu) -> None:
     for number in range(1, weeks + 1):
         rows = by_week[number]
         ids = [row["template_id"] for row in rows]
-        if len(ids) != len(set(ids)):
+        days = [row["day_of_week"] for row in rows]
+        if len(days) != len(set(days)):
+            raise ValueError(f"week {number} repeats a day")
+        non_recovery = [template_id for template_id in ids if template_id != _RECOVERY_ID]
+        if len(non_recovery) != len(set(non_recovery)):
             raise ValueError(f"week {number} repeats a template")
         if _RACE_SHARPEN in ids and _RACE_SE in ids:
             raise ValueError(f"week {number} pairs rr_400 with se_400")
         phase = _one_phase(rows, number)
-        if phase < 8:
-            longs = [template_id for template_id in ids if template_id in _LONG_RUNS]
-            if len(longs) != 1:
-                raise ValueError(f"week {number} does not have one long run")
-        else:
-            if any(template_id in _LONG_RUNS for template_id in ids):
-                raise ValueError(f"week {number} keeps a long run in the taper")
-            for template_id in ids:
-                if _family(template_id, menu) in _BANNED_PHASE_8:
-                    raise ValueError(f"week {number} has hard work in the taper")
-                if template_id not in _PHASE_MENU[8]:
-                    raise ValueError(f"week {number} leaves the phase 8 menu")
+        _check_shape(number, rows, phase, menu)
         volume = _work(ids)
         hard = _hard(ids, menu)
         if previous_volume is not None:
@@ -884,6 +962,35 @@ def _check(plan: dict, menu) -> None:
                 )
         previous_volume = volume
         previous_hard = hard
+
+
+def _check_shape(number: int, rows: list[dict], phase: int, menu) -> None:
+    """Phases 1–7 are the six-day week. Phase 8 is a shorter taper."""
+    ids = [row["template_id"] for row in rows]
+    days = [row["day_of_week"] for row in rows]
+    if phase == 8:
+        if len(rows) >= 6:
+            raise ValueError(f"week {number} taper is not shorter than six sessions")
+        if any(template_id in _LONG_RUNS for template_id in ids):
+            raise ValueError(f"week {number} keeps a long run in the taper")
+        for template_id in ids:
+            if _family(template_id, menu) in _BANNED_PHASE_8:
+                raise ValueError(f"week {number} has hard work in the taper")
+            if template_id != _RECOVERY_ID and template_id not in _PHASE_MENU[8]:
+                raise ValueError(f"week {number} leaves the phase 8 menu")
+        return
+    if days != list(_STANDARD_DAYS):
+        raise ValueError(f"week {number} days are {days}")
+    by_day = {row["day_of_week"]: row["template_id"] for row in rows}
+    for day in _EASY_DAYS:
+        if by_day[day] != _RECOVERY_ID:
+            raise ValueError(f"week {number} {day} is not the easy 5 km")
+    if by_day[_LONG_DAY] not in _LONG_RUNS:
+        raise ValueError(f"week {number} Saturday is not the long run")
+    for day in _QUALITY_DAYS:
+        template_id = by_day[day]
+        if template_id in _LONG_RUNS or _family(template_id, menu) == "aerobic":
+            raise ValueError(f"week {number} {day} is not a quality session")
 
 
 def _check_phases(plan: dict, phases: list[int]) -> None:
@@ -931,17 +1038,6 @@ def _weeks_of(plan: dict) -> list[list[str]]:
             ]
         )
     return weeks
-
-
-def _ids_by_week(plan: dict) -> list[list[str]]:
-    return _weeks_of(plan)
-
-
-def _phase_of_ids(plan: dict, number: int) -> int:
-    rows = [
-        session for session in plan["sessions"] if session["week_number"] == number
-    ]
-    return _one_phase(rows, number)
 
 
 def _goal_from(plan: dict) -> str:
@@ -1010,6 +1106,7 @@ def _copy_plan(plan: dict) -> dict:
         "sessions": [
             {
                 "week_number": session["week_number"],
+                "day_of_week": session["day_of_week"],
                 "template_id": session["template_id"],
                 "reason_codes": list(session["reason_codes"]),
                 "target_outcome": session["target_outcome"],

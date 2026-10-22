@@ -289,6 +289,7 @@ def _session_rows(sessions: list[dict]) -> list[dict]:
         rows.append(
             {
                 "week_number": session["week_number"],
+                "day_of_week": session["day_of_week"],
                 "template_id": session["template_id"],
                 "reason_codes": ", ".join(str(code) for code in codes) if codes else "—",
                 "target_outcome": session["target_outcome"],
