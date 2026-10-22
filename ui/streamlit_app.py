@@ -1,6 +1,6 @@
-# streamlit_app.py — Last Session, Next, Decisions, Ledger, and Goal. Display only. No classification rules.
+# streamlit_app.py — Last Session, Next, Decisions, Ledger, Goal, and Season. Display only. No classification rules.
 
-"""Five pages. Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger."""
+"""Six pages. Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Season reads sequence. No scores."""
 
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ from engines.explain import explain, explain_decision, explain_prescription
 from engines.ledger import Ledger
 from engines.normalize import normalize
 from engines.prescribe import PARAMETER_KEYS, prescribe
+from engines.season import sequence
 
 FIXTURES_DIR = ROOT / "tests" / "fixtures"
 
@@ -281,6 +282,44 @@ def page_goal() -> None:
         st.write(value if value not in (None, "") else "—")
 
 
+def _session_rows(sessions: list[dict]) -> list[dict]:
+    rows: list[dict] = []
+    for session in sessions:
+        codes = session["reason_codes"]
+        rows.append(
+            {
+                "week_number": session["week_number"],
+                "template_id": session["template_id"],
+                "reason_codes": ", ".join(str(code) for code in codes) if codes else "—",
+                "target_outcome": session["target_outcome"],
+            }
+        )
+    return rows
+
+
+def page_season() -> None:
+    """The season sequence() returns from four inputs.
+
+    No recorded workouts. Template ids stay the ones sequence chose.
+    """
+    st.warning("SYNTHETIC / DEMO")
+    st.title("Season")
+    current_time = st.text_input("current_time", value="2:02.9")
+    start_date = st.date_input("start_date", value=date(2026, 4, 19))
+    goal_time = st.text_input("goal_time", value="1:55.0")
+    goal_date = st.date_input("goal_date", value=date(2027, 3, 19))
+    try:
+        plan = sequence(current_time, start_date, goal_time, goal_date)
+    except ValueError as exc:
+        st.write(str(exc))
+        return
+
+    st.markdown("**season_length_weeks**")
+    st.write(plan["season_length_weeks"])
+    st.markdown("**Sessions**")
+    _show_rows(_session_rows(plan["sessions"]))
+
+
 st.set_page_config(page_title="rio", layout="centered")
 st.navigation(
     [
@@ -289,6 +328,7 @@ st.navigation(
         st.Page(page_decisions, title="Decisions", url_path="decisions"),
         st.Page(page_ledger, title="Ledger", url_path="ledger"),
         st.Page(page_goal, title="Goal", url_path="goal"),
+        st.Page(page_season, title="Season", url_path="season"),
     ],
     position="top",
 ).run()
