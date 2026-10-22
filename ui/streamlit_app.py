@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import sys
 from datetime import date, timedelta
+from html import escape
 from pathlib import Path
 
 import streamlit as st
@@ -341,27 +342,460 @@ def _season_plan(inputs: tuple[str, str, str, str], current_time, start_date, go
     return st.session_state["season_plan"]
 
 
-def _render_mark(plan: dict, week_number: int, generation: int) -> None:
-    """One mark for this week. Submit calls adapt(); weeks after this one are what it returns."""
-    applied = (st.session_state.get("season_marks") or {}).get(week_number)
-    if applied in _MARKS:
-        st.markdown("**Mark**")
-        st.write(applied)
-    with st.form(key=f"season-mark-form-{generation}-{week_number}"):
-        choice = st.radio(
-            "Mark",
-            _MARKS,
-            index=None,
-            horizontal=True,
-            key=f"season-mark-{generation}-{week_number}",
+# Display labels for reason codes already on the session. Not a score.
+_STATUS_LABELS = (
+    ("harder_template", "Harder"),
+    ("extra_easy_week", "Easy week"),
+    ("extra_easy_day", "Easy"),
+    ("ten_percent_hold", "Hold"),
+    ("ten_percent_easier_template", "Easier"),
+    ("weekly_aerobic_long_run", "Long"),
+    ("moved_back_one_phase", "Moved back"),
+    ("advanced_one_phase", "Advanced"),
+    ("phase_8_freshness", "Fresh"),
+    ("phase_8_no_hard_se_or_an", "Taper"),
+    ("priority_speed_endurance", "Speed endurance"),
+    ("priority_aerobic_power", "Aerobic power"),
+    ("priority_anaerobic_capacity", "Anaerobic"),
+    ("phase_primary", "Primary"),
+    ("phase_secondary", "Secondary"),
+    ("capacity_weight", "Weighted"),
+)
+
+_NAV = (
+    ("Last Session", "/"),
+    ("Next", "/next"),
+    ("Decisions", "/decisions"),
+    ("Ledger", "/ledger"),
+    ("Goal", "/goal"),
+    ("Season", "/season"),
+)
+
+_SEASON_CSS = """
+<style>
+html, body, .stApp, [data-testid="stAppViewContainer"],
+[data-testid="stMain"], [data-testid="stMainBlockContainer"],
+[data-testid="stBottom"], [data-testid="stBottomBlockContainer"] {
+  background: #0f0f0f !important;
+  color: #f0f0f0 !important;
+}
+html { color-scheme: dark; }
+.stApp, .stApp button, .stApp input, .stApp label, .stApp summary, .stApp p,
+.stMarkdown, .stMarkdown h1, .stMarkdown h2, .stMarkdown a, .stMarkdown p, .stMarkdown div,
+.rio-nav, .rio-nav a, .rio-hero, .rio-hero h1, .rio-week-title, .rio-day, .rio-day div {
+  font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+}
+[data-testid="stHeader"],
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+[data-testid="stStatusWidget"],
+#MainMenu,
+footer {
+  display: none !important;
+  height: 0 !important;
+}
+[data-testid="stMainBlockContainer"],
+.block-container {
+  max-width: 880px !important;
+  padding: 0.25rem 1.6rem 5rem !important;
+}
+[data-testid="stVerticalBlock"],
+[data-testid="stHorizontalBlock"],
+[data-testid="stElementContainer"],
+[data-testid="stMarkdownContainer"] {
+  background: transparent !important;
+}
+[data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] {
+  margin-bottom: 0 !important;
+}
+[data-testid="stMainBlockContainer"] [data-testid="stElementContainer"] {
+  margin-bottom: 0 !important;
+}
+[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlock"] {
+  gap: 0 !important;
+}
+[data-testid="stHeaderActionElements"] { display: none !important; }
+.stMarkdown a,
+[data-testid="stMarkdownContainer"] a {
+  text-decoration: none !important;
+}
+
+.rio-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.35rem 0 1rem;
+  border-bottom: 1px solid #242424;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: #0f0f0f;
+}
+a.rio-brand {
+  color: #f0f0f0 !important;
+  text-decoration: none !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.2em !important;
+  font-size: 0.92rem !important;
+}
+.rio-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem 1.15rem;
+}
+a.rio-link {
+  color: #6f6f6f !important;
+  text-decoration: none !important;
+  font-size: 0.84rem !important;
+  padding: 0.15rem 0 0.28rem;
+  border-bottom: 2px solid transparent !important;
+}
+a.rio-link:hover { color: #f0f0f0 !important; }
+a.rio-link.is-active {
+  color: #f0f0f0 !important;
+  border-bottom-color: #4E6E4D !important;
+}
+.rio-link:focus-visible,
+.rio-brand:focus-visible,
+button:focus-visible {
+  outline: 1px solid #4E6E4D;
+  outline-offset: 3px;
+}
+
+.rio-hero { padding: 3.1rem 0 2.1rem; }
+.rio-synthetic {
+  margin: 0 !important;
+  color: #6a6a6a !important;
+  font-size: 0.68rem !important;
+  line-height: 1.3 !important;
+  letter-spacing: 0.16em;
+  font-weight: 500;
+}
+.rio-hero h1,
+.stMarkdown .rio-hero h1 {
+  margin: 0.7rem 0 0 !important;
+  padding: 0 !important;
+  color: #f0f0f0 !important;
+  font-size: 3.35rem !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.04em !important;
+  line-height: 1.02 !important;
+}
+.rio-range {
+  margin: 0.9rem 0 0 !important;
+  color: #9a9a9a !important;
+  font-size: 1.05rem !important;
+  line-height: 1.4 !important;
+  font-variant-numeric: tabular-nums;
+}
+.rio-error {
+  margin: 0.85rem 0 0;
+  color: #f0f0f0;
+  font-size: 0.95rem;
+}
+
+[class*="st-key-rio-controls"] { margin: 0 0 2.6rem; }
+[data-testid="stWidgetLabel"],
+[data-testid="stWidgetLabel"] p {
+  color: #8a8a8a !important;
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+}
+[data-testid="stTextInputRootElement"],
+[data-testid="stDateInputField"] {
+  background: #1a1a1a !important;
+  border: 1px solid #2a2a2a !important;
+  border-radius: 8px !important;
+  color: #f0f0f0 !important;
+}
+[data-testid="stTextInputField"] {
+  color: #f0f0f0 !important;
+  -webkit-text-fill-color: #f0f0f0 !important;
+  background: transparent !important;
+  caret-color: #f0f0f0 !important;
+}
+[data-testid="stDateInputField"] [role="spinbutton"],
+[data-testid="stDateInputField"] span {
+  color: #f0f0f0 !important;
+}
+[data-testid="stTextInputRootElement"]:focus-within,
+[data-testid="stDateInputField"]:focus-within {
+  border-color: #4E6E4D !important;
+  box-shadow: none !important;
+}
+[data-testid="stDateInput"] svg { fill: #8a8a8a !important; }
+[data-testid="stDateInputField"] button {
+  background: transparent !important;
+  color: #8a8a8a !important;
+  border: none !important;
+}
+
+[class*="st-key-rio-week"] {
+  background: #1a1a1a !important;
+  border: 1px solid #242424;
+  border-radius: 16px;
+  padding: 1.45rem 1.55rem 1.15rem !important;
+  margin: 0 0 1.15rem !important;
+}
+.rio-week-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+.stMarkdown h2.rio-week-title,
+h2.rio-week-title {
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #f0f0f0 !important;
+  font-size: 1.28rem !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.2 !important;
+}
+.rio-week-meta, .rio-applied {
+  margin: 0 !important;
+  color: #8a8a8a !important;
+  font-size: 0.78rem !important;
+  line-height: 1.3 !important;
+  letter-spacing: 0.06em;
+}
+.rio-days { margin-top: 0.85rem; }
+.rio-day {
+  display: grid;
+  grid-template-columns: 9.25rem minmax(0, 1fr) 8.5rem;
+  column-gap: 1.35rem;
+  align-items: start;
+  padding: 0.95rem 0;
+}
+.rio-day + .rio-day { border-top: 1px solid #262626; }
+.rio-dow {
+  color: #f0f0f0;
+  font-size: 0.98rem;
+  font-weight: 500;
+}
+.rio-date {
+  margin-top: 0.22rem;
+  color: #8a8a8a;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+.rio-name {
+  color: #f0f0f0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.rio-target {
+  margin-top: 0.28rem;
+  color: #a3a3a3;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+.rio-status {
+  text-align: right;
+  color: #6e6e6e;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding-top: 0.22rem;
+}
+.rio-empty {
+  margin: 0.9rem 0 0.2rem;
+  color: #8a8a8a;
+}
+.rio-mark-label {
+  margin: 0 !important;
+  padding: 0.95rem 0 0.55rem !important;
+  color: #6e6e6e !important;
+  font-size: 0.68rem !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.rio-reason {
+  margin: 0.22rem 0 !important;
+  color: #7d7d7d !important;
+  font-size: 0.78rem !important;
+  line-height: 1.45 !important;
+}
+.rio-reason span {
+  color: #a8a8a8;
+  margin-right: 0.55rem;
+}
+
+[class*="st-key-rio-week"] [data-testid="stExpander"],
+[class*="st-key-rio-week"] [data-testid="stExpander"] details {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+[class*="st-key-rio-week"] [data-testid="stExpander"] {
+  margin-top: 0.35rem !important;
+}
+[class*="st-key-rio-week"] [data-testid="stExpander"] summary {
+  background: transparent !important;
+  color: #7a7a7a !important;
+  font-size: 0.8rem !important;
+  padding: 0.35rem 0 !important;
+  border-radius: 0 !important;
+}
+[class*="st-key-rio-week"] [data-testid="stExpander"] summary:hover {
+  background: transparent !important;
+  color: #f0f0f0 !important;
+}
+[class*="st-key-rio-week"] [data-testid="stExpander"] svg {
+  fill: #6a6a6a !important;
+}
+[class*="st-key-rio-week"] button {
+  background: transparent !important;
+  border: 1px solid #2c2c2c !important;
+  border-radius: 8px !important;
+  color: #cfcfcf !important;
+  min-height: 2.15rem !important;
+  padding: 0.35rem 0.7rem !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+}
+[class*="st-key-rio-week"] button p { color: inherit !important; }
+[class*="st-key-rio-week"] button[kind="primary"],
+[class*="st-key-rio-week"] [data-testid="stBaseButton-primary"] {
+  border-color: #4E6E4D !important;
+  color: #d7e3d6 !important;
+  background: transparent !important;
+}
+[class*="st-key-rio-week"] button[kind="secondary"]:hover,
+[class*="st-key-rio-week"] [data-testid="stBaseButton-secondary"]:hover {
+  border-color: #4E6E4D !important;
+  color: #f0f0f0 !important;
+  background: transparent !important;
+}
+[class*="st-key-rio-week"] button[kind="primary"]:hover,
+[class*="st-key-rio-week"] [data-testid="stBaseButton-primary"]:hover {
+  background: #4E6E4D !important;
+  color: #f0f0f0 !important;
+}
+[class*="st-key-rio-week"] [data-testid="stHorizontalBlock"] {
+  gap: 0.55rem !important;
+}
+
+@media (max-width: 720px) {
+  .rio-nav {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.85rem;
+  }
+  .rio-links { justify-content: flex-start; }
+  .rio-hero h1,
+  .stMarkdown .rio-hero h1 { font-size: 2.45rem !important; }
+  .rio-day { grid-template-columns: 1fr; row-gap: 0.35rem; }
+  .rio-status { text-align: left; padding-top: 0; }
+}
+</style>
+"""
+
+
+def _esc(value: object) -> str:
+    return escape(str(value), quote=True)
+
+
+def _length_text(length: object) -> str:
+    if isinstance(length, bool) or not isinstance(length, int):
+        return "—"
+    if length == 1:
+        return "1 week"
+    return f"{length} weeks"
+
+
+def _status_label(codes: list) -> str:
+    """One quiet word for a session, taken from reason codes already stored."""
+    present = {str(code) for code in codes}
+    for code, label in _STATUS_LABELS:
+        if code in present:
+            return label
+    for code in codes:
+        text = str(code)
+        if len(text) == 7 and text.startswith("phase_") and text[6].isdigit():
+            continue
+        return text.replace("_", " ")
+    return ""
+
+
+def _nav_html() -> str:
+    links = []
+    for label, href in _NAV:
+        active = " is-active" if label == "Season" else ""
+        current = ' aria-current="page"' if label == "Season" else ""
+        links.append(f'<a class="rio-link{active}" href="{href}"{current}>{label}</a>')
+    return (
+        '<nav class="rio-nav">'
+        '<a class="rio-brand" href="/">RIO</a>'
+        f'<div class="rio-links">{"".join(links)}</div>'
+        "</nav>"
+    )
+
+
+def _hero_html(start: date, goal: date, plan: dict | None, error: str | None) -> str:
+    synthetic = '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
+    if error or plan is None:
+        return (
+            f'<header class="rio-hero">{synthetic}'
+            "<h1>Season</h1>"
+            f'<p class="rio-error">{_esc(error or "")}</p></header>'
         )
-        submitted = st.form_submit_button("Submit")
-    if not submitted:
+    return (
+        f'<header class="rio-hero">{synthetic}'
+        f"<h1>{_esc(_length_text(plan['season_length_weeks']))}</h1>"
+        f'<p class="rio-range">{_esc(start.isoformat())} — {_esc(goal.isoformat())}</p>'
+        "</header>"
+    )
+
+
+def _day_html(session: dict) -> str:
+    status = _status_label(session["reason_codes"])
+    status_html = f'<div class="rio-status">{_esc(status)}</div>' if status else ""
+    return (
+        '<div class="rio-day">'
+        '<div class="rio-when">'
+        f'<div class="rio-dow">{_esc(session["day_of_week"])}</div>'
+        f'<div class="rio-date">{_esc(session["date"])}</div>'
+        "</div>"
+        '<div class="rio-work">'
+        f'<div class="rio-name">{_esc(session["template_id"])}</div>'
+        f'<div class="rio-target">{_esc(session["target_outcome"])}</div>'
+        "</div>"
+        f"{status_html}"
+        "</div>"
+    )
+
+
+def _render_mark(plan: dict, week_number: int, generation: int) -> None:
+    """One mark for this week. A button calls adapt(); later weeks are what it returns."""
+    applied = (st.session_state.get("season_marks") or {}).get(week_number)
+    st.markdown('<p class="rio-mark-label">Mark</p>', unsafe_allow_html=True)
+    columns = st.columns(3, gap="small")
+    choice = None
+    for column, mark in zip(columns, _MARKS):
+        with column:
+            if st.button(
+                mark,
+                key=f"season-mark-{generation}-{week_number}-{mark}",
+                type="primary" if applied == mark else "secondary",
+                width="stretch",
+            ):
+                choice = mark
+    if choice is None:
         return
     try:
         updated = adapt(plan, week_number, choice)
     except ValueError as exc:
-        st.write(str(exc))
+        st.markdown(
+            f'<p class="rio-error">{_esc(exc)}</p>',
+            unsafe_allow_html=True,
+        )
         return
     marks = dict(st.session_state.get("season_marks") or {})
     marks[week_number] = choice
@@ -373,51 +807,73 @@ def _render_mark(plan: dict, week_number: int, generation: int) -> None:
 def _render_schedule(plan: dict, generation: int) -> None:
     length = plan["season_length_weeks"]
     if isinstance(length, bool) or not isinstance(length, int) or length <= 0:
-        st.write("—")
+        st.markdown('<p class="rio-empty">—</p>', unsafe_allow_html=True)
         return
     grouped = dict(_weeks(plan["sessions"]))
-    for index, number in enumerate(range(1, length + 1)):
+    marks = st.session_state.get("season_marks") or {}
+    for number in range(1, length + 1):
         days = grouped.get(number, [])
-        if index:
-            st.divider()
-        st.subheader(f"Week {number} — Phase {_phase_number(days)}")
-        if not days:
-            st.write("—")
-        else:
-            _show_rows(
-                [
-                    {
-                        "day_of_week": session["day_of_week"],
-                        "date": session["date"],
-                        "template_id": session["template_id"],
-                        "target_outcome": session["target_outcome"],
-                    }
-                    for session in days
-                ]
+        applied = marks.get(number)
+        meta = f"Phase {_phase_number(days)}"
+        if applied in _MARKS:
+            meta = f"{meta} · {_esc(applied)}"
+        with st.container(key=f"rio-week-{number}"):
+            st.markdown(
+                '<div class="rio-week-head">'
+                f'<h2 class="rio-week-title">Week {number}</h2>'
+                f'<p class="rio-week-meta">{meta}</p>'
+                "</div>",
+                unsafe_allow_html=True,
             )
-            with st.expander("Reason codes", key=f"season-reasons-{generation}-{number}"):
-                for session in days:
-                    st.caption(
-                        f"{session['day_of_week']} {session['date']}: "
-                        f"{_reason_text(session['reason_codes'])}"
-                    )
-        _render_mark(plan, number, generation)
+            if not days:
+                st.markdown('<p class="rio-empty">—</p>', unsafe_allow_html=True)
+            else:
+                st.markdown(
+                    f'<div class="rio-days">{"".join(_day_html(session) for session in days)}</div>',
+                    unsafe_allow_html=True,
+                )
+                with st.expander("Reason codes", key=f"season-reasons-{generation}-{number}"):
+                    lines = []
+                    for session in days:
+                        lines.append(
+                            '<p class="rio-reason">'
+                            f'<span>{_esc(session["day_of_week"])} {_esc(session["date"])}</span>'
+                            f'{_esc(_reason_text(session["reason_codes"]))}'
+                            "</p>"
+                        )
+                    st.markdown("".join(lines), unsafe_allow_html=True)
+            _render_mark(plan, number, generation)
 
 
 def page_season() -> None:
     """The season sequence() returns from four inputs.
 
     Sessions are grouped by week and ordered Sunday through Saturday.
-    Each row shows that day's calendar date. Submitting a mark calls
-    adapt() for that week and shows the plan it returns.
+    Each row shows that day's calendar date. A mark calls adapt() for
+    that week and shows the plan it returns.
     No recorded workouts.
     """
-    st.warning("SYNTHETIC / DEMO")
-    st.title("Season")
-    current_time = st.text_input("current_time", value="2:02.9")
-    start_date = st.date_input("start_date", value=date(2026, 4, 19))
-    goal_time = st.text_input("goal_time", value="1:55.0")
-    goal_date = st.date_input("goal_date", value=date(2027, 3, 19))
+    chrome = st.container(gap=None)
+    hero = st.container(gap=None)
+    controls = st.container(key="rio-controls", gap="small")
+
+    with chrome:
+        st.markdown(_SEASON_CSS, unsafe_allow_html=True)
+        st.markdown(_nav_html(), unsafe_allow_html=True)
+
+    with controls:
+        current_col, start_col, goal_time_col, goal_date_col = st.columns(
+            4, gap="medium", vertical_alignment="bottom"
+        )
+        with current_col:
+            current_time = st.text_input("current_time", value="2:02.9")
+        with start_col:
+            start_date = st.date_input("start_date", value=date(2026, 4, 19))
+        with goal_time_col:
+            goal_time = st.text_input("goal_time", value="1:55.0")
+        with goal_date_col:
+            goal_date = st.date_input("goal_date", value=date(2027, 3, 19))
+
     inputs = (
         str(current_time).strip(),
         start_date.isoformat(),
@@ -426,12 +882,18 @@ def page_season() -> None:
     )
     try:
         plan = _season_plan(inputs, inputs[0], start_date, inputs[2], goal_date)
+        error = None
     except ValueError as exc:
-        st.write(str(exc))
-        return
+        plan = None
+        error = str(exc)
 
-    st.markdown("**season_length_weeks**")
-    st.write(plan["season_length_weeks"])
+    with hero:
+        st.markdown(
+            _hero_html(start_date, goal_date, plan, error),
+            unsafe_allow_html=True,
+        )
+    if plan is None:
+        return
     _render_schedule(plan, int(st.session_state.get("season_generation") or 0))
 
 
