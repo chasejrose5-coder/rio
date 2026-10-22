@@ -282,25 +282,83 @@ def page_goal() -> None:
         st.write(value if value not in (None, "") else "—")
 
 
-def _session_rows(sessions: list[dict]) -> list[dict]:
-    rows: list[dict] = []
+_DAY_ORDER = (
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+)
+_DAY_RANK = {day: index for index, day in enumerate(_DAY_ORDER)}
+
+
+def _day_rank(session: dict) -> tuple[int, str]:
+    day = str(session["day_of_week"])
+    return (_DAY_RANK.get(day, len(_DAY_ORDER)), day)
+
+
+def _phase_number(sessions: list[dict]) -> str:
+    found: list[str] = []
     for session in sessions:
-        codes = session["reason_codes"]
-        rows.append(
-            {
-                "week_number": session["week_number"],
-                "day_of_week": session["day_of_week"],
-                "template_id": session["template_id"],
-                "reason_codes": ", ".join(str(code) for code in codes) if codes else "—",
-                "target_outcome": session["target_outcome"],
-            }
+        for code in session["reason_codes"]:
+            text = str(code)
+            if len(text) == 7 and text.startswith("phase_") and text[6] in "12345678":
+                number = text[6]
+                if number not in found:
+                    found.append(number)
+    if len(found) == 1:
+        return found[0]
+    if not found:
+        return "—"
+    return ", ".join(found)
+
+
+def _weeks(sessions: list[dict]) -> list[tuple[int, list[dict]]]:
+    grouped: dict[int, list[dict]] = {}
+    for session in sessions:
+        grouped.setdefault(session["week_number"], []).append(session)
+    return [
+        (number, sorted(grouped[number], key=_day_rank))
+        for number in sorted(grouped)
+    ]
+
+
+def _reason_text(codes: list) -> str:
+    return ", ".join(str(code) for code in codes) if codes else "—"
+
+
+def _render_schedule(sessions: list[dict]) -> None:
+    weeks = _weeks(sessions)
+    if not weeks:
+        st.write("—")
+        return
+    for index, (number, days) in enumerate(weeks):
+        if index:
+            st.divider()
+        st.subheader(f"Week {number} — Phase {_phase_number(days)}")
+        _show_rows(
+            [
+                {
+                    "day_of_week": session["day_of_week"],
+                    "template_id": session["template_id"],
+                    "target_outcome": session["target_outcome"],
+                }
+                for session in days
+            ]
         )
-    return rows
+        with st.expander("Reason codes", key=f"season-reasons-{number}"):
+            for session in days:
+                st.caption(
+                    f"{session['day_of_week']}: {_reason_text(session['reason_codes'])}"
+                )
 
 
 def page_season() -> None:
     """The season sequence() returns from four inputs.
 
+    Sessions are grouped by week and ordered Sunday through Saturday.
     No recorded workouts. Template ids stay the ones sequence chose.
     """
     st.warning("SYNTHETIC / DEMO")
@@ -317,8 +375,7 @@ def page_season() -> None:
 
     st.markdown("**season_length_weeks**")
     st.write(plan["season_length_weeks"])
-    st.markdown("**Sessions**")
-    _show_rows(_session_rows(plan["sessions"]))
+    _render_schedule(plan["sessions"])
 
 
 st.set_page_config(page_title="rio", layout="centered")
