@@ -68,11 +68,13 @@ _STANDARD_DAYS = (
 )
 
 # Phase 8 is the last 14 days (two whole weeks) when the season has them.
-# A one-week season is only that week: the window itself is shorter than 10 days.
+# One week is the taper when the season is one week, or eight weeks. Eight
+# weeks is one week in every phase, so the second taper week would skip one.
 _PHASE_8_WEEKS = 2
 
-# Late phases keep this block. Early phases take whatever is left, so a long
-# season stretches phases 1–4 and a short season compresses them first.
+# Caps before extra weeks rotate through phases 1–4. From eight weeks up,
+# phases 1–4 take leftover weeks before phases 5–7. A shorter season fills
+# 7, then 6, then 5, and compresses phases 1–4 first.
 _LATE_CAPS = ((7, 2), (6, 3), (5, 3))
 _EARLY_CAPS = ((1, 4), (2, 3), (3, 3), (4, 3))
 
@@ -269,9 +271,12 @@ def season_length_weeks(start_date, goal_date) -> int:
 def phase_lengths(weeks: int) -> list[int]:
     """Eight week-counts, phase 1 first.
 
-    Phase 8 is the final two weeks (14 days) when the season has two or more
-    weeks, and the only week when the season is one week. Extra weeks stretch
-    phases 1–4. A short season compresses those phases first, then 5–7.
+    Phase 8 is one taper week when the season is one week or eight weeks,
+    and the final two weeks otherwise. From eight weeks up, phases 1–7
+    each get a week. Weeks still left stretch phases 1–4 up to their caps,
+    then phases 5–7. Anything past the caps rotates through phases 1–4.
+    A shorter season fills the taper, then phases 7, 6, and 5, and
+    compresses phases 1–4.
     """
     if isinstance(weeks, bool) or not isinstance(weeks, int):
         raise ValueError("weeks is not a whole number")
@@ -280,25 +285,38 @@ def phase_lengths(weeks: int) -> list[int]:
     lengths = [0, 0, 0, 0, 0, 0, 0, 0]
     if weeks == 0:
         return lengths
-    if weeks == 1:
-        lengths[7] = 1
+    if weeks >= 8:
+        taper = 1 if weeks == 8 else _PHASE_8_WEEKS
+        lengths = [1, 1, 1, 1, 1, 1, 1, taper]
+        rest = weeks - 7 - taper
+        rest = _fill_caps(lengths, rest, _EARLY_CAPS)
+        rest = _fill_caps(lengths, rest, _LATE_CAPS)
+        _rotate_early(lengths, rest)
         return lengths
-    lengths[7] = _PHASE_8_WEEKS
-    rest = weeks - _PHASE_8_WEEKS
-    for phase, cap in _LATE_CAPS:
-        take = min(cap, rest)
-        lengths[phase - 1] = take
+    lengths[7] = 1 if weeks == 1 else _PHASE_8_WEEKS
+    rest = weeks - lengths[7]
+    rest = _fill_caps(lengths, rest, _LATE_CAPS)
+    rest = _fill_caps(lengths, rest, _EARLY_CAPS)
+    _rotate_early(lengths, rest)
+    return lengths
+
+
+def _fill_caps(lengths: list[int], rest: int, caps: tuple[tuple[int, int], ...]) -> int:
+    """Add weeks up to each cap, in the order given. Returns weeks still left."""
+    for phase, cap in caps:
+        take = min(cap - lengths[phase - 1], rest)
+        lengths[phase - 1] += take
         rest -= take
-    for phase, cap in _EARLY_CAPS:
-        take = min(cap, rest)
-        lengths[phase - 1] = take
-        rest -= take
+    return rest
+
+
+def _rotate_early(lengths: list[int], rest: int) -> None:
+    """Give leftover weeks to phases 1–4, one phase at a time."""
     index = 0
     while rest:
         lengths[index % 4] += 1
         rest -= 1
         index += 1
-    return lengths
 
 
 def sequence(current_time, start_date, goal_time, goal_date) -> dict:

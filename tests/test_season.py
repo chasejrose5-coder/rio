@@ -88,6 +88,12 @@ def test_lengths() -> None:
         raise AssertionError(f"47 weeks allocated {phase_lengths(47)}")
     if phase_lengths(23) != [4, 3, 3, 3, 3, 3, 2, 2]:
         raise AssertionError(f"23 weeks allocated {phase_lengths(23)}")
+    if phase_lengths(17) != [4, 3, 3, 2, 1, 1, 1, 2]:
+        raise AssertionError(f"17 weeks allocated {phase_lengths(17)}")
+    if phase_lengths(9) != [1, 1, 1, 1, 1, 1, 1, 2]:
+        raise AssertionError(f"9 weeks allocated {phase_lengths(9)}")
+    if phase_lengths(8) != [1, 1, 1, 1, 1, 1, 1, 1]:
+        raise AssertionError(f"8 weeks allocated {phase_lengths(8)}")
     if phase_lengths(2) != [0, 0, 0, 0, 0, 0, 0, 2]:
         raise AssertionError("a two-week season is not all taper")
     if phase_lengths(1) != [0, 0, 0, 0, 0, 0, 0, 1]:
@@ -388,6 +394,16 @@ def test_calendar_dates() -> None:
         raise AssertionError("adaptation dated a session before the start date")
 
 
+def test_seventeen_week_season() -> None:
+    goal = START + timedelta(days=17 * 7)
+    plan = sequence("2:02.9", START, "1:55.0", goal)
+    if plan["season_length_weeks"] != 17:
+        raise AssertionError("119 days was not 17 weeks")
+    phases = [_phase(week) for week in _weeks(plan)]
+    if phases != [1] * 4 + [2] * 3 + [3] * 3 + [4] * 2 + [5, 6, 7] + [8] * 2:
+        raise AssertionError(f"a 17-week season skipped a phase: {phases}")
+
+
 def test_short_season() -> None:
     plan = sequence("2:02.9", START, "1:55.0", START + timedelta(days=14))
     weeks = _weeks(plan)
@@ -465,6 +481,7 @@ if __name__ == "__main__":
     test_dates_and_times()
     test_plan_rules()
     test_calendar_dates()
+    test_seventeen_week_season()
     test_short_season()
     test_adaptation()
     print("season ok")
