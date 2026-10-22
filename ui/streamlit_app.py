@@ -1,6 +1,6 @@
 # streamlit_app.py — Last Session, Next, Decisions, Ledger, Goal, and Season. Display only. No classification rules.
 
-"""Six pages. Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Season reads sequence. No scores."""
+"""Six pages. Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Season reads sequence and adapt. No scores."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from engines.explain import explain, explain_decision, explain_prescription
 from engines.ledger import Ledger
 from engines.normalize import normalize
 from engines.prescribe import PARAMETER_KEYS, prescribe
-from engines.season import sequence
+from engines.season import adapt, sequence
 
 FIXTURES_DIR = ROOT / "tests" / "fixtures"
 
@@ -292,6 +292,7 @@ _DAY_ORDER = (
     "Saturday",
 )
 _DAY_RANK = {day: index for index, day in enumerate(_DAY_ORDER)}
+_MARKS = ("on_track", "not_hitting", "smashing")
 
 
 def _day_rank(session: dict) -> tuple[int, str]:
@@ -329,40 +330,87 @@ def _reason_text(codes: list) -> str:
     return ", ".join(str(code) for code in codes) if codes else "—"
 
 
-def _render_schedule(sessions: list[dict]) -> None:
-    weeks = _weeks(sessions)
-    if not weeks:
+def _season_plan(inputs: tuple[str, str, str, str], current_time, start_date, goal_time, goal_date) -> dict:
+    """sequence() when the four inputs change. A submitted mark keeps adapt()'s plan."""
+    if st.session_state.get("season_inputs") != inputs:
+        plan = sequence(current_time, start_date, goal_time, goal_date)
+        st.session_state["season_inputs"] = inputs
+        st.session_state["season_plan"] = plan
+        st.session_state["season_marks"] = {}
+        st.session_state["season_generation"] = int(st.session_state.get("season_generation") or 0) + 1
+    return st.session_state["season_plan"]
+
+
+def _render_mark(plan: dict, week_number: int, generation: int) -> None:
+    """One mark for this week. Submit calls adapt(); weeks after this one are what it returns."""
+    applied = (st.session_state.get("season_marks") or {}).get(week_number)
+    if applied in _MARKS:
+        st.markdown("**Mark**")
+        st.write(applied)
+    with st.form(key=f"season-mark-form-{generation}-{week_number}"):
+        choice = st.radio(
+            "Mark",
+            _MARKS,
+            index=None,
+            horizontal=True,
+            key=f"season-mark-{generation}-{week_number}",
+        )
+        submitted = st.form_submit_button("Submit")
+    if not submitted:
+        return
+    try:
+        updated = adapt(plan, week_number, choice)
+    except ValueError as exc:
+        st.write(str(exc))
+        return
+    marks = dict(st.session_state.get("season_marks") or {})
+    marks[week_number] = choice
+    st.session_state["season_marks"] = marks
+    st.session_state["season_plan"] = updated
+    st.rerun()
+
+
+def _render_schedule(plan: dict, generation: int) -> None:
+    length = plan["season_length_weeks"]
+    if isinstance(length, bool) or not isinstance(length, int) or length <= 0:
         st.write("—")
         return
-    for index, (number, days) in enumerate(weeks):
+    grouped = dict(_weeks(plan["sessions"]))
+    for index, number in enumerate(range(1, length + 1)):
+        days = grouped.get(number, [])
         if index:
             st.divider()
         st.subheader(f"Week {number} — Phase {_phase_number(days)}")
-        _show_rows(
-            [
-                {
-                    "day_of_week": session["day_of_week"],
-                    "date": session["date"],
-                    "template_id": session["template_id"],
-                    "target_outcome": session["target_outcome"],
-                }
-                for session in days
-            ]
-        )
-        with st.expander("Reason codes", key=f"season-reasons-{number}"):
-            for session in days:
-                st.caption(
-                    f"{session['day_of_week']} {session['date']}: "
-                    f"{_reason_text(session['reason_codes'])}"
-                )
+        if not days:
+            st.write("—")
+        else:
+            _show_rows(
+                [
+                    {
+                        "day_of_week": session["day_of_week"],
+                        "date": session["date"],
+                        "template_id": session["template_id"],
+                        "target_outcome": session["target_outcome"],
+                    }
+                    for session in days
+                ]
+            )
+            with st.expander("Reason codes", key=f"season-reasons-{generation}-{number}"):
+                for session in days:
+                    st.caption(
+                        f"{session['day_of_week']} {session['date']}: "
+                        f"{_reason_text(session['reason_codes'])}"
+                    )
+        _render_mark(plan, number, generation)
 
 
 def page_season() -> None:
     """The season sequence() returns from four inputs.
 
     Sessions are grouped by week and ordered Sunday through Saturday.
-    Each row shows that day's calendar date. No recorded workouts.
-    Template ids stay the ones sequence chose.
+    Each row shows that day's calendar date. Submitting a mark calls
+    adapt() for that week and shows the plan it returns.
+    No recorded workouts.
     """
     st.warning("SYNTHETIC / DEMO")
     st.title("Season")
@@ -370,15 +418,21 @@ def page_season() -> None:
     start_date = st.date_input("start_date", value=date(2026, 4, 19))
     goal_time = st.text_input("goal_time", value="1:55.0")
     goal_date = st.date_input("goal_date", value=date(2027, 3, 19))
+    inputs = (
+        str(current_time).strip(),
+        start_date.isoformat(),
+        str(goal_time).strip(),
+        goal_date.isoformat(),
+    )
     try:
-        plan = sequence(current_time, start_date, goal_time, goal_date)
+        plan = _season_plan(inputs, inputs[0], start_date, inputs[2], goal_date)
     except ValueError as exc:
         st.write(str(exc))
         return
 
     st.markdown("**season_length_weeks**")
     st.write(plan["season_length_weeks"])
-    _render_schedule(plan["sessions"])
+    _render_schedule(plan, int(st.session_state.get("season_generation") or 0))
 
 
 st.set_page_config(page_title="rio", layout="centered")
