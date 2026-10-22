@@ -4,8 +4,13 @@
 
 Inputs are the current 800 time, the start date, the goal 800 time, and the
 goal date. The plan is an ordered list of sessions. Each session has a week
-number, a day of the week, a frozen template id, reason codes, and the target
-outcome that counts as a hit.
+number, a day of the week, a calendar date, a frozen template id, reason
+codes, and the target outcome that counts as a hit.
+
+start_date is the first day of training. Each session is dated from that day
+and its day of the week. Week 1 is the Sunday–Saturday week that contains
+start_date, and days before start_date are left out. Later weeks are full
+Sunday–Saturday weeks.
 
 No model. No spend. Prose spend stays capped at $25 in engines/explain.py.
 This file does not write the exam file.
@@ -15,7 +20,7 @@ from __future__ import annotations
 
 import re
 import sys
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -190,6 +195,7 @@ _REASON_ORDER = (
 _SESSION_FIELDS = (
     "week_number",
     "day_of_week",
+    "date",
     "template_id",
     "reason_codes",
     "target_outcome",
@@ -304,14 +310,16 @@ def sequence(current_time, start_date, goal_time, goal_date) -> dict:
     """
     _parse_time(current_time, "current_time")
     goal = _parse_time(goal_time, "goal_time")
-    weeks = season_length_weeks(start_date, goal_date)
+    start = _as_date(start_date, "start_date")
+    weeks = season_length_weeks(start, goal_date)
     menu = _menu()
     phases = _expand(phase_lengths(weeks))
     built = _assemble(phases, menu)
-    sessions = _sessions(built, goal, menu)
+    sessions = _sessions(built, goal, menu, start)
     plan = {
         "ontology_version": ONTOLOGY_VERSION,
         "season_length_weeks": weeks,
+        "start_date": start.isoformat(),
         "sessions": sessions,
     }
     _check(plan, menu)
@@ -368,17 +376,29 @@ def adapt(plan: dict, week_number: int, outcome) -> dict:
                     hooks[index] = "harder_template"
 
     locked = _weeks_of(copied)[:week_number]
-    built = _assemble(phases, menu, locked=locked, hooks=hooks)
+    start = _as_date(copied["start_date"], "start_date")
+    # Days before start_date are already gone from week 1. The cap was applied
+    # to that full week, so a rebuild of the following week uses the full week.
+    rebuild_first = week_number == 1 and start > _sunday_on_or_before(start)
+    built = _assemble(
+        phases,
+        menu,
+        locked=locked,
+        hooks=hooks,
+        rebuild_first=rebuild_first,
+    )
     # Judged weeks stay as written. Later weeks are rebuilt.
     sessions = _locked_sessions(copied, week_number) + _sessions(
         built[week_number:],
         goal,
         menu,
+        start,
         first_week=week_number + 1,
     )
     updated = {
         "ontology_version": copied["ontology_version"],
         "season_length_weeks": weeks,
+        "start_date": copied["start_date"],
         "sessions": sessions,
     }
     _check(updated, menu)
@@ -403,19 +423,33 @@ def show_season(
     for session in plan["sessions"]:
         grouped.setdefault(session["week_number"], []).append(session)
     for number in range(1, plan["season_length_weeks"] + 1):
-        week = grouped[number]
+        week = grouped.get(number)
+        if not week:
+            print(f"week {number:02d}  no session on or after {start.isoformat()}")
+            continue
         ids = [session["template_id"] for session in week]
         phase = _one_phase(week, number)
         bits = [
-            f"{session['day_of_week'][:3]} {session['template_id']}" for session in week
+            f"{session['date']} {session['day_of_week'][:3]} {session['template_id']}"
+            for session in week
         ]
         print(
             f"week {number:02d}  phase {phase}  {_work(ids):5d} m  hard {_hard(ids, menu)}  {bits}"
         )
 
 
-def _assemble(phases, menu, locked=None, hooks=None) -> list[dict]:
-    """One dict per week: phase, ids, hold ids, and extra reason codes."""
+def _assemble(
+    phases,
+    menu,
+    locked=None,
+    hooks=None,
+    rebuild_first: bool = False,
+) -> list[dict]:
+    """One dict per week: phase, ids, hold ids, and extra reason codes.
+
+    `rebuild_first` rebuilds a calendar-cut week 1 so the 10% baseline stays
+    the full week. The caller still emits the cut sessions.
+    """
     locked = list(locked or [])
     hooks = dict(hooks or {})
     slots = _slots(phases)
@@ -424,7 +458,7 @@ def _assemble(phases, menu, locked=None, hooks=None) -> list[dict]:
     prev_volume = None
     prev_hard = None
     for index, slot in enumerate(slots):
-        if index < len(locked):
+        if index < len(locked) and not (rebuild_first and index == 0):
             ids = list(locked[index])
             row = {
                 "phase": slot["phase"],
@@ -790,17 +824,40 @@ def _floor_for(peak: int) -> int:
     return (peak * _RISE_DEN + _RISE_NUM - 1) // _RISE_NUM
 
 
-def _sessions(weeks: list[dict], goal: str, menu, first_week: int = 1) -> list[dict]:
+def _sunday_on_or_before(day: date) -> date:
+    """Sunday that opens the Sunday–Saturday week containing `day`."""
+    return day - timedelta(days=(day.weekday() + 1) % 7)
+
+
+def _session_day(start: date, week_number: int, day_name: str) -> date:
+    """Calendar date of one session. Week 1 is the week that contains `start`."""
+    anchor = _sunday_on_or_before(start)
+    offset = (week_number - 1) * 7 + _WEEK_DAYS.index(day_name)
+    return anchor + timedelta(days=offset)
+
+
+def _sessions(
+    weeks: list[dict],
+    goal: str,
+    menu,
+    start: date,
+    first_week: int = 1,
+) -> list[dict]:
     sessions: list[dict] = []
     for offset, week in enumerate(weeks):
         number = first_week + offset
         phase = week["phase"]
         for day, template_id in zip(week["days"], week["ids"]):
+            session_day = _session_day(start, number, day)
+            # Week 1 keeps only the days on or after the first day of training.
+            if session_day < start:
+                continue
             codes = _codes(template_id, phase, week, menu)
             sessions.append(
                 {
                     "week_number": number,
                     "day_of_week": day,
+                    "date": session_day.isoformat(),
                     "template_id": template_id,
                     "reason_codes": codes,
                     "target_outcome": _outcome(template_id, goal),
@@ -814,6 +871,7 @@ def _locked_sessions(plan: dict, through_week: int) -> list[dict]:
         {
             "week_number": session["week_number"],
             "day_of_week": session["day_of_week"],
+            "date": session["date"],
             "template_id": session["template_id"],
             "reason_codes": list(session["reason_codes"]),
             "target_outcome": session["target_outcome"],
@@ -891,10 +949,12 @@ def _check(plan: dict, menu) -> None:
     weeks = plan["season_length_weeks"]
     if isinstance(weeks, bool) or not isinstance(weeks, int) or weeks < 0:
         raise ValueError("season_length_weeks is not a whole number")
+    start = _as_date(plan.get("start_date"), "start_date")
     sessions = plan["sessions"]
     if not isinstance(sessions, list):
         raise ValueError("sessions is not a list")
     seen_weeks: list[int] = []
+    seen_dates: set[str] = set()
     by_week: dict[int, list[dict]] = {}
     for session in sessions:
         if tuple(session) != _SESSION_FIELDS:
@@ -909,6 +969,18 @@ def _check(plan: dict, menu) -> None:
             raise ValueError(f"{template_id} is not in the frozen menu")
         if session["day_of_week"] not in _WEEK_DAYS:
             raise ValueError(f"week {number} day is not Sunday–Saturday")
+        text = session["date"]
+        if not isinstance(text, str) or _ISO_DAY.fullmatch(text) is None:
+            raise ValueError("session date is not YYYY-MM-DD")
+        if text in seen_dates:
+            raise ValueError("a session date is repeated")
+        seen_dates.add(text)
+        parsed = date.fromisoformat(text)
+        expected_day = _session_day(start, number, session["day_of_week"])
+        if parsed != expected_day or parsed < start:
+            raise ValueError(
+                f"week {number} {session['day_of_week']} is not {expected_day.isoformat()}"
+            )
         phase_codes = [
             code for code in session["reason_codes"] if _PHASE_CODE.fullmatch(code)
         ]
@@ -932,11 +1004,21 @@ def _check(plan: dict, menu) -> None:
             seen_weeks.append(number)
             by_week[number] = []
         by_week[number].append(session)
-    if seen_weeks != list(range(1, weeks + 1)):
-        raise ValueError("weeks are not 1..season_length_weeks in order")
+    expected_weeks = list(range(1, weeks + 1))
+    if seen_weeks != expected_weeks:
+        # Week 1 can disappear when every session day is before start_date.
+        opener_cut = (
+            weeks >= 2
+            and seen_weeks == expected_weeks[1:]
+            and start > _sunday_on_or_before(start)
+        )
+        if not opener_cut:
+            raise ValueError("weeks are not 1..season_length_weeks in order")
     previous_volume = None
     previous_hard = None
     for number in range(1, weeks + 1):
+        if number not in by_week:
+            continue
         rows = by_week[number]
         ids = [row["template_id"] for row in rows]
         days = [row["day_of_week"] for row in rows]
@@ -948,7 +1030,7 @@ def _check(plan: dict, menu) -> None:
         if _RACE_SHARPEN in ids and _RACE_SE in ids:
             raise ValueError(f"week {number} pairs rr_400 with se_400")
         phase = _one_phase(rows, number)
-        _check_shape(number, rows, phase, menu)
+        _check_shape(number, rows, phase, menu, start)
         volume = _work(ids)
         hard = _hard(ids, menu)
         if previous_volume is not None:
@@ -960,12 +1042,61 @@ def _check(plan: dict, menu) -> None:
                 raise ValueError(
                     f"week {number} hard load {hard} rises more than 10% from {previous_hard}"
                 )
+        # The cap already bounded this week against the full opener. The days
+        # before start_date are not a smaller training week.
+        if _opener_fragment(number, phase, rows, start):
+            continue
         previous_volume = volume
         previous_hard = hard
 
 
-def _check_shape(number: int, rows: list[dict], phase: int, menu) -> None:
-    """Phases 1–7 are the six-day week. Phase 8 is a shorter taper."""
+def _is_week_tail(days: list[str], expected: list[str]) -> bool:
+    """True when `days` is `expected` with a Sunday-side prefix removed."""
+    if len(days) > len(expected):
+        return False
+    if not days:
+        return True
+    return expected[-len(days) :] == days
+
+
+def _tail_matches_start(
+    number: int,
+    days: list[str],
+    expected: list[str],
+    start: date,
+) -> bool:
+    if number != 1 or not _is_week_tail(days, expected):
+        return False
+    sunday = _sunday_on_or_before(start)
+    kept = set(days)
+    for day in expected:
+        day_date = sunday + timedelta(days=_WEEK_DAYS.index(day))
+        before = day_date < start
+        if before and day in kept:
+            return False
+        if not before and day not in kept:
+            return False
+    return True
+
+
+def _opener_fragment(number: int, phase: int, rows: list[dict], start: date) -> bool:
+    """True when week 1 omits session days that fell before start_date."""
+    if number != 1 or start <= _sunday_on_or_before(start):
+        return False
+    if phase < 8:
+        days = [row["day_of_week"] for row in rows]
+        return days != list(_STANDARD_DAYS)
+    if not rows:
+        return True
+    first = min(date.fromisoformat(row["date"]) for row in rows)
+    return first > start
+
+
+def _check_shape(number: int, rows: list[dict], phase: int, menu, start: date) -> None:
+    """Phases 1–7 are the six-day week. Phase 8 is a shorter taper.
+
+    Week 1 may keep only the days on or after start_date.
+    """
     ids = [row["template_id"] for row in rows]
     days = [row["day_of_week"] for row in rows]
     if phase == 8:
@@ -979,15 +1110,24 @@ def _check_shape(number: int, rows: list[dict], phase: int, menu) -> None:
             if template_id != _RECOVERY_ID and template_id not in _PHASE_MENU[8]:
                 raise ValueError(f"week {number} leaves the phase 8 menu")
         return
-    if days != list(_STANDARD_DAYS):
+    expected = list(_STANDARD_DAYS)
+    if days != expected and not _tail_matches_start(number, days, expected, start):
         raise ValueError(f"week {number} days are {days}")
     by_day = {row["day_of_week"]: row["template_id"] for row in rows}
     for day in _EASY_DAYS:
+        if day not in by_day:
+            if number == 1 and days != expected:
+                continue
+            raise ValueError(f"week {number} {day} is not the easy 5 km")
         if by_day[day] != _RECOVERY_ID:
             raise ValueError(f"week {number} {day} is not the easy 5 km")
-    if by_day[_LONG_DAY] not in _LONG_RUNS:
+    if by_day.get(_LONG_DAY) not in _LONG_RUNS:
         raise ValueError(f"week {number} Saturday is not the long run")
     for day in _QUALITY_DAYS:
+        if day not in by_day:
+            if number == 1 and days != expected:
+                continue
+            raise ValueError(f"week {number} {day} is not a quality session")
         template_id = by_day[day]
         if template_id in _LONG_RUNS or _family(template_id, menu) == "aerobic":
             raise ValueError(f"week {number} {day} is not a quality session")
@@ -1023,7 +1163,17 @@ def _phases_from(plan: dict) -> list[int]:
             for session in plan["sessions"]
             if session["week_number"] == number
         ]
-        phases.append(_one_phase(rows, number))
+        if rows:
+            phases.append(_one_phase(rows, number))
+        else:
+            phases.append(0)
+    for index, phase in enumerate(phases):
+        if phase != 0:
+            continue
+        # A whole opener can fall before start_date only in a taper week.
+        if index != 0 or len(phases) < 2 or phases[1] != 8:
+            raise ValueError(f"week {index + 1} has no sessions")
+        phases[index] = 8
     return phases
 
 
@@ -1103,10 +1253,12 @@ def _copy_plan(plan: dict) -> dict:
     return {
         "ontology_version": plan.get("ontology_version"),
         "season_length_weeks": plan.get("season_length_weeks"),
+        "start_date": plan.get("start_date"),
         "sessions": [
             {
                 "week_number": session["week_number"],
                 "day_of_week": session["day_of_week"],
+                "date": session["date"],
                 "template_id": session["template_id"],
                 "reason_codes": list(session["reason_codes"]),
                 "target_outcome": session["target_outcome"],

@@ -155,11 +155,31 @@ def test_plan_rules() -> None:
             if tuple(session) != (
                 "week_number",
                 "day_of_week",
+                "date",
                 "template_id",
                 "reason_codes",
                 "target_outcome",
             ):
                 raise AssertionError("session fields changed")
+            named = (
+                "Sunday",
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+            )
+            try:
+                held_day = date.fromisoformat(session["date"])
+            except ValueError as exc:
+                raise AssertionError("session date is not YYYY-MM-DD") from exc
+            if session["date"] != held_day.isoformat():
+                raise AssertionError("session date is not YYYY-MM-DD")
+            if named[(held_day.weekday() + 1) % 7] != session["day_of_week"]:
+                raise AssertionError(f"week {number} date does not match the day")
+            if held_day < START:
+                raise AssertionError("a session is before the start date")
             if session["template_id"] not in menu:
                 raise AssertionError(f"{session['template_id']} left the menu")
             if not session["reason_codes"]:
@@ -283,6 +303,91 @@ def _assert_week_shape(number: int, week: list[dict], phase: int, families: dict
             raise AssertionError(f"week {number} {day} is not quality")
 
 
+def test_calendar_dates() -> None:
+    full = sequence("2:02.9", START, "1:55.0", GOAL_DAY)
+    if full["start_date"] != START.isoformat():
+        raise AssertionError("start_date was not kept")
+    if full["sessions"][0]["date"] != "2026-04-19":
+        raise AssertionError("a Sunday start did not open on the start date")
+    previous = None
+    for session in full["sessions"]:
+        held = date.fromisoformat(session["date"])
+        if previous is not None and held <= previous:
+            raise AssertionError("sessions are not in date order")
+        if held > GOAL_DAY:
+            raise AssertionError("a session is after the goal date")
+        previous = held
+
+    wednesday = date(2026, 4, 22)
+    partial = sequence("2:02.9", wednesday, "1:55.0", GOAL_DAY)
+    if partial["season_length_weeks"] != full["season_length_weeks"]:
+        raise AssertionError("a mid-week start changed the season length")
+    opener = _weeks(partial)[0]
+    if [session["day_of_week"] for session in opener] != [
+        "Wednesday",
+        "Thursday",
+        "Saturday",
+    ]:
+        raise AssertionError("week 1 kept days before the start date")
+    if [session["date"] for session in opener] != [
+        "2026-04-22",
+        "2026-04-23",
+        "2026-04-25",
+    ]:
+        raise AssertionError("week 1 dates are not the calendar days")
+    full_weeks = _weeks(full)
+    part_weeks = _weeks(partial)
+    opener_by_day = {
+        session["day_of_week"]: session["template_id"] for session in full_weeks[0]
+    }
+    for session in opener:
+        if session["template_id"] != opener_by_day[session["day_of_week"]]:
+            raise AssertionError("week 1 changed a template")
+    for number, (whole, cut) in enumerate(zip(full_weeks, part_weeks), start=1):
+        if number == 1:
+            continue
+        if _id_list(whole) != _id_list(cut):
+            raise AssertionError(f"week {number} templates changed")
+        if _phase(whole) < 8 and [session["day_of_week"] for session in cut] != STANDARD_DAYS:
+            raise AssertionError(f"week {number} is not a full Sunday–Saturday week")
+        sunday = START + timedelta(weeks=number - 1)
+        for session in cut:
+            index = (
+                "Sunday",
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+            ).index(session["day_of_week"])
+            if session["date"] != (sunday + timedelta(days=index)).isoformat():
+                raise AssertionError(f"week {number} date does not match the day")
+    if adapt(partial, 6, "on track")["sessions"] != partial["sessions"]:
+        raise AssertionError("on track changed a partial first week")
+
+    friday = date(2026, 4, 24)
+    short = sequence("2:02.9", friday, "1:55.0", friday + timedelta(days=14))
+    if short["season_length_weeks"] != 2:
+        raise AssertionError("14 days was not two weeks")
+    if any(session["week_number"] == 1 for session in short["sessions"]):
+        raise AssertionError("week 1 kept a session before the start date")
+    if short["sessions"][0]["week_number"] != 2:
+        raise AssertionError("training did not resume the next Sunday")
+    if short["sessions"][0]["date"] != "2026-04-28":
+        raise AssertionError("the next week did not open on Tuesday")
+    for session in short["sessions"]:
+        if date.fromisoformat(session["date"]) < friday:
+            raise AssertionError("a taper session is before the start date")
+    if adapt(short, 1, "on track")["sessions"] != short["sessions"]:
+        raise AssertionError("on track changed an empty opener")
+    moved = adapt(short, 1, "not_hitting")
+    if any(session["week_number"] == 1 for session in moved["sessions"]):
+        raise AssertionError("adaptation restored days before the start date")
+    if any(date.fromisoformat(session["date"]) < friday for session in moved["sessions"]):
+        raise AssertionError("adaptation dated a session before the start date")
+
+
 def test_short_season() -> None:
     plan = sequence("2:02.9", START, "1:55.0", START + timedelta(days=14))
     weeks = _weeks(plan)
@@ -359,6 +464,7 @@ if __name__ == "__main__":
     test_lengths()
     test_dates_and_times()
     test_plan_rules()
+    test_calendar_dates()
     test_short_season()
     test_adaptation()
     print("season ok")

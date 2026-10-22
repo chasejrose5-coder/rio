@@ -342,6 +342,7 @@ def _render_schedule(sessions: list[dict]) -> None:
             [
                 {
                     "day_of_week": session["day_of_week"],
+                    "date": session["date"],
                     "template_id": session["template_id"],
                     "target_outcome": session["target_outcome"],
                 }
@@ -351,7 +352,8 @@ def _render_schedule(sessions: list[dict]) -> None:
         with st.expander("Reason codes", key=f"season-reasons-{number}"):
             for session in days:
                 st.caption(
-                    f"{session['day_of_week']}: {_reason_text(session['reason_codes'])}"
+                    f"{session['day_of_week']} {session['date']}: "
+                    f"{_reason_text(session['reason_codes'])}"
                 )
 
 
@@ -359,7 +361,8 @@ def page_season() -> None:
     """The season sequence() returns from four inputs.
 
     Sessions are grouped by week and ordered Sunday through Saturday.
-    No recorded workouts. Template ids stay the ones sequence chose.
+    Each row shows that day's calendar date. No recorded workouts.
+    Template ids stay the ones sequence chose.
     """
     st.warning("SYNTHETIC / DEMO")
     st.title("Season")
