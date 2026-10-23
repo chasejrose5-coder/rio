@@ -679,13 +679,14 @@ button:focus-visible {
   border: 1px solid #242424;
   border-radius: 16px;
   padding: 1.45rem 1.55rem 1.15rem !important;
-  margin: 0 0 1.15rem !important;
+  margin: 0 0 1.65rem !important;
 }
 .rio-week-head {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   gap: 1rem;
+  padding-bottom: 0.15rem;
 }
 .stMarkdown h2.rio-week-title,
 h2.rio-week-title {
@@ -696,6 +697,26 @@ h2.rio-week-title {
   font-weight: 500 !important;
   letter-spacing: -0.02em !important;
   line-height: 1.2 !important;
+}
+.rio-week-head h2.rio-week-title,
+.stMarkdown .rio-week-head h2.rio-week-title {
+  display: flex !important;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  font-size: 1.42rem !important;
+}
+.rio-week-sep {
+  color: #8a8a8a !important;
+  font-weight: 400 !important;
+  margin-left: 0.7rem !important;
+  margin-right: 0.7rem !important;
+}
+.rio-week-phase {
+  color: #d4d4d4 !important;
+  font-size: 1.08rem !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em !important;
 }
 .rio-week-meta, .rio-applied {
   margin: 0 !important;
@@ -739,11 +760,11 @@ h2.rio-week-title {
 }
 .rio-status {
   text-align: right;
-  color: #6e6e6e;
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
+  color: #5a5a5a;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding-top: 0.22rem;
+  padding-top: 0.26rem;
 }
 .rio-empty {
   margin: 0.9rem 0 0.2rem;
@@ -1237,14 +1258,18 @@ def _render_schedule(plan: dict, generation: int) -> None:
     for number in range(1, length + 1):
         days = grouped.get(number, [])
         applied = marks.get(number)
-        meta = f"Phase {_phase_number(days)}"
+        mark = ""
         if applied in _MARKS:
-            meta = f"{meta} · {_esc(applied)}"
+            mark = f'<p class="rio-week-meta">{_esc(applied)}</p>'
         with st.container(key=f"rio-week-{number}"):
             st.markdown(
                 '<div class="rio-week-head">'
-                f'<h2 class="rio-week-title">Week {number}</h2>'
-                f'<p class="rio-week-meta">{meta}</p>'
+                '<h2 class="rio-week-title">'
+                f'<span class="rio-week-num">Week {number}</span>'
+                '<span class="rio-week-sep">·</span>'
+                f'<span class="rio-week-phase">Phase {_esc(_phase_number(days))}</span>'
+                "</h2>"
+                f"{mark}"
                 "</div>",
                 unsafe_allow_html=True,
             )
