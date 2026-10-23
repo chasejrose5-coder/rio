@@ -43,17 +43,63 @@ def goal_seconds(mark: object) -> float | None:
     return seconds
 
 
-def rep_meters(template_id: object) -> int | None:
-    """Rep length written in a frozen id. The rep count is not the target."""
+def _rep_match(template_id: object) -> re.Match | None:
     if not isinstance(template_id, str):
         return None
-    found = _REP.search(template_id.strip())
+    return _REP.search(template_id.strip())
+
+
+def rep_meters(template_id: object) -> int | None:
+    """Rep length written in a frozen id. The rep count is not the target."""
+    found = _rep_match(template_id)
     if found is None:
         return None
     meters = int(found.group(1))
     if meters <= 0:
         return None
     return meters
+
+
+def rep_count(template_id: object) -> int | None:
+    """Reps named by a frozen id. One is a single continuous effort."""
+    found = _rep_match(template_id)
+    if found is None:
+        return None
+    count = int(found.group(2))
+    if count <= 0:
+        return None
+    return count
+
+
+def result_box_count(template_id: object) -> int:
+    """One box per rep. Continuous work, and an id with no count, stay one."""
+    count = rep_count(template_id)
+    if count is None or count < 2:
+        return 1
+    return count
+
+
+def filled_times(values: object) -> str:
+    """Times that were entered, in order. Empty boxes are left out."""
+    if not isinstance(values, (list, tuple)):
+        return ""
+    parts = []
+    for value in values:
+        token = _time_token(value)
+        if token is not None:
+            parts.append(token)
+    return ", ".join(parts)
+
+
+def _time_token(value: object) -> str | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    number = round(float(value), 2)
+    if number <= 0:
+        return None
+    if number.is_integer():
+        return str(int(number))
+    return f"{number:.2f}".rstrip("0").rstrip(".")
 
 
 def parse_result(text: object) -> dict | None:

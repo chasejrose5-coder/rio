@@ -11,7 +11,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from engines.season import adapt, sequence
-from ui.result import goal_seconds, judge, parse_result
+from ui.result import filled_times, goal_seconds, judge, parse_result, rep_count, result_box_count
 
 START = date(2026, 4, 19)
 GOAL_DAY = date(2027, 3, 19)
@@ -77,6 +77,34 @@ def test_ignored() -> None:
         raise AssertionError("distance still needs a goal time")
 
 
+def test_rep_boxes() -> None:
+    """The id's rep count is the box count. A continuous effort stays one."""
+    if rep_count(REP) != 6 or result_box_count(REP) != 6:
+        raise AssertionError("6 × 400 did not ask for six boxes")
+    if rep_count("mv_60_r120_x10") != 10 or result_box_count("an_400_r45_x6") != 6:
+        raise AssertionError("the rep count was not read from the id")
+    if rep_count("rr_800_r0_x1") != 1 or result_box_count("rr_800_r0_x1") != 1:
+        raise AssertionError("the race did not stay one box")
+    if result_box_count("aer_12000_r0_x1") != 1 or result_box_count("not-a-template") != 1:
+        raise AssertionError("continuous work did not stay one box")
+    if rep_count(None) is not None or rep_count("se_py_200to400_r90_x5") is not None:
+        raise AssertionError("an id without a rep count was counted")
+
+
+def test_empty_boxes_are_ignored() -> None:
+    """Only filled times reach the ±3% rule. The band itself stays put."""
+    entered = filled_times([60, None, 60, "", 0])
+    direct = judge(REP, "60, 60", GOAL)
+    from_boxes = judge(REP, entered, GOAL)
+    if entered != "60, 60" or from_boxes != direct:
+        raise AssertionError(f"empty boxes changed the mark: {entered} {from_boxes}")
+    if filled_times([None, None]) != "" or judge(REP, filled_times([]), GOAL) is not None:
+        raise AssertionError("an empty set was judged")
+    one = filled_times([54.0])
+    if one != "54" or judge(REP, one, GOAL)["mark"] != "smashing":
+        raise AssertionError("one filled rep was not mapped")
+
+
 def test_two_results_adapt_once() -> None:
     """The week is judged once. A second call on the shifted plan would move again."""
     plan = sequence("2:02.9", START, "1:55.0", GOAL_DAY)
@@ -107,5 +135,7 @@ if __name__ == "__main__":
     test_band()
     test_distance()
     test_ignored()
+    test_rep_boxes()
+    test_empty_boxes_are_ignored()
     test_two_results_adapt_once()
     print("result ok")

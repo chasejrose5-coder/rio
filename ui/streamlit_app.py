@@ -1,6 +1,6 @@
 # streamlit_app.py — Start, Last Session, Next, Decisions, Ledger, Goal, Season, Weekly, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Season shows that plan and reads adapt. Weekly shows one week of that plan and reads adapt. Session shows one day of that plan. Tuesday and Thursday quality take one result and call adapt. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Season shows that plan and reads adapt. Weekly shows one week of that plan and reads adapt. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. A continuous session takes one time. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from engines.ledger import Ledger
 from engines.normalize import normalize
 from engines.prescribe import PARAMETER_KEYS, load_menu, prescribe
 from engines.season import adapt, sequence
-from ui.result import goal_seconds, judge
+from ui.result import filled_times, goal_seconds, judge, result_box_count
 
 FIXTURES_DIR = ROOT / "tests" / "fixtures"
 
@@ -1235,13 +1235,67 @@ h2.rio-week-title {
   margin: 0 0 1.15rem;
 }
 [class*="st-key-rio-result"] .rio-mark-label {
-  padding: 0 0 0.55rem !important;
+  padding: 0 0 0.45rem !important;
 }
-[class*="st-key-rio-result"] [data-testid="stTextInput"] {
-  max-width: 24rem;
+[class*="st-key-rio-result"] .rio-rep-note {
+  margin: 0 0 0.9rem !important;
+  padding: 0 !important;
+  color: #8a8a8a !important;
+  font-size: 0.84rem !important;
+  line-height: 1.45 !important;
+}
+[class*="st-key-rio-result"] [data-testid="stHorizontalBlock"] {
+  gap: 0.85rem 1.1rem !important;
+  align-items: start !important;
+  flex-wrap: nowrap !important;
+}
+[class*="st-key-rio-result"] [data-testid="stHorizontalBlock"] > div {
+  min-width: 0 !important;
+  flex: 1 1 0 !important;
+  width: auto !important;
+}
+[class*="st-key-rio-result"] [data-testid="stNumberInput"] {
+  margin: 0 0 0.75rem !important;
+}
+[class*="st-key-rio-result-one"] [data-testid="stNumberInput"] {
+  max-width: 16rem;
+}
+[class*="st-key-rio-result"] [data-testid="stWidgetLabel"] {
+  margin-bottom: 0.28rem !important;
+}
+[class*="st-key-rio-result"] [data-testid="stNumberInputContainer"] {
+  background: #141414 !important;
+  border: 1px solid #2a2a2a !important;
+  border-radius: 8px !important;
+}
+[class*="st-key-rio-result"] [data-testid="stNumberInputContainer"]:focus-within {
+  border-color: #4E6E4D !important;
+  box-shadow: none !important;
+}
+[class*="st-key-rio-result"] [data-testid="stNumberInputField"] {
+  color: #f0f0f0 !important;
+  -webkit-text-fill-color: #f0f0f0 !important;
+  background: transparent !important;
+  caret-color: #f0f0f0 !important;
+}
+[class*="st-key-rio-result"] [data-testid="stNumberInputStepUp"],
+[class*="st-key-rio-result"] [data-testid="stNumberInputStepDown"] {
+  display: none !important;
+}
+[class*="st-key-rio-result"] input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+[class*="st-key-rio-result"] input[type="number"]::-webkit-outer-spin-button,
+[class*="st-key-rio-result"] input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+[class*="st-key-rio-result"] [data-testid="stNumberInputClearButton"] {
+  color: #8a8a8a !important;
 }
 [class*="st-key-rio-result"] .rio-week-meta {
-  margin-top: 0.75rem !important;
+  margin-top: 0.15rem !important;
 }
 
 @media (max-width: 720px) {
@@ -1264,7 +1318,7 @@ h2.rio-week-title {
   .rio-status { text-align: left; padding-top: 0; }
   .rio-field { grid-template-columns: 1fr; row-gap: 0.22rem; padding: 0.7rem 0; }
   [class*="st-key-rio-pick"] { max-width: 100% !important; }
-  [class*="st-key-rio-result"] [data-testid="stTextInput"] { max-width: 100% !important; }
+  [class*="st-key-rio-result-one"] [data-testid="stNumberInput"] { max-width: 100% !important; }
   .rio-daycard-dow { font-size: 1.32rem; }
 }
 </style>
@@ -1656,7 +1710,40 @@ def _format_numbers(numbers: list) -> str:
     return ", ".join(parts)
 
 
-def _apply_result(plan: dict, session: dict, text: str) -> None:
+def _stored_slot(value: object) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    number = round(float(value), 2)
+    if number <= 0:
+        return None
+    return number
+
+
+def _initial_slots(saved: dict | None, count: int) -> list[float | None]:
+    """Refill each box. A saved gap stays empty. Older results fill from the left."""
+    slots: list[float | None] = [None] * count
+    if not isinstance(saved, dict):
+        return slots
+    stored = saved.get("slots")
+    if isinstance(stored, list):
+        for index in range(min(count, len(stored))):
+            slots[index] = _stored_slot(stored[index])
+        return slots
+    numbers = saved.get("numbers")
+    if not isinstance(numbers, list):
+        return slots
+    filled = [slot for slot in (_stored_slot(number) for number in numbers) if slot is not None]
+    for index, slot in enumerate(filled[:count]):
+        slots[index] = slot
+    return slots
+
+
+def _apply_result(
+    plan: dict,
+    session: dict,
+    text: str,
+    slots: list | None = None,
+) -> None:
     """Store the numbers and call adapt once. Empty or invalid text does nothing."""
     if not text:
         return
@@ -1667,12 +1754,15 @@ def _apply_result(plan: dict, session: dict, text: str) -> None:
     week = session["week_number"]
     stored = _actuals()
     previous = stored.get(day)
-    stored[day] = {
+    row = {
         "text": text,
         "numbers": list(judged["numbers"]),
         "mark": judged["mark"],
         "template_id": session.get("template_id"),
     }
+    if isinstance(slots, list):
+        row["slots"] = [_stored_slot(item) for item in slots]
+    stored[day] = row
     mark = _week_mark(plan, week)
     if mark is None:
         if previous is None:
@@ -1699,31 +1789,60 @@ def _apply_result(plan: dict, session: dict, text: str) -> None:
     st.rerun()
 
 
+def _time_box(label: str, key: str, *, show_label: bool) -> float | None:
+    """One time. Empty stays empty so a blank rep is ignored."""
+    value = st.number_input(
+        label,
+        key=key,
+        value=None,
+        step=0.1,
+        format="%g",
+        label_visibility="visible" if show_label else "collapsed",
+    )
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value)
+
+
 def _render_result(plan: dict, session: dict, generation: int) -> None:
-    """One field. Rep times, or one distance. The mark is adapt()'s."""
+    """One number per rep. A continuous session stays one box.
+
+    Empty boxes are left out. The filled times go through judge(), then adapt().
+    """
     day = str(session["date"])
-    key = f"season-result-{generation}-{day}"
-    handled_key = f"{key}-handled"
+    stem = f"season-result-{generation}-{day}"
+    handled_key = f"{stem}-handled"
     saved = _actuals().get(day)
     if not isinstance(saved, dict) or saved.get("template_id") != session.get("template_id"):
         saved = None
-    if key not in st.session_state:
-        st.session_state[key] = "" if saved is None else str(saved.get("text") or "")
+    count = result_box_count(session.get("template_id"))
+    initial = _initial_slots(saved, count)
+    keys = [f"{stem}-{index}" for index in range(count)]
+    for key, slot in zip(keys, initial):
+        if key not in st.session_state:
+            st.session_state[key] = slot
     if handled_key not in st.session_state:
-        st.session_state[handled_key] = st.session_state.get(key, "")
+        st.session_state[handled_key] = filled_times(initial)
     with st.container(key="rio-result"):
         st.markdown('<p class="rio-mark-label">Result</p>', unsafe_allow_html=True)
-        st.text_input(
-            "Result",
-            key=key,
-            label_visibility="collapsed",
-            placeholder="Rep times, or one distance",
-        )
-        text = str(st.session_state.get(key) or "").strip()
-        handled = str(st.session_state.get(handled_key) or "").strip()
+        if count > 1:
+            st.markdown(
+                '<p class="rio-rep-note">Enter the time for each rep.</p>',
+                unsafe_allow_html=True,
+            )
+            columns = st.columns(2, gap="small")
+            entered: list[float | None] = []
+            for index, key in enumerate(keys):
+                with columns[index % 2]:
+                    entered.append(_time_box(f"Rep {index + 1}", key, show_label=True))
+        else:
+            with st.container(key="rio-result-one"):
+                entered = [_time_box("Time", keys[0], show_label=False)]
+        text = filled_times(entered)
+        handled = str(st.session_state.get(handled_key) or "")
         if text != handled:
             st.session_state[handled_key] = text
-            _apply_result(plan, session, text)
+            _apply_result(plan, session, text, entered)
         saved = _actuals().get(day)
         if not isinstance(saved, dict) or saved.get("template_id") != session.get("template_id"):
             return
@@ -1949,8 +2068,9 @@ def page_session() -> None:
 
     Season and Weekly link here with the session date. The workout words,
     the structure, the warm-up, and the reason words are fixed. A Tuesday
-    or Thursday quality day takes one result and calls adapt(). This page
-    does not call a model and does not spend.
+    or Thursday quality day takes one time per rep and calls adapt(). A
+    continuous session takes one time. This page does not call a model and
+    does not spend.
     """
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
