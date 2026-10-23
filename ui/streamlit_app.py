@@ -91,13 +91,6 @@ def _deposit_rows(entries: list[dict], with_windows: bool = False) -> list[dict]
     return rows
 
 
-def _show_rows(rows: list[dict]) -> None:
-    if rows:
-        st.table(rows)
-    else:
-        st.write("—")
-
-
 def _parameter_rows(parameters: dict) -> list[dict]:
     rows: list[dict] = []
     for key in PARAMETER_KEYS:
@@ -109,30 +102,21 @@ def _parameter_rows(parameters: dict) -> list[dict]:
 
 def render_session(payload: dict) -> None:
     """Show one session. Labels are whatever classify returns. The paragraph is explain."""
-    source = str(payload.get("source", "")).strip().lower()
-    if source == "fixture":
-        st.markdown("FIXTURE")
-
-    st.markdown("**Date**")
-    st.write(_date_text(payload) or "—")
-
-    st.markdown("**Laps**")
     rows = _lap_rows(normalize(payload)["laps"])
-    if rows:
-        st.table(rows)
-    else:
-        st.write("—")
-
     result = classify(payload)
-    st.markdown("**Family**")
-    st.write(result["family"])
-    st.markdown("**Confidence**")
-    st.write(result["confidence"])
-    st.markdown("**Reason codes**")
     codes = result.get("reason_codes") or []
-    st.write(", ".join(str(code) for code in codes) if codes else "—")
-
-    st.write(explain(result))
+    _card(_label("Laps"), _table(rows))
+    _card(
+        _fields(
+            [
+                ("Date", _date_text(payload) or "—"),
+                ("Family", result["family"]),
+                ("Confidence", result["confidence"]),
+                ("Reason codes", _codes(codes)),
+            ]
+        ),
+        _prose(explain(result)),
+    )
 
 
 def selected_fixture_path() -> Path | None:
@@ -144,20 +128,28 @@ def selected_fixture_path() -> Path | None:
     return paths[names.index(selected)]
 
 
-def selected_payload() -> dict | None:
-    path = selected_fixture_path()
-    if path is None:
-        return None
-    return parse_fixture(path.read_text(encoding="utf-8"))
-
-
 def page_last_session() -> None:
-    st.title("Last Session")
-    payload = selected_payload()
-    if payload is None:
-        st.write("No session files.")
-    else:
-        render_session(payload)
+    paths = fixture_paths(FIXTURES_DIR)
+    hero, controls = _open("Last Session", controls=bool(paths))
+    if not paths:
+        with hero:
+            st.markdown(_page_hero("Last Session"), unsafe_allow_html=True)
+        st.markdown('<p class="rio-empty">No session files.</p>', unsafe_allow_html=True)
+        return
+    with controls:
+        path = selected_fixture_path()
+    if path is None:
+        with hero:
+            st.markdown(_page_hero("Last Session"), unsafe_allow_html=True)
+        st.markdown('<p class="rio-empty">No session files.</p>', unsafe_allow_html=True)
+        return
+    payload = parse_fixture(path.read_text(encoding="utf-8"))
+    with hero:
+        st.markdown(
+            _page_hero("Last Session", _fixture_banner(payload.get("source"))),
+            unsafe_allow_html=True,
+        )
+    render_session(payload)
 
 
 def page_next() -> None:
@@ -166,46 +158,60 @@ def page_next() -> None:
     Ids, parameters, and reason codes come from prescribe().
     The paragraph names that template id, those reason codes, and the goal.
     """
-    st.title("Next")
-    path = selected_fixture_path()
-    if path is None:
-        st.write("No session files.")
+    paths = fixture_paths(FIXTURES_DIR)
+    hero, controls = _open("Next", controls=bool(paths))
+    if not paths:
+        with hero:
+            st.markdown(_page_hero("Next"), unsafe_allow_html=True)
+        st.markdown('<p class="rio-empty">No session files.</p>', unsafe_allow_html=True)
         return
 
+    with controls:
+        path = selected_fixture_path()
+    if path is None:
+        with hero:
+            st.markdown(_page_hero("Next"), unsafe_allow_html=True)
+        st.markdown('<p class="rio-empty">No session files.</p>', unsafe_allow_html=True)
+        return
     payload = parse_fixture(path.read_text(encoding="utf-8"))
-    if str(payload.get("source", "")).strip().lower() == "fixture":
-        st.markdown("FIXTURE")
-
     today = date.today()
     ledger = Ledger()
     ledger.record_fixture(path, today - timedelta(days=1))
     result = prescribe(ledger, today)
+    with hero:
+        st.markdown(
+            _page_hero("Next", _fixture_banner(payload.get("source"))),
+            unsafe_allow_html=True,
+        )
 
-    st.markdown("**limiting_capacities**")
     limiting = ledger.goal.get("limiting_capacities")
-    st.write(limiting if limiting not in (None, "") else "—")
-
-    for index, row in enumerate(result["rows"]):
-        if index:
-            st.divider()
-        st.markdown("**prescribed_on**")
-        st.write(row.get("prescribed_on") or "—")
-        st.markdown("**template_id**")
-        st.write(row.get("template_id") or "—")
-        st.markdown("**parameters**")
-        _show_rows(_parameter_rows(row.get("parameters") or {}))
-        st.markdown("**Reason codes**")
+    _card(_fields([("limiting_capacities", limiting if limiting not in (None, "") else "—")]))
+    for row in result["rows"]:
         codes = row.get("reason_codes") or []
-        st.write(", ".join(str(code) for code in codes) if codes else "—")
         template_id = str(row.get("template_id") or "").strip()
+        parts = [
+            _subject("template_id", template_id or "—"),
+            _fields([("prescribed_on", row.get("prescribed_on") or "—")]),
+            _label("parameters"),
+            _fields(
+                [
+                    (item["Parameter"], item["Value"])
+                    for item in _parameter_rows(row.get("parameters") or {})
+                ]
+            ),
+            _fields([("Reason codes", _codes(codes))]),
+        ]
         if template_id:
-            st.write(
-                explain_prescription(
-                    template_id,
-                    [str(code) for code in codes],
-                    ledger.goal,
+            parts.append(
+                _prose(
+                    explain_prescription(
+                        template_id,
+                        [str(code) for code in codes],
+                        ledger.goal,
+                    )
                 )
             )
+        _card(*parts)
 
 
 def page_decisions() -> None:
@@ -213,74 +219,81 @@ def page_decisions() -> None:
 
     The paragraph names that template id and those reason codes.
     """
-    st.title("Decisions")
     paths = sorted(PLANNED_DIR.glob("*.yml"))
+    hero, controls = _open("Decisions", controls=len(paths) > 1)
     if not paths:
-        st.write("No planned rows.")
+        with hero:
+            st.markdown(_page_hero("Decisions"), unsafe_allow_html=True)
+        st.markdown('<p class="rio-empty">No planned rows.</p>', unsafe_allow_html=True)
         return
-    if len(paths) == 1:
+    if controls is None:
         path = paths[0]
     else:
-        names = [item.stem for item in paths]
-        selected = st.selectbox("Planned", names)
-        path = paths[names.index(selected)]
+        with controls:
+            names = [item.stem for item in paths]
+            selected = st.selectbox("Planned", names)
+            path = paths[names.index(selected)]
 
     row = load_planned(path)
-    if str(row.get("source", "")).strip().lower() == "fixture":
-        st.markdown("FIXTURE")
-
-    st.markdown("**template_id**")
-    st.write(row.get("template_id") or "—")
-
-    st.markdown("**parameters**")
-    _show_rows(_parameter_rows(row.get("parameters") or {}))
-
-    st.markdown("**reason_codes**")
     codes = row.get("reason_codes") or []
-    st.write(", ".join(str(code) for code in codes) if codes else "—")
     template_id = str(row.get("template_id") or "").strip()
+    with hero:
+        st.markdown(
+            _page_hero("Decisions", _fixture_banner(row.get("source"))),
+            unsafe_allow_html=True,
+        )
+    parts = [
+        _subject("template_id", template_id or "—"),
+        _label("parameters"),
+        _fields(
+            [
+                (item["Parameter"], item["Value"])
+                for item in _parameter_rows(row.get("parameters") or {})
+            ]
+        ),
+        _fields([("reason_codes", _codes(codes))]),
+    ]
     if template_id:
-        st.write(explain_decision(template_id, [str(code) for code in codes]))
-
-    st.markdown("**placeholder_date**")
-    st.write(row.get("placeholder_date") or "—")
-
-    st.markdown("**ontology_version**")
-    st.write(row.get("ontology_version") or "—")
-
-    st.markdown("**source**")
-    st.write(row.get("source") or "—")
+        parts.append(_prose(explain_decision(template_id, [str(code) for code in codes])))
+    parts.append(
+        _fields(
+            [
+                ("placeholder_date", row.get("placeholder_date") or "—"),
+                ("ontology_version", row.get("ontology_version") or "—"),
+                ("source", row.get("source") or "—"),
+            ]
+        )
+    )
+    _card(*parts)
 
 
 def page_ledger() -> None:
     """Deposits from the four fixtures. Windows are the ledger's, as of today."""
-    st.title("Ledger")
+    hero, _controls = _open("Ledger")
     today = date.today()
     ledger = Ledger()
     entries = ledger.record_fixtures(today)
+    banner = None
     if any(str(entry.get("source", "")).strip().lower() == "fixture" for entry in entries):
-        st.markdown("FIXTURE")
-
-    st.markdown("**Deposits**")
-    _show_rows(_deposit_rows(entries, with_windows=True))
-
+        banner = "FIXTURE"
+    with hero:
+        st.markdown(
+            _page_hero("Ledger", banner, f"As of {today.isoformat()}"),
+            unsafe_allow_html=True,
+        )
     windows = ledger.deposits_on(today)
-    st.markdown("**As of**")
-    st.write(today.isoformat())
-    st.markdown("**Emerging**")
-    _show_rows(_deposit_rows(windows["emerging"]))
-    st.markdown("**Decaying**")
-    _show_rows(_deposit_rows(windows["decaying"]))
+    _card(_label("Deposits"), _table(_deposit_rows(entries, with_windows=True)))
+    _card(_label("Emerging"), _table(_deposit_rows(windows["emerging"])))
+    _card(_label("Decaying"), _table(_deposit_rows(windows["decaying"])))
 
 
 def page_goal() -> None:
     """The four goal.yml fields, as written. unknown stays unknown."""
-    st.title("Goal")
+    hero, _controls = _open("Goal")
     goal = Ledger().goal
-    for key in GOAL_FIELDS:
-        st.markdown(f"**{key}**")
-        value = goal.get(key)
-        st.write(value if value not in (None, "") else "—")
+    with hero:
+        st.markdown(_page_hero("Goal"), unsafe_allow_html=True)
+    _card(_fields([(key, goal.get(key)) for key in GOAL_FIELDS]))
 
 
 _DAY_ORDER = (
@@ -362,6 +375,32 @@ _STATUS_LABELS = (
     ("capacity_weight", "Weighted"),
 )
 
+# Card copy only. template_id stays on the session and inside reason codes.
+_WORKOUT_TEXT = {
+    "aer_4000_r0_x1": "4 km very easy, Zone 2",
+    "aer_5000_r0_x1": "5 km easy, Zone 2, talkable the whole way",
+    "aer_8000_r0_x1": "8 km easy, Zone 2",
+    "aer_10000_r0_x1": "10 km easy, Zone 2, talkable",
+    "aer_12000_r0_x1": "12 km easy, still talkable",
+    "mv_60_r120_x10": "10 × 60 m fast, rolling start, full rest",
+    "mv_80_r180_x8": "8 × 80 m fast, full recovery",
+    "spd_150_r150_x8": "8 × 150 m at or faster than goal 800 pace, long rest",
+    "thr_1000_r60_x5": "5 × 1000 m comfortably hard, not 800 pace, 60 s rest",
+    "thr_1200_r60_x4": "4 × 1200 m comfortably hard, 60 s rest",
+    "ap_600_r75_x6": "6 × 600 m strong, slower than goal 800 pace, 75 s rest",
+    "ap_700_r90_x5": "5 × 700 m strong, not goal 800 pace, 90 s rest",
+    "ap_800_r90_x5": "5 × 800 m strong, clearly slower than goal 800 pace, 90 s rest",
+    "se_300_r75_x8": "8 × 300 m near goal 800 pace, 75 s rest",
+    "se_400_r90_x6": "6 × 400 m near goal 800 pace, 90 s rest",
+    "se_500_r120_x4": "4 × 500 m near goal 800 pace, 2 min rest",
+    "an_600_r180_x3": "3 × 600 m hard, 3 min rest",
+    "an_400_r45_x6": "Broken 800s, 3 × (400 + 400) near goal 800 pace, 45 s rest",
+    "rr_200_r180_x4": "4 × 200 m at goal 800 pace, long rest",
+    "rr_300_r180_x3": "3 × 300 m at goal 800 pace, long rest",
+    "rr_400_r240_x2": "2 × 400 m at goal 800 pace, long rest",
+    "rr_800_r0_x1": "800 m race",
+}
+
 _NAV = (
     ("Last Session", "/"),
     ("Next", "/next"),
@@ -371,7 +410,7 @@ _NAV = (
     ("Season", "/season"),
 )
 
-_SEASON_CSS = """
+_APP_CSS = """
 <style>
 html, body, .stApp, [data-testid="stAppViewContainer"],
 [data-testid="stMain"], [data-testid="stMainBlockContainer"],
@@ -382,7 +421,8 @@ html, body, .stApp, [data-testid="stAppViewContainer"],
 html { color-scheme: dark; }
 .stApp, .stApp button, .stApp input, .stApp label, .stApp summary, .stApp p,
 .stMarkdown, .stMarkdown h1, .stMarkdown h2, .stMarkdown a, .stMarkdown p, .stMarkdown div,
-.rio-nav, .rio-nav a, .rio-hero, .rio-hero h1, .rio-week-title, .rio-day, .rio-day div {
+.rio-nav, .rio-nav a, .rio-hero, .rio-hero h1, .rio-week-title, .rio-day, .rio-day div,
+.rio-card, .rio-card h2, .rio-table, .rio-table th, .rio-table td {
   font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
 }
 [data-testid="stHeader"],
@@ -482,6 +522,10 @@ button:focus-visible {
   font-weight: 500 !important;
   letter-spacing: -0.04em !important;
   line-height: 1.02 !important;
+}
+.rio-hero h1:first-child,
+.stMarkdown .rio-hero h1:first-child {
+  margin-top: 0 !important;
 }
 .rio-range {
   margin: 0.9rem 0 0 !important;
@@ -586,7 +630,8 @@ h2.rio-week-title {
   color: #f0f0f0;
   font-size: 0.95rem;
   font-weight: 500;
-  overflow-wrap: anywhere;
+  line-height: 1.4;
+  overflow-wrap: break-word;
 }
 .rio-target {
   margin-top: 0.28rem;
@@ -682,6 +727,134 @@ h2.rio-week-title {
   gap: 0.55rem !important;
 }
 
+.rio-card {
+  background: #1a1a1a;
+  border: 1px solid #242424;
+  border-radius: 16px;
+  padding: 1.35rem 1.55rem 1.15rem;
+  margin: 0 0 1.15rem;
+}
+.rio-card > .rio-mark-label {
+  padding: 0 0 0.45rem !important;
+}
+.rio-card .rio-fields + .rio-mark-label,
+.rio-card .rio-table-wrap + .rio-mark-label,
+.rio-card h2.rio-week-title + .rio-mark-label,
+.rio-card .rio-prose + .rio-mark-label {
+  padding-top: 1.05rem !important;
+}
+.rio-card h2.rio-week-title {
+  margin: 0 0 0.95rem !important;
+}
+.rio-card .rio-empty {
+  margin: 0.2rem 0 0.15rem;
+}
+.rio-fields { margin-top: 0.1rem; }
+.rio-field {
+  display: grid;
+  grid-template-columns: 11.5rem minmax(0, 1fr);
+  column-gap: 1.35rem;
+  align-items: baseline;
+  padding: 0.78rem 0;
+}
+.rio-field + .rio-field,
+.rio-fields + .rio-fields > .rio-field:first-child { border-top: 1px solid #262626; }
+.rio-k {
+  color: #8a8a8a;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+.rio-v {
+  color: #f0f0f0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.rio-prose {
+  margin: 0.35rem 0 0.15rem !important;
+  padding-top: 0.95rem;
+  border-top: 1px solid #262626;
+  color: #e4e4e4 !important;
+  font-size: 1.02rem !important;
+  line-height: 1.6 !important;
+}
+.rio-table-wrap { overflow-x: auto; }
+.rio-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+}
+.rio-table th {
+  text-align: left;
+  color: #6e6e6e;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  padding: 0.15rem 0.7rem 0.55rem 0;
+  border-bottom: 1px solid #262626;
+  white-space: nowrap;
+}
+.rio-table td {
+  color: #f0f0f0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  padding: 0.72rem 0.7rem 0.72rem 0;
+  border-bottom: 1px solid #262626;
+  font-variant-numeric: tabular-nums;
+  vertical-align: top;
+  white-space: nowrap;
+}
+.rio-table tr:last-child td { border-bottom: none; }
+.rio-table th:last-child,
+.rio-table td:last-child { padding-right: 0; }
+
+[data-testid="stSelectbox"] [role="group"] {
+  background: #1a1a1a !important;
+  border: 1px solid #2a2a2a !important;
+  border-radius: 8px !important;
+}
+[data-testid="stSelectbox"] [role="group"]:focus-within {
+  border-color: #4E6E4D !important;
+  box-shadow: none !important;
+}
+[data-testid="stSelectbox"] input {
+  background: transparent !important;
+  color: #f0f0f0 !important;
+  -webkit-text-fill-color: #f0f0f0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  caret-color: #f0f0f0 !important;
+}
+[data-testid="stSelectbox"] input:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+[data-testid="stSelectbox"] button {
+  background: transparent !important;
+  color: #8a8a8a !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+[data-testid="stSelectbox"] svg { fill: #8a8a8a !important; }
+[data-testid="stSelectboxVirtualDropdown"] {
+  background: #1a1a1a !important;
+  color: #f0f0f0 !important;
+  border: 1px solid #2a2a2a !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+[data-testid="stSelectboxVirtualDropdown"] [role="option"] {
+  color: #f0f0f0 !important;
+  background: transparent !important;
+}
+[data-testid="stSelectboxVirtualDropdown"] [role="option"][aria-selected="true"],
+[data-testid="stSelectboxVirtualDropdown"] [role="option"]:hover {
+  background: #242424 !important;
+  color: #d7e3d6 !important;
+}
+
 @media (max-width: 720px) {
   .rio-nav {
     flex-direction: column;
@@ -693,6 +866,7 @@ h2.rio-week-title {
   .stMarkdown .rio-hero h1 { font-size: 2.45rem !important; }
   .rio-day { grid-template-columns: 1fr; row-gap: 0.35rem; }
   .rio-status { text-align: left; padding-top: 0; }
+  .rio-field { grid-template-columns: 1fr; row-gap: 0.22rem; padding: 0.7rem 0; }
 }
 </style>
 """
@@ -700,6 +874,94 @@ h2.rio-week-title {
 
 def _esc(value: object) -> str:
     return escape(str(value), quote=True)
+
+
+def _plain(value: object) -> str:
+    if isinstance(value, (list, tuple)):
+        text = ", ".join(str(item).strip() for item in value if str(item).strip())
+        return text or "—"
+    if value is None:
+        return "—"
+    text = str(value).strip()
+    return text or "—"
+
+
+def _codes(codes: list) -> str:
+    return ", ".join(str(code) for code in codes) if codes else "—"
+
+
+def _fixture_banner(source: object) -> str | None:
+    if str(source or "").strip().lower() == "fixture":
+        return "FIXTURE"
+    return None
+
+
+def _page_hero(title: str, banner: str | None = None, subtitle: str | None = None) -> str:
+    parts = ['<header class="rio-hero">']
+    if banner:
+        parts.append(f'<p class="rio-synthetic">{_esc(banner)}</p>')
+    parts.append(f"<h1>{_esc(title)}</h1>")
+    if subtitle:
+        parts.append(f'<p class="rio-range">{_esc(subtitle)}</p>')
+    parts.append("</header>")
+    return "".join(parts)
+
+
+def _open(page: str, *, controls: bool = False):
+    st.markdown(_APP_CSS, unsafe_allow_html=True)
+    st.markdown(_nav_html(page), unsafe_allow_html=True)
+    hero = st.container(gap=None)
+    box = st.container(key="rio-controls", gap="small") if controls else None
+    return hero, box
+
+
+def _card(*parts: str) -> None:
+    st.markdown(f'<div class="rio-card">{"".join(parts)}</div>', unsafe_allow_html=True)
+
+
+def _label(text: str) -> str:
+    return f'<p class="rio-mark-label">{_esc(text)}</p>'
+
+
+def _subject(label: str, value: object) -> str:
+    return (
+        f'<p class="rio-mark-label">{_esc(label)}</p>'
+        f'<h2 class="rio-week-title">{_esc(_plain(value))}</h2>'
+    )
+
+
+def _fields(pairs: list[tuple[str, object]]) -> str:
+    rows = []
+    for label, value in pairs:
+        rows.append(
+            '<div class="rio-field">'
+            f'<div class="rio-k">{_esc(label)}</div>'
+            f'<div class="rio-v">{_esc(_plain(value))}</div>'
+            "</div>"
+        )
+    return f'<div class="rio-fields">{"".join(rows)}</div>'
+
+
+def _prose(text: str) -> str:
+    return f'<p class="rio-prose">{_esc(text)}</p>'
+
+
+def _table(rows: list[dict]) -> str:
+    if not rows:
+        return '<p class="rio-empty">—</p>'
+    headers = list(rows[0].keys())
+    head = "".join(f"<th>{_esc(header)}</th>" for header in headers)
+    body = []
+    for row in rows:
+        cells = "".join(
+            f"<td>{_esc('' if row.get(header) is None else row.get(header))}</td>"
+            for header in headers
+        )
+        body.append(f"<tr>{cells}</tr>")
+    return (
+        '<div class="rio-table-wrap"><table class="rio-table"><thead><tr>'
+        f"{head}</tr></thead><tbody>{''.join(body)}</tbody></table></div>"
+    )
 
 
 def _length_text(length: object) -> str:
@@ -724,12 +986,13 @@ def _status_label(codes: list) -> str:
     return ""
 
 
-def _nav_html() -> str:
+def _nav_html(active: str) -> str:
     links = []
     for label, href in _NAV:
-        active = " is-active" if label == "Season" else ""
-        current = ' aria-current="page"' if label == "Season" else ""
-        links.append(f'<a class="rio-link{active}" href="{href}"{current}>{label}</a>')
+        on = label == active
+        klass = "rio-link is-active" if on else "rio-link"
+        current = ' aria-current="page"' if on else ""
+        links.append(f'<a class="{klass}" href="{href}"{current}>{_esc(label)}</a>')
     return (
         '<nav class="rio-nav">'
         '<a class="rio-brand" href="/">RIO</a>'
@@ -754,6 +1017,14 @@ def _hero_html(start: date, goal: date, plan: dict | None, error: str | None) ->
     )
 
 
+def _workout_text(template_id: object) -> str:
+    """Plain description for a card. An unknown id stays as stored."""
+    key = str(template_id or "").strip()
+    if not key:
+        return "—"
+    return _WORKOUT_TEXT.get(key, key)
+
+
 def _day_html(session: dict) -> str:
     status = _status_label(session["reason_codes"])
     status_html = f'<div class="rio-status">{_esc(status)}</div>' if status else ""
@@ -764,7 +1035,7 @@ def _day_html(session: dict) -> str:
         f'<div class="rio-date">{_esc(session["date"])}</div>'
         "</div>"
         '<div class="rio-work">'
-        f'<div class="rio-name">{_esc(session["template_id"])}</div>'
+        f'<div class="rio-name">{_esc(_workout_text(session["template_id"]))}</div>'
         f'<div class="rio-target">{_esc(session["target_outcome"])}</div>'
         "</div>"
         f"{status_html}"
@@ -858,8 +1129,8 @@ def page_season() -> None:
     controls = st.container(key="rio-controls", gap="small")
 
     with chrome:
-        st.markdown(_SEASON_CSS, unsafe_allow_html=True)
-        st.markdown(_nav_html(), unsafe_allow_html=True)
+        st.markdown(_APP_CSS, unsafe_allow_html=True)
+        st.markdown(_nav_html("Season"), unsafe_allow_html=True)
 
     with controls:
         current_col, start_col, goal_time_col, goal_date_col = st.columns(
