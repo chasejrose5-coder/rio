@@ -1,6 +1,6 @@
-# streamlit_app.py — Start, Last Session, Next, Decisions, Ledger, Goal, Season, and Weekly. Display only. No classification rules.
+# streamlit_app.py — Start, Last Session, Next, Decisions, Ledger, Goal, Season, Weekly, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Season shows that plan and reads adapt. Weekly shows one week of that plan and reads adapt. No scores."""
+"""Start asks for four inputs and calls sequence(). Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Season shows that plan and reads adapt. Weekly shows one week of that plan and reads adapt. Session shows one day of that plan. No scores. Session does not spend."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from engines.classify import classify
 from engines.explain import explain, explain_decision, explain_prescription
 from engines.ledger import Ledger
 from engines.normalize import normalize
-from engines.prescribe import PARAMETER_KEYS, prescribe
+from engines.prescribe import PARAMETER_KEYS, load_menu, prescribe
 from engines.season import adapt, sequence
 
 FIXTURES_DIR = ROOT / "tests" / "fixtures"
@@ -344,6 +344,71 @@ def _reason_text(codes: list) -> str:
     return ", ".join(str(code) for code in codes) if codes else "—"
 
 
+def _plain_reason(code: object) -> str:
+    text = str(code).strip()
+    if not text:
+        return ""
+    known = _REASON_PLAIN.get(text)
+    if known:
+        return known
+    if len(text) == 7 and text.startswith("phase_") and text[6].isdigit():
+        return f"Phase {text[6]}"
+    return text.replace("_", " ")
+
+
+def _plain_reasons(codes: list) -> str:
+    lines = []
+    for code in codes or []:
+        words = _plain_reason(code)
+        if words:
+            lines.append(f'<p class="rio-reason">{_esc(words)}</p>')
+    if not lines:
+        return '<p class="rio-empty">—</p>'
+    return f'<div class="rio-reasons">{"".join(lines)}</div>'
+
+
+def _menu_by_id() -> dict[str, dict]:
+    """Frozen template recipes. Read for the structure sentence. Not a new plan."""
+    global _MENU_BY_ID
+    if _MENU_BY_ID is None:
+        _MENU_BY_ID = {row["id"]: row for row in load_menu()}
+    return _MENU_BY_ID
+
+
+def _structure_text(template_id: object) -> str:
+    """The recipe's plain structure: reps, rest, and distance, as written."""
+    key = str(template_id or "").strip()
+    row = _menu_by_id().get(key) if key else None
+    if isinstance(row, dict):
+        text = str(row.get("default_structure") or "").strip()
+        if text:
+            return text
+    return _workout_text(template_id)
+
+
+def _query_date() -> str | None:
+    value = st.query_params.get("date")
+    if isinstance(value, (list, tuple)):
+        value = value[0] if value else None
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _session_on(plan: dict, day: str | None) -> dict | None:
+    """The stored session for this calendar date. Dates are unique in the plan."""
+    if not day:
+        return None
+    sessions = plan.get("sessions")
+    if not isinstance(sessions, list):
+        return None
+    for session in sessions:
+        if isinstance(session, dict) and str(session.get("date")) == day:
+            return session
+    return None
+
+
 def _generate_season(current_time, start_date, goal_time, goal_date) -> dict:
     """sequence() for a submitted start. Replaces any plan adapt() has changed."""
     current = str(current_time).strip()
@@ -425,8 +490,42 @@ _WORKOUT_TEXT = {
     "rr_800_r0_x1": "800 m race",
 }
 
+# Same note on every session. Fixed copy. This page does not spend.
+_WARMUP_NOTE = "Warm up with easy running and a few strides before the work."
+
+# Plain words for season reason codes already stored on the session.
+_REASON_PLAIN = {
+    "phase_1": "Phase 1",
+    "phase_2": "Phase 2",
+    "phase_3": "Phase 3",
+    "phase_4": "Phase 4",
+    "phase_5": "Phase 5",
+    "phase_6": "Phase 6",
+    "phase_7": "Phase 7",
+    "phase_8": "Phase 8",
+    "phase_primary": "Primary work for this phase",
+    "phase_secondary": "Secondary work for this phase",
+    "weekly_aerobic_long_run": "The weekly long run",
+    "priority_speed_endurance": "Speed endurance is a priority",
+    "priority_aerobic_power": "Aerobic power is a priority",
+    "priority_anaerobic_capacity": "Anaerobic capacity is a priority",
+    "capacity_weight": "The higher capacity weight won",
+    "ten_percent_hold": "Held so the week does not rise more than 10%",
+    "ten_percent_easier_template": "An easier session, so the week stays within 10%",
+    "extra_easy_day": "An extra easy day",
+    "extra_easy_week": "An easy week",
+    "harder_template": "A harder session",
+    "moved_back_one_phase": "Moved back one phase",
+    "advanced_one_phase": "Advanced one phase",
+    "phase_8_freshness": "The taper stays fresh",
+    "phase_8_no_hard_se_or_an": "No hard speed endurance or anaerobic work",
+}
+
+_MENU_BY_ID: dict[str, dict] | None = None
+
 # Filled after the pages exist, before navigation runs.
 _HOME_PAGE: st.Page | None = None
+_SESSION_PAGE: st.Page | None = None
 _NAV_PAGES: list[tuple[str, st.Page]] = []
 
 _APP_CSS = """
@@ -733,7 +832,8 @@ h2.rio-week-title {
   align-items: start;
   padding: 0.95rem 0;
 }
-.rio-day + .rio-day { border-top: 1px solid #262626; }
+.rio-day + .rio-day,
+.rio-day-next { border-top: 1px solid #262626; }
 .rio-dow {
   color: #f0f0f0;
   font-size: 0.98rem;
@@ -804,6 +904,54 @@ h2.rio-week-title {
   color: #a3a3a3;
   font-size: 0.95rem;
   line-height: 1.5;
+}
+[class*="st-key-rio-days-"] {
+  margin-top: 0.85rem !important;
+}
+[class*="st-key-rio-hit-"] {
+  position: relative !important;
+}
+[class*="st-key-rio-hit-"] [data-testid="stElementContainer"]:has([data-testid="stPageLink"]),
+[class*="st-key-rio-hit-"] [data-testid="stLayoutWrapper"]:has([data-testid="stPageLink"]) {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 4 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+}
+[class*="st-key-rio-hit-"] [data-testid="stPageLink"],
+[class*="st-key-rio-hit-"] [data-testid="stPageLink-NavLink"] {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 4 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  opacity: 0 !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+}
+[class*="st-key-rio-hit-"] [data-testid="stPageLink-NavLink"]:focus-visible {
+  outline: none !important;
+}
+[class*="st-key-rio-hit-row-"]:hover .rio-day {
+  background: #141414;
+}
+[class*="st-key-rio-hit-card-"]:hover .rio-daycard {
+  border-color: #3a3a3a;
+}
+[class*="st-key-rio-hit-"]:focus-within .rio-day,
+[class*="st-key-rio-hit-"]:focus-within .rio-daycard {
+  outline: 1px solid #4E6E4D;
+  outline-offset: 2px;
 }
 .rio-status {
   text-align: right;
@@ -909,11 +1057,15 @@ h2.rio-week-title {
 .rio-card .rio-fields + .rio-mark-label,
 .rio-card .rio-table-wrap + .rio-mark-label,
 .rio-card h2.rio-week-title + .rio-mark-label,
-.rio-card .rio-prose + .rio-mark-label {
+.rio-card .rio-prose + .rio-mark-label,
+.rio-card .rio-note + .rio-mark-label,
+.rio-card .rio-reasons + .rio-mark-label {
   padding-top: 1.05rem !important;
 }
 .rio-card h2.rio-week-title {
   margin: 0 0 0.95rem !important;
+  line-height: 1.35 !important;
+  overflow-wrap: break-word;
 }
 .rio-card .rio-empty {
   margin: 0.2rem 0 0.15rem;
@@ -947,6 +1099,18 @@ h2.rio-week-title {
   color: #e4e4e4 !important;
   font-size: 1.02rem !important;
   line-height: 1.6 !important;
+}
+.rio-note {
+  margin: 0 0 0.15rem !important;
+  color: #e4e4e4 !important;
+  font-size: 1.02rem !important;
+  line-height: 1.6 !important;
+}
+.rio-card .rio-reason {
+  margin: 0.28rem 0 !important;
+  color: #d0d0d0 !important;
+  font-size: 0.95rem !important;
+  line-height: 1.45 !important;
 }
 .rio-table-wrap { overflow-x: auto; }
 .rio-table {
@@ -1185,6 +1349,10 @@ def _prose(text: str) -> str:
     return f'<p class="rio-prose">{_esc(text)}</p>'
 
 
+def _note(text: str) -> str:
+    return f'<p class="rio-note">{_esc(text)}</p>'
+
+
 def _table(rows: list[dict]) -> str:
     if not rows:
         return '<p class="rio-empty">—</p>'
@@ -1250,11 +1418,12 @@ def _workout_text(template_id: object) -> str:
     return _WORKOUT_TEXT.get(key, key)
 
 
-def _day_html(session: dict) -> str:
+def _day_html(session: dict, *, first: bool = False) -> str:
     status = _status_label(session["reason_codes"])
     status_html = f'<div class="rio-status">{_esc(status)}</div>' if status else ""
+    extra = "" if first else " rio-day-next"
     return (
-        '<div class="rio-day">'
+        f'<div class="rio-day{extra}">'
         '<div class="rio-when">'
         f'<div class="rio-dow">{_esc(session["day_of_week"])}</div>'
         f'<div class="rio-date">{_esc(session["date"])}</div>'
@@ -1311,6 +1480,26 @@ def _week_day_card(session: dict) -> str:
         f'<div class="rio-daycard-target">{_esc(session["target_outcome"])}</div>'
         "</div>"
     )
+
+
+def _session_link(session: dict, kind: str, *, first: bool = False) -> None:
+    """The whole workout opens Session for this date. The plan stays as stored."""
+    page = _SESSION_PAGE
+    day = str(session["date"])
+    html = _week_day_card(session) if kind == "card" else _day_html(session, first=first)
+    if page is None:
+        st.markdown(html, unsafe_allow_html=True)
+        return
+    label = f"{session['day_of_week']} {day}. {_workout_text(session['template_id'])}"
+    with st.container(key=f"rio-hit-{kind}-{day}", gap=None):
+        st.markdown(html, unsafe_allow_html=True)
+        st.page_link(
+            page,
+            label=label,
+            icon="",
+            query_params={"date": day},
+            width="stretch",
+        )
 
 
 def _render_mark(plan: dict, week_number: int, generation: int) -> None:
@@ -1373,10 +1562,9 @@ def _render_schedule(plan: dict, generation: int) -> None:
             if not days:
                 st.markdown('<p class="rio-empty">—</p>', unsafe_allow_html=True)
             else:
-                st.markdown(
-                    f'<div class="rio-days">{"".join(_day_html(session) for session in days)}</div>',
-                    unsafe_allow_html=True,
-                )
+                with st.container(key=f"rio-days-{number}", gap=None):
+                    for index, session in enumerate(days):
+                        _session_link(session, "row", first=index == 0)
                 with st.expander("Reason codes", key=f"season-reasons-{generation}-{number}"):
                     lines = []
                     for session in days:
@@ -1421,7 +1609,8 @@ def page_weekly() -> None:
 
     The control opens any week. The week that contains today is the one
     shown first. Each day is a card: the day, the date, the plain workout,
-    and the target outcome. The mark calls adapt() for that week.
+    and the target outcome. A card opens that session. The mark calls
+    adapt() for that week.
     No prose, so this page does not spend.
     """
     chrome = st.container(gap=None)
@@ -1483,10 +1672,8 @@ def page_weekly() -> None:
     if not days:
         st.markdown('<p class="rio-empty">—</p>', unsafe_allow_html=True)
     else:
-        st.markdown(
-            "".join(_week_day_card(session) for session in days),
-            unsafe_allow_html=True,
-        )
+        for session in days:
+            _session_link(session, "card")
 
     applied = (st.session_state.get("season_marks") or {}).get(picked)
     with st.container(key="rio-week-mark"):
@@ -1502,8 +1689,8 @@ def page_season() -> None:
     """The plan sequence() returned from Start.
 
     Sessions are grouped by week and ordered Sunday through Saturday.
-    Each row shows that day's calendar date. A mark calls adapt() for
-    that week and shows the plan it returns.
+    Each row shows that day's calendar date. A row opens that session.
+    A mark calls adapt() for that week and shows the plan it returns.
     No recorded workouts.
     """
     chrome = st.container(gap=None)
@@ -1521,9 +1708,76 @@ def page_season() -> None:
     _render_schedule(plan, int(st.session_state.get("season_generation") or 0))
 
 
+def page_session() -> None:
+    """One session from the plan Start stored.
+
+    Season and Weekly link here with the session date. The workout words,
+    the structure, the warm-up, and the reason words are fixed. This page
+    does not call a model and does not spend.
+    """
+    chrome = st.container(gap=None)
+    hero = st.container(gap=None)
+    with chrome:
+        st.markdown(_APP_CSS, unsafe_allow_html=True)
+        _render_nav("")
+
+    plan, start, goal, error = _stored_season()
+    chosen = _query_date()
+    session = _session_on(plan, chosen) if isinstance(plan, dict) else None
+    with hero:
+        if session is None:
+            st.markdown(_page_hero("Session", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
+        else:
+            st.markdown(
+                _page_hero(
+                    str(session["day_of_week"]),
+                    "SYNTHETIC / DEMO",
+                    str(session["date"]),
+                ),
+                unsafe_allow_html=True,
+            )
+    if plan is None or start is None or goal is None:
+        if error:
+            st.markdown(
+                f'<p class="rio-error">{_esc(error)}</p>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                '<p class="rio-empty">Generate a season on Start.</p>',
+                unsafe_allow_html=True,
+            )
+        return
+    if not chosen:
+        st.markdown(
+            '<p class="rio-empty">Open a workout from Season or Weekly.</p>',
+            unsafe_allow_html=True,
+        )
+        return
+    if session is None:
+        st.markdown(
+            '<p class="rio-empty">That session is not in this plan.</p>',
+            unsafe_allow_html=True,
+        )
+        return
+    _card(
+        _subject("Workout", _workout_text(session["template_id"])),
+        _label("Structure"),
+        _note(_structure_text(session["template_id"])),
+        _label("Target outcome"),
+        _note(str(session.get("target_outcome") or "—")),
+        _label("Warm-up"),
+        _note(_WARMUP_NOTE),
+        _label("Reasons"),
+        _plain_reasons(session.get("reason_codes") or []),
+    )
+
+
 st.set_page_config(page_title="rio", layout="centered")
 _start_page = st.Page(page_start, title="Start", default=True)
+_session_page = st.Page(page_session, title="Session", url_path="session")
 _HOME_PAGE = _start_page
+_SESSION_PAGE = _session_page
 _NAV_PAGES[:] = [
     ("Last Session", st.Page(page_last_session, title="Last Session", url_path="last-session")),
     ("Next", st.Page(page_next, title="Next", url_path="next")),
@@ -1534,6 +1788,6 @@ _NAV_PAGES[:] = [
     ("Season", st.Page(page_season, title="Season", url_path="season")),
 ]
 st.navigation(
-    [_start_page, *(page for _, page in _NAV_PAGES)],
+    [_start_page, _session_page, *(page for _, page in _NAV_PAGES)],
     position="hidden",
 ).run()
