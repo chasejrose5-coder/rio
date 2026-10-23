@@ -1,6 +1,6 @@
-# streamlit_app.py — Last Session, Next, Decisions, Ledger, Goal, and Season. Display only. No classification rules.
+# streamlit_app.py — Start, Last Session, Next, Decisions, Ledger, Goal, and Season. Display only. No classification rules.
 
-"""Six pages. Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Season reads sequence and adapt. No scores."""
+"""Start asks for four inputs and calls sequence(). Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Season shows that plan and reads adapt. No scores."""
 
 from __future__ import annotations
 
@@ -344,15 +344,39 @@ def _reason_text(codes: list) -> str:
     return ", ".join(str(code) for code in codes) if codes else "—"
 
 
-def _season_plan(inputs: tuple[str, str, str, str], current_time, start_date, goal_time, goal_date) -> dict:
-    """sequence() when the four inputs change. A submitted mark keeps adapt()'s plan."""
-    if st.session_state.get("season_inputs") != inputs:
-        plan = sequence(current_time, start_date, goal_time, goal_date)
-        st.session_state["season_inputs"] = inputs
-        st.session_state["season_plan"] = plan
-        st.session_state["season_marks"] = {}
-        st.session_state["season_generation"] = int(st.session_state.get("season_generation") or 0) + 1
-    return st.session_state["season_plan"]
+def _generate_season(current_time, start_date, goal_time, goal_date) -> dict:
+    """sequence() for a submitted start. Replaces any plan adapt() has changed."""
+    current = str(current_time).strip()
+    goal_mark = str(goal_time).strip()
+    plan = sequence(current, start_date, goal_mark, goal_date)
+    start = start_date.isoformat() if isinstance(start_date, date) else str(start_date).strip()
+    goal_day = goal_date.isoformat() if isinstance(goal_date, date) else str(goal_date).strip()
+    st.session_state["season_inputs"] = (current, start, goal_mark, goal_day)
+    st.session_state["season_plan"] = plan
+    st.session_state["season_marks"] = {}
+    st.session_state["season_generation"] = int(st.session_state.get("season_generation") or 0) + 1
+    return plan
+
+
+def _stored_season() -> tuple[dict | None, date | None, date | None, str | None]:
+    """The plan Start stored, plus the two dates the hero prints."""
+    plan = st.session_state.get("season_plan")
+    inputs = st.session_state.get("season_inputs")
+    if not isinstance(plan, dict) or not isinstance(inputs, tuple) or len(inputs) != 4:
+        return None, None, None, None
+    try:
+        start = date.fromisoformat(str(inputs[1]))
+        goal = date.fromisoformat(str(inputs[3]))
+    except ValueError:
+        return None, None, None, "Season dates are not dates."
+    return plan, start, goal, None
+
+
+def _nav_page(label: str):
+    for name, page in _NAV_PAGES:
+        if name == label:
+            return page
+    return None
 
 
 # Display labels for reason codes already on the session. Not a score.
@@ -402,6 +426,7 @@ _WORKOUT_TEXT = {
 }
 
 # Filled after the pages exist, before navigation runs.
+_HOME_PAGE: st.Page | None = None
 _NAV_PAGES: list[tuple[str, st.Page]] = []
 
 _APP_CSS = """
@@ -882,6 +907,37 @@ h2.rio-week-title {
 .rio-table th:last-child,
 .rio-table td:last-child { padding-right: 0; }
 
+[class*="st-key-rio-start"] {
+  max-width: 22rem;
+  padding-bottom: 2.5rem;
+}
+[class*="st-key-rio-start"] [data-testid="stVerticalBlock"] {
+  gap: 0.85rem !important;
+}
+[class*="st-key-rio-start"] button,
+[class*="st-key-rio-start"] [data-testid="stBaseButton-primary"] {
+  background: transparent !important;
+  border: 1px solid #4E6E4D !important;
+  border-radius: 8px !important;
+  color: #d7e3d6 !important;
+  min-height: 2.45rem !important;
+  margin-top: 0.75rem !important;
+  padding: 0.4rem 0.9rem !important;
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+}
+[class*="st-key-rio-start"] button p,
+[class*="st-key-rio-start"] button span {
+  color: inherit !important;
+}
+[class*="st-key-rio-start"] button:hover,
+[class*="st-key-rio-start"] [data-testid="stBaseButton-primary"]:hover {
+  background: #4E6E4D !important;
+  border-color: #4E6E4D !important;
+  color: #f0f0f0 !important;
+}
+
 [data-testid="stSelectbox"] [role="group"] {
   background: #1a1a1a !important;
   border: 1px solid #2a2a2a !important;
@@ -989,9 +1045,11 @@ def _page_hero(title: str, banner: str | None = None, subtitle: str | None = Non
 
 def _render_nav(active: str) -> None:
     """Page links follow Streamlit routing and stay in this tab."""
-    if not _NAV_PAGES:
+    home = _HOME_PAGE
+    if home is None and _NAV_PAGES:
+        home = _NAV_PAGES[0][1]
+    if home is None:
         return
-    home = _NAV_PAGES[0][1]
     with st.container(
         key="rio-nav",
         horizontal=True,
@@ -1094,13 +1152,14 @@ def _status_label(codes: list) -> str:
     return ""
 
 
-def _hero_html(start: date, goal: date, plan: dict | None, error: str | None) -> str:
+def _hero_html(start: date | None, goal: date | None, plan: dict | None, error: str | None) -> str:
     synthetic = '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
-    if error or plan is None:
+    if error or plan is None or start is None or goal is None:
+        detail = f'<p class="rio-error">{_esc(error)}</p>' if error else ""
         return (
             f'<header class="rio-hero">{synthetic}'
             "<h1>Season</h1>"
-            f'<p class="rio-error">{_esc(error or "")}</p></header>'
+            f"{detail}</header>"
         )
     return (
         f'<header class="rio-hero">{synthetic}'
@@ -1209,8 +1268,34 @@ def _render_schedule(plan: dict, generation: int) -> None:
             _render_mark(plan, number, generation)
 
 
+def page_start() -> None:
+    """Four inputs. Generate season calls sequence() and opens that plan."""
+    st.markdown(_APP_CSS, unsafe_allow_html=True)
+    _render_nav("")
+    st.markdown(_page_hero("Start", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
+    with st.container(key="rio-start"):
+        current_time = st.text_input("current_time", value="2:02.9", key="start_current_time")
+        start_date = st.date_input("start_date", value=date(2026, 4, 19), key="start_start_date")
+        goal_time = st.text_input("goal_time", value="1:55.0", key="start_goal_time")
+        goal_date = st.date_input("goal_date", value=date(2027, 3, 19), key="start_goal_date")
+        if not st.button("Generate season", type="primary", width="stretch"):
+            return
+        try:
+            _generate_season(current_time, start_date, goal_time, goal_date)
+        except ValueError as exc:
+            st.markdown(
+                f'<p class="rio-error">{_esc(exc)}</p>',
+                unsafe_allow_html=True,
+            )
+            return
+        season = _nav_page("Season")
+        if season is None:
+            return
+        st.switch_page(season)
+
+
 def page_season() -> None:
-    """The season sequence() returns from four inputs.
+    """The plan sequence() returned from Start.
 
     Sessions are grouped by week and ordered Sunday through Saturday.
     Each row shows that day's calendar date. A mark calls adapt() for
@@ -1219,51 +1304,24 @@ def page_season() -> None:
     """
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
-    controls = st.container(key="rio-controls", gap="small")
 
     with chrome:
         st.markdown(_APP_CSS, unsafe_allow_html=True)
         _render_nav("Season")
 
-    with controls:
-        current_col, start_col, goal_time_col, goal_date_col = st.columns(
-            4, gap="medium", vertical_alignment="bottom"
-        )
-        with current_col:
-            current_time = st.text_input("current_time", value="2:02.9")
-        with start_col:
-            start_date = st.date_input("start_date", value=date(2026, 4, 19))
-        with goal_time_col:
-            goal_time = st.text_input("goal_time", value="1:55.0")
-        with goal_date_col:
-            goal_date = st.date_input("goal_date", value=date(2027, 3, 19))
-
-    inputs = (
-        str(current_time).strip(),
-        start_date.isoformat(),
-        str(goal_time).strip(),
-        goal_date.isoformat(),
-    )
-    try:
-        plan = _season_plan(inputs, inputs[0], start_date, inputs[2], goal_date)
-        error = None
-    except ValueError as exc:
-        plan = None
-        error = str(exc)
-
+    plan, start, goal, error = _stored_season()
     with hero:
-        st.markdown(
-            _hero_html(start_date, goal_date, plan, error),
-            unsafe_allow_html=True,
-        )
-    if plan is None:
+        st.markdown(_hero_html(start, goal, plan, error), unsafe_allow_html=True)
+    if plan is None or start is None or goal is None:
         return
     _render_schedule(plan, int(st.session_state.get("season_generation") or 0))
 
 
 st.set_page_config(page_title="rio", layout="centered")
+_start_page = st.Page(page_start, title="Start", default=True)
+_HOME_PAGE = _start_page
 _NAV_PAGES[:] = [
-    ("Last Session", st.Page(page_last_session, title="Last Session", default=True)),
+    ("Last Session", st.Page(page_last_session, title="Last Session", url_path="last-session")),
     ("Next", st.Page(page_next, title="Next", url_path="next")),
     ("Decisions", st.Page(page_decisions, title="Decisions", url_path="decisions")),
     ("Ledger", st.Page(page_ledger, title="Ledger", url_path="ledger")),
@@ -1271,6 +1329,6 @@ _NAV_PAGES[:] = [
     ("Season", st.Page(page_season, title="Season", url_path="season")),
 ]
 st.navigation(
-    [page for _, page in _NAV_PAGES],
+    [_start_page, *(page for _, page in _NAV_PAGES)],
     position="hidden",
 ).run()
