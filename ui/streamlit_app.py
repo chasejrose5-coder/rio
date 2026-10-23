@@ -401,14 +401,8 @@ _WORKOUT_TEXT = {
     "rr_800_r0_x1": "800 m race",
 }
 
-_NAV = (
-    ("Last Session", "/"),
-    ("Next", "/next"),
-    ("Decisions", "/decisions"),
-    ("Ledger", "/ledger"),
-    ("Goal", "/goal"),
-    ("Season", "/season"),
-)
+# Filled after the pages exist, before navigation runs.
+_NAV_PAGES: list[tuple[str, st.Page]] = []
 
 _APP_CSS = """
 <style>
@@ -421,7 +415,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"],
 html { color-scheme: dark; }
 .stApp, .stApp button, .stApp input, .stApp label, .stApp summary, .stApp p,
 .stMarkdown, .stMarkdown h1, .stMarkdown h2, .stMarkdown a, .stMarkdown p, .stMarkdown div,
-.rio-nav, .rio-nav a, .rio-hero, .rio-hero h1, .rio-week-title, .rio-day, .rio-day div,
+[class*="st-key-rio-nav"], [class*="st-key-rio-nav"] a, .rio-hero, .rio-hero h1, .rio-week-title, .rio-day, .rio-day div,
 .rio-card, .rio-card h2, .rio-table, .rio-table th, .rio-table td {
   font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
 }
@@ -460,45 +454,124 @@ footer {
   text-decoration: none !important;
 }
 
-.rio-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
-  padding: 1.35rem 0 1rem;
-  border-bottom: 1px solid #242424;
+[class*="st-key-rio-nav"] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 1.5rem !important;
+  padding: 1.35rem 0 1rem !important;
+  border-bottom: 1px solid #242424 !important;
   position: sticky;
   top: 0;
   z-index: 30;
-  background: #0f0f0f;
+  background: #0f0f0f !important;
+  width: 100% !important;
+  overflow: visible !important;
+  flex-wrap: wrap !important;
 }
-a.rio-brand {
-  color: #f0f0f0 !important;
+[class*="st-key-rio-nav"] > [data-testid="stElementContainer"]:first-child,
+[class*="st-key-rio-nav"] > [data-testid="stLayoutWrapper"]:first-child {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+[class*="st-key-rio-nav"] > [data-testid="stElementContainer"]:last-child,
+[class*="st-key-rio-nav"] > [data-testid="stLayoutWrapper"]:last-child {
+  flex: 1 1 auto !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+[class*="st-key-rio-links"] {
+  justify-content: flex-end !important;
+  align-items: center !important;
+  align-content: flex-start !important;
+  gap: 0.35rem 1.15rem !important;
+  flex-wrap: wrap !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+[class*="st-key-rio-links"] > [data-testid="stElementContainer"],
+[class*="st-key-rio-links"] > [data-testid="stLayoutWrapper"],
+[class*="st-key-rio-brand"],
+[class*="st-key-rio-tab-"] {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+}
+[class*="st-key-rio-nav"] [data-testid="stPageLink"],
+[class*="st-key-rio-nav"] [data-testid="stPageLink"] > div,
+[class*="st-key-rio-nav"] [data-testid="stPageLink"] > div > div,
+[class*="st-key-rio-nav"] [data-testid="stMarkdownContainer"] {
+  width: auto !important;
+  min-width: 0 !important;
+  background: transparent !important;
+}
+[class*="st-key-rio-nav"] [data-testid="stPageLink-NavLink"] {
+  width: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding: 0.15rem 0 0.28rem !important;
+  margin: 0 !important;
+  gap: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  color: #6f6f6f !important;
   text-decoration: none !important;
+  line-height: 1.3 !important;
+  box-shadow: none !important;
+}
+[class*="st-key-rio-nav"] [data-testid="stPageLink-NavLink"] span,
+[class*="st-key-rio-nav"] [data-testid="stPageLink-NavLink"] p {
+  color: #6f6f6f !important;
+  font-size: 0.84rem !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.3 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline !important;
+  width: auto !important;
+  background: transparent !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  white-space: nowrap !important;
+}
+[class*="st-key-rio-nav"] [data-testid="stPageLink-NavLink"]:hover,
+[class*="st-key-rio-nav"] [data-testid="stPageLink-NavLink"]:hover span,
+[class*="st-key-rio-nav"] [data-testid="stPageLink-NavLink"]:hover p {
+  color: #f0f0f0 !important;
+  background: transparent !important;
+}
+[class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] {
+  border-bottom-color: #4E6E4D !important;
+}
+[class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"],
+[class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] span,
+[class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] p {
+  color: #f0f0f0 !important;
+}
+[class*="st-key-rio-brand"] [data-testid="stPageLink-NavLink"] {
+  border-bottom-color: transparent !important;
+  padding: 0.15rem 0 !important;
+}
+[class*="st-key-rio-brand"] [data-testid="stPageLink-NavLink"],
+[class*="st-key-rio-brand"] [data-testid="stPageLink-NavLink"] span,
+[class*="st-key-rio-brand"] [data-testid="stPageLink-NavLink"] p,
+[class*="st-key-rio-brand"] [data-testid="stPageLink-NavLink"]:hover,
+[class*="st-key-rio-brand"] [data-testid="stPageLink-NavLink"]:hover span,
+[class*="st-key-rio-brand"] [data-testid="stPageLink-NavLink"]:hover p {
+  color: #f0f0f0 !important;
   font-weight: 600 !important;
   letter-spacing: 0.2em !important;
   font-size: 0.92rem !important;
+  background: transparent !important;
 }
-.rio-links {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 0.35rem 1.15rem;
-}
-a.rio-link {
-  color: #6f6f6f !important;
-  text-decoration: none !important;
-  font-size: 0.84rem !important;
-  padding: 0.15rem 0 0.28rem;
-  border-bottom: 2px solid transparent !important;
-}
-a.rio-link:hover { color: #f0f0f0 !important; }
-a.rio-link.is-active {
-  color: #f0f0f0 !important;
-  border-bottom-color: #4E6E4D !important;
-}
-.rio-link:focus-visible,
-.rio-brand:focus-visible,
+[class*="st-key-rio-nav"] [data-testid="stPageLink-NavLink"]:focus-visible,
 button:focus-visible {
   outline: 1px solid #4E6E4D;
   outline-offset: 3px;
@@ -856,12 +929,19 @@ h2.rio-week-title {
 }
 
 @media (max-width: 720px) {
-  .rio-nav {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.85rem;
+  [class*="st-key-rio-nav"] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    gap: 0.85rem !important;
   }
-  .rio-links { justify-content: flex-start; }
+  [class*="st-key-rio-nav"] > [data-testid="stElementContainer"]:last-child,
+  [class*="st-key-rio-nav"] > [data-testid="stLayoutWrapper"]:last-child {
+    width: 100% !important;
+    flex: 1 1 auto !important;
+    height: auto !important;
+  }
+  [class*="st-key-rio-links"] { justify-content: flex-start !important; }
   .rio-hero h1,
   .stMarkdown .rio-hero h1 { font-size: 2.45rem !important; }
   .rio-day { grid-template-columns: 1fr; row-gap: 0.35rem; }
@@ -907,9 +987,37 @@ def _page_hero(title: str, banner: str | None = None, subtitle: str | None = Non
     return "".join(parts)
 
 
+def _render_nav(active: str) -> None:
+    """Page links follow Streamlit routing and stay in this tab."""
+    if not _NAV_PAGES:
+        return
+    home = _NAV_PAGES[0][1]
+    with st.container(
+        key="rio-nav",
+        horizontal=True,
+        vertical_alignment="center",
+        gap=24,
+    ):
+        with st.container(key="rio-brand", width="content"):
+            st.page_link(home, label="RIO", icon="", width="content")
+        with st.container(
+            key="rio-links",
+            horizontal=True,
+            horizontal_alignment="right",
+            vertical_alignment="center",
+            gap=18,
+            width="stretch",
+        ):
+            for label, page in _NAV_PAGES:
+                slug = label.lower().replace(" ", "-")
+                key = f"rio-tab-{slug}-is-active" if label == active else f"rio-tab-{slug}"
+                with st.container(key=key, width="content"):
+                    st.page_link(page, label=label, icon="", width="content")
+
+
 def _open(page: str, *, controls: bool = False):
     st.markdown(_APP_CSS, unsafe_allow_html=True)
-    st.markdown(_nav_html(page), unsafe_allow_html=True)
+    _render_nav(page)
     hero = st.container(gap=None)
     box = st.container(key="rio-controls", gap="small") if controls else None
     return hero, box
@@ -984,21 +1092,6 @@ def _status_label(codes: list) -> str:
             continue
         return text.replace("_", " ")
     return ""
-
-
-def _nav_html(active: str) -> str:
-    links = []
-    for label, href in _NAV:
-        on = label == active
-        klass = "rio-link is-active" if on else "rio-link"
-        current = ' aria-current="page"' if on else ""
-        links.append(f'<a class="{klass}" href="{href}"{current}>{_esc(label)}</a>')
-    return (
-        '<nav class="rio-nav">'
-        '<a class="rio-brand" href="/">RIO</a>'
-        f'<div class="rio-links">{"".join(links)}</div>'
-        "</nav>"
-    )
 
 
 def _hero_html(start: date, goal: date, plan: dict | None, error: str | None) -> str:
@@ -1130,7 +1223,7 @@ def page_season() -> None:
 
     with chrome:
         st.markdown(_APP_CSS, unsafe_allow_html=True)
-        st.markdown(_nav_html("Season"), unsafe_allow_html=True)
+        _render_nav("Season")
 
     with controls:
         current_col, start_col, goal_time_col, goal_date_col = st.columns(
@@ -1169,14 +1262,15 @@ def page_season() -> None:
 
 
 st.set_page_config(page_title="rio", layout="centered")
+_NAV_PAGES[:] = [
+    ("Last Session", st.Page(page_last_session, title="Last Session", default=True)),
+    ("Next", st.Page(page_next, title="Next", url_path="next")),
+    ("Decisions", st.Page(page_decisions, title="Decisions", url_path="decisions")),
+    ("Ledger", st.Page(page_ledger, title="Ledger", url_path="ledger")),
+    ("Goal", st.Page(page_goal, title="Goal", url_path="goal")),
+    ("Season", st.Page(page_season, title="Season", url_path="season")),
+]
 st.navigation(
-    [
-        st.Page(page_last_session, title="Last Session", default=True),
-        st.Page(page_next, title="Next", url_path="next"),
-        st.Page(page_decisions, title="Decisions", url_path="decisions"),
-        st.Page(page_ledger, title="Ledger", url_path="ledger"),
-        st.Page(page_goal, title="Goal", url_path="goal"),
-        st.Page(page_season, title="Season", url_path="season"),
-    ],
-    position="top",
+    [page for _, page in _NAV_PAGES],
+    position="hidden",
 ).run()
