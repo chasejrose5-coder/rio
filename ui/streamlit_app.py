@@ -1,6 +1,6 @@
 # streamlit_app.py — Start, Last Session, Next, Decisions, Ledger, Goal, Season, Weekly, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Season shows that plan and reads adapt. Weekly shows one week of that plan and reads adapt. Session shows one day of that plan. No scores. Session does not spend."""
+"""Start asks for four inputs and calls sequence(). Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Season shows that plan and reads adapt. Weekly shows one week of that plan and reads adapt. Session shows one day of that plan. Tuesday and Thursday quality take one result and call adapt. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from engines.ledger import Ledger
 from engines.normalize import normalize
 from engines.prescribe import PARAMETER_KEYS, load_menu, prescribe
 from engines.season import adapt, sequence
+from ui.result import goal_seconds, judge
 
 FIXTURES_DIR = ROOT / "tests" / "fixtures"
 
@@ -419,6 +420,8 @@ def _generate_season(current_time, start_date, goal_time, goal_date) -> dict:
     st.session_state["season_inputs"] = (current, start, goal_mark, goal_day)
     st.session_state["season_plan"] = plan
     st.session_state["season_marks"] = {}
+    st.session_state["season_actuals"] = {}
+    st.session_state["season_quality_base"] = {}
     st.session_state["season_generation"] = int(st.session_state.get("season_generation") or 0) + 1
     return plan
 
@@ -756,6 +759,11 @@ button:focus-visible {
   -webkit-text-fill-color: #f0f0f0 !important;
   background: transparent !important;
   caret-color: #f0f0f0 !important;
+}
+[data-testid="stTextInputField"]::placeholder {
+  color: #6a6a6a !important;
+  -webkit-text-fill-color: #6a6a6a !important;
+  opacity: 1 !important;
 }
 [data-testid="stDateInputField"] [role="spinbutton"],
 [data-testid="stDateInputField"] span {
@@ -1219,6 +1227,23 @@ h2.rio-week-title {
   color: #d7e3d6 !important;
 }
 
+[class*="st-key-rio-result"] {
+  background: #1a1a1a;
+  border: 1px solid #242424;
+  border-radius: 16px;
+  padding: 1.15rem 1.55rem 1.2rem;
+  margin: 0 0 1.15rem;
+}
+[class*="st-key-rio-result"] .rio-mark-label {
+  padding: 0 0 0.55rem !important;
+}
+[class*="st-key-rio-result"] [data-testid="stTextInput"] {
+  max-width: 24rem;
+}
+[class*="st-key-rio-result"] .rio-week-meta {
+  margin-top: 0.75rem !important;
+}
+
 @media (max-width: 720px) {
   [class*="st-key-rio-nav"] {
     flex-direction: column !important;
@@ -1239,6 +1264,7 @@ h2.rio-week-title {
   .rio-status { text-align: left; padding-top: 0; }
   .rio-field { grid-template-columns: 1fr; row-gap: 0.22rem; padding: 0.7rem 0; }
   [class*="st-key-rio-pick"] { max-width: 100% !important; }
+  [class*="st-key-rio-result"] [data-testid="stTextInput"] { max-width: 100% !important; }
   .rio-daycard-dow { font-size: 1.32rem; }
 }
 </style>
@@ -1502,6 +1528,214 @@ def _session_link(session: dict, kind: str, *, first: bool = False) -> None:
         )
 
 
+_PLAN_KEYS = (
+    "week_number",
+    "day_of_week",
+    "date",
+    "template_id",
+    "reason_codes",
+    "target_outcome",
+)
+
+
+def _quality_day(session: dict) -> bool:
+    """Tuesday and Thursday work. Recovery and the long run stay closed."""
+    if str(session.get("day_of_week")) not in ("Tuesday", "Thursday"):
+        return False
+    template_id = str(session.get("template_id") or "")
+    return bool(template_id) and not template_id.startswith("aer_")
+
+
+def _plan_for_adapt(plan: dict) -> dict:
+    """The six session fields adapt() checks. Result numbers stay off this copy."""
+    sessions = []
+    for session in plan["sessions"]:
+        row = {}
+        for key in _PLAN_KEYS:
+            value = session[key]
+            row[key] = list(value) if key == "reason_codes" else value
+        sessions.append(row)
+    return {
+        "ontology_version": plan.get("ontology_version"),
+        "season_length_weeks": plan.get("season_length_weeks"),
+        "start_date": plan.get("start_date"),
+        "sessions": sessions,
+    }
+
+
+def _actuals() -> dict:
+    stored = st.session_state.get("season_actuals")
+    if not isinstance(stored, dict):
+        stored = {}
+        st.session_state["season_actuals"] = stored
+    return stored
+
+
+def _attach_actuals(plan: dict) -> None:
+    """Write stored numbers onto sessions that still use that template."""
+    stored = _actuals()
+    by_date = {session["date"]: session for session in plan["sessions"]}
+    for day in list(stored):
+        saved = stored[day]
+        session = by_date.get(day)
+        if (
+            not isinstance(saved, dict)
+            or session is None
+            or session.get("template_id") != saved.get("template_id")
+        ):
+            stored.pop(day, None)
+            continue
+        numbers = saved.get("numbers")
+        if isinstance(numbers, list) and numbers:
+            session["actual"] = list(numbers)
+
+
+def _week_mark(plan: dict, week: int) -> str | None:
+    """not_hitting wins, then smashing. Same order adapt() uses for a list."""
+    found = []
+    stored = _actuals()
+    for session in plan["sessions"]:
+        if session.get("week_number") != week or not _quality_day(session):
+            continue
+        saved = stored.get(session.get("date"))
+        if not isinstance(saved, dict) or saved.get("template_id") != session.get("template_id"):
+            continue
+        mark = saved.get("mark")
+        if mark in _MARKS:
+            found.append(mark)
+    if not found:
+        return None
+    if "not_hitting" in found:
+        return "not_hitting"
+    if "smashing" in found:
+        return "smashing"
+    return "on_track"
+
+
+def _forget_later_bases(week: int) -> None:
+    bases = st.session_state.get("season_quality_base")
+    if not isinstance(bases, dict):
+        return
+    for later in list(bases):
+        if later >= week:
+            del bases[later]
+
+
+def _adapt_from_result(plan: dict, week: int, outcome: str) -> dict:
+    """One adapt for this week, from the plan before this week's results."""
+    bases = st.session_state.get("season_quality_base")
+    if not isinstance(bases, dict):
+        bases = {}
+        st.session_state["season_quality_base"] = bases
+    if week not in bases:
+        bases[week] = _plan_for_adapt(plan)
+    for later in list(bases):
+        if later > week:
+            del bases[later]
+    updated = adapt(bases[week], week, outcome)
+    _attach_actuals(updated)
+    return updated
+
+
+def _goal_mark_seconds() -> float | None:
+    inputs = st.session_state.get("season_inputs")
+    if not isinstance(inputs, tuple) or len(inputs) < 3:
+        return None
+    return goal_seconds(inputs[2])
+
+
+def _format_numbers(numbers: list) -> str:
+    parts = []
+    for number in numbers:
+        if isinstance(number, bool) or not isinstance(number, (int, float)):
+            continue
+        if isinstance(number, float) and number.is_integer():
+            parts.append(str(int(number)))
+        else:
+            parts.append(str(number))
+    return ", ".join(parts)
+
+
+def _apply_result(plan: dict, session: dict, text: str) -> None:
+    """Store the numbers and call adapt once. Empty or invalid text does nothing."""
+    if not text:
+        return
+    judged = judge(session.get("template_id"), text, _goal_mark_seconds())
+    if judged is None:
+        return
+    day = str(session["date"])
+    week = session["week_number"]
+    stored = _actuals()
+    previous = stored.get(day)
+    stored[day] = {
+        "text": text,
+        "numbers": list(judged["numbers"]),
+        "mark": judged["mark"],
+        "template_id": session.get("template_id"),
+    }
+    mark = _week_mark(plan, week)
+    if mark is None:
+        if previous is None:
+            stored.pop(day, None)
+        else:
+            stored[day] = previous
+        return
+    try:
+        updated = _adapt_from_result(plan, week, mark)
+    except ValueError as exc:
+        if previous is None:
+            stored.pop(day, None)
+        else:
+            stored[day] = previous
+        st.markdown(
+            f'<p class="rio-error">{_esc(exc)}</p>',
+            unsafe_allow_html=True,
+        )
+        return
+    marks = dict(st.session_state.get("season_marks") or {})
+    marks[week] = mark
+    st.session_state["season_marks"] = marks
+    st.session_state["season_plan"] = updated
+    st.rerun()
+
+
+def _render_result(plan: dict, session: dict, generation: int) -> None:
+    """One field. Rep times, or one distance. The mark is adapt()'s."""
+    day = str(session["date"])
+    key = f"season-result-{generation}-{day}"
+    handled_key = f"{key}-handled"
+    saved = _actuals().get(day)
+    if not isinstance(saved, dict) or saved.get("template_id") != session.get("template_id"):
+        saved = None
+    if key not in st.session_state:
+        st.session_state[key] = "" if saved is None else str(saved.get("text") or "")
+    if handled_key not in st.session_state:
+        st.session_state[handled_key] = st.session_state.get(key, "")
+    with st.container(key="rio-result"):
+        st.markdown('<p class="rio-mark-label">Result</p>', unsafe_allow_html=True)
+        st.text_input(
+            "Result",
+            key=key,
+            label_visibility="collapsed",
+            placeholder="Rep times, or one distance",
+        )
+        text = str(st.session_state.get(key) or "").strip()
+        handled = str(st.session_state.get(handled_key) or "").strip()
+        if text != handled:
+            st.session_state[handled_key] = text
+            _apply_result(plan, session, text)
+        saved = _actuals().get(day)
+        if not isinstance(saved, dict) or saved.get("template_id") != session.get("template_id"):
+            return
+        numbers = _format_numbers(saved.get("numbers") or [])
+        mark = saved.get("mark")
+        if numbers and mark in _MARKS:
+            st.markdown(
+                f'<p class="rio-week-meta">{_esc(numbers)} · {_esc(mark)}</p>',
+                unsafe_allow_html=True,
+            )
+
+
 def _render_mark(plan: dict, week_number: int, generation: int) -> None:
     """One mark for this week. A button calls adapt(); later weeks are what it returns."""
     applied = (st.session_state.get("season_marks") or {}).get(week_number)
@@ -1520,13 +1754,15 @@ def _render_mark(plan: dict, week_number: int, generation: int) -> None:
     if choice is None:
         return
     try:
-        updated = adapt(plan, week_number, choice)
+        updated = adapt(_plan_for_adapt(plan), week_number, choice)
     except ValueError as exc:
         st.markdown(
             f'<p class="rio-error">{_esc(exc)}</p>',
             unsafe_allow_html=True,
         )
         return
+    _attach_actuals(updated)
+    _forget_later_bases(week_number)
     marks = dict(st.session_state.get("season_marks") or {})
     marks[week_number] = choice
     st.session_state["season_marks"] = marks
@@ -1712,7 +1948,8 @@ def page_session() -> None:
     """One session from the plan Start stored.
 
     Season and Weekly link here with the session date. The workout words,
-    the structure, the warm-up, and the reason words are fixed. This page
+    the structure, the warm-up, and the reason words are fixed. A Tuesday
+    or Thursday quality day takes one result and calls adapt(). This page
     does not call a model and does not spend.
     """
     chrome = st.container(gap=None)
@@ -1771,6 +2008,8 @@ def page_session() -> None:
         _label("Reasons"),
         _plain_reasons(session.get("reason_codes") or []),
     )
+    if _quality_day(session):
+        _render_result(plan, session, int(st.session_state.get("season_generation") or 0))
 
 
 st.set_page_config(page_title="rio", layout="centered")
