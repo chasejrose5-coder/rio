@@ -1,6 +1,6 @@
-# streamlit_app.py — Start, Last Session, Next, Decisions, Ledger, Goal, and Season. Display only. No classification rules.
+# streamlit_app.py — Start, Last Session, Next, Decisions, Ledger, Goal, Season, and Weekly. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Season shows that plan and reads adapt. No scores."""
+"""Start asks for four inputs and calls sequence(). Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Season shows that plan and reads adapt. Weekly shows one week of that plan and reads adapt. No scores."""
 
 from __future__ import annotations
 
@@ -758,6 +758,53 @@ h2.rio-week-title {
   font-size: 0.84rem;
   line-height: 1.45;
 }
+.rio-hero-week { padding-bottom: 1.15rem; }
+[class*="st-key-rio-pick"] {
+  max-width: 24rem;
+  margin: 0 0 1.85rem !important;
+}
+.rio-daycard {
+  background: #1a1a1a;
+  border: 1px solid #242424;
+  border-radius: 16px;
+  padding: 1.7rem 1.75rem 1.5rem;
+  margin: 0 0 0.95rem;
+}
+.rio-daycard-dow,
+.rio-daycard-date,
+.rio-daycard-work,
+.rio-daycard-target {
+  margin: 0;
+}
+.rio-daycard-dow {
+  color: #f0f0f0;
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+.rio-daycard-date {
+  margin-top: 0.4rem;
+  color: #8a8a8a;
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+}
+.rio-daycard-work {
+  margin-top: 1.35rem;
+  color: #f0f0f0;
+  font-size: 1.22rem;
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: break-word;
+}
+.rio-daycard-target {
+  margin-top: 0.95rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid #262626;
+  color: #a3a3a3;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
 .rio-status {
   text-align: right;
   color: #5a5a5a;
@@ -844,6 +891,9 @@ h2.rio-week-title {
 }
 [class*="st-key-rio-week"] [data-testid="stHorizontalBlock"] {
   gap: 0.55rem !important;
+}
+[class*="st-key-rio-week-mark"] {
+  margin: 0.6rem 0 1.65rem !important;
 }
 
 .rio-card {
@@ -1024,6 +1074,8 @@ h2.rio-week-title {
   .rio-day { grid-template-columns: 1fr; row-gap: 0.35rem; }
   .rio-status { text-align: left; padding-top: 0; }
   .rio-field { grid-template-columns: 1fr; row-gap: 0.22rem; padding: 0.7rem 0; }
+  [class*="st-key-rio-pick"] { max-width: 100% !important; }
+  .rio-daycard-dow { font-size: 1.32rem; }
 }
 </style>
 """
@@ -1216,6 +1268,51 @@ def _day_html(session: dict) -> str:
     )
 
 
+def _week_sunday(start: date, week_number: int) -> date:
+    """Sunday that opens this plan week. Week 1 is the week that contains start."""
+    anchor = start - timedelta(days=(start.weekday() + 1) % 7)
+    return anchor + timedelta(days=(week_number - 1) * 7)
+
+
+def _week_containing(start: date, length: int, day: date) -> int:
+    """The plan week that contains day, clamped to the season."""
+    sunday = _week_sunday(start, 1)
+    if day < sunday:
+        return 1
+    number = (day - sunday).days // 7 + 1
+    if number > length:
+        return length
+    return number
+
+
+def _week_option(start: date, week_number: int) -> str:
+    sunday = _week_sunday(start, week_number)
+    saturday = sunday + timedelta(days=6)
+    return f"Week {week_number} · {sunday.isoformat()} — {saturday.isoformat()}"
+
+
+def _weekly_hero(week_number: int, start: date, days: list[dict]) -> str:
+    sunday = _week_sunday(start, week_number)
+    saturday = sunday + timedelta(days=6)
+    phase = _phase_number(days)
+    span = f"{sunday.isoformat()} — {saturday.isoformat()}"
+    subtitle = span if phase == "—" else f"Phase {phase} · {span}"
+    hero = _page_hero(f"Week {week_number}", "SYNTHETIC / DEMO", subtitle)
+    return hero.replace('class="rio-hero"', 'class="rio-hero rio-hero-week"', 1)
+
+
+def _week_day_card(session: dict) -> str:
+    """One large day: weekday, date, plain workout, target outcome."""
+    return (
+        '<div class="rio-daycard">'
+        f'<div class="rio-daycard-dow">{_esc(session["day_of_week"])}</div>'
+        f'<div class="rio-daycard-date">{_esc(session["date"])}</div>'
+        f'<div class="rio-daycard-work">{_esc(_workout_text(session["template_id"]))}</div>'
+        f'<div class="rio-daycard-target">{_esc(session["target_outcome"])}</div>'
+        "</div>"
+    )
+
+
 def _render_mark(plan: dict, week_number: int, generation: int) -> None:
     """One mark for this week. A button calls adapt(); later weeks are what it returns."""
     applied = (st.session_state.get("season_marks") or {}).get(week_number)
@@ -1319,6 +1416,88 @@ def page_start() -> None:
         st.switch_page(season)
 
 
+def page_weekly() -> None:
+    """One week of the plan Start stored.
+
+    The control opens any week. The week that contains today is the one
+    shown first. Each day is a card: the day, the date, the plain workout,
+    and the target outcome. The mark calls adapt() for that week.
+    No prose, so this page does not spend.
+    """
+    chrome = st.container(gap=None)
+    hero = st.container(gap=None)
+    with chrome:
+        st.markdown(_APP_CSS, unsafe_allow_html=True)
+        _render_nav("Weekly")
+
+    plan, start, goal, error = _stored_season()
+    if plan is None or start is None or goal is None:
+        with hero:
+            if error:
+                st.markdown(
+                    '<header class="rio-hero">'
+                    '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
+                    "<h1>Weekly</h1>"
+                    f'<p class="rio-error">{_esc(error)}</p></header>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    _page_hero("Weekly", "SYNTHETIC / DEMO"),
+                    unsafe_allow_html=True,
+                )
+        if not error:
+            st.markdown(
+                '<p class="rio-empty">Generate a season on Start.</p>',
+                unsafe_allow_html=True,
+            )
+        return
+
+    length = plan["season_length_weeks"]
+    if isinstance(length, bool) or not isinstance(length, int) or length <= 0:
+        with hero:
+            st.markdown(_page_hero("Weekly", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
+        st.markdown('<p class="rio-empty">—</p>', unsafe_allow_html=True)
+        return
+
+    generation = int(st.session_state.get("season_generation") or 0)
+    numbers = list(range(1, length + 1))
+    default = _week_containing(start, length, date.today())
+    key = f"weekly-week-{generation}"
+    picked = st.session_state.get(key, default)
+    if isinstance(picked, bool) or not isinstance(picked, int) or picked not in numbers:
+        picked = default
+    days = dict(_weeks(plan["sessions"])).get(picked, [])
+
+    with hero:
+        st.markdown(_weekly_hero(picked, start, days), unsafe_allow_html=True)
+        with st.container(key="rio-pick", gap=None):
+            st.selectbox(
+                "Week",
+                numbers,
+                index=numbers.index(default),
+                format_func=lambda item, start_day=start: _week_option(start_day, item),
+                key=key,
+            )
+
+    if not days:
+        st.markdown('<p class="rio-empty">—</p>', unsafe_allow_html=True)
+    else:
+        st.markdown(
+            "".join(_week_day_card(session) for session in days),
+            unsafe_allow_html=True,
+        )
+
+    applied = (st.session_state.get("season_marks") or {}).get(picked)
+    with st.container(key="rio-week-mark"):
+        if applied in _MARKS:
+            st.markdown(
+                f'<p class="rio-week-meta">{_esc(applied)}</p>',
+                unsafe_allow_html=True,
+            )
+        _render_mark(plan, picked, generation)
+
+
 def page_season() -> None:
     """The plan sequence() returned from Start.
 
@@ -1351,6 +1530,7 @@ _NAV_PAGES[:] = [
     ("Decisions", st.Page(page_decisions, title="Decisions", url_path="decisions")),
     ("Ledger", st.Page(page_ledger, title="Ledger", url_path="ledger")),
     ("Goal", st.Page(page_goal, title="Goal", url_path="goal")),
+    ("Weekly", st.Page(page_weekly, title="Weekly", url_path="weekly")),
     ("Season", st.Page(page_season, title="Season", url_path="season")),
 ]
 st.navigation(
