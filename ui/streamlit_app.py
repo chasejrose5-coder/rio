@@ -1,6 +1,6 @@
-# streamlit_app.py — Start, Last Session, Next, Decisions, Ledger, Goal, Season, Weekly, and Session. Display only. No classification rules.
+# streamlit_app.py — Start, Last Session, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Season shows that plan and reads adapt. Weekly shows one week of that plan and reads adapt. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. A continuous session takes one time. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week. Season shows that plan and reads adapt. Weekly shows one week of that plan and reads adapt. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. A continuous session takes one time. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from engines.ledger import Ledger
 from engines.normalize import normalize
 from engines.prescribe import PARAMETER_KEYS, load_menu, prescribe
 from engines.season import adapt, sequence
+from ui.progress import days_label, days_remaining, progress_weeks
 from ui.result import filled_times, goal_seconds, judge, result_box_count
 
 FIXTURES_DIR = ROOT / "tests" / "fixtures"
@@ -543,7 +544,8 @@ html { color-scheme: dark; }
 .stApp, .stApp button, .stApp input, .stApp label, .stApp summary, .stApp p,
 .stMarkdown, .stMarkdown h1, .stMarkdown h2, .stMarkdown a, .stMarkdown p, .stMarkdown div,
 [class*="st-key-rio-nav"], [class*="st-key-rio-nav"] a, .rio-hero, .rio-hero h1, .rio-week-title, .rio-day, .rio-day div,
-.rio-card, .rio-card h2, .rio-table, .rio-table th, .rio-table td {
+.rio-card, .rio-card h2, .rio-table, .rio-table th, .rio-table td,
+.rio-progress, .rio-progress div {
   font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
 }
 [data-testid="stHeader"],
@@ -969,6 +971,71 @@ h2.rio-week-title {
   text-transform: uppercase;
   padding-top: 0.26rem;
 }
+.rio-progress-list {
+  background: #1a1a1a;
+  border: 1px solid #242424;
+  border-radius: 16px;
+  padding: 0.2rem 1.35rem;
+  margin: 0 0 1.15rem;
+}
+.rio-progress {
+  display: grid;
+  grid-template-columns: 0.65rem 6.5rem minmax(0, 1fr) 6.2rem auto;
+  column-gap: 0.85rem;
+  align-items: baseline;
+  padding: 0.82rem 0;
+}
+.rio-progress + .rio-progress { border-top: 1px solid #262626; }
+.rio-progress-tick {
+  width: 0.55rem;
+  height: 0.55rem;
+  border: 1px solid #3a3a3a;
+  border-radius: 99px;
+  background: transparent;
+  align-self: center;
+}
+.rio-progress-done .rio-progress-tick {
+  background: #4E6E4D;
+  border-color: #4E6E4D;
+}
+.rio-progress-current .rio-progress-tick {
+  background: #f0f0f0;
+  border-color: #f0f0f0;
+}
+.rio-progress-week {
+  color: #f0f0f0;
+  font-size: 0.98rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.rio-progress-phase {
+  color: #a3a3a3;
+  font-size: 0.92rem;
+}
+.rio-progress-status {
+  color: #8a8a8a;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: right;
+}
+.rio-progress-days {
+  color: #8a8a8a;
+  font-size: 0.84rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.rio-progress-current .rio-progress-days { color: #f0f0f0; }
+.rio-progress-done .rio-progress-days,
+.rio-progress-open .rio-progress-days { color: #5a5a5a; }
+.rio-progress-current .rio-progress-week,
+.rio-progress-current .rio-progress-status { color: #f0f0f0; }
+.rio-progress-done .rio-progress-week { color: #c8c8c8; }
+.rio-progress-upcoming .rio-progress-week,
+.rio-progress-upcoming .rio-progress-phase,
+.rio-progress-open .rio-progress-week,
+.rio-progress-open .rio-progress-phase { color: #6f6f6f; }
 .rio-empty {
   margin: 0.9rem 0 0.2rem;
   color: #8a8a8a;
@@ -1316,6 +1383,14 @@ h2.rio-week-title {
   .stMarkdown .rio-hero h1 { font-size: 2.45rem !important; }
   .rio-day { grid-template-columns: 1fr; row-gap: 0.35rem; }
   .rio-status { text-align: left; padding-top: 0; }
+  .rio-progress {
+    grid-template-columns: 0.65rem minmax(0, 1fr) auto;
+    row-gap: 0.15rem;
+  }
+  .rio-progress-tick { grid-row: 1; align-self: center; }
+  .rio-progress-phase { grid-column: 2; grid-row: 2; }
+  .rio-progress-status { grid-column: 2; grid-row: 3; text-align: left; }
+  .rio-progress-days { grid-column: 3; grid-row: 1 / span 3; align-self: center; }
   .rio-field { grid-template-columns: 1fr; row-gap: 0.22rem; padding: 0.7rem 0; }
   [class*="st-key-rio-pick"] { max-width: 100% !important; }
   [class*="st-key-rio-result-one"] [data-testid="stNumberInput"] { max-width: 100% !important; }
@@ -1959,6 +2034,93 @@ def page_start() -> None:
         st.switch_page(season)
 
 
+def _progress_html(row: dict) -> str:
+    """One checklist row. An unmarked past week keeps a blank status."""
+    status = row["status"] or "—"
+    kind = row["status"] or "open"
+    return (
+        f'<div class="rio-progress rio-progress-{kind}">'
+        '<span class="rio-progress-tick"></span>'
+        f'<div class="rio-progress-week">Week {_esc(row["week"])}</div>'
+        f'<div class="rio-progress-phase">Phase {_esc(row["phase"])}</div>'
+        f'<div class="rio-progress-status">{_esc(status)}</div>'
+        f'<div class="rio-progress-days">{_esc(days_label(row["days_remaining"]))}</div>'
+        "</div>"
+    )
+
+
+def page_progress() -> None:
+    """Weeks of the plan Start stored.
+
+    The week that contains today is current. Any other week that already
+    has a mark is done. A week after today with no mark is upcoming.
+    A done week has no countdown. The current week counts from today.
+    An upcoming week counts from the Saturday that closes it.
+    No prose, so this page does not spend. No scores.
+    """
+    chrome = st.container(gap=None)
+    hero = st.container(gap=None)
+    with chrome:
+        st.markdown(_APP_CSS, unsafe_allow_html=True)
+        _render_nav("Progress")
+
+    plan, start, goal, error = _stored_season()
+    if plan is None or start is None or goal is None:
+        with hero:
+            if error:
+                st.markdown(
+                    '<header class="rio-hero">'
+                    '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
+                    "<h1>Progress</h1>"
+                    f'<p class="rio-error">{_esc(error)}</p></header>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    _page_hero("Progress", "SYNTHETIC / DEMO"),
+                    unsafe_allow_html=True,
+                )
+        if not error:
+            st.markdown(
+                '<p class="rio-empty">Generate a season on Start.</p>',
+                unsafe_allow_html=True,
+            )
+        return
+
+    length = plan.get("season_length_weeks")
+    if isinstance(length, bool) or not isinstance(length, int) or length <= 0:
+        with hero:
+            st.markdown(_page_hero("Progress", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
+        st.markdown('<p class="rio-empty">—</p>', unsafe_allow_html=True)
+        return
+
+    sessions = plan.get("sessions")
+    if not isinstance(sessions, list):
+        sessions = []
+    marks = st.session_state.get("season_marks")
+    rows = progress_weeks(
+        start=start,
+        goal=goal,
+        length=length,
+        sessions=sessions,
+        marks=marks if isinstance(marks, dict) else {},
+        today=date.today(),
+    )
+    with hero:
+        st.markdown(
+            _page_hero(
+                "Progress",
+                "SYNTHETIC / DEMO",
+                f"{start.isoformat()} — {goal.isoformat()} · {days_label(days_remaining(goal, date.today()))}",
+            ),
+            unsafe_allow_html=True,
+        )
+    st.markdown(
+        f'<div class="rio-progress-list">{"".join(_progress_html(row) for row in rows)}</div>',
+        unsafe_allow_html=True,
+    )
+
+
 def page_weekly() -> None:
     """One week of the plan Start stored.
 
@@ -2143,6 +2305,7 @@ _NAV_PAGES[:] = [
     ("Decisions", st.Page(page_decisions, title="Decisions", url_path="decisions")),
     ("Ledger", st.Page(page_ledger, title="Ledger", url_path="ledger")),
     ("Goal", st.Page(page_goal, title="Goal", url_path="goal")),
+    ("Progress", st.Page(page_progress, title="Progress", url_path="progress")),
     ("Weekly", st.Page(page_weekly, title="Weekly", url_path="weekly")),
     ("Season", st.Page(page_season, title="Season", url_path="season")),
 ]
