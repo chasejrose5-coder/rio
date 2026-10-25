@@ -1,6 +1,6 @@
-# streamlit_app.py — Start, Dashboard, Last Session, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, and Session. Display only. No classification rules.
+# streamlit_app.py — Start, Dashboard, Calendar, Last Session, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week. Season shows that plan and reads adapt. Weekly shows one week of that plan and reads adapt. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. A continuous session takes one time. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week. Season shows that plan and reads adapt. Weekly shows one week of that plan and reads adapt. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. A continuous session takes one time. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from engines.ledger import Ledger
 from engines.normalize import normalize
 from engines.prescribe import PARAMETER_KEYS, load_menu, prescribe
 from engines.season import adapt, sequence
+from ui.calendar import month_title, month_weeks, opening_month, plan_months
 from ui.dashboard import dashboard_view
 from ui.progress import days_label, days_remaining, progress_weeks
 from ui.result import filled_times, goal_seconds, judge, result_box_count
@@ -929,6 +930,72 @@ h2.rio-week-title {
   line-height: 1.4 !important;
   letter-spacing: -0.02em;
 }
+[class*="st-key-rio-cal"] {
+  margin: 0.2rem 0 0 !important;
+}
+[class*="st-key-rio-cal-head"],
+[class*="st-key-rio-cal-week"] {
+  margin: 0 0 0.35rem !important;
+}
+[class*="st-key-rio-cal-head"] [data-testid="stHorizontalBlock"],
+[class*="st-key-rio-cal-week"] [data-testid="stHorizontalBlock"] {
+  gap: 0.4rem !important;
+  align-items: stretch !important;
+  flex-wrap: nowrap !important;
+}
+[class*="st-key-rio-cal-head"] [data-testid="stColumn"],
+[class*="st-key-rio-cal-week"] [data-testid="stColumn"],
+[class*="st-key-rio-cal-head"] [data-testid="stHorizontalBlock"] > div,
+[class*="st-key-rio-cal-week"] [data-testid="stHorizontalBlock"] > div {
+  min-width: 0 !important;
+  width: auto !important;
+  flex: 1 1 0 !important;
+}
+.rio-cal-dow {
+  color: #6e6e6e;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0 0.15rem 0.35rem;
+}
+.rio-cal-day {
+  min-height: 4.85rem;
+  height: 100%;
+  box-sizing: border-box;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 0.42rem 0.4rem 0.45rem;
+}
+.rio-cal-session {
+  background: #1a1a1a;
+  border-color: #242424;
+}
+.rio-cal-today {
+  border-color: #4E6E4D;
+}
+.rio-cal-num,
+.rio-cal-label {
+  margin: 0;
+}
+.rio-cal-num {
+  color: #f0f0f0;
+  font-size: 0.92rem;
+  font-weight: 500;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.rio-cal-quiet .rio-cal-num {
+  color: #6f6f6f;
+}
+.rio-cal-label {
+  margin-top: 0.32rem;
+  color: #c8c8c8;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  overflow-wrap: break-word;
+}
 [class*="st-key-rio-days-"] {
   margin-top: 0.85rem !important;
 }
@@ -974,9 +1041,13 @@ h2.rio-week-title {
 }
 [class*="st-key-rio-hit-"]:focus-within .rio-day,
 [class*="st-key-rio-hit-"]:focus-within .rio-daycard,
+[class*="st-key-rio-hit-"]:focus-within .rio-cal-day,
 [class*="st-key-rio-hit-dash"]:focus-within .rio-hero {
   outline: 1px solid #4E6E4D;
   outline-offset: 2px;
+}
+[class*="st-key-rio-hit-cal-"]:hover .rio-cal-session {
+  border-color: #3a3a3a;
 }
 [class*="st-key-rio-hit-dash"]:hover .rio-next-work {
   color: #d7e3d6 !important;
@@ -1400,6 +1471,10 @@ h2.rio-week-title {
   .rio-hero h1,
   .stMarkdown .rio-hero h1 { font-size: 2.45rem !important; }
   .rio-next-work { font-size: 1.22rem !important; }
+  .rio-cal-day { min-height: 4.15rem; padding: 0.22rem 0.06rem 0.28rem; }
+  .rio-cal-num { font-size: 0.68rem; }
+  .rio-cal-label { font-size: 0.5rem; line-height: 1.15; }
+  .rio-cal-dow { letter-spacing: 0.04em; font-size: 0.58rem; }
   .rio-day { grid-template-columns: 1fr; row-gap: 0.35rem; }
   .rio-status { text-align: left; padding-top: 0; }
   .rio-progress {
@@ -2193,6 +2268,123 @@ def page_dashboard() -> None:
     )
 
 
+_CAL_DOW = ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+
+
+def _cal_cell(cell: dict) -> None:
+    """One day. A session opens that day. An empty day stays a date."""
+    in_month = bool(cell.get("in_month"))
+    label = str(cell.get("label") or "") if in_month else ""
+    template = str(cell.get("template_id") or "") if in_month else ""
+    number = cell.get("day") if in_month else ""
+    classes = ["rio-cal-day"]
+    if not in_month:
+        classes.append("rio-cal-out")
+    elif template:
+        classes.append("rio-cal-session")
+    else:
+        classes.append("rio-cal-quiet")
+    if cell.get("today") and in_month:
+        classes.append("rio-cal-today")
+    html = (
+        f'<div class="{" ".join(classes)}">'
+        f'<div class="rio-cal-num">{_esc(number) if number else ""}</div>'
+        f'<div class="rio-cal-label">{_esc(label)}</div>'
+        "</div>"
+    )
+    page = _SESSION_PAGE
+    when = str(cell.get("date") or "")
+    if page is None or not template or not when:
+        st.markdown(html, unsafe_allow_html=True)
+        return
+    with st.container(key=f"rio-hit-cal-{when}", gap=None):
+        st.markdown(html, unsafe_allow_html=True)
+        st.page_link(
+            page,
+            label=f"{when}. {label or 'Session'}",
+            icon="",
+            query_params={"date": when},
+            width="stretch",
+        )
+
+
+def page_calendar() -> None:
+    """One month of the plan Start stored.
+
+    The grid opens on the month that contains today. A session day shows a
+    short label and opens that session. Race is only the 800 race. No prose,
+    so this page does not spend. No scores.
+    """
+    chrome = st.container(gap=None)
+    hero = st.container(gap=None)
+    with chrome:
+        st.markdown(_APP_CSS, unsafe_allow_html=True)
+        _render_nav("Calendar")
+
+    plan, start, goal, error = _stored_season()
+    if plan is None or start is None or goal is None:
+        with hero:
+            if error:
+                st.markdown(
+                    '<header class="rio-hero">'
+                    '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
+                    "<h1>Calendar</h1>"
+                    f'<p class="rio-error">{_esc(error)}</p></header>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    _page_hero("Calendar", "SYNTHETIC / DEMO"),
+                    unsafe_allow_html=True,
+                )
+        if not error:
+            st.markdown(
+                '<p class="rio-empty">Generate a season on Start.</p>',
+                unsafe_allow_html=True,
+            )
+        return
+
+    sessions = plan.get("sessions")
+    if not isinstance(sessions, list):
+        sessions = []
+    months = plan_months(sessions)
+    if not months:
+        with hero:
+            st.markdown(_page_hero("Calendar", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
+        st.markdown('<p class="rio-empty">—</p>', unsafe_allow_html=True)
+        return
+
+    generation = int(st.session_state.get("season_generation") or 0)
+    titles = [month_title(item) for item in months]
+    key = f"calendar-month-{generation}"
+    if key not in st.session_state or st.session_state.get(key) not in titles:
+        st.session_state[key] = month_title(opening_month(months, date.today()))
+    month = months[titles.index(st.session_state[key])]
+    with hero:
+        st.markdown(
+            _page_hero(month_title(month), "SYNTHETIC / DEMO"),
+            unsafe_allow_html=True,
+        )
+        with st.container(key="rio-pick", gap=None):
+            st.selectbox("Month", titles, key=key)
+    weeks = month_weeks(month.year, month.month, sessions, today=date.today())
+    with st.container(key="rio-cal", gap="small"):
+        with st.container(key="rio-cal-head", gap=None):
+            heads = st.columns(7, gap="small")
+            for column, name in zip(heads, _CAL_DOW):
+                with column:
+                    st.markdown(
+                        f'<div class="rio-cal-dow">{_esc(name)}</div>',
+                        unsafe_allow_html=True,
+                    )
+        for index, week in enumerate(weeks):
+            with st.container(key=f"rio-cal-week-{index}", gap=None):
+                columns = st.columns(7, gap="small")
+                for column, cell in zip(columns, week):
+                    with column:
+                        _cal_cell(cell)
+
+
 def page_progress() -> None:
     """Weeks of the plan Start stored.
 
@@ -2445,6 +2637,7 @@ _HOME_PAGE = _start_page
 _SESSION_PAGE = _session_page
 _NAV_PAGES[:] = [
     ("Dashboard", st.Page(page_dashboard, title="Dashboard", url_path="dashboard")),
+    ("Calendar", st.Page(page_calendar, title="Calendar", url_path="calendar")),
     ("Last Session", st.Page(page_last_session, title="Last Session", url_path="last-session")),
     ("Next", st.Page(page_next, title="Next", url_path="next")),
     ("Decisions", st.Page(page_decisions, title="Decisions", url_path="decisions")),
