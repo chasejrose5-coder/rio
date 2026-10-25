@@ -1,6 +1,6 @@
-# streamlit_app.py — Start, Last Session, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, and Session. Display only. No classification rules.
+# streamlit_app.py — Start, Dashboard, Last Session, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week. Season shows that plan and reads adapt. Weekly shows one week of that plan and reads adapt. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. A continuous session takes one time. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week. Season shows that plan and reads adapt. Weekly shows one week of that plan and reads adapt. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. A continuous session takes one time. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from engines.ledger import Ledger
 from engines.normalize import normalize
 from engines.prescribe import PARAMETER_KEYS, load_menu, prescribe
 from engines.season import adapt, sequence
+from ui.dashboard import dashboard_view
 from ui.progress import days_label, days_remaining, progress_weeks
 from ui.result import filled_times, goal_seconds, judge, result_box_count
 
@@ -915,6 +916,19 @@ h2.rio-week-title {
   font-size: 0.95rem;
   line-height: 1.5;
 }
+.rio-hero .rio-mark-label {
+  margin: 0.95rem 0 0 !important;
+  padding: 0 !important;
+}
+.rio-next-work {
+  margin: 1.45rem 0 0 !important;
+  max-width: 38rem;
+  color: #f0f0f0 !important;
+  font-size: 1.48rem !important;
+  font-weight: 500 !important;
+  line-height: 1.4 !important;
+  letter-spacing: -0.02em;
+}
 [class*="st-key-rio-days-"] {
   margin-top: 0.85rem !important;
 }
@@ -959,9 +973,13 @@ h2.rio-week-title {
   border-color: #3a3a3a;
 }
 [class*="st-key-rio-hit-"]:focus-within .rio-day,
-[class*="st-key-rio-hit-"]:focus-within .rio-daycard {
+[class*="st-key-rio-hit-"]:focus-within .rio-daycard,
+[class*="st-key-rio-hit-dash"]:focus-within .rio-hero {
   outline: 1px solid #4E6E4D;
   outline-offset: 2px;
+}
+[class*="st-key-rio-hit-dash"]:hover .rio-next-work {
+  color: #d7e3d6 !important;
 }
 .rio-status {
   text-align: right;
@@ -1381,6 +1399,7 @@ h2.rio-week-title {
   [class*="st-key-rio-links"] { justify-content: flex-start !important; }
   .rio-hero h1,
   .stMarkdown .rio-hero h1 { font-size: 2.45rem !important; }
+  .rio-next-work { font-size: 1.22rem !important; }
   .rio-day { grid-template-columns: 1fr; row-gap: 0.35rem; }
   .rio-status { text-align: left; padding-top: 0; }
   .rio-progress {
@@ -2049,6 +2068,131 @@ def _progress_html(row: dict) -> str:
     )
 
 
+def _phase_text(phase: object) -> str:
+    text = str(phase or "").strip()
+    if not text or text == "—":
+        return "—"
+    return f"Phase {text}"
+
+
+def _mark_text(mark: dict | None) -> str:
+    if not isinstance(mark, dict):
+        return "—"
+    week = mark.get("week")
+    name = mark.get("mark")
+    if isinstance(week, bool) or not isinstance(week, int) or name not in _MARKS:
+        return "—"
+    return f"Week {week} · {name}"
+
+
+def _dash_hero(workout: dict) -> None:
+    """Day, date, and the plain workout. The block opens that session."""
+    day = str(workout.get("day_of_week") or "—")
+    when = str(workout.get("date") or "—")
+    plain = _workout_text(workout.get("template_id"))
+    html = (
+        '<header class="rio-hero">'
+        '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
+        '<p class="rio-mark-label">Next workout</p>'
+        f"<h1>{_esc(day)}</h1>"
+        f'<p class="rio-range">{_esc(when)}</p>'
+        f'<p class="rio-next-work">{_esc(plain)}</p>'
+        "</header>"
+    )
+    page = _SESSION_PAGE
+    if page is None or when == "—":
+        st.markdown(html, unsafe_allow_html=True)
+        return
+    with st.container(key="rio-hit-dash", gap=None):
+        st.markdown(html, unsafe_allow_html=True)
+        st.page_link(
+            page,
+            label=f"{day} {when}. {plain}",
+            icon="",
+            query_params={"date": when},
+            width="stretch",
+        )
+
+
+def page_dashboard() -> None:
+    """The plan Start stored, as of today.
+
+    The next workout is the first session on or after today. The phase and
+    the one-line focus are that week's, from reason codes already stored.
+    The last mark is the latest week mark, when one exists. Days until the
+    goal count from today. No prose, so this page does not spend. No scores.
+    """
+    chrome = st.container(gap=None)
+    hero = st.container(gap=None)
+    with chrome:
+        st.markdown(_APP_CSS, unsafe_allow_html=True)
+        _render_nav("Dashboard")
+
+    plan, start, goal, error = _stored_season()
+    if plan is None or start is None or goal is None:
+        with hero:
+            if error:
+                st.markdown(
+                    '<header class="rio-hero">'
+                    '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
+                    "<h1>Dashboard</h1>"
+                    f'<p class="rio-error">{_esc(error)}</p></header>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    _page_hero("Dashboard", "SYNTHETIC / DEMO"),
+                    unsafe_allow_html=True,
+                )
+        if not error:
+            st.markdown(
+                '<p class="rio-empty">Generate a season on Start.</p>',
+                unsafe_allow_html=True,
+            )
+        return
+
+    length = plan.get("season_length_weeks")
+    sessions = plan.get("sessions")
+    if not isinstance(sessions, list):
+        sessions = []
+    if isinstance(length, bool) or not isinstance(length, int) or length <= 0:
+        with hero:
+            st.markdown(_page_hero("Dashboard", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
+        st.markdown('<p class="rio-empty">—</p>', unsafe_allow_html=True)
+        return
+
+    marks = st.session_state.get("season_marks")
+    view = dashboard_view(
+        start=start,
+        goal=goal,
+        length=length,
+        sessions=sessions,
+        marks=marks if isinstance(marks, dict) else {},
+        today=date.today(),
+    )
+    workout = view.get("next")
+    with hero:
+        if isinstance(workout, dict):
+            _dash_hero(workout)
+        else:
+            st.markdown(_page_hero("Dashboard", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
+    if not isinstance(workout, dict):
+        st.markdown(
+            '<p class="rio-empty">No workout left in this plan.</p>',
+            unsafe_allow_html=True,
+        )
+    _card(
+        _fields(
+            [
+                ("Days until goal", view["days_label"]),
+                ("Current phase", _phase_text(view["phase"])),
+                ("Last mark", _mark_text(view["mark"])),
+                ("This week's focus", view["focus"]),
+            ]
+        )
+    )
+
+
 def page_progress() -> None:
     """Weeks of the plan Start stored.
 
@@ -2300,6 +2444,7 @@ _session_page = st.Page(page_session, title="Session", url_path="session")
 _HOME_PAGE = _start_page
 _SESSION_PAGE = _session_page
 _NAV_PAGES[:] = [
+    ("Dashboard", st.Page(page_dashboard, title="Dashboard", url_path="dashboard")),
     ("Last Session", st.Page(page_last_session, title="Last Session", url_path="last-session")),
     ("Next", st.Page(page_next, title="Next", url_path="next")),
     ("Decisions", st.Page(page_decisions, title="Decisions", url_path="decisions")),
