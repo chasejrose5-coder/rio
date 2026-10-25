@@ -1,6 +1,6 @@
 # streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, Settings, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Settings stores display preferences for this session. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. A continuous session takes one time. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Settings stores display preferences for this session. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. A continuous session takes one time. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -33,6 +33,14 @@ from ui.settings import (
     distance_number,
     format_date,
     normalize as normalize_prefs,
+)
+from ui.plan_store import (
+    dump_record,
+    inputs_ok,
+    load_record,
+    plan_inputs,
+    query_values,
+    storage_key,
 )
 from ui.progress import days_label, days_remaining, progress_weeks
 from ui.result import filled_times, goal_seconds, judge, result_box_count
@@ -439,33 +447,244 @@ def _session_on(plan: dict, day: str | None) -> dict | None:
     return None
 
 
-def _generate_season(current_time, start_date, goal_time, goal_date) -> dict:
-    """sequence() for a submitted start. Replaces any plan adapt() has changed."""
+# Reads and writes this browser's marks and actuals. The four inputs stay in the URL.
+_PLAN_STORE_JS = """
+export default function (component) {
+  var data = component.data;
+  if (!data || typeof data.key !== "string" || !data.key) {
+    return;
+  }
+  var key = data.key;
+  if (data.mode === "write" && typeof data.payload === "string") {
+    try {
+      if (window.localStorage.getItem(key) !== data.payload) {
+        window.localStorage.setItem(key, data.payload);
+      }
+    } catch (err) {}
+  }
+  var body = "";
+  try {
+    var stored = window.localStorage.getItem(key);
+    body = stored === null ? "" : String(stored);
+  } catch (err) {
+    body = "";
+  }
+  var token = key + "\\n" + body;
+  if (window.__rioPlanStoreToken === token) {
+    return;
+  }
+  window.__rioPlanStoreToken = token;
+  component.setStateValue("record", { key: key, body: body });
+}
+"""
+
+
+def _plan_component():
+    """The browser bridge. Registered once per process, mounted on each run."""
+    import ui.plan_store as plan_store
+
+    cached = getattr(plan_store, "_browser_component", None)
+    if cached is None:
+        cached = st.components.v2.component(
+            "rio_plan_store",
+            js=_PLAN_STORE_JS,
+            isolate_styles=False,
+        )
+        plan_store._browser_component = cached
+    return cached
+
+
+def _mount_store(data: dict):
+    return _plan_component()(
+        key="rio-plan-store",
+        data=data,
+        width="content",
+        height="content",
+    )
+
+
+def _publish_inputs(inputs: tuple[str, str, str, str]) -> None:
+    """Put the four inputs in the URL. Leave a session date where it is."""
+    wanted = query_values(inputs)
+    current = {key: str(st.query_params.get(key) or "") for key in wanted}
+    if current == wanted:
+        return
+    st.query_params.update(wanted)
+
+
+def _link_params(extra: dict | None = None) -> dict[str, str] | None:
+    """Page links keep the four inputs. Streamlit clears them otherwise."""
+    params: dict[str, str] = {}
+    inputs = st.session_state.get("season_inputs")
+    if inputs_ok(inputs) and isinstance(st.session_state.get("season_plan"), dict):
+        params.update(query_values(inputs))
+    if extra:
+        for key, value in extra.items():
+            text = "" if value is None else str(value).strip()
+            if text:
+                params[key] = text
+    return params or None
+
+
+def _inputs_from_form(current_time, start_date, goal_time, goal_date) -> tuple[str, str, str, str]:
     current = str(current_time).strip()
     goal_mark = str(goal_time).strip()
-    plan = sequence(current, start_date, goal_mark, goal_date)
     start = start_date.isoformat() if isinstance(start_date, date) else str(start_date).strip()
     goal_day = goal_date.isoformat() if isinstance(goal_date, date) else str(goal_date).strip()
-    st.session_state["season_inputs"] = (current, start, goal_mark, goal_day)
+    return (current, start, goal_mark, goal_day)
+
+
+def _store_plan(inputs: tuple[str, str, str, str], plan: dict, *, loaded: bool) -> None:
+    """A new plan identity. loaded means this browser's record was already applied."""
+    st.session_state["season_inputs"] = inputs
     st.session_state["season_plan"] = plan
     st.session_state["season_marks"] = {}
     st.session_state["season_actuals"] = {}
     st.session_state["season_quality_base"] = {}
     st.session_state["season_generation"] = int(st.session_state.get("season_generation") or 0) + 1
+    st.session_state["rio_store_loaded"] = loaded
+    st.session_state.pop("season_link_error", None)
+    st.session_state.pop("season_link_attempt", None)
+    st.session_state.pop("rio_adapt_pending", None)
+    _publish_inputs(inputs)
+
+
+def _reject_link(inputs: tuple[str, str, str, str], message: str) -> None:
+    """The URL names a plan sequence() will not build. The old browser record stays."""
+    st.session_state["season_link_attempt"] = inputs
+    st.session_state["season_link_error"] = message
+    st.session_state["season_inputs"] = inputs
+    st.session_state["season_plan"] = None
+    st.session_state["season_marks"] = {}
+    st.session_state["season_actuals"] = {}
+    st.session_state["season_quality_base"] = {}
+    st.session_state["rio_store_loaded"] = True
+    st.session_state.pop("rio_adapt_pending", None)
+
+
+def _generate_season(current_time, start_date, goal_time, goal_date) -> dict:
+    """sequence() for a submitted start. Replaces any plan adapt() has changed."""
+    inputs = _inputs_from_form(current_time, start_date, goal_time, goal_date)
+    plan = sequence(*inputs)
+    _store_plan(inputs, plan, loaded=True)
     return plan
+
+
+def _ensure_linked_plan(inputs: tuple[str, str, str, str]) -> None:
+    """Page load with these four inputs rebuilds the plan through sequence()."""
+    current = st.session_state.get("season_inputs")
+    plan = st.session_state.get("season_plan")
+    if current == inputs and isinstance(plan, dict):
+        _publish_inputs(inputs)
+        return
+    if (
+        st.session_state.get("season_link_attempt") == inputs
+        and st.session_state.get("season_link_error")
+        and not isinstance(plan, dict)
+    ):
+        return
+    try:
+        built = sequence(*inputs)
+    except ValueError as exc:
+        _reject_link(inputs, str(exc))
+        return
+    _store_plan(inputs, built, loaded=False)
+
+
+def _restore_record(key: str) -> None:
+    """Read this browser's marks and actuals once, before an empty plan is drawn."""
+    result = _mount_store({"key": key, "mode": "read"})
+    record = getattr(result, "record", None)
+    if (
+        not isinstance(record, dict)
+        or record.get("key") != key
+        or not isinstance(record.get("body"), str)
+    ):
+        st.stop()
+    marks, actuals = load_record(record["body"])
+    st.session_state["season_marks"] = marks
+    st.session_state["season_actuals"] = actuals
+    st.session_state["rio_store_loaded"] = True
+
+
+def _sync_browser_store() -> None:
+    """Save marks and actuals under the four inputs. Each browser has its own."""
+    inputs = st.session_state.get("season_inputs")
+    plan = st.session_state.get("season_plan")
+    if not inputs_ok(inputs) or not isinstance(plan, dict):
+        return
+    key = storage_key(inputs)
+    if not st.session_state.get("rio_store_loaded"):
+        _restore_record(key)
+        return
+    _mount_store(
+        {
+            "key": key,
+            "mode": "write",
+            "payload": dump_record(
+                st.session_state.get("season_marks"),
+                st.session_state.get("season_actuals"),
+            ),
+        }
+    )
+
+
+def _load_shared_plan() -> None:
+    """URL inputs rebuild the plan. A visit that already has it keeps that plan."""
+    found = plan_inputs(st.query_params)
+    if found is None:
+        inputs = st.session_state.get("season_inputs")
+        if inputs_ok(inputs) and isinstance(st.session_state.get("season_plan"), dict):
+            _publish_inputs(inputs)
+    else:
+        _ensure_linked_plan(found)
+    _sync_browser_store()
+
+
+def _seed_start_form() -> None:
+    """Show the linked inputs. A value the user already edited stays."""
+    inputs = st.session_state.get("season_inputs")
+    if not inputs_ok(inputs):
+        return
+    current, start, goal, goal_day = inputs
+    if "start_current_time" not in st.session_state:
+        st.session_state["start_current_time"] = current
+    if "start_goal_time" not in st.session_state:
+        st.session_state["start_goal_time"] = goal
+    if "start_start_date" not in st.session_state:
+        st.session_state["start_start_date"] = date.fromisoformat(start)
+    if "start_goal_date" not in st.session_state:
+        st.session_state["start_goal_date"] = date.fromisoformat(goal_day)
+
+
+def _fresh_value(key: str, default):
+    if key in st.session_state:
+        return {}
+    return {"value": default}
+
+
+def _with_plan(page):
+    """Draw the page after the shared plan is in the session."""
+
+    def wrapped() -> None:
+        _load_shared_plan()
+        page()
+
+    wrapped.__name__ = page.__name__
+    return wrapped
 
 
 def _stored_season() -> tuple[dict | None, date | None, date | None, str | None]:
     """The plan Start stored, plus the two dates the hero prints."""
     plan = st.session_state.get("season_plan")
     inputs = st.session_state.get("season_inputs")
-    if not isinstance(plan, dict) or not isinstance(inputs, tuple) or len(inputs) != 4:
+    if not isinstance(plan, dict) or not inputs_ok(inputs):
+        message = st.session_state.get("season_link_error")
+        if isinstance(message, str) and message.strip():
+            return None, None, None, message.strip()
         return None, None, None, None
-    try:
-        start = date.fromisoformat(str(inputs[1]))
-        goal = date.fromisoformat(str(inputs[3]))
-    except ValueError:
-        return None, None, None, "Season dates are not dates."
+    start = date.fromisoformat(inputs[1])
+    goal = date.fromisoformat(inputs[3])
     return plan, start, goal, None
 
 
@@ -1583,6 +1802,14 @@ h2.rio-week-title {
 [class*="st-key-rio-confirm"] {
   margin: 0.35rem 0 0.8rem !important;
 }
+[class*="st-key-rio-plan-store"] {
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+}
 
 @media (max-width: 720px) {
   [class*="st-key-rio-nav"] {
@@ -1738,7 +1965,13 @@ def _render_nav(active: str) -> None:
         gap=24,
     ):
         with st.container(key="rio-brand", width="content"):
-            st.page_link(home, label="RIO", icon="", width="content")
+            st.page_link(
+                home,
+                label="RIO",
+                icon="",
+                query_params=_link_params(),
+                width="content",
+            )
         with st.container(
             key="rio-links",
             horizontal=True,
@@ -1751,7 +1984,13 @@ def _render_nav(active: str) -> None:
                 slug = label.lower().replace(" ", "-")
                 key = f"rio-tab-{slug}-is-active" if label == active else f"rio-tab-{slug}"
                 with st.container(key=key, width="content"):
-                    st.page_link(page, label=label, icon="", width="content")
+                    st.page_link(
+                        page,
+                        label=label,
+                        icon="",
+                        query_params=_link_params(),
+                        width="content",
+                    )
 
 
 def _open(page: str, *, controls: bool = False):
@@ -1943,7 +2182,7 @@ def _session_link(session: dict, kind: str, *, first: bool = False) -> None:
             page,
             label=label,
             icon="",
-            query_params={"date": day},
+            query_params=_link_params({"date": day}),
             width="stretch",
         )
 
@@ -2421,11 +2660,28 @@ def page_start() -> None:
     st.markdown(_css(), unsafe_allow_html=True)
     _render_nav("")
     st.markdown(_page_hero("Start", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
+    _seed_start_form()
     with st.container(key="rio-start"):
-        current_time = st.text_input("current_time", value="2:02.9", key="start_current_time")
-        start_date = st.date_input("start_date", value=date(2026, 4, 19), key="start_start_date")
-        goal_time = st.text_input("goal_time", value="1:55.0", key="start_goal_time")
-        goal_date = st.date_input("goal_date", value=date(2027, 3, 19), key="start_goal_date")
+        current_time = st.text_input(
+            "current_time",
+            key="start_current_time",
+            **_fresh_value("start_current_time", "2:02.9"),
+        )
+        start_date = st.date_input(
+            "start_date",
+            key="start_start_date",
+            **_fresh_value("start_start_date", date(2026, 4, 19)),
+        )
+        goal_time = st.text_input(
+            "goal_time",
+            key="start_goal_time",
+            **_fresh_value("start_goal_time", "1:55.0"),
+        )
+        goal_date = st.date_input(
+            "goal_date",
+            key="start_goal_date",
+            **_fresh_value("start_goal_date", date(2027, 3, 19)),
+        )
         if not st.button("Generate season", type="primary", width="stretch"):
             return
         try:
@@ -2439,7 +2695,10 @@ def page_start() -> None:
         season = _nav_page("Season")
         if season is None:
             return
-        st.switch_page(season)
+        st.switch_page(
+            season,
+            query_params=query_values(st.session_state["season_inputs"]),
+        )
 
 
 def _progress_html(row: dict) -> str:
@@ -2499,7 +2758,7 @@ def _dash_hero(workout: dict) -> None:
             page,
             label=f"{day} {when}. {plain}",
             icon="",
-            query_params={"date": when},
+            query_params=_link_params({"date": when}),
             width="stretch",
         )
 
@@ -2618,7 +2877,7 @@ def _cal_cell(cell: dict) -> None:
             page,
             label=f"{when}. {label or 'Session'}",
             icon="",
-            query_params={"date": when},
+            query_params=_link_params({"date": when}),
             width="stretch",
         )
 
@@ -3129,23 +3388,23 @@ def page_settings() -> None:
 
 
 st.set_page_config(page_title="rio", layout="centered")
-_start_page = st.Page(page_start, title="Start", default=True)
-_session_page = st.Page(page_session, title="Session", url_path="session")
+_start_page = st.Page(_with_plan(page_start), title="Start", default=True)
+_session_page = st.Page(_with_plan(page_session), title="Session", url_path="session")
 _HOME_PAGE = _start_page
 _SESSION_PAGE = _session_page
 _NAV_PAGES[:] = [
-    ("Dashboard", st.Page(page_dashboard, title="Dashboard", url_path="dashboard")),
-    ("Calendar", st.Page(page_calendar, title="Calendar", url_path="calendar")),
-    ("Library", st.Page(page_library, title="Library", url_path="library")),
-    ("Last Session", st.Page(page_last_session, title="Last Session", url_path="last-session")),
-    ("Next", st.Page(page_next, title="Next", url_path="next")),
-    ("Decisions", st.Page(page_decisions, title="Decisions", url_path="decisions")),
-    ("Ledger", st.Page(page_ledger, title="Ledger", url_path="ledger")),
-    ("Goal", st.Page(page_goal, title="Goal", url_path="goal")),
-    ("Progress", st.Page(page_progress, title="Progress", url_path="progress")),
-    ("Weekly", st.Page(page_weekly, title="Weekly", url_path="weekly")),
-    ("Season", st.Page(page_season, title="Season", url_path="season")),
-    ("Settings", st.Page(page_settings, title="Settings", url_path="settings")),
+    ("Dashboard", st.Page(_with_plan(page_dashboard), title="Dashboard", url_path="dashboard")),
+    ("Calendar", st.Page(_with_plan(page_calendar), title="Calendar", url_path="calendar")),
+    ("Library", st.Page(_with_plan(page_library), title="Library", url_path="library")),
+    ("Last Session", st.Page(_with_plan(page_last_session), title="Last Session", url_path="last-session")),
+    ("Next", st.Page(_with_plan(page_next), title="Next", url_path="next")),
+    ("Decisions", st.Page(_with_plan(page_decisions), title="Decisions", url_path="decisions")),
+    ("Ledger", st.Page(_with_plan(page_ledger), title="Ledger", url_path="ledger")),
+    ("Goal", st.Page(_with_plan(page_goal), title="Goal", url_path="goal")),
+    ("Progress", st.Page(_with_plan(page_progress), title="Progress", url_path="progress")),
+    ("Weekly", st.Page(_with_plan(page_weekly), title="Weekly", url_path="weekly")),
+    ("Season", st.Page(_with_plan(page_season), title="Season", url_path="season")),
+    ("Settings", st.Page(_with_plan(page_settings), title="Settings", url_path="settings")),
 ]
 st.navigation(
     [_start_page, _session_page, *(page for _, page in _NAV_PAGES)],
