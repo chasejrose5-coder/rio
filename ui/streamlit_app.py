@@ -1,6 +1,6 @@
-# streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, and Session. Display only. No classification rules.
+# streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, Settings, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. A continuous session takes one time. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Settings stores display preferences for this session. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. A continuous session takes one time. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -27,6 +27,7 @@ from ui.calendar import month_title, month_weeks, opening_month, plan_months
 from ui.library import filter_workouts, library_rows
 from ui.dashboard import dashboard_view
 from ui.recap import recap_view
+from ui.settings import display_km, display_meters, format_date, normalize
 from ui.progress import days_label, days_remaining, progress_weeks
 from ui.result import filled_times, goal_seconds, judge, result_box_count
 
@@ -284,7 +285,7 @@ def page_ledger() -> None:
         banner = "FIXTURE"
     with hero:
         st.markdown(
-            _page_hero("Ledger", banner, f"As of {today.isoformat()}"),
+            _page_hero("Ledger", banner, f"As of {_date_text(today)}"),
             unsafe_allow_html=True,
         )
     windows = ledger.deposits_on(today)
@@ -388,8 +389,8 @@ def _structure_text(template_id: object) -> str:
     if isinstance(row, dict):
         text = str(row.get("default_structure") or "").strip()
         if text:
-            return text
-    return _workout_text(template_id)
+            return _copy(text)
+    return _copy(_workout_text(template_id))
 
 
 def _query_date() -> str | None:
@@ -1515,6 +1516,51 @@ h2.rio-week-title {
   margin-top: 0.15rem !important;
 }
 
+.rio-template-id {
+  margin-top: 0.28rem;
+  color: #6e6e6e;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+.rio-daycard-id { margin-top: 0.45rem; }
+.rio-next-id { margin-top: 0.45rem; }
+.rio-settings-note {
+  margin: 0.15rem 0 0.2rem !important;
+  color: #6e6e6e !important;
+  font-size: 0.8rem !important;
+  line-height: 1.4 !important;
+}
+[class*="st-key-rio-settings"] {
+  background: #1a1a1a;
+  border: 1px solid #242424;
+  border-radius: 16px;
+  padding: 0.85rem 1.35rem 0.45rem;
+  margin: 0 0 1.15rem !important;
+}
+[class*="st-key-rio-settings"] [data-testid="stWidgetLabel"] p,
+[class*="st-key-rio-settings"] label,
+[class*="st-key-rio-settings"] [data-testid="stMarkdownContainer"] p {
+  color: #d0d0d0 !important;
+}
+[class*="st-key-rio-settings"] [role="radiogroup"] {
+  gap: 1.1rem;
+}
+[class*="st-key-rio-settings"] input[type="radio"] {
+  accent-color: #4E6E4D;
+}
+[class*="st-key-rio-settings"] [data-testid="stCheckbox"] label > div:first-of-type {
+  background: #2a2a2a !important;
+  border: 1px solid #3a3a3a !important;
+}
+[class*="st-key-rio-settings"] [data-testid="stCheckbox"]:has(input:checked) label > div:first-of-type {
+  background: #4E6E4D !important;
+  border-color: #4E6E4D !important;
+}
+[class*="st-key-rio-confirm"] {
+  margin: 0.35rem 0 0.8rem !important;
+}
+
 @media (max-width: 720px) {
   [class*="st-key-rio-nav"] {
     flex-direction: column !important;
@@ -1556,9 +1602,71 @@ h2.rio-week-title {
 </style>
 """
 
+_COMPACT_CSS = """
+<style>
+.rio-hero { padding: 1.35rem 0 0.85rem !important; }
+.rio-hero h1,
+.stMarkdown .rio-hero h1 { font-size: 2.35rem !important; margin-top: 0.35rem !important; }
+.rio-range { margin-top: 0.4rem !important; }
+.rio-card { padding: 0.85rem 1.1rem 0.7rem; margin-bottom: 0.7rem; }
+.rio-daycard { padding: 0.95rem 1.1rem 0.8rem; margin-bottom: 0.5rem; }
+.rio-daycard-work { margin-top: 0.7rem; font-size: 1.05rem; }
+.rio-daycard-target { margin-top: 0.55rem; padding-top: 0.55rem; }
+.rio-day { padding: 0.5rem 0; }
+[class*="st-key-rio-week"] {
+  padding: 0.85rem 1.05rem 0.65rem !important;
+  margin-bottom: 0.85rem !important;
+}
+[class*="st-key-rio-pick"] { margin-bottom: 0.85rem !important; }
+.rio-lib-row { padding: 0.55rem 0; }
+</style>
+"""
+
 
 def _esc(value: object) -> str:
     return escape(str(value), quote=True)
+
+
+def _prefs() -> dict:
+    """Display preferences for this browser session. The plan is not touched."""
+    raw = dict(st.session_state.get("rio_settings") or {})
+    widget = (
+        ("settings-units", "units"),
+        ("settings-ids", "show_ids"),
+        ("settings-compact", "compact"),
+        ("settings-dates", "date_format"),
+        ("settings-confirm", "confirm_adapt"),
+        ("settings-notes", "notifications"),
+    )
+    for key, name in widget:
+        if key in st.session_state:
+            raw[name] = st.session_state[key]
+    return normalize(raw)
+
+
+def _css() -> str:
+    css = _APP_CSS
+    if _prefs()["compact"]:
+        css += _COMPACT_CSS
+    return css
+
+
+def _date_text(value: object) -> str:
+    return format_date(value, _prefs()["date_format"])
+
+
+def _copy(text: object) -> str:
+    return display_km(text, _prefs()["units"])
+
+
+def _id_html(template_id: object, extra: str = "") -> str:
+    if not _prefs()["show_ids"]:
+        return ""
+    key = str(template_id or "").strip()
+    if not key:
+        return ""
+    classes = "rio-template-id" if not extra else f"rio-template-id {extra}"
+    return f'<div class="{classes}">{_esc(key)}</div>'
 
 
 def _plain(value: object) -> str:
@@ -1623,7 +1731,7 @@ def _render_nav(active: str) -> None:
 
 
 def _open(page: str, *, controls: bool = False):
-    st.markdown(_APP_CSS, unsafe_allow_html=True)
+    st.markdown(_css(), unsafe_allow_html=True)
     _render_nav(page)
     hero = st.container(gap=None)
     box = st.container(key="rio-controls", gap="small") if controls else None
@@ -1717,7 +1825,7 @@ def _hero_html(start: date | None, goal: date | None, plan: dict | None, error: 
     return (
         f'<header class="rio-hero">{synthetic}'
         f"<h1>{_esc(_length_text(plan['season_length_weeks']))}</h1>"
-        f'<p class="rio-range">{_esc(start.isoformat())} — {_esc(goal.isoformat())}</p>'
+        f'<p class="rio-range">{_esc(_date_text(start))} — {_esc(_date_text(goal))}</p>'
         "</header>"
     )
 
@@ -1727,7 +1835,7 @@ def _workout_text(template_id: object) -> str:
     key = str(template_id or "").strip()
     if not key:
         return "—"
-    return _WORKOUT_TEXT.get(key, key)
+    return _copy(_WORKOUT_TEXT.get(key, key))
 
 
 def _day_html(session: dict, *, first: bool = False) -> str:
@@ -1738,11 +1846,12 @@ def _day_html(session: dict, *, first: bool = False) -> str:
         f'<div class="rio-day{extra}">'
         '<div class="rio-when">'
         f'<div class="rio-dow">{_esc(session["day_of_week"])}</div>'
-        f'<div class="rio-date">{_esc(session["date"])}</div>'
+        f'<div class="rio-date">{_esc(_date_text(session["date"]))}</div>'
         "</div>"
         '<div class="rio-work">'
         f'<div class="rio-name">{_esc(_workout_text(session["template_id"]))}</div>'
-        f'<div class="rio-target">{_esc(session["target_outcome"])}</div>'
+        f'{_id_html(session["template_id"])}'
+        f'<div class="rio-target">{_esc(_copy(session["target_outcome"]))}</div>'
         "</div>"
         f"{status_html}"
         "</div>"
@@ -1769,14 +1878,14 @@ def _week_containing(start: date, length: int, day: date) -> int:
 def _week_option(start: date, week_number: int) -> str:
     sunday = _week_sunday(start, week_number)
     saturday = sunday + timedelta(days=6)
-    return f"Week {week_number} · {sunday.isoformat()} — {saturday.isoformat()}"
+    return f"Week {week_number} · {_date_text(sunday)} — {_date_text(saturday)}"
 
 
 def _weekly_hero(week_number: int, start: date, days: list[dict]) -> str:
     sunday = _week_sunday(start, week_number)
     saturday = sunday + timedelta(days=6)
     phase = _phase_number(days)
-    span = f"{sunday.isoformat()} — {saturday.isoformat()}"
+    span = f"{_date_text(sunday)} — {_date_text(saturday)}"
     subtitle = span if phase == "—" else f"Phase {phase} · {span}"
     hero = _page_hero(f"Week {week_number}", "SYNTHETIC / DEMO", subtitle)
     return hero.replace('class="rio-hero"', 'class="rio-hero rio-hero-week"', 1)
@@ -1787,9 +1896,10 @@ def _week_day_card(session: dict) -> str:
     return (
         '<div class="rio-daycard">'
         f'<div class="rio-daycard-dow">{_esc(session["day_of_week"])}</div>'
-        f'<div class="rio-daycard-date">{_esc(session["date"])}</div>'
+        f'<div class="rio-daycard-date">{_esc(_date_text(session["date"]))}</div>'
         f'<div class="rio-daycard-work">{_esc(_workout_text(session["template_id"]))}</div>'
-        f'<div class="rio-daycard-target">{_esc(session["target_outcome"])}</div>'
+        f'{_id_html(session["template_id"], "rio-daycard-id")}'
+        f'<div class="rio-daycard-target">{_esc(_copy(session["target_outcome"]))}</div>'
         "</div>"
     )
 
@@ -1970,7 +2080,46 @@ def _initial_slots(saved: dict | None, count: int) -> list[float | None]:
     return slots
 
 
-def _apply_result(
+def _adapt_pending() -> dict | None:
+    """A confirm waiting on adapt. Ignored when confirm is off."""
+    if not _prefs()["confirm_adapt"]:
+        return None
+    pending = st.session_state.get("rio_adapt_pending")
+    if not isinstance(pending, dict):
+        return None
+    return pending
+
+
+def _hold_adapt(pending: dict) -> None:
+    st.session_state["rio_adapt_pending"] = pending
+    st.rerun()
+
+
+def _clear_adapt() -> None:
+    st.session_state.pop("rio_adapt_pending", None)
+
+
+def _confirm_adapt(label: str, confirm_key: str, cancel_key: str) -> str | None:
+    """Ask before adapt runs. Cancel leaves the plan as stored."""
+    st.markdown(
+        f'<p class="rio-week-meta">Confirm {_esc(label)} before the plan changes.</p>',
+        unsafe_allow_html=True,
+    )
+    with st.container(key="rio-confirm"):
+        left, right = st.columns(2, gap="small")
+        with left:
+            confirm = st.button("Confirm", key=confirm_key, type="primary", width="stretch")
+        with right:
+            cancel = st.button("Cancel", key=cancel_key, width="stretch")
+    if cancel:
+        _clear_adapt()
+        st.rerun()
+    if confirm:
+        return "confirm"
+    return None
+
+
+def _commit_result(
     plan: dict,
     session: dict,
     text: str,
@@ -2014,11 +2163,38 @@ def _apply_result(
             unsafe_allow_html=True,
         )
         return
+    _clear_adapt()
     marks = dict(st.session_state.get("season_marks") or {})
     marks[week] = mark
     st.session_state["season_marks"] = marks
     st.session_state["season_plan"] = updated
     st.rerun()
+
+
+def _apply_result(
+    plan: dict,
+    session: dict,
+    text: str,
+    slots: list | None = None,
+) -> None:
+    """Call adapt, or hold the result when confirm is on. Invalid text does nothing."""
+    if not text:
+        return
+    if judge(session.get("template_id"), text, _goal_mark_seconds()) is None:
+        return
+    if _prefs()["confirm_adapt"]:
+        _hold_adapt(
+            {
+                "kind": "result",
+                "day": str(session["date"]),
+                "week": session["week_number"],
+                "text": text,
+                "slots": list(slots) if isinstance(slots, list) else None,
+                "generation": int(st.session_state.get("season_generation") or 0),
+            }
+        )
+        return
+    _commit_result(plan, session, text, slots)
 
 
 def _time_box(label: str, key: str, *, show_label: bool) -> float | None:
@@ -2085,10 +2261,50 @@ def _render_result(plan: dict, session: dict, generation: int) -> None:
                 f'<p class="rio-week-meta">{_esc(numbers)} · {_esc(mark)}</p>',
                 unsafe_allow_html=True,
             )
+    pending = _adapt_pending()
+    if (
+        isinstance(pending, dict)
+        and pending.get("kind") == "result"
+        and pending.get("day") == day
+        and pending.get("generation") == generation
+    ):
+        answer = _confirm_adapt(
+            "this result",
+            f"adapt-confirm-result-{generation}-{day}",
+            f"adapt-cancel-result-{generation}-{day}",
+        )
+        if answer == "confirm":
+            slots = pending.get("slots")
+            _commit_result(
+                plan,
+                session,
+                str(pending.get("text") or ""),
+                slots if isinstance(slots, list) else None,
+            )
+
+
+def _commit_mark(plan: dict, week_number: int, choice: str) -> None:
+    """One mark for this week. Later weeks are what adapt() returns."""
+    try:
+        updated = adapt(_plan_for_adapt(plan), week_number, choice)
+    except ValueError as exc:
+        st.markdown(
+            f'<p class="rio-error">{_esc(exc)}</p>',
+            unsafe_allow_html=True,
+        )
+        return
+    _attach_actuals(updated)
+    _forget_later_bases(week_number)
+    _clear_adapt()
+    marks = dict(st.session_state.get("season_marks") or {})
+    marks[week_number] = choice
+    st.session_state["season_marks"] = marks
+    st.session_state["season_plan"] = updated
+    st.rerun()
 
 
 def _render_mark(plan: dict, week_number: int, generation: int) -> None:
-    """One mark for this week. A button calls adapt(); later weeks are what it returns."""
+    """One mark for this week. Confirm can sit in front of adapt()."""
     applied = (st.session_state.get("season_marks") or {}).get(week_number)
     st.markdown('<p class="rio-mark-label">Mark</p>', unsafe_allow_html=True)
     columns = st.columns(3, gap="small")
@@ -2102,23 +2318,34 @@ def _render_mark(plan: dict, week_number: int, generation: int) -> None:
                 width="stretch",
             ):
                 choice = mark
-    if choice is None:
+    if choice is not None:
+        if _prefs()["confirm_adapt"]:
+            _hold_adapt(
+                {
+                    "kind": "mark",
+                    "week": week_number,
+                    "choice": choice,
+                    "generation": generation,
+                }
+            )
+            return
+        _commit_mark(plan, week_number, choice)
         return
-    try:
-        updated = adapt(_plan_for_adapt(plan), week_number, choice)
-    except ValueError as exc:
-        st.markdown(
-            f'<p class="rio-error">{_esc(exc)}</p>',
-            unsafe_allow_html=True,
+    pending = _adapt_pending()
+    if (
+        isinstance(pending, dict)
+        and pending.get("kind") == "mark"
+        and pending.get("week") == week_number
+        and pending.get("generation") == generation
+        and pending.get("choice") in _MARKS
+    ):
+        answer = _confirm_adapt(
+            str(pending["choice"]),
+            f"adapt-confirm-{generation}-{week_number}",
+            f"adapt-cancel-{generation}-{week_number}",
         )
-        return
-    _attach_actuals(updated)
-    _forget_later_bases(week_number)
-    marks = dict(st.session_state.get("season_marks") or {})
-    marks[week_number] = choice
-    st.session_state["season_marks"] = marks
-    st.session_state["season_plan"] = updated
-    st.rerun()
+        if answer == "confirm":
+            _commit_mark(plan, week_number, str(pending["choice"]))
 
 
 def _render_schedule(plan: dict, generation: int) -> None:
@@ -2157,7 +2384,7 @@ def _render_schedule(plan: dict, generation: int) -> None:
                     for session in days:
                         lines.append(
                             '<p class="rio-reason">'
-                            f'<span>{_esc(session["day_of_week"])} {_esc(session["date"])}</span>'
+                            f'<span>{_esc(session["day_of_week"])} {_esc(_date_text(session["date"]))}</span>'
                             f'{_esc(_reason_text(session["reason_codes"]))}'
                             "</p>"
                         )
@@ -2167,7 +2394,7 @@ def _render_schedule(plan: dict, generation: int) -> None:
 
 def page_start() -> None:
     """Four inputs. Generate season calls sequence() and opens that plan."""
-    st.markdown(_APP_CSS, unsafe_allow_html=True)
+    st.markdown(_css(), unsafe_allow_html=True)
     _render_nav("")
     st.markdown(_page_hero("Start", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
     with st.container(key="rio-start"):
@@ -2233,8 +2460,9 @@ def _dash_hero(workout: dict) -> None:
         '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
         '<p class="rio-mark-label">Next workout</p>'
         f"<h1>{_esc(day)}</h1>"
-        f'<p class="rio-range">{_esc(when)}</p>'
+        f'<p class="rio-range">{_esc(_date_text(when))}</p>'
         f'<p class="rio-next-work">{_esc(plain)}</p>'
+        f'{_id_html(workout.get("template_id"), "rio-next-id")}'
         "</header>"
     )
     page = _SESSION_PAGE
@@ -2263,7 +2491,7 @@ def page_dashboard() -> None:
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
     with chrome:
-        st.markdown(_APP_CSS, unsafe_allow_html=True)
+        st.markdown(_css(), unsafe_allow_html=True)
         _render_nav("Dashboard")
 
     plan, start, goal, error = _stored_season()
@@ -2381,7 +2609,7 @@ def page_calendar() -> None:
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
     with chrome:
-        st.markdown(_APP_CSS, unsafe_allow_html=True)
+        st.markdown(_css(), unsafe_allow_html=True)
         _render_nav("Calendar")
 
     plan, start, goal, error = _stored_season()
@@ -2454,7 +2682,7 @@ def _library_html(rows: list[dict]) -> str:
         parts.append(
             '<div class="rio-lib-row">'
             '<div class="rio-lib-main">'
-            f'<div class="rio-lib-name">{_esc(row["description"])}</div>'
+            f'<div class="rio-lib-name">{_esc(_copy(row["description"]))}</div>'
             f'<div class="rio-lib-id">{_esc(row["id"])}</div>'
             "</div>"
             f'<div class="rio-lib-cap">{_esc(row["capacity"])}</div>'
@@ -2470,7 +2698,7 @@ def page_library() -> None:
     each narrow the same list. The phase list is the one the season already
     uses. No prose, so this page does not spend. No scores.
     """
-    st.markdown(_APP_CSS, unsafe_allow_html=True)
+    st.markdown(_css(), unsafe_allow_html=True)
     _render_nav("Library")
     st.markdown(_page_hero("Library", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
     try:
@@ -2541,7 +2769,7 @@ def page_progress() -> None:
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
     with chrome:
-        st.markdown(_APP_CSS, unsafe_allow_html=True)
+        st.markdown(_css(), unsafe_allow_html=True)
         _render_nav("Progress")
 
     plan, start, goal, error = _stored_season()
@@ -2591,7 +2819,7 @@ def page_progress() -> None:
             _page_hero(
                 "Progress",
                 "SYNTHETIC / DEMO",
-                f"{start.isoformat()} — {goal.isoformat()} · {days_label(days_remaining(goal, date.today()))}",
+                f"{_date_text(start)} — {_date_text(goal)} · {days_label(days_remaining(goal, date.today()))}",
             ),
             unsafe_allow_html=True,
         )
@@ -2615,7 +2843,7 @@ def page_weekly() -> None:
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
     with chrome:
-        st.markdown(_APP_CSS, unsafe_allow_html=True)
+        st.markdown(_css(), unsafe_allow_html=True)
         _render_nav("Weekly")
 
     plan, start, goal, error = _stored_season()
@@ -2680,7 +2908,7 @@ def page_weekly() -> None:
             [
                 ("Sessions", recap["completed"]),
                 ("Marks", recap["marks"]),
-                ("Volume", recap["volume"]),
+                ("Volume", display_meters(recap["volume"], _prefs()["units"])),
                 ("Next week", recap["next"]),
             ]
         ),
@@ -2714,7 +2942,7 @@ def page_season() -> None:
     hero = st.container(gap=None)
 
     with chrome:
-        st.markdown(_APP_CSS, unsafe_allow_html=True)
+        st.markdown(_css(), unsafe_allow_html=True)
         _render_nav("Season")
 
     plan, start, goal, error = _stored_season()
@@ -2756,7 +2984,7 @@ def page_session() -> None:
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
     with chrome:
-        st.markdown(_APP_CSS, unsafe_allow_html=True)
+        st.markdown(_css(), unsafe_allow_html=True)
         _render_nav("")
 
     plan, start, goal, error = _stored_season()
@@ -2770,7 +2998,7 @@ def page_session() -> None:
                 _page_hero(
                     str(session["day_of_week"]),
                     "SYNTHETIC / DEMO",
-                    str(session["date"]),
+                    _date_text(session["date"]),
                 ),
                 unsafe_allow_html=True,
             )
@@ -2800,16 +3028,80 @@ def page_session() -> None:
         return
     _card(
         _subject("Workout", _workout_text(session["template_id"])),
+        _id_html(session["template_id"]),
         _label("Structure"),
         _note(_structure_text(session["template_id"])),
         _label("Target outcome"),
-        _note(str(session.get("target_outcome") or "—")),
+        _note(_copy(str(session.get("target_outcome") or "—"))),
         _prep_lines(session),
         _label("Reasons"),
         _plain_reasons(session.get("reason_codes") or []),
     )
     if _quality_day(session):
         _render_result(plan, session, int(st.session_state.get("season_generation") or 0))
+
+
+def _setting_widgets(prefs: dict) -> None:
+    """Seed the controls once. Later runs keep the widget value."""
+    seed = {
+        "settings-units": prefs["units"],
+        "settings-ids": prefs["show_ids"],
+        "settings-compact": prefs["compact"],
+        "settings-dates": prefs["date_format"],
+        "settings-confirm": prefs["confirm_adapt"],
+        "settings-notes": prefs["notifications"],
+    }
+    for key, value in seed.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+
+
+def page_settings() -> None:
+    """Display preferences for this browser session.
+
+    Units, dates, template ids, and compact mode change what is shown.
+    Confirm sits in front of adapt(). Notifications are stored and do
+    nothing else. Nothing here is written onto the plan.
+    """
+    st.markdown(_css(), unsafe_allow_html=True)
+    _render_nav("Settings")
+    st.markdown(_page_hero("Settings", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
+    _setting_widgets(_prefs())
+    with st.container(key="rio-settings"):
+        units = st.radio(
+            "Units",
+            ["km", "miles"],
+            horizontal=True,
+            key="settings-units",
+        )
+        show_ids = st.toggle("Show template ids", key="settings-ids")
+        compact = st.toggle("Compact mode", key="settings-compact")
+        date_format = st.radio(
+            "Date format",
+            ["iso", "short"],
+            format_func=lambda item: "ISO" if item == "iso" else "Short",
+            horizontal=True,
+            key="settings-dates",
+        )
+        confirm = st.toggle("Confirm before adapt", key="settings-confirm")
+        notifications = st.toggle("Notifications", key="settings-notes")
+        st.markdown(
+            '<p class="rio-settings-note">Placeholder. Nothing is sent.</p>',
+            unsafe_allow_html=True,
+        )
+    stored = normalize(
+        {
+            "units": units,
+            "show_ids": show_ids,
+            "compact": compact,
+            "date_format": date_format,
+            "confirm_adapt": confirm,
+            "notifications": notifications,
+        }
+    )
+    if not stored["confirm_adapt"]:
+        _clear_adapt()
+    st.session_state["rio_settings"] = stored
 
 
 st.set_page_config(page_title="rio", layout="centered")
@@ -2829,6 +3121,7 @@ _NAV_PAGES[:] = [
     ("Progress", st.Page(page_progress, title="Progress", url_path="progress")),
     ("Weekly", st.Page(page_weekly, title="Weekly", url_path="weekly")),
     ("Season", st.Page(page_season, title="Season", url_path="season")),
+    ("Settings", st.Page(page_settings, title="Settings", url_path="settings")),
 ]
 st.navigation(
     [_start_page, _session_page, *(page for _, page in _NAV_PAGES)],
