@@ -32,7 +32,13 @@ _MONTHS = (
 _KM_TO_MI = 0.621371
 _M_TO_MI = 1 / 1609.344
 _KM = re.compile(r"(\d+(?:\.\d+)?)\s*km\b", re.IGNORECASE)
-_METERS = re.compile(r"(\d{1,3}(?:,\d{3})+|\d+)\s*m\b")
+# A ladder such as 200-300 m or 150, 200, 150 m shares one unit.
+# "31,400" is one total. "8 km" is not a meter total.
+_METERS = re.compile(
+    r"(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?(?:(?:\s*[-–—]\s*|,\s+)\d+(?:\.\d+)?)*)\s*m\b"
+)
+_LADDER_SPLIT = re.compile(r"\s*[-–—]\s*|,\s+")
+_REP = re.compile(r"(?:×|(?<![A-Za-z])x)\s*$", re.IGNORECASE)
 _ISO = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
 
 DEFAULTS = {
@@ -86,17 +92,120 @@ def display_km(text: object, units: str) -> str:
 
 
 def display_meters(text: object, units: str) -> str:
-    """Meter totals as miles. A kilometer phrase is not a meter total."""
+    """Meter phrases as miles. A kilometer phrase is not a meter total."""
     if not isinstance(text, str):
         return ""
     if units != "miles":
         return text
+    return _METERS.sub(_meters_as_miles, text)
 
-    def repl(match: re.Match) -> str:
-        meters = int(match.group(1).replace(",", ""))
-        return f"{meters * _M_TO_MI:.1f} mi"
 
-    return _METERS.sub(repl, text)
+def display_distance(text: object, units: str) -> str:
+    """Distance labels for the settings toggle.
+
+    Miles says mi. Kilometers keeps a rep in m and a longer continuous
+    distance in km. Nothing is stored, and the word mileage is not used.
+    """
+    if not isinstance(text, str):
+        return ""
+    if units == "miles":
+        return display_meters(display_km(text, "miles"), "miles")
+    return _METERS.sub(_long_meters_as_km, text)
+
+
+def distance_heading(units: str, distances: object = None) -> str:
+    """Lap column. Miles says mi. A long metric lap says km, a shorter one m."""
+    if units == "miles":
+        return "Distance (mi)"
+    amounts = _amounts(distances)
+    if amounts and all(amount >= 1000 for amount in amounts):
+        return "Distance (km)"
+    return "Distance (m)"
+
+
+def distance_number(meters: object, units: str, distances: object = None) -> str:
+    """The lap figure under distance_heading. Display rounding only."""
+    amount = _amount(meters)
+    if amount is None:
+        return "" if meters is None else str(meters).strip()
+    heading = distance_heading(units, distances if distances is not None else [meters])
+    if heading == "Distance (mi)":
+        return _miles_label(amount).removesuffix(" mi")
+    if heading == "Distance (km)":
+        km = amount / 1000.0
+        return str(int(km)) if km.is_integer() else f"{km:.1f}"
+    if amount.is_integer():
+        return str(int(amount))
+    return f"{amount:g}"
+
+
+def _meters_as_miles(match: re.Match) -> str:
+    raw = match.group(1)
+    if _is_ladder(raw):
+        parts = [float(part) for part in _LADDER_SPLIT.split(raw)]
+        places = 2 if any(abs(part * _M_TO_MI) < 0.1 for part in parts) else 1
+        shown = [f"{part * _M_TO_MI:.{places}f}" for part in parts]
+        return f"{_joiner(raw).join(shown)} mi"
+    return _miles_label(float(raw.replace(",", "")))
+
+
+def _long_meters_as_km(match: re.Match) -> str:
+    """A continuous distance of at least 1 km. A rep or a ladder stays in m."""
+    raw = match.group(1)
+    if _is_ladder(raw):
+        return match.group(0)
+    meters = float(raw.replace(",", ""))
+    if meters < 1000:
+        return match.group(0)
+    prefix = match.string[max(0, match.start() - 4) : match.start()]
+    if _REP.search(prefix):
+        return match.group(0)
+    km = meters / 1000.0
+    shown = str(int(km)) if km.is_integer() else f"{km:.1f}"
+    return f"{shown} km"
+
+
+def _is_ladder(raw: str) -> bool:
+    return _LADDER_SPLIT.search(raw) is not None
+
+
+def _joiner(raw: str) -> str:
+    if "," in raw:
+        return ", "
+    if "–" in raw:
+        return "–"
+    if "—" in raw:
+        return "—"
+    return "-"
+
+
+def _amounts(distances: object) -> list[float]:
+    if not isinstance(distances, list):
+        return []
+    amounts: list[float] = []
+    for item in distances:
+        amount = _amount(item)
+        if amount is None:
+            return []
+        amounts.append(amount)
+    return amounts
+
+
+def _amount(value: object) -> float | None:
+    if isinstance(value, dict):
+        value = value.get("distance_m")
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    if isinstance(value, float) and value != value:
+        return None
+    return float(value)
+
+
+def _miles_label(meters: float) -> str:
+    miles = meters * _M_TO_MI
+    if abs(miles) >= 0.1:
+        return f"{miles:.1f} mi"
+    return f"{miles:.2f} mi"
 
 
 def _as_date(value: object) -> date | None:

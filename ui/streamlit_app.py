@@ -27,7 +27,13 @@ from ui.calendar import month_title, month_weeks, opening_month, plan_months
 from ui.library import filter_workouts, library_rows
 from ui.dashboard import dashboard_view
 from ui.recap import recap_view
-from ui.settings import display_km, display_meters, format_date, normalize
+from ui.settings import (
+    display_distance,
+    distance_heading,
+    distance_number,
+    format_date,
+    normalize as normalize_prefs,
+)
 from ui.progress import days_label, days_remaining, progress_weeks
 from ui.result import filled_times, goal_seconds, judge, result_box_count
 
@@ -41,7 +47,7 @@ GOAL_FIELDS = (
 )
 
 
-def _date_text(payload: dict) -> str:
+def _payload_date(payload: dict) -> str:
     for key in ("date", "started_at"):
         value = payload.get(key)
         if value is None:
@@ -68,18 +74,30 @@ def _dose_cell(value: object) -> str:
     return str(value)
 
 
-def _lap_rows(laps: list[dict]) -> list[dict]:
+def _lap_rows(laps: list[dict], units: str) -> list[dict]:
+    amounts = [lap.get("distance_m") for lap in laps]
+    heading = distance_heading(units, amounts)
     rows: list[dict] = []
     for index, lap in enumerate(laps, start=1):
         rows.append(
             {
                 "Lap": index,
-                "Distance (m)": _cell(lap.get("distance_m")),
+                heading: distance_number(lap.get("distance_m"), units, amounts),
                 "Seconds": _cell(lap.get("seconds")),
                 "Rest (s)": _cell(lap.get("rest_s")),
             }
         )
     return rows
+
+
+def _empty_lap_table(units: str) -> str:
+    """Headers and no rows. A missing laps list uses this instead of crashing."""
+    heads = ("Lap", distance_heading(units), "Seconds", "Rest (s)")
+    head = "".join(f"<th>{_esc(name)}</th>" for name in heads)
+    return (
+        '<div class="rio-table-wrap"><table class="rio-table"><thead><tr>'
+        f"{head}</tr></thead><tbody></tbody></table></div>"
+    )
 
 
 def _deposit_rows(entries: list[dict], with_windows: bool = False) -> list[dict]:
@@ -109,20 +127,25 @@ def _parameter_rows(parameters: dict) -> list[dict]:
 
 def render_session(payload: dict) -> None:
     """Show one session. Labels are whatever classify returns. The paragraph is explain."""
-    rows = _lap_rows(normalize(payload)["laps"])
+    normalized = normalize(payload)
+    found = normalized.get("laps") if isinstance(normalized, dict) else None
+    laps = found if isinstance(found, list) else []
+    units = _prefs()["units"]
+    rows = _lap_rows(laps, units)
     result = classify(payload)
     codes = result.get("reason_codes") or []
-    _card(_label("Laps"), _table(rows))
+    when = _payload_date(payload)
+    _card(_label("Laps"), _table(rows) if rows else _empty_lap_table(units))
     _card(
         _fields(
             [
-                ("Date", _date_text(payload) or "—"),
+                ("Date", _date_text(when) if when else "—"),
                 ("Family", result["family"]),
                 ("Confidence", result["confidence"]),
                 ("Reason codes", _codes(codes)),
             ]
         ),
-        _prose(explain(result)),
+        _prose(_copy(explain(result))),
     )
 
 
@@ -1641,7 +1664,7 @@ def _prefs() -> dict:
     for key, name in widget:
         if key in st.session_state:
             raw[name] = st.session_state[key]
-    return normalize(raw)
+    return normalize_prefs(raw)
 
 
 def _css() -> str:
@@ -1656,7 +1679,8 @@ def _date_text(value: object) -> str:
 
 
 def _copy(text: object) -> str:
-    return display_km(text, _prefs()["units"])
+    """Distance words for the chosen units. The plan text is not rewritten."""
+    return display_distance(text, _prefs()["units"])
 
 
 def _id_html(template_id: object, extra: str = "") -> str:
@@ -2908,7 +2932,7 @@ def page_weekly() -> None:
             [
                 ("Sessions", recap["completed"]),
                 ("Marks", recap["marks"]),
-                ("Volume", display_meters(recap["volume"], _prefs()["units"])),
+                ("Volume", display_distance(recap["volume"], _prefs()["units"])),
                 ("Next week", recap["next"]),
             ]
         ),
@@ -3089,7 +3113,7 @@ def page_settings() -> None:
             '<p class="rio-settings-note">Placeholder. Nothing is sent.</p>',
             unsafe_allow_html=True,
         )
-    stored = normalize(
+    stored = normalize_prefs(
         {
             "units": units,
             "show_ids": show_ids,
