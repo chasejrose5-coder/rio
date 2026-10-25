@@ -1,0 +1,3 @@
+- Never commit directly to main.
+- Never run git push.
+- Create a feature branch before editing.
