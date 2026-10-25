@@ -1,6 +1,6 @@
 # streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week. Season shows that plan and reads adapt. Weekly shows one week of that plan and reads adapt. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. A continuous session takes one time. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. A continuous session takes one time. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ from engines.season import adapt, sequence
 from ui.calendar import month_title, month_weeks, opening_month, plan_months
 from ui.library import filter_workouts, library_rows
 from ui.dashboard import dashboard_view
+from ui.recap import recap_view
 from ui.progress import days_label, days_remaining, progress_weeks
 from ui.result import filled_times, goal_seconds, judge, result_box_count
 
@@ -2604,9 +2605,11 @@ def page_weekly() -> None:
     """One week of the plan Start stored.
 
     The control opens any week. The week that contains today is the one
-    shown first. Each day is a card: the day, the date, the plain workout,
-    and the target outcome. A card opens that session. The mark calls
-    adapt() for that week.
+    shown first. The recap reads that week: sessions already recorded, the
+    marks already stored, the meters beside the week before, and one
+    sentence from adapt codes already on the next week. Each day is a card:
+    the day, the date, the plain workout, and the target outcome. A card
+    opens that session. The mark calls adapt() for that week.
     No prose, so this page does not spend.
     """
     chrome = st.container(gap=None)
@@ -2664,6 +2667,24 @@ def page_weekly() -> None:
                 format_func=lambda item, start_day=start: _week_option(start_day, item),
                 key=key,
             )
+
+    recap = recap_view(
+        week=picked,
+        sessions=plan.get("sessions") or [],
+        actuals=st.session_state.get("season_actuals"),
+        marks=st.session_state.get("season_marks"),
+    )
+    _card(
+        _label("Recap"),
+        _fields(
+            [
+                ("Sessions", recap["completed"]),
+                ("Marks", recap["marks"]),
+                ("Volume", recap["volume"]),
+                ("Next week", recap["next"]),
+            ]
+        ),
+    )
 
     if not days:
         st.markdown('<p class="rio-empty">—</p>', unsafe_allow_html=True)
