@@ -1,6 +1,6 @@
-# streamlit_app.py — Start, Dashboard, Calendar, Last Session, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, and Session. Display only. No classification rules.
+# streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week. Season shows that plan and reads adapt. Weekly shows one week of that plan and reads adapt. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. A continuous session takes one time. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week. Season shows that plan and reads adapt. Weekly shows one week of that plan and reads adapt. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. A continuous session takes one time. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -24,6 +24,7 @@ from engines.normalize import normalize
 from engines.prescribe import PARAMETER_KEYS, load_menu, prescribe
 from engines.season import adapt, sequence
 from ui.calendar import month_title, month_weeks, opening_month, plan_months
+from ui.library import filter_workouts, library_rows
 from ui.dashboard import dashboard_view
 from ui.progress import days_label, days_remaining, progress_weeks
 from ui.result import filled_times, goal_seconds, judge, result_box_count
@@ -1067,6 +1068,52 @@ h2.rio-week-title {
   padding: 0.2rem 1.35rem;
   margin: 0 0 1.15rem;
 }
+.rio-lib {
+  background: #1a1a1a;
+  border: 1px solid #242424;
+  border-radius: 16px;
+  padding: 0.15rem 1.35rem;
+  margin: 0.35rem 0 1.15rem;
+}
+.rio-lib-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 1.25rem;
+  align-items: start;
+  padding: 0.92rem 0;
+}
+.rio-lib-row + .rio-lib-row { border-top: 1px solid #262626; }
+.rio-lib-name {
+  color: #f0f0f0;
+  font-size: 0.98rem;
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: break-word;
+}
+.rio-lib-id {
+  margin-top: 0.22rem;
+  color: #6e6e6e;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+.rio-lib-cap {
+  color: #a3a3a3;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  text-align: right;
+  padding-top: 0.12rem;
+}
+.rio-lib-count {
+  margin: 0 0 0.85rem !important;
+}
+[class*="st-key-rio-library"] {
+  margin: 0 0 0.15rem !important;
+}
+[class*="st-key-rio-library"] [data-testid="stHorizontalBlock"] {
+  gap: 0.85rem !important;
+  align-items: start !important;
+}
 .rio-progress {
   display: grid;
   grid-template-columns: 0.65rem 6.5rem minmax(0, 1fr) 6.2rem auto;
@@ -1476,6 +1523,8 @@ h2.rio-week-title {
   .rio-cal-label { font-size: 0.5rem; line-height: 1.15; }
   .rio-cal-dow { letter-spacing: 0.04em; font-size: 0.58rem; }
   .rio-day { grid-template-columns: 1fr; row-gap: 0.35rem; }
+  .rio-lib-row { grid-template-columns: 1fr; row-gap: 0.22rem; }
+  .rio-lib-cap { text-align: left; padding-top: 0; }
   .rio-status { text-align: left; padding-top: 0; }
   .rio-progress {
     grid-template-columns: 0.65rem minmax(0, 1fr) auto;
@@ -2385,6 +2434,87 @@ def page_calendar() -> None:
                         _cal_cell(cell)
 
 
+def _library_html(rows: list[dict]) -> str:
+    parts = []
+    for row in rows:
+        parts.append(
+            '<div class="rio-lib-row">'
+            '<div class="rio-lib-main">'
+            f'<div class="rio-lib-name">{_esc(row["description"])}</div>'
+            f'<div class="rio-lib-id">{_esc(row["id"])}</div>'
+            "</div>"
+            f'<div class="rio-lib-cap">{_esc(row["capacity"])}</div>'
+            "</div>"
+        )
+    return f'<div class="rio-lib">{"".join(parts)}</div>'
+
+
+def page_library() -> None:
+    """Every template on the frozen menu.
+
+    Search matches the name, the id, or the capacity. Capacity and phase
+    each narrow the same list. The phase list is the one the season already
+    uses. No prose, so this page does not spend. No scores.
+    """
+    st.markdown(_APP_CSS, unsafe_allow_html=True)
+    _render_nav("Library")
+    st.markdown(_page_hero("Library", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
+    try:
+        menu = load_menu()
+    except ValueError as exc:
+        st.markdown(f'<p class="rio-error">{_esc(exc)}</p>', unsafe_allow_html=True)
+        return
+    rows = library_rows(menu)
+    families = []
+    for row in rows:
+        family = row["family"]
+        if family and family not in families:
+            families.append(family)
+    families.sort(key=lambda family: next(
+        (item["capacity"] for item in rows if item["family"] == family),
+        family,
+    ))
+    labels = {
+        row["family"]: row["capacity"]
+        for row in rows
+        if row["family"]
+    }
+    with st.container(key="rio-library"):
+        query = st.text_input("Search", key="library-search", placeholder="Search workouts")
+        left, right = st.columns(2, gap="small")
+        with left:
+            family = st.selectbox(
+                "Capacity",
+                ["All", *families],
+                format_func=lambda item, names=labels: names.get(item, item),
+                key="library-capacity",
+            )
+        with right:
+            phase = st.selectbox(
+                "Phase",
+                ["All", *range(1, 9)],
+                format_func=lambda item: item if item == "All" else f"Phase {item}",
+                key="library-phase",
+            )
+    chosen_family = "" if family == "All" else str(family)
+    chosen_phase = None if phase == "All" else phase
+    visible = filter_workouts(
+        rows,
+        query=query,
+        family=chosen_family,
+        phase=chosen_phase,
+    )
+    noun = "workout" if len(visible) == 1 else "workouts"
+    st.markdown(
+        f'<p class="rio-week-meta rio-lib-count">{len(visible)} {noun}</p>',
+        unsafe_allow_html=True,
+    )
+    if not visible:
+        st.markdown('<p class="rio-empty">No workouts.</p>', unsafe_allow_html=True)
+        return
+    st.markdown(_library_html(visible), unsafe_allow_html=True)
+
+
 def page_progress() -> None:
     """Weeks of the plan Start stored.
 
@@ -2638,6 +2768,7 @@ _SESSION_PAGE = _session_page
 _NAV_PAGES[:] = [
     ("Dashboard", st.Page(page_dashboard, title="Dashboard", url_path="dashboard")),
     ("Calendar", st.Page(page_calendar, title="Calendar", url_path="calendar")),
+    ("Library", st.Page(page_library, title="Library", url_path="library")),
     ("Last Session", st.Page(page_last_session, title="Last Session", url_path="last-session")),
     ("Next", st.Page(page_next, title="Next", url_path="next")),
     ("Decisions", st.Page(page_decisions, title="Decisions", url_path="decisions")),
