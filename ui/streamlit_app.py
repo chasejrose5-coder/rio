@@ -497,9 +497,6 @@ _WORKOUT_TEXT = {
     "rr_800_r0_x1": "800 m race",
 }
 
-# Same note on every session. Fixed copy. This page does not spend.
-_WARMUP_NOTE = "Warm up with easy running and a few strides before the work."
-
 # Plain words for season reason codes already stored on the session.
 _REASON_PLAIN = {
     "phase_1": "Phase 1",
@@ -1270,6 +1267,7 @@ h2.rio-week-title {
 .rio-card h2.rio-week-title + .rio-mark-label,
 .rio-card .rio-prose + .rio-mark-label,
 .rio-card .rio-note + .rio-mark-label,
+.rio-card .rio-prep + .rio-mark-label,
 .rio-card .rio-reasons + .rio-mark-label {
   padding-top: 1.05rem !important;
 }
@@ -1316,6 +1314,21 @@ h2.rio-week-title {
   color: #e4e4e4 !important;
   font-size: 1.02rem !important;
   line-height: 1.6 !important;
+}
+.rio-prep {
+  margin: 0.95rem 0 0.2rem !important;
+  padding-top: 0.85rem;
+  border-top: 1px solid #262626;
+}
+.rio-prep-line {
+  margin: 0 !important;
+  padding: 0.22rem 0;
+  color: #e4e4e4 !important;
+  font-size: 0.95rem !important;
+  line-height: 1.4 !important;
+}
+.rio-prep-line span {
+  color: #8a8a8a;
 }
 .rio-card .rio-reason {
   margin: 0.28rem 0 !important;
@@ -2691,14 +2704,33 @@ def page_season() -> None:
     _render_schedule(plan, int(st.session_state.get("season_generation") or 0))
 
 
+def _prep_lines(session: dict) -> str:
+    """Warm-up, cool-down, and core. Fixed copy. Quality days include core.
+
+    The lines stay on the page. They are not written onto the session, so
+    adapt() never reads them. No score.
+    """
+    lines = [
+        ("Warm-up", "Do a warm-up."),
+        ("Cool-down", "Do a cool-down."),
+    ]
+    if _quality_day(session):
+        lines.append(("Core", "Do core."))
+    rows = "".join(
+        f'<p class="rio-prep-line"><span>{_esc(label)}:</span> {_esc(text)}</p>'
+        for label, text in lines
+    )
+    return f'<div class="rio-prep">{rows}</div>'
+
+
 def page_session() -> None:
     """One session from the plan Start stored.
 
     Season and Weekly link here with the session date. The workout words,
-    the structure, the warm-up, and the reason words are fixed. A Tuesday
-    or Thursday quality day takes one time per rep and calls adapt(). A
-    continuous session takes one time. This page does not call a model and
-    does not spend.
+    the structure, the three placeholder lines, and the reason words are
+    fixed. A Tuesday or Thursday quality day takes one time per rep and
+    calls adapt(). A continuous session takes one time. This page does not
+    call a model and does not spend.
     """
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
@@ -2751,8 +2783,7 @@ def page_session() -> None:
         _note(_structure_text(session["template_id"])),
         _label("Target outcome"),
         _note(str(session.get("target_outcome") or "—")),
-        _label("Warm-up"),
-        _note(_WARMUP_NOTE),
+        _prep_lines(session),
         _label("Reasons"),
         _plain_reasons(session.get("reason_codes") or []),
     )
