@@ -1,6 +1,6 @@
 # streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, Settings, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. The page does not call Intervals.icu. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening the app, Dashboard, or Weekly reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved in this browser with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. The page does not call Intervals.icu. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -25,6 +25,17 @@ from engines.prescribe import PARAMETER_KEYS, load_menu, prescribe
 from engines.season import adapt, sequence
 from ui.calendar import month_title, month_weeks, opening_month, plan_months
 from ui.library import filter_workouts, library_rows
+from ui.activities import (
+    PullError,
+    activity_by_id,
+    activity_window,
+    extras_between,
+    matched_on,
+    meters_text,
+    sync_recent,
+    weekday_name,
+    with_matched_distances,
+)
 from ui.last_session import (
     IntervalsFileError,
     activity_by_ref,
@@ -476,14 +487,22 @@ def _structure_text(template_id: object) -> str:
     return _copy(_workout_text(template_id))
 
 
-def _query_date() -> str | None:
-    value = st.query_params.get("date")
+def _query_text(name: str) -> str | None:
+    value = st.query_params.get(name)
     if isinstance(value, (list, tuple)):
         value = value[0] if value else None
     if value is None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def _query_date() -> str | None:
+    return _query_text("date")
+
+
+def _query_activity() -> str | None:
+    return _query_text("activity")
 
 
 def _session_on(plan: dict, day: str | None) -> dict | None:
@@ -546,9 +565,10 @@ def _plan_component():
     return cached
 
 
-def _mount_store(data: dict):
+def _mount_store(data: dict, *, widget_key: str = "rio-plan-store"):
+    """Mount the browser bridge. Read and write use different keys in one run."""
     return _plan_component()(
-        key="rio-plan-store",
+        key=widget_key,
         data=data,
         width="content",
         height="content",
@@ -586,6 +606,14 @@ def _inputs_from_form(current_time, start_date, goal_time, goal_date) -> tuple[s
     return (current, start, goal_mark, goal_day)
 
 
+def _clear_activity_pull() -> None:
+    """Drop pulled activities when the plan identity changes."""
+    st.session_state["season_activities"] = []
+    st.session_state.pop("activities_trigger", None)
+    st.session_state.pop("activities_loaded", None)
+    st.session_state.pop("activities_notice", None)
+
+
 def _store_plan(inputs: tuple[str, str, str, str], plan: dict, *, loaded: bool) -> None:
     """A new plan identity. loaded means this browser's record was already applied."""
     st.session_state["season_inputs"] = inputs
@@ -598,6 +626,7 @@ def _store_plan(inputs: tuple[str, str, str, str], plan: dict, *, loaded: bool) 
     st.session_state.pop("season_link_error", None)
     st.session_state.pop("season_link_attempt", None)
     st.session_state.pop("rio_adapt_pending", None)
+    _clear_activity_pull()
     _publish_inputs(inputs)
 
 
@@ -612,6 +641,7 @@ def _reject_link(inputs: tuple[str, str, str, str], message: str) -> None:
     st.session_state["season_quality_base"] = {}
     st.session_state["rio_store_loaded"] = True
     st.session_state.pop("rio_adapt_pending", None)
+    _clear_activity_pull()
 
 
 def _generate_season(current_time, start_date, goal_time, goal_date) -> dict:
@@ -653,9 +683,10 @@ def _restore_record(key: str) -> None:
         or not isinstance(record.get("body"), str)
     ):
         st.stop()
-    marks, actuals = load_record(record["body"])
+    marks, actuals, activities = load_record(record["body"])
     st.session_state["season_marks"] = marks
     st.session_state["season_actuals"] = actuals
+    st.session_state["season_activities"] = activities
     st.session_state["rio_store_loaded"] = True
 
 
@@ -676,13 +707,19 @@ def _sync_browser_store() -> None:
             "payload": dump_record(
                 st.session_state.get("season_marks"),
                 st.session_state.get("season_actuals"),
+                st.session_state.get("season_activities"),
             ),
-        }
+        },
+        widget_key="rio-plan-store-write",
     )
 
 
 def _load_shared_plan() -> None:
-    """URL inputs rebuild the plan. A visit that already has it keeps that plan."""
+    """URL inputs rebuild the plan. A visit that already has it keeps that plan.
+
+    The browser record is restored here. The write happens after a pull so a
+    match from this run is what gets saved.
+    """
     found = plan_inputs(st.query_params)
     if found is None:
         inputs = st.session_state.get("season_inputs")
@@ -690,7 +727,69 @@ def _load_shared_plan() -> None:
             _publish_inputs(inputs)
     else:
         _ensure_linked_plan(found)
-    _sync_browser_store()
+    _restore_if_needed()
+
+
+def _restore_if_needed() -> None:
+    """Read this browser's record once, before a pull replaces the window."""
+    inputs = st.session_state.get("season_inputs")
+    plan = st.session_state.get("season_plan")
+    if not inputs_ok(inputs) or not isinstance(plan, dict):
+        return
+    if st.session_state.get("rio_store_loaded"):
+        return
+    _restore_record(storage_key(inputs))
+
+
+# Dashboard and Weekly read again when they are opened. Any other first page
+# is the app load. The names are the page functions _with_plan wraps.
+_PULL_PAGES = ("page_dashboard", "page_weekly")
+
+
+def _pull_for(page_name: str) -> None:
+    """Match the last 14 days once per open. A failure keeps the stored matches."""
+    plan = st.session_state.get("season_plan")
+    if not isinstance(plan, dict):
+        return
+    opened = page_name in _PULL_PAGES
+    if not opened and st.session_state.get("activities_loaded"):
+        return
+    trigger = page_name if opened else "load"
+    if st.session_state.get("activities_trigger") == trigger:
+        return
+    sessions = plan.get("sessions")
+    if not isinstance(sessions, list):
+        sessions = []
+    try:
+        updated = sync_recent(
+            sessions,
+            st.session_state.get("season_activities"),
+            date.today(),
+        )
+    except PullError as exc:
+        st.session_state["activities_notice"] = str(exc)
+    else:
+        st.session_state["season_activities"] = updated
+        st.session_state.pop("activities_notice", None)
+    st.session_state["activities_trigger"] = trigger
+    st.session_state["activities_loaded"] = True
+
+
+def _with_plan(page):
+    """Draw the page after the shared plan is in the session.
+
+    The first open reads recent activities. Dashboard and Weekly read again
+    when they are opened. The write saves the matches with the marks.
+    """
+
+    def wrapped() -> None:
+        _load_shared_plan()
+        _pull_for(page.__name__)
+        _sync_browser_store()
+        page()
+
+    wrapped.__name__ = page.__name__
+    return wrapped
 
 
 def _seed_start_form() -> None:
@@ -713,17 +812,6 @@ def _fresh_value(key: str, default):
     if key in st.session_state:
         return {}
     return {"value": default}
-
-
-def _with_plan(page):
-    """Draw the page after the shared plan is in the session."""
-
-    def wrapped() -> None:
-        _load_shared_plan()
-        page()
-
-    wrapped.__name__ = page.__name__
-    return wrapped
 
 
 def _stored_season() -> tuple[dict | None, date | None, date | None, str | None]:
@@ -1210,6 +1298,13 @@ h2.rio-week-title {
   color: #a3a3a3;
   font-size: 0.95rem;
   line-height: 1.5;
+}
+.rio-daycard-actual {
+  margin-top: 0.75rem;
+  color: #d6d6d6;
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.45;
 }
 .rio-hero .rio-mark-label {
   margin: 0.95rem 0 0 !important;
@@ -2216,7 +2311,12 @@ def _weekly_hero(week_number: int, start: date, days: list[dict]) -> str:
 
 
 def _week_day_card(session: dict) -> str:
-    """One large day: weekday, date, plain workout, target outcome."""
+    """One large day: weekday, date, plain workout, target outcome.
+
+    A matched activity adds its rep times, WORK distance, and heart rate.
+    """
+    detail = _activity_summary(matched_on(_stored_activities(), session.get("date")))
+    actual = f'<div class="rio-daycard-actual">{_esc(detail)}</div>' if detail else ""
     return (
         '<div class="rio-daycard">'
         f'<div class="rio-daycard-dow">{_esc(session["day_of_week"])}</div>'
@@ -2224,6 +2324,7 @@ def _week_day_card(session: dict) -> str:
         f'<div class="rio-daycard-work">{_esc(_workout_text(session["template_id"]))}</div>'
         f'{_id_html(session["template_id"], "rio-daycard-id")}'
         f'<div class="rio-daycard-target">{_esc(_copy(session["target_outcome"]))}</div>'
+        f"{actual}"
         "</div>"
     )
 
@@ -2289,6 +2390,109 @@ def _actuals() -> dict:
         stored = {}
         st.session_state["season_actuals"] = stored
     return stored
+
+
+def _stored_activities() -> list:
+    stored = st.session_state.get("season_activities")
+    if not isinstance(stored, list):
+        return []
+    return stored
+
+
+def _activities_notice() -> None:
+    message = st.session_state.get("activities_notice")
+    if not isinstance(message, str) or not message.strip():
+        return
+    st.markdown(
+        f'<p class="rio-error">{_esc(message.strip())}</p>',
+        unsafe_allow_html=True,
+    )
+
+
+def _activity_summary(row: object, *, include_name: bool = True) -> str:
+    """Rep times, WORK distance, and average heart rate for one stored activity."""
+    if not isinstance(row, dict):
+        return ""
+    parts = []
+    if include_name:
+        name = str(row.get("name") or "").strip()
+        if name:
+            parts.append(name)
+    reps = filled_times(row.get("reps") or [])
+    if reps:
+        parts.append(reps)
+    volume = meters_text(row.get("work_m"))
+    if volume:
+        shown = display_distance(volume, _prefs()["units"])
+        if shown:
+            parts.append(shown)
+    if row.get("heart_rate") is not None:
+        text = heart_rate_text({"average_heartrate": row.get("heart_rate")})
+        if text:
+            parts.append(text)
+    return " · ".join(parts)
+
+
+def _activity_token(value: object) -> str:
+    text = "".join(char if char.isalnum() or char in "-_" else "-" for char in str(value))
+    return text[:60] or "activity"
+
+
+def _render_extras(rows: list) -> None:
+    if not rows:
+        return
+    st.markdown('<p class="rio-mark-label">Extra sessions</p>', unsafe_allow_html=True)
+    for row in rows:
+        if isinstance(row, dict):
+            _extra_link(row)
+
+
+def _extra_link(row: dict) -> None:
+    """An unmatched activity opens its own session. The plan stays as stored."""
+    day = str(row.get("date") or "")
+    name = str(row.get("name") or "").strip() or "Activity"
+    detail = _activity_summary(row, include_name=False)
+    actual = f'<div class="rio-daycard-actual">{_esc(detail)}</div>' if detail else ""
+    html = (
+        '<div class="rio-daycard">'
+        f'<div class="rio-daycard-dow">{_esc(weekday_name(day) or "Extra")}</div>'
+        f'<div class="rio-daycard-date">{_esc(_date_text(day))}</div>'
+        f'<div class="rio-daycard-work">{_esc(name)}</div>'
+        f"{actual}"
+        "</div>"
+    )
+    page = _SESSION_PAGE
+    ident = str(row.get("id") or "")
+    if page is None or not ident:
+        st.markdown(html, unsafe_allow_html=True)
+        return
+    label = f"{weekday_name(day) or 'Extra'} {day}. {name}"
+    with st.container(key=f"rio-hit-extra-{_activity_token(ident)}", gap=None):
+        st.markdown(html, unsafe_allow_html=True)
+        st.page_link(
+            page,
+            label=label,
+            icon="",
+            query_params=_link_params({"activity": ident}),
+            width="stretch",
+        )
+
+
+def _render_logged_activity(row: dict) -> None:
+    """One unmatched activity: name, rep times, WORK distance, and heart rate."""
+    parts = [_subject("Activity", str(row.get("name") or "").strip() or "Activity")]
+    reps = filled_times(row.get("reps") or [])
+    if reps:
+        parts.extend((_label("Reps"), _note(reps)))
+    volume = meters_text(row.get("work_m"))
+    shown = display_distance(volume, _prefs()["units"]) if volume else ""
+    if shown:
+        parts.extend((_label("Volume"), _note(shown)))
+    if row.get("heart_rate") is not None:
+        text = heart_rate_text({"average_heartrate": row.get("heart_rate")})
+        if text:
+            parts.extend((_label("Avg HR"), _note(text)))
+    _card(*parts)
 
 
 def _attach_actuals(plan: dict) -> None:
@@ -2624,11 +2828,27 @@ def _render_result(plan: dict, session: dict, generation: int) -> None:
                     st.session_state[key] = slot
             st.session_state[applied_key] = source
         initial = _initial_slots(saved, count)
+        seed_key = f"{stem}-activity-seed"
+        match = matched_on(_stored_activities(), day)
+        seeded = False
+        if (
+            saved is None
+            and isinstance(match, dict)
+            and st.session_state.get(seed_key) != match.get("id")
+            and not any(slot is not None for slot in initial)
+        ):
+            fitted = fit_slots(match.get("reps"), count)
+            if any(slot is not None for slot in fitted):
+                initial = fitted
+                seeded = True
+            st.session_state[seed_key] = match.get("id")
         for key, slot in zip(keys, initial):
-            if key not in st.session_state:
+            if key not in st.session_state or (seeded and st.session_state.get(key) is None):
                 st.session_state[key] = slot
-        if handled_key not in st.session_state:
-            st.session_state[handled_key] = filled_times(initial)
+        if seeded or handled_key not in st.session_state:
+            st.session_state[handled_key] = filled_times(
+                [st.session_state.get(key) for key in keys]
+            )
         if count > 1:
             st.markdown(
                 '<p class="rio-rep-note">Enter the time for each rep.</p>',
@@ -2838,14 +3058,18 @@ def page_start() -> None:
 
 
 def _session_activity(session: dict, generation: int) -> dict | None:
-    """The Intervals file chosen on this page, or the one stored with the actual.
+    """The file chosen on this page, the matched activity, or the stored file.
 
-    The file is read from disk. This does not call Intervals.icu.
+    A chosen file is read from disk. A match uses the heart rate already stored
+    with it. This does not call Intervals.icu.
     """
     day = str(session.get("date") or "")
     selected = st.session_state.get(f"season-result-{generation}-{day}-intervals")
     if isinstance(selected, str) and selected.strip() not in ("", "—"):
         return activity_by_ref(selected)
+    match = matched_on(_stored_activities(), day)
+    if isinstance(match, dict) and match.get("heart_rate") is not None:
+        return {"average_heartrate": match["heart_rate"]}
     saved = _actuals().get(day)
     if not isinstance(saved, dict) or saved.get("template_id") != session.get("template_id"):
         return None
@@ -2924,7 +3148,9 @@ def page_dashboard() -> None:
     The next workout is the first session on or after today. The phase and
     the one-line focus are that week's, from reason codes already stored.
     The last mark is the latest week mark, when one exists. Days until the
-    goal count from today. No prose, so this page does not spend. No scores.
+    goal count from today. Activities from the last 14 days are already
+    matched. An unmatched activity is an extra session. No prose, so this
+    page does not spend. No scores.
     """
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
@@ -2985,6 +3211,7 @@ def page_dashboard() -> None:
             '<p class="rio-empty">No workout left in this plan.</p>',
             unsafe_allow_html=True,
         )
+    _activities_notice()
     _card(
         _fields(
             [
@@ -2995,6 +3222,8 @@ def page_dashboard() -> None:
             ]
         )
     )
+    oldest, newest = activity_window(date.today())
+    _render_extras(extras_between(_stored_activities(), oldest, newest))
 
 
 _CAL_DOW = ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
@@ -3202,10 +3431,11 @@ def page_progress() -> None:
     has a mark is done. A week after today with no mark is upcoming.
     A done week has no countdown. The current week counts from today.
     An upcoming week counts from the Saturday that closes it.
-    Volume sums WORK interval distance from a loaded Intervals file. Warm-up
-    and cool-down stay out. A day with no file contributes 0. A week with
-    no file shows 0 m. Template meters are not used. No prose, so this page
-    does not spend. No scores.
+    Volume sums WORK interval distance from a loaded Intervals file. A matched
+    activity uses that activity's WORK distance for its day. Warm-up and
+    cool-down stay out. A day with neither contributes 0. A week with neither
+    shows 0 m. Template meters are not used. No prose, so this page does not
+    spend. No scores.
     """
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
@@ -3255,7 +3485,10 @@ def page_progress() -> None:
         sessions=sessions,
         marks=marks if isinstance(marks, dict) else {},
         today=date.today(),
-        distances=loaded_distances(sessions, actuals if isinstance(actuals, dict) else {}),
+        distances=with_matched_distances(
+            loaded_distances(sessions, actuals if isinstance(actuals, dict) else {}),
+            _stored_activities(),
+        ),
     )
     with hero:
         st.markdown(
@@ -3282,7 +3515,9 @@ def page_weekly() -> None:
     the next week. Warm-up and cool-down stay out. A day with no file
     contributes 0. A week with no file shows 0 m. Template meters are not
     used. Each day is a card:
-    the day, the date, the plain workout, and the target outcome. A card
+    the day, the date, the plain workout, and the target outcome. A matched
+    day adds that activity's rep times, WORK distance, and heart rate. An
+    activity with no planned session on its date is an extra session. A card
     opens that session. The mark calls adapt() for that week.
     No prose, so this page does not spend.
     """
@@ -3342,6 +3577,7 @@ def page_weekly() -> None:
                 key=key,
             )
 
+    _activities_notice()
     sessions = plan.get("sessions") or []
     actuals = st.session_state.get("season_actuals")
     recap = recap_view(
@@ -3349,7 +3585,10 @@ def page_weekly() -> None:
         sessions=sessions,
         actuals=actuals,
         marks=st.session_state.get("season_marks"),
-        distances=loaded_distances(sessions, actuals if isinstance(actuals, dict) else {}),
+        distances=with_matched_distances(
+            loaded_distances(sessions, actuals if isinstance(actuals, dict) else {}),
+            _stored_activities(),
+        ),
     )
     _card(
         _label("Recap"),
@@ -3368,6 +3607,8 @@ def page_weekly() -> None:
     else:
         for session in days:
             _session_link(session, "card")
+    sunday = _week_sunday(start, picked)
+    _render_extras(extras_between(_stored_activities(), sunday, sunday + timedelta(days=6)))
 
     applied = (st.session_state.get("season_marks") or {}).get(picked)
     with st.container(key="rio-week-mark"):
@@ -3431,8 +3672,10 @@ def page_session() -> None:
     fills each box with that WORK interval's elapsed time. The numbers
     stay editable. Filled times go through judge(). The activity id or
     the filename is stored with the actuals. When that activity JSON has
-    an average heart rate, the page shows it. A continuous session takes
-    one time. This page does not call a model and does not spend.
+    an average heart rate, the page shows it. A matched activity shows its
+    rep times, its WORK distance, and that heart rate. An extra session
+    opens on its own. A continuous session takes one time. This page does
+    not call a model and does not spend.
     """
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
@@ -3441,6 +3684,20 @@ def page_session() -> None:
         _render_nav("")
 
     plan, start, goal, error = _stored_season()
+    logged = activity_by_id(_stored_activities(), _query_activity())
+    if isinstance(plan, dict) and isinstance(logged, dict) and logged.get("matched") is False:
+        day = str(logged.get("date") or "")
+        with hero:
+            st.markdown(
+                _page_hero(
+                    weekday_name(day) or "Activity",
+                    "SYNTHETIC / DEMO",
+                    _date_text(day) if day else None,
+                ),
+                unsafe_allow_html=True,
+            )
+        _render_logged_activity(logged)
+        return
     chosen = _query_date()
     session = _session_on(plan, chosen) if isinstance(plan, dict) else None
     with hero:
@@ -3488,6 +3745,15 @@ def page_session() -> None:
         _note(_copy(str(session.get("target_outcome") or "—"))),
         _prep_lines(session),
     ]
+    match = matched_on(_stored_activities(), str(session.get("date") or ""))
+    if isinstance(match, dict):
+        reps = filled_times(match.get("reps") or [])
+        if reps:
+            parts.extend((_label("Reps"), _note(reps)))
+        volume = meters_text(match.get("work_m"))
+        shown = display_distance(volume, _prefs()["units"]) if volume else ""
+        if shown:
+            parts.extend((_label("Volume"), _note(shown)))
     hr = heart_rate_text(
         _session_activity(session, int(st.session_state.get("season_generation") or 0))
     )

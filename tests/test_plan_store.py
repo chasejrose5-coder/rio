@@ -129,9 +129,12 @@ def test_marks_and_actuals_round_trip() -> None:
     )
     if raw != again:
         raise AssertionError(raw)
-    marks, actuals = load_record(raw)
+    marks, actuals, activities = load_record(raw)
     _no_score(marks)
     _no_score(actuals)
+    _no_score(activities)
+    if activities:
+        raise AssertionError(activities)
     if marks != {2: "smashing", 3: "not_hitting"}:
         raise AssertionError(marks)
     row = actuals.get("2026-04-21")
@@ -145,8 +148,12 @@ def test_marks_and_actuals_round_trip() -> None:
         raise AssertionError(row)
     if set(actuals) != {"2026-04-21"}:
         raise AssertionError(actuals)
-    if load_record("") != ({}, {}) or load_record("nope") != ({}, {}) or load_record(None) != ({}, {}):
+    empty = ({}, {}, [])
+    if load_record("") != empty or load_record("nope") != empty or load_record(None) != empty:
         raise AssertionError("junk became a record")
+    old = load_record('{"actuals":{},"marks":{"2":"on_track"}}')
+    if old[0] != {2: "on_track"} or old[1] != {} or old[2] != []:
+        raise AssertionError(old)
 
 
 def test_intervals_ref_round_trips_with_the_actual() -> None:
@@ -165,7 +172,7 @@ def test_intervals_ref_round_trips_with_the_actual() -> None:
             }
         },
     )
-    _, actuals = load_record(raw)
+    _, actuals, _activities = load_record(raw)
     _no_score(actuals)
     row = actuals.get("2026-04-21")
     if row is None or row.get("intervals") != "synthetic-se-400-with-recovery":
@@ -182,7 +189,7 @@ def test_intervals_ref_round_trips_with_the_actual() -> None:
             }
         },
     )
-    _, named_actuals = load_record(named)
+    _, named_actuals, _activities = load_record(named)
     if named_actuals["2026-04-21"].get("intervals") != "real_tuesday.json":
         raise AssertionError(named_actuals)
     numbered = dump_record(
@@ -197,7 +204,7 @@ def test_intervals_ref_round_trips_with_the_actual() -> None:
             }
         },
     )
-    _, numbered_actuals = load_record(numbered)
+    _, numbered_actuals, _activities = load_record(numbered)
     if numbered_actuals["2026-04-21"].get("intervals") != "44521":
         raise AssertionError(numbered_actuals)
     dropped = dump_record(
@@ -212,9 +219,76 @@ def test_intervals_ref_round_trips_with_the_actual() -> None:
             }
         },
     )
-    _, dropped_actuals = load_record(dropped)
+    _, dropped_actuals, _activities = load_record(dropped)
     if "intervals" in dropped_actuals["2026-04-21"]:
         raise AssertionError(dropped_actuals["2026-04-21"])
+
+
+def test_pulled_activities_round_trip() -> None:
+    """A match and an extra survive a reload. Scores do not."""
+    raw = dump_record(
+        {},
+        {},
+        [
+            {
+                "id": 44521,
+                "name": "  Morning run ",
+                "date": "2026-10-20",
+                "matched": True,
+                "template_id": "se_400_r90_x6",
+                "start": "2026-10-20T08:00:00",
+                "heart_rate": 148,
+                "work_m": 2400,
+                "reps": [57.5, None, 58],
+                "probability": 0.4,
+                "readiness": 9,
+            },
+            {
+                "id": "extra-1",
+                "name": "Easy",
+                "date": "2026-10-21",
+                "matched": False,
+                "heart_rate": 132,
+                "work_m": 8000,
+                "template_id": "should-stay-off",
+            },
+            {
+                "id": "x" * 121,
+                "name": "Too long",
+                "date": "2026-10-22",
+                "matched": False,
+            },
+        ],
+    )
+    marks, actuals, activities = load_record(raw)
+    _no_score(activities)
+    if marks or actuals:
+        raise AssertionError((marks, actuals))
+    if activities != [
+        {
+            "date": "2026-10-20",
+            "heart_rate": 148,
+            "id": "44521",
+            "matched": True,
+            "name": "Morning run",
+            "reps": [57.5, None, 58],
+            "start": "2026-10-20T08:00:00",
+            "template_id": "se_400_r90_x6",
+            "work_m": 2400,
+        },
+        {
+            "date": "2026-10-21",
+            "heart_rate": 132,
+            "id": "extra-1",
+            "matched": False,
+            "name": "Easy",
+            "work_m": 8000,
+        },
+    ]:
+        raise AssertionError(activities)
+    again = dump_record({}, {}, activities)
+    if again != raw or load_record(again)[2] != activities:
+        raise AssertionError(again)
 
 
 def test_store_does_not_leave_the_browser() -> None:
@@ -234,6 +308,7 @@ def main() -> None:
     test_storage_key_follows_the_inputs()
     test_marks_and_actuals_round_trip()
     test_intervals_ref_round_trips_with_the_actual()
+    test_pulled_activities_round_trip()
     test_store_does_not_leave_the_browser()
     print("plan store ok")
 
