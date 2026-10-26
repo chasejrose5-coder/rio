@@ -1,6 +1,6 @@
 # streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, Settings, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Settings stores display preferences for this session. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. A continuous session takes one time. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Settings stores display preferences for this session. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. The page does not call Intervals.icu. A continuous session takes one time. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -25,7 +25,14 @@ from engines.prescribe import PARAMETER_KEYS, load_menu, prescribe
 from engines.season import adapt, sequence
 from ui.calendar import month_title, month_weeks, opening_month, plan_months
 from ui.library import filter_workouts, library_rows
-from ui.last_session import IntervalsFileError, intervals_json_paths, open_intervals
+from ui.last_session import (
+    IntervalsFileError,
+    file_just_opened,
+    fit_slots,
+    intervals_json_paths,
+    open_intervals,
+    quality_fill,
+)
 from ui.dashboard import dashboard_view
 from ui.recap import recap_view
 from ui.settings import (
@@ -2366,6 +2373,16 @@ def _stored_slot(value: object) -> float | None:
     return number
 
 
+def _intervals_ref(value: object) -> str | None:
+    """Activity id or filename kept with the actual. The record allows 120 characters."""
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if not text or len(text) > 120:
+        return None
+    return text
+
+
 def _initial_slots(saved: dict | None, count: int) -> list[float | None]:
     """Refill each box. A saved gap stays empty. Older results fill from the left."""
     slots: list[float | None] = [None] * count
@@ -2429,6 +2446,7 @@ def _commit_result(
     session: dict,
     text: str,
     slots: list | None = None,
+    intervals: str | None = None,
 ) -> None:
     """Store the numbers and call adapt once. Empty or invalid text does nothing."""
     if not text:
@@ -2448,6 +2466,9 @@ def _commit_result(
     }
     if isinstance(slots, list):
         row["slots"] = [_stored_slot(item) for item in slots]
+    ref = _intervals_ref(intervals)
+    if ref is not None:
+        row["intervals"] = ref
     stored[day] = row
     mark = _week_mark(plan, week)
     if mark is None:
@@ -2481,6 +2502,7 @@ def _apply_result(
     session: dict,
     text: str,
     slots: list | None = None,
+    intervals: str | None = None,
 ) -> None:
     """Call adapt, or hold the result when confirm is on. Invalid text does nothing."""
     if not text:
@@ -2495,11 +2517,53 @@ def _apply_result(
                 "week": session["week_number"],
                 "text": text,
                 "slots": list(slots) if isinstance(slots, list) else None,
+                "intervals": _intervals_ref(intervals),
                 "generation": int(st.session_state.get("season_generation") or 0),
             }
         )
         return
-    _commit_result(plan, session, text, slots)
+    _commit_result(plan, session, text, slots, intervals)
+
+
+def _remember_intervals(day: str, template_id: object, source: object, text: str) -> None:
+    """Keep the file on a result that already has these times. No second adapt."""
+    ref = _intervals_ref(source)
+    if ref is None or not text:
+        return
+    stored = _actuals()
+    saved = stored.get(day)
+    if (
+        not isinstance(saved, dict)
+        or saved.get("template_id") != template_id
+        or saved.get("text") != text
+        or saved.get("intervals") == ref
+    ):
+        return
+    saved["intervals"] = ref
+    st.rerun()
+
+
+def _intervals_choice(stem: str) -> tuple[list | None, str | None, str | None]:
+    """WORK times and the activity id or filename. Blank leaves the boxes.
+
+    The JSON file is read from disk. This does not call Intervals.icu.
+    """
+    paths = intervals_json_paths()
+    if not paths:
+        return None, None, None
+    names = [path.name for path in paths]
+    selected = st.selectbox(
+        "Intervals file",
+        ["—", *names],
+        key=f"{stem}-intervals",
+    )
+    if selected == "—":
+        return None, None, None
+    try:
+        times, source = quality_fill(paths[names.index(selected)])
+    except IntervalsFileError as exc:
+        return None, None, str(exc)
+    return times, source, None
 
 
 def _time_box(label: str, key: str, *, show_label: bool) -> float | None:
@@ -2521,23 +2585,38 @@ def _render_result(plan: dict, session: dict, generation: int) -> None:
     """One number per rep. A continuous session stays one box.
 
     Empty boxes are left out. The filled times go through judge(), then adapt().
+    An Intervals file fills the boxes from its WORK elapsed times. The boxes
+    stay editable. The activity id or filename is stored with the actuals.
     """
     day = str(session["date"])
     stem = f"season-result-{generation}-{day}"
     handled_key = f"{stem}-handled"
+    applied_key = f"{stem}-intervals-open"
     saved = _actuals().get(day)
     if not isinstance(saved, dict) or saved.get("template_id") != session.get("template_id"):
         saved = None
     count = result_box_count(session.get("template_id"))
-    initial = _initial_slots(saved, count)
     keys = [f"{stem}-{index}" for index in range(count)]
-    for key, slot in zip(keys, initial):
-        if key not in st.session_state:
-            st.session_state[key] = slot
-    if handled_key not in st.session_state:
-        st.session_state[handled_key] = filled_times(initial)
     with st.container(key="rio-result"):
         st.markdown('<p class="rio-mark-label">Result</p>', unsafe_allow_html=True)
+        times, source, file_error = _intervals_choice(stem)
+        if file_error:
+            st.markdown(
+                f'<p class="rio-empty">{_esc(file_error)}</p>',
+                unsafe_allow_html=True,
+            )
+        if file_just_opened(st.session_state.get(applied_key), source):
+            fitted = fit_slots(times, count)
+            if any(slot is not None for slot in fitted):
+                for key, slot in zip(keys, fitted):
+                    st.session_state[key] = slot
+            st.session_state[applied_key] = source
+        initial = _initial_slots(saved, count)
+        for key, slot in zip(keys, initial):
+            if key not in st.session_state:
+                st.session_state[key] = slot
+        if handled_key not in st.session_state:
+            st.session_state[handled_key] = filled_times(initial)
         if count > 1:
             st.markdown(
                 '<p class="rio-rep-note">Enter the time for each rep.</p>',
@@ -2555,17 +2634,18 @@ def _render_result(plan: dict, session: dict, generation: int) -> None:
         handled = str(st.session_state.get(handled_key) or "")
         if text != handled:
             st.session_state[handled_key] = text
-            _apply_result(plan, session, text, entered)
+            _apply_result(plan, session, text, entered, intervals=source)
+        elif source:
+            _remember_intervals(day, session.get("template_id"), source, text)
         saved = _actuals().get(day)
-        if not isinstance(saved, dict) or saved.get("template_id") != session.get("template_id"):
-            return
-        numbers = _format_numbers(saved.get("numbers") or [])
-        mark = saved.get("mark")
-        if numbers and mark in _MARKS:
-            st.markdown(
-                f'<p class="rio-week-meta">{_esc(numbers)} · {_esc(mark)}</p>',
-                unsafe_allow_html=True,
-            )
+        if isinstance(saved, dict) and saved.get("template_id") == session.get("template_id"):
+            numbers = _format_numbers(saved.get("numbers") or [])
+            mark = saved.get("mark")
+            if numbers and mark in _MARKS:
+                st.markdown(
+                    f'<p class="rio-week-meta">{_esc(numbers)} · {_esc(mark)}</p>',
+                    unsafe_allow_html=True,
+                )
     pending = _adapt_pending()
     if (
         isinstance(pending, dict)
@@ -2580,11 +2660,13 @@ def _render_result(plan: dict, session: dict, generation: int) -> None:
         )
         if answer == "confirm":
             slots = pending.get("slots")
+            intervals = pending.get("intervals")
             _commit_result(
                 plan,
                 session,
                 str(pending.get("text") or ""),
                 slots if isinstance(slots, list) else None,
+                intervals if isinstance(intervals, str) else None,
             )
 
 
@@ -3303,8 +3385,11 @@ def page_session() -> None:
     Season and Weekly link here with the session date. The workout words,
     the structure, the three placeholder lines, and the reason words are
     fixed. A Tuesday or Thursday quality day takes one time per rep and
-    calls adapt(). A continuous session takes one time. This page does not
-    call a model and does not spend.
+    calls adapt(). Choosing an Intervals JSON file reads it locally and
+    fills each box with that WORK interval's elapsed time. The numbers
+    stay editable. Filled times go through judge(). The activity id or
+    the filename is stored with the actuals. A continuous session takes
+    one time. This page does not call a model and does not spend.
     """
     chrome = st.container(gap=None)
     hero = st.container(gap=None)

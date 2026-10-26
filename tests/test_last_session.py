@@ -19,9 +19,14 @@ from engines.explain import SPEND_CAP_MICRO_USD, explain
 from engines.normalize import normalize
 from ui.last_session import (
     IntervalsFileError,
+    file_just_opened,
+    fit_slots,
     intervals_json_paths,
     open_intervals,
+    quality_fill,
+    work_elapsed,
 )
+from ui.result import filled_times, goal_seconds, judge, result_box_count
 
 FIXTURES = ROOT / "tests" / "fixtures" / "intervals"
 RECOVERY = FIXTURES / "synthetic_se_400_with_recovery.json"
@@ -169,6 +174,125 @@ def test_bad_json_stays_local() -> None:
         raise AssertionError(array_message)
 
 
+def test_quality_file_fills_work_times() -> None:
+    """WORK elapsed times fill the rep boxes. Recovery, warm-up, and cool-down stay out.
+
+    The filled times use judge(). The activity id is kept. No live call, and
+    the prose cap stays $25.
+    """
+    if SPEND_CAP_MICRO_USD != 25_000_000:
+        raise AssertionError("spend cap is not $25")
+    band = (ROOT / "ui" / "result.py").read_text(encoding="utf-8")
+    if "_BAND = 0.03" not in band:
+        raise AssertionError("the ±3% rule moved")
+    with patch("urllib.request.urlopen", side_effect=AssertionError("live API")):
+        times, source = quality_fill(RECOVERY)
+        auto_times, auto_source = quality_fill(AUTOSPLIT)
+    if times != [57.5] * 6 or 90 in times or 600 in times or 540 in times:
+        raise AssertionError(times)
+    if source != "synthetic-se-400-with-recovery":
+        raise AssertionError(source)
+    if auto_times != [57.5] * 6 or auto_source != "synthetic-autosplit-no-rest":
+        raise AssertionError((auto_times, auto_source))
+    count = result_box_count("se_400_r90_x6")
+    slots = fit_slots(times, count)
+    text = filled_times(slots)
+    marked = judge("se_400_r90_x6", text, goal_seconds("1:55.0"))
+    if slots != [57.5] * 6 or marked is None or marked["mark"] != "on_track":
+        raise AssertionError((slots, text, marked))
+    if fit_slots(times, 4) != [57.5] * 4:
+        raise AssertionError("extra WORK intervals were added as boxes")
+    if fit_slots([58.0, 59.0], 6) != [58.0, 59.0, None, None, None, None]:
+        raise AssertionError("a short file did not leave the later boxes empty")
+    gapped = work_elapsed(
+        {
+            "icu_intervals": [
+                {"type": "WARMUP", "elapsed_time": 600, "moving_time": 600},
+                {"type": "WORK", "elapsed_time": 58, "moving_time": 40},
+                {"type": "RECOVERY", "elapsed_time": 90, "moving_time": 0},
+                {"type": "WORK", "moving_time": 50},
+                {"type": "Work", "elapsed_time": 60.004},
+                {"type": "INTERVAL", "elapsed_time": 10},
+                {"type": "COOLDOWN", "elapsed_time": 540},
+            ]
+        }
+    )
+    if gapped != [58.0, None, 60.0]:
+        raise AssertionError(gapped)
+    if file_just_opened(None, source) is not True:
+        raise AssertionError("a newly chosen file did not fill the boxes")
+    if file_just_opened(source, source) is not False:
+        raise AssertionError("the same file replaced an edit")
+    if file_just_opened(source, None) or file_just_opened(source, "  "):
+        raise AssertionError("a blank file filled the boxes")
+
+
+def test_quality_file_stores_filename_without_an_id() -> None:
+    """No activity id keeps the filename. A long id falls back to that name."""
+    activity = {
+        "icu_intervals": [
+            {"type": "WORK", "distance": 400, "elapsed_time": 59},
+            {"type": "RECOVERY", "elapsed_time": 90},
+        ]
+    }
+    named = dict(activity)
+    named["id"] = 44521
+    long_id = dict(activity)
+    long_id["id"] = "x" * 121
+    with tempfile.TemporaryDirectory() as directory:
+        folder = Path(directory)
+        plain = folder / "real_tuesday.json"
+        plain.write_text(json.dumps(activity), encoding="utf-8")
+        numbered = folder / "real_44521.json"
+        numbered.write_text(json.dumps(named), encoding="utf-8")
+        huge = folder / "real_long.json"
+        huge.write_text(json.dumps(long_id), encoding="utf-8")
+        with patch("urllib.request.urlopen", side_effect=AssertionError("live API")):
+            plain_times, plain_source = quality_fill(plain)
+            id_times, id_source = quality_fill(numbered)
+            long_times, long_source = quality_fill(huge)
+    if plain_times != [59.0] or plain_source != "real_tuesday.json":
+        raise AssertionError((plain_times, plain_source))
+    if id_times != [59.0] or id_source != "44521":
+        raise AssertionError((id_times, id_source))
+    if long_times != [59.0] or long_source != "real_long.json":
+        raise AssertionError((long_times, long_source))
+
+
+def test_quality_session_prefills_from_the_file() -> None:
+    """The session page fills the existing boxes and keeps judge() and adapt()."""
+    app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
+    page = _function(app, "page_session")
+    result = _function(app, "_render_result")
+    commit = _function(app, "_commit_result")
+    apply = _function(app, "_apply_result")
+    choice = _function(app, "_intervals_choice")
+    boxes = _function(app, "_time_box")
+    if "quality_fill(" not in choice or "Intervals file" not in choice:
+        raise AssertionError("a quality session cannot open an Intervals file")
+    if "file_just_opened(" not in result or "fit_slots(" not in result:
+        raise AssertionError("the file does not pre-fill the rep boxes")
+    if "disabled" in boxes:
+        raise AssertionError("the time boxes are locked")
+    if "_apply_result(" not in result or "intervals=source" not in result:
+        raise AssertionError("filled times do not go through the result path")
+    if "judge(" not in apply or "_adapt_from_result(" not in commit:
+        raise AssertionError("judge() or adapt() was bypassed")
+    if 'row["intervals"]' not in commit or '"intervals"' not in apply:
+        raise AssertionError("the file is not stored with the actuals")
+    if "_quality_day(session)" not in page or "_render_result(" not in page:
+        raise AssertionError("quality days lost the result boxes")
+    if "fetch_activity" in app or "list_activities" in app or "urlopen" in app:
+        raise AssertionError("the session page calls the live API")
+    if "https://intervals.icu" in app:
+        raise AssertionError("the session page calls Intervals.icu")
+    if "explain(" in page or "SPEND_CAP" in page:
+        raise AssertionError("the session page started spending")
+    reader = (ROOT / "ui" / "last_session.py").read_text(encoding="utf-8")
+    if "from engines" in reader or "explain(" in reader or "urlopen" in reader:
+        raise AssertionError("the file reader started its own prose spend")
+
+
 def test_page_keeps_the_fixture_dropdown_and_stays_offline() -> None:
     app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
     page = _function(app, "page_last_session")
@@ -250,5 +374,8 @@ if __name__ == "__main__":
     test_real_file_has_no_synthetic_banner()
     test_note_marks_a_real_name_synthetic()
     test_bad_json_stays_local()
+    test_quality_file_fills_work_times()
+    test_quality_file_stores_filename_without_an_id()
+    test_quality_session_prefills_from_the_file()
     test_page_keeps_the_fixture_dropdown_and_stays_offline()
     print("last session ok")

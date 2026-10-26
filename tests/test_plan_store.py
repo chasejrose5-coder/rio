@@ -149,6 +149,74 @@ def test_marks_and_actuals_round_trip() -> None:
         raise AssertionError("junk became a record")
 
 
+def test_intervals_ref_round_trips_with_the_actual() -> None:
+    """The activity id or filename stays on the result. A long value is dropped."""
+    raw = dump_record(
+        {},
+        {
+            "2026-04-21": {
+                "text": "57.5, 57.5",
+                "numbers": [57.5, 57.5],
+                "mark": "on_track",
+                "template_id": "se_400_r90_x6",
+                "slots": [57.5, 57.5],
+                "intervals": "synthetic-se-400-with-recovery",
+                "probability": 0.2,
+            }
+        },
+    )
+    _, actuals = load_record(raw)
+    _no_score(actuals)
+    row = actuals.get("2026-04-21")
+    if row is None or row.get("intervals") != "synthetic-se-400-with-recovery":
+        raise AssertionError(row)
+    named = dump_record(
+        {},
+        {
+            "2026-04-21": {
+                "text": "59",
+                "numbers": [59],
+                "mark": "on_track",
+                "template_id": "se_400_r90_x6",
+                "intervals": "real_tuesday.json",
+            }
+        },
+    )
+    _, named_actuals = load_record(named)
+    if named_actuals["2026-04-21"].get("intervals") != "real_tuesday.json":
+        raise AssertionError(named_actuals)
+    numbered = dump_record(
+        {},
+        {
+            "2026-04-21": {
+                "text": "59",
+                "numbers": [59],
+                "mark": "on_track",
+                "template_id": "se_400_r90_x6",
+                "intervals": 44521,
+            }
+        },
+    )
+    _, numbered_actuals = load_record(numbered)
+    if numbered_actuals["2026-04-21"].get("intervals") != "44521":
+        raise AssertionError(numbered_actuals)
+    dropped = dump_record(
+        {},
+        {
+            "2026-04-21": {
+                "text": "57.5",
+                "numbers": [57.5],
+                "mark": "on_track",
+                "template_id": "se_400_r90_x6",
+                "intervals": "x" * 121,
+            }
+        },
+    )
+    _, dropped_actuals = load_record(dropped)
+    if "intervals" in dropped_actuals["2026-04-21"]:
+        raise AssertionError(dropped_actuals["2026-04-21"])
+
+
 def test_store_does_not_leave_the_browser() -> None:
     """No engine, no model, no file. The app writes the record to localStorage."""
     source = Path(ROOT / "ui" / "plan_store.py").read_text(encoding="utf-8")
@@ -165,6 +233,7 @@ def main() -> None:
     test_url_keeps_the_four_inputs()
     test_storage_key_follows_the_inputs()
     test_marks_and_actuals_round_trip()
+    test_intervals_ref_round_trips_with_the_actual()
     test_store_does_not_leave_the_browser()
     print("plan store ok")
 

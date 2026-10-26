@@ -7,6 +7,7 @@ browser record is keyed by those same four strings. Another browser opening
 the URL rebuilds the plan and finds no record of its own.
 
 No file. No account. No model. No spend. No scores.
+An actual may keep the Intervals filename or activity id that filled it.
 """
 
 from __future__ import annotations
@@ -28,6 +29,8 @@ _FIELD_LIMIT = 40
 _TEXT_LIMIT = 400
 _ID_LIMIT = 80
 _LIST_LIMIT = 32
+# Activity id or filename stored with a result. Longer than a template id.
+_REF_LIMIT = 120
 
 
 def plan_inputs(params: object) -> tuple[str, str, str, str] | None:
@@ -194,6 +197,9 @@ def _clean_actual(value: object) -> dict | None:
     slots = _slots(value.get("slots"))
     if slots is not None:
         row["slots"] = slots
+    intervals = _intervals_ref(value.get("intervals"))
+    if intervals is not None:
+        row["intervals"] = intervals
     return row
 
 
@@ -207,6 +213,23 @@ def _number_list(value: object) -> list[int | float] | None:
             return None
         numbers.append(number)
     return numbers
+
+
+def _intervals_ref(value: object) -> str | None:
+    """The activity id or filename. Anything else stays off the record."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        text = str(value)
+    elif isinstance(value, str):
+        text = value.strip()
+    else:
+        return None
+    if not text or len(text) > _REF_LIMIT:
+        return None
+    if any(ord(char) < 32 for char in text):
+        return None
+    return text
 
 
 def _slots(value: object) -> list | None:
