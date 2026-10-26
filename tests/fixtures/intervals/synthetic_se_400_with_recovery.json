@@ -1,0 +1,151 @@
+{
+  "note": "SYNTHETIC. Chase did not run this. Intervals.icu-shaped activity: warm-up, 6 x WORK 400 m at 57.5 s (goal 800 pace for 1:55.0), alternating with RECOVERY 90 s and 0 m, then cool-down.",
+  "id": "synthetic-se-400-with-recovery",
+  "name": "Synthetic 6 x 400 m with recovery",
+  "start_date_local": "2026-10-25T08:00:00",
+  "type": "Run",
+  "distance": 5600,
+  "elapsed_time": 2025,
+  "icu_intervals": [
+    {
+      "id": 0,
+      "type": "WARMUP",
+      "distance": 1600,
+      "elapsed_time": 600,
+      "moving_time": 600,
+      "start_time": 0,
+      "end_time": 600,
+      "average_heartrate": 128
+    },
+    {
+      "id": 1,
+      "type": "WORK",
+      "distance": 400,
+      "elapsed_time": 57.5,
+      "moving_time": 57.5,
+      "start_time": 600,
+      "end_time": 657.5,
+      "average_heartrate": 176
+    },
+    {
+      "id": 2,
+      "type": "RECOVERY",
+      "distance": 0,
+      "elapsed_time": 90,
+      "moving_time": 0,
+      "start_time": 657.5,
+      "end_time": 747.5,
+      "average_heartrate": 140
+    },
+    {
+      "id": 3,
+      "type": "WORK",
+      "distance": 400,
+      "elapsed_time": 57.5,
+      "moving_time": 57.5,
+      "start_time": 747.5,
+      "end_time": 805,
+      "average_heartrate": 176
+    },
+    {
+      "id": 4,
+      "type": "RECOVERY",
+      "distance": 0,
+      "elapsed_time": 90,
+      "moving_time": 0,
+      "start_time": 805,
+      "end_time": 895,
+      "average_heartrate": 140
+    },
+    {
+      "id": 5,
+      "type": "WORK",
+      "distance": 400,
+      "elapsed_time": 57.5,
+      "moving_time": 57.5,
+      "start_time": 895,
+      "end_time": 952.5,
+      "average_heartrate": 176
+    },
+    {
+      "id": 6,
+      "type": "RECOVERY",
+      "distance": 0,
+      "elapsed_time": 90,
+      "moving_time": 0,
+      "start_time": 952.5,
+      "end_time": 1042.5,
+      "average_heartrate": 140
+    },
+    {
+      "id": 7,
+      "type": "WORK",
+      "distance": 400,
+      "elapsed_time": 57.5,
+      "moving_time": 57.5,
+      "start_time": 1042.5,
+      "end_time": 1100,
+      "average_heartrate": 176
+    },
+    {
+      "id": 8,
+      "type": "RECOVERY",
+      "distance": 0,
+      "elapsed_time": 90,
+      "moving_time": 0,
+      "start_time": 1100,
+      "end_time": 1190,
+      "average_heartrate": 140
+    },
+    {
+      "id": 9,
+      "type": "WORK",
+      "distance": 400,
+      "elapsed_time": 57.5,
+      "moving_time": 57.5,
+      "start_time": 1190,
+      "end_time": 1247.5,
+      "average_heartrate": 176
+    },
+    {
+      "id": 10,
+      "type": "RECOVERY",
+      "distance": 0,
+      "elapsed_time": 90,
+      "moving_time": 0,
+      "start_time": 1247.5,
+      "end_time": 1337.5,
+      "average_heartrate": 140
+    },
+    {
+      "id": 11,
+      "type": "WORK",
+      "distance": 400,
+      "elapsed_time": 57.5,
+      "moving_time": 57.5,
+      "start_time": 1337.5,
+      "end_time": 1395,
+      "average_heartrate": 176
+    },
+    {
+      "id": 12,
+      "type": "RECOVERY",
+      "distance": 0,
+      "elapsed_time": 90,
+      "moving_time": 0,
+      "start_time": 1395,
+      "end_time": 1485,
+      "average_heartrate": 140
+    },
+    {
+      "id": 13,
+      "type": "COOLDOWN",
+      "distance": 1600,
+      "elapsed_time": 540,
+      "moving_time": 540,
+      "start_time": 1485,
+      "end_time": 2025,
+      "average_heartrate": 125
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "note": "SYNTHETIC. Chase did not run this. Same 400 m WORK laps as the recovery fixture, with warm-up and cool-down, and no RECOVERY intervals.",
+  "id": "synthetic-autosplit-no-rest",
+  "name": "Synthetic 6 x 400 m autosplit",
+  "start_date_local": "2026-10-25T08:00:00",
+  "type": "Run",
+  "distance": 5600,
+  "elapsed_time": 1485,
+  "icu_intervals": [
+    {
+      "id": 0,
+      "type": "WARMUP",
+      "distance": 1600,
+      "elapsed_time": 600,
+      "moving_time": 600,
+      "start_time": 0,
+      "end_time": 600,
+      "average_heartrate": 128
+    },
+    {
+      "id": 1,
+      "type": "WORK",
+      "distance": 400,
+      "elapsed_time": 57.5,
+      "moving_time": 57.5,
+      "start_time": 600,
+      "end_time": 657.5,
+      "average_heartrate": 176
+    },
+    {
+      "id": 2,
+      "type": "WORK",
+      "distance": 400,
+      "elapsed_time": 57.5,
+      "moving_time": 57.5,
+      "start_time": 657.5,
+      "end_time": 715,
+      "average_heartrate": 176
+    },
+    {
+      "id": 3,
+      "type": "WORK",
+      "distance": 400,
+      "elapsed_time": 57.5,
+      "moving_time": 57.5,
+      "start_time": 715,
+      "end_time": 772.5,
+      "average_heartrate": 176
+    },
+    {
+      "id": 4,
+      "type": "WORK",
+      "distance": 400,
+      "elapsed_time": 57.5,
+      "moving_time": 57.5,
+      "start_time": 772.5,
+      "end_time": 830,
+      "average_heartrate": 176
+    },
+    {
+      "id": 5,
+      "type": "WORK",
+      "distance": 400,
+      "elapsed_time": 57.5,
+      "moving_time": 57.5,
+      "start_time": 830,
+      "end_time": 887.5,
+      "average_heartrate": 176
+    },
+    {
+      "id": 6,
+      "type": "WORK",
+      "distance": 400,
+      "elapsed_time": 57.5,
+      "moving_time": 57.5,
+      "start_time": 887.5,
+      "end_time": 945,
+      "average_heartrate": 176
+    },
+    {
+      "id": 7,
+      "type": "COOLDOWN",
+      "distance": 1600,
+      "elapsed_time": 540,
+      "moving_time": 540,
+      "start_time": 945,
+      "end_time": 1485,
+      "average_heartrate": 125
+    }
+  ]
+}
