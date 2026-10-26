@@ -11,11 +11,13 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from engines.season import sequence
+from engines.explain import SPEND_CAP_MICRO_USD
 from ui.progress import (
     days_label,
     days_remaining,
     phase_label,
     progress_weeks,
+    volume_chart,
     week_status,
     week_sunday,
 )
@@ -152,6 +154,8 @@ def test_volume_uses_loaded_distance() -> None:
     )
     if plain[0]["volume"] != "0 m" or plain[1]["volume"] != "0 m":
         raise AssertionError((plain[0]["volume"], plain[1]["volume"]))
+    if plain[0]["meters"] != 0 or plain[1]["meters"] != 0:
+        raise AssertionError((plain[0]["meters"], plain[1]["meters"]))
     loaded = progress_weeks(
         start=START,
         goal=GOAL_DAY,
@@ -163,6 +167,8 @@ def test_volume_uses_loaded_distance() -> None:
     )
     if loaded[0]["volume"] != "6,600 m" or loaded[1]["volume"] != "0 m":
         raise AssertionError((loaded[0]["volume"], loaded[1]["volume"]))
+    if loaded[0]["meters"] != 6600 or loaded[1]["meters"] != 0:
+        raise AssertionError((loaded[0]["meters"], loaded[1]["meters"]))
     partial = progress_weeks(
         start=START,
         goal=GOAL_DAY,
@@ -235,6 +241,99 @@ def test_volume_uses_loaded_distance() -> None:
         raise AssertionError("volume uses template meters")
 
 
+def _polyline(svg: str) -> list[tuple[float, float]]:
+    start = svg.index('points="') + len('points="')
+    end = svg.index('"', start)
+    points = []
+    for pair in svg[start:end].split():
+        x, y = pair.split(",")
+        points.append((float(x), float(y)))
+    return points
+
+
+def test_the_line_is_weekly_completed_distance() -> None:
+    """Every week is a point. A week with no file sits on zero.
+
+    The line uses the completed meters already on the row. It does not
+    score, and it does not spend.
+    """
+    if SPEND_CAP_MICRO_USD != 25_000_000:
+        raise AssertionError("spend cap is not $25")
+    sessions = [
+        {"week_number": 1, "date": "2026-04-21", "template_id": "se_400_r90_x6"},
+        {"week_number": 2, "date": "2026-04-28", "template_id": "se_400_r90_x6"},
+        {"week_number": 3, "date": "2026-05-05", "template_id": "se_400_r90_x6"},
+    ]
+    rows = progress_weeks(
+        start=START,
+        goal=GOAL_DAY,
+        length=3,
+        sessions=sessions,
+        marks={},
+        today=date(2026, 4, 10),
+        distances={"2026-04-21": 5600, "2026-05-05": 1000},
+    )
+    if [row["meters"] for row in rows] != [5600, 0, 1000]:
+        raise AssertionError([row["meters"] for row in rows])
+    svg = volume_chart(
+        [row["meters"] for row in rows],
+        "km",
+        [row["volume"] for row in rows],
+    )
+    points = _polyline(svg)
+    if len(points) != 3:
+        raise AssertionError(points)
+    if not (points[0][1] < points[2][1] < points[1][1]):
+        raise AssertionError("a week with no file did not sit on zero")
+    if "Volume · km" not in svg or "mileage" in svg.lower():
+        raise AssertionError(svg)
+    if "probability" in svg or "readiness" in svg:
+        raise AssertionError("a score was drawn on the line")
+    if "Week 2 · 0 m" not in svg or "Week 1 · 5,600 m" not in svg:
+        raise AssertionError("a week caption was dropped")
+    flat = volume_chart([0, 0, 0], "km")
+    flat_points = _polyline(flat)
+    if len(flat_points) != 3 or len({point[1] for point in flat_points}) != 1:
+        raise AssertionError("a season with no files was not a zero line")
+    if "Volume · m" not in flat or "km" in flat:
+        raise AssertionError(flat)
+    miles = volume_chart([1609, 0], "miles")
+    if "Volume · mi" not in miles or "km" in miles or "mileage" in miles.lower():
+        raise AssertionError(miles)
+    if ">1</text>" not in miles or ">2</text>" not in miles:
+        raise AssertionError("week numbers were dropped")
+    one = volume_chart([0], "km")
+    if 'points="' in one or "<circle" not in one:
+        raise AssertionError("a single week with no file was not drawn at zero")
+    if volume_chart([], "km") != "":
+        raise AssertionError("an empty season drew a line")
+    long = volume_chart([0] * 47 + [5000], "km")
+    long_points = _polyline(long)
+    if len(long_points) != 48 or long_points[-1][1] >= long_points[0][1]:
+        raise AssertionError("a later file did not rise off zero")
+    if ">1</text>" not in long or ">48</text>" not in long or ">2</text>" in long:
+        raise AssertionError("week labels were not the ends of a long season")
+    broken = volume_chart([1000, None, -5, True], "km")
+    broken_points = _polyline(broken)
+    if len(broken_points) != 4 or broken_points[0][1] >= broken_points[1][1]:
+        raise AssertionError(broken_points)
+    if broken_points[1][1] != broken_points[2][1] or broken_points[2][1] != broken_points[3][1]:
+        raise AssertionError("an unusable week was not zero")
+    page = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
+    start = page.index("def page_progress(")
+    end = page.index("\ndef page_weekly(")
+    body = page[start:end]
+    if "volume_chart(" not in body or 'row["meters"]' not in body:
+        raise AssertionError("progress does not plot the weekly distance")
+    progress_source = (ROOT / "ui" / "progress.py").read_text(encoding="utf-8")
+    if "from engines" in progress_source or "explain(" in progress_source:
+        raise AssertionError("the line started spending")
+    for path in (ROOT / "engines").glob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        if "volume_chart" in text:
+            raise AssertionError(f"{path.name} was changed for the line")
+
+
 def test_a_stored_plan_has_one_current_week() -> None:
     """Progress reads sequence() output. It does not build another plan."""
     plan = sequence("2:02.9", START, "1:55.0", GOAL_DAY)
@@ -288,5 +387,6 @@ if __name__ == "__main__":
     test_days_remaining_stop_at_the_goal()
     test_rows_keep_season_order()
     test_volume_uses_loaded_distance()
+    test_the_line_is_weekly_completed_distance()
     test_a_stored_plan_has_one_current_week()
     print("progress ok")

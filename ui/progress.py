@@ -11,7 +11,8 @@ steps down by a week each row.
 
 Each week shows completed work distance. A day with a loaded Intervals
 file contributes that file's WORK distance. A day with no file contributes
-0. A week with no file shows 0 m. Template meters are not used.
+0. A week with no file shows 0 m. The same weekly totals are a line, and
+a week with no file stays at 0. Template meters are not used.
 
 No model. No spend. No scores.
 """
@@ -20,6 +21,7 @@ from __future__ import annotations
 
 import math
 from datetime import date, timedelta
+from html import escape
 
 # The three marks adapt() already stores. Anything else is not a mark.
 MARKS = ("on_track", "not_hitting", "smashing")
@@ -88,14 +90,22 @@ def week_status(*, start: date, week_number: int, today: date, marked: bool) -> 
     return None
 
 
-def week_volume(sessions: list, distances: dict | None = None) -> str:
-    """Completed distance for this week.
+def week_meters(sessions: list, distances: dict | None = None) -> int:
+    """Completed WORK meters for this week.
 
     A day with a loaded distance contributes that distance. A day with no
-    file contributes 0. A week with no loaded file shows 0 m. Template
-    meters are not used. The loaded number is already WORK distance.
+    file contributes 0. A week with no loaded file is 0. Template meters
+    are not used. The loaded number is already WORK distance.
     """
-    return _meter_text(sum(_loaded_meters(sessions, distances).values()))
+    total = sum(_loaded_meters(sessions, distances).values())
+    if not math.isfinite(total) or total < 0:
+        return 0
+    return int(total + 0.5)
+
+
+def week_volume(sessions: list, distances: dict | None = None) -> str:
+    """Completed distance for this week, as a label. A week with no file is 0 m."""
+    return _meter_text(week_meters(sessions, distances))
 
 
 def _loaded_meters(sessions: list, distances: dict | None) -> dict[str, float]:
@@ -178,7 +188,8 @@ def progress_weeks(
     A done or unmarked week has no countdown. The current week counts from
     today. An upcoming week counts from the Saturday that closes it.
     Volume is loaded WORK distance. A day with no file contributes 0.
-    A week with no file shows 0 m. Template meters are not used.
+    A week with no file shows 0 m. meters is that same total as a number,
+    0 when the week has no file. Template meters are not used.
     """
     if isinstance(length, bool) or not isinstance(length, int) or length <= 0:
         return []
@@ -199,6 +210,7 @@ def progress_weeks(
             today=today,
             marked=_marked(stored, number),
         )
+        meters = week_meters(grouped.get(number, []), distances)
         rows.append(
             {
                 "week": number,
@@ -211,7 +223,215 @@ def progress_weeks(
                     goal=goal,
                     today=today,
                 ),
-                "volume": week_volume(grouped.get(number, []), distances),
+                "meters": meters,
+                "volume": _meter_text(meters),
             }
         )
     return rows
+
+
+# Chart box. The page scales it to the card width.
+_CHART_W = 640
+_CHART_H = 152
+_CHART_LEFT = 42
+_CHART_RIGHT = 12
+_CHART_TOP = 14
+_CHART_BOTTOM = 24
+_M_TO_MI = 1 / 1609.344
+
+
+def volume_chart(meters: list, units: str = "km", captions: list | None = None) -> str:
+    """A line of weekly completed distance. A week with no file is a point at 0.
+
+    units is the settings choice, km or miles. A metric week of at least
+    1 km uses km. A shorter week stays in m. Miles uses mi. The word
+    mileage is not used. Display only. No scores.
+    """
+    values = _chart_meters(meters)
+    if not values:
+        return ""
+    unit = _chart_unit(max(values), units)
+    points = _chart_points(values)
+    labels = captions if isinstance(captions, list) else None
+    parts = [
+        '<div class="rio-volume">',
+        f'<p class="rio-mark-label">Volume · {_esc(unit)}</p>',
+        (
+            f'<svg class="rio-volume-line" viewBox="0 0 {_CHART_W} {_CHART_H}" '
+            'role="img" aria-label="Weekly completed distance" '
+            'xmlns="http://www.w3.org/2000/svg" '
+            "style=\"font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif\">"
+        ),
+        "<title>Weekly completed distance</title>",
+        _baseline(points),
+        _series(points),
+        *_y_labels(values, unit, points),
+        *_x_labels(len(values), points),
+        *_hover(values, points, unit, labels),
+        "</svg></div>",
+    ]
+    return "".join(parts)
+
+
+def _chart_meters(values: list) -> list[int]:
+    found = []
+    for value in values or []:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            found.append(0)
+            continue
+        number = float(value)
+        if not math.isfinite(number) or number < 0:
+            found.append(0)
+            continue
+        found.append(int(number + 0.5))
+    return found
+
+
+def _chart_unit(peak: int, units: str) -> str:
+    if units == "miles":
+        return "mi"
+    if peak >= 1000:
+        return "km"
+    return "m"
+
+
+def _chart_points(values: list[int]) -> list[tuple[float, float]]:
+    """Plot coordinates. y grows downward, so 0 sits on the baseline."""
+    count = len(values)
+    peak = max(values) if values else 0
+    width = _CHART_W - _CHART_LEFT - _CHART_RIGHT
+    height = _CHART_H - _CHART_TOP - _CHART_BOTTOM
+    baseline = _CHART_TOP + height
+    points = []
+    for index, meters in enumerate(values):
+        if count == 1:
+            x = _CHART_LEFT + width / 2
+        else:
+            x = _CHART_LEFT + width * index / (count - 1)
+        if peak <= 0:
+            y = baseline
+        else:
+            y = baseline - height * (meters / peak)
+        points.append((x, y))
+    return points
+
+
+def _format_amount(meters: float, unit: str) -> str:
+    if meters <= 0:
+        return "0"
+    if unit == "m":
+        return f"{int(meters + 0.5):,}"
+    if unit == "km":
+        km = meters / 1000.0
+        if abs(km - round(km)) < 1e-9:
+            return str(int(round(km)))
+        return f"{km:.1f}"
+    miles = meters * _M_TO_MI
+    if miles < 0.1:
+        return f"{miles:.2f}"
+    return f"{miles:.1f}"
+
+
+def _baseline(points: list[tuple[float, float]]) -> str:
+    floor = max(point[1] for point in points)
+    x1 = _CHART_LEFT
+    x2 = _CHART_W - _CHART_RIGHT
+    return (
+        f'<line x1="{x1:.1f}" y1="{floor:.1f}" x2="{x2:.1f}" y2="{floor:.1f}" '
+        'stroke="#2a2a2a" stroke-width="1" vector-effect="non-scaling-stroke" />'
+    )
+
+
+def _series(points: list[tuple[float, float]]) -> str:
+    drawn = " ".join(f"{x:.1f},{y:.1f}" for x, y in points)
+    if len(points) == 1:
+        x, y = points[0]
+        return (
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2.4" fill="#d5d5d5" />'
+        )
+    return (
+        f'<polyline points="{drawn}" fill="none" stroke="#d5d5d5" '
+        'stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" '
+        'vector-effect="non-scaling-stroke" />'
+    )
+
+
+def _y_labels(values: list[int], unit: str, points: list[tuple[float, float]]) -> list[str]:
+    peak = max(values) if values else 0
+    floor = max(point[1] for point in points)
+    top = min(point[1] for point in points)
+    ticks = [(0.0, floor)]
+    if peak > 0:
+        ticks.append((float(peak), top))
+        mid = peak / 2
+        if _format_amount(mid, unit) not in (_format_amount(0, unit), _format_amount(peak, unit)):
+            ticks.append((mid, (top + floor) / 2))
+    labels = []
+    for amount, y in ticks:
+        text = _esc(_format_amount(amount, unit))
+        labels.append(
+            f'<text x="{_CHART_LEFT - 8:.1f}" y="{y:.1f}" text-anchor="end" '
+            'dominant-baseline="middle" fill="#6f6f6f" font-size="10">'
+            f"{text}</text>"
+        )
+    return labels
+
+
+def _x_labels(count: int, points: list[tuple[float, float]]) -> list[str]:
+    width = _CHART_W - _CHART_LEFT - _CHART_RIGHT
+    gap = width if count <= 1 else width / (count - 1)
+    step = 1
+    while count > 1 and step < count and step * gap < 36:
+        step += 1
+    indexes = [0] if count <= 1 else list(range(0, count, step))
+    last = count - 1
+    if indexes[-1] != last:
+        if (last - indexes[-1]) * gap < 28 and len(indexes) > 1:
+            indexes[-1] = last
+        else:
+            indexes.append(last)
+    y = _CHART_H - 8
+    labels = []
+    for index in indexes:
+        x = points[index][0]
+        if index == 0 and count > 1:
+            anchor = "start"
+        elif index == last and count > 1:
+            anchor = "end"
+        else:
+            anchor = "middle"
+        labels.append(
+            f'<text x="{x:.1f}" y="{y:.1f}" text-anchor="{anchor}" '
+            'fill="#6f6f6f" font-size="10">'
+            f"{index + 1}</text>"
+        )
+    return labels
+
+
+def _hover(
+    values: list[int],
+    points: list[tuple[float, float]],
+    unit: str,
+    captions: list | None,
+) -> list[str]:
+    marks = []
+    for index, (meters, (x, y)) in enumerate(zip(values, points)):
+        shown = _point_caption(index, meters, unit, captions)
+        marks.append(
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="7" fill="transparent">'
+            f"<title>{_esc(shown)}</title></circle>"
+        )
+    return marks
+
+
+def _point_caption(index: int, meters: int, unit: str, captions: list | None) -> str:
+    shown = ""
+    if captions is not None and index < len(captions) and isinstance(captions[index], str):
+        shown = captions[index].strip()
+    if not shown:
+        shown = f"{_format_amount(meters, unit)} {unit}"
+    return f"Week {index + 1} · {shown}"
+
+
+def _esc(value: object) -> str:
+    return escape(str(value), quote=True)
