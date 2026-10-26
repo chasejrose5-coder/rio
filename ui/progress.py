@@ -9,9 +9,9 @@ has no countdown. The current week counts from today to the goal. An
 upcoming week counts from the Saturday that closes it, so the number
 steps down by a week each row.
 
-Each week shows a distance. A day with a loaded Intervals distance uses
-that distance. Any other day uses the work distance written in its
-template id. A week with no loaded file uses the template total.
+Each week shows completed work distance. A day with a loaded Intervals
+file contributes that file's WORK distance. A day with no file contributes
+0. A week with no file shows 0 m. Template meters are not used.
 
 No model. No spend. No scores.
 """
@@ -20,8 +20,6 @@ from __future__ import annotations
 
 import math
 from datetime import date, timedelta
-
-from engines.season import work_meters
 
 # The three marks adapt() already stores. Anything else is not a mark.
 MARKS = ("on_track", "not_hitting", "smashing")
@@ -91,16 +89,13 @@ def week_status(*, start: date, week_number: int, today: date, marked: bool) -> 
 
 
 def week_volume(sessions: list, distances: dict | None = None) -> str:
-    """This week's distance.
+    """Completed distance for this week.
 
-    A day with a loaded Intervals distance uses that distance. Any other
-    day uses its template meters. A week with no loaded file uses the
-    template total.
+    A day with a loaded distance contributes that distance. A day with no
+    file contributes 0. A week with no loaded file shows 0 m. Template
+    meters are not used. The loaded number is already WORK distance.
     """
-    loaded = _loaded_meters(sessions, distances)
-    if not loaded:
-        return _meter_text(_template_meters(sessions))
-    return _meter_text(_mixed_meters(sessions, loaded))
+    return _meter_text(sum(_loaded_meters(sessions, distances).values()))
 
 
 def _loaded_meters(sessions: list, distances: dict | None) -> dict[str, float]:
@@ -119,51 +114,6 @@ def _loaded_meters(sessions: list, distances: dict | None) -> dict[str, float]:
             continue
         found[day] = meters
     return found
-
-
-def _mixed_meters(sessions: list, loaded: dict[str, float]) -> float | None:
-    """Loaded distance where a day has one, otherwise that day's template meters."""
-    if not sessions:
-        return None
-    total = 0.0
-    for session in sessions:
-        if not isinstance(session, dict):
-            return None
-        day = session.get("date")
-        if isinstance(day, str) and day in loaded:
-            total += loaded[day]
-            continue
-        meters = _session_template(session)
-        if meters is None:
-            return None
-        total += meters
-    return total
-
-
-def _session_template(session: object) -> int | None:
-    """Work distance written in this session's template id."""
-    if not isinstance(session, dict):
-        return None
-    template_id = session.get("template_id")
-    if not isinstance(template_id, str) or not template_id:
-        return None
-    try:
-        return work_meters(template_id)
-    except ValueError:
-        return None
-
-
-def _template_meters(sessions: list) -> int | None:
-    """Work distance written in the template ids. One unreadable id clears the week."""
-    if not sessions:
-        return None
-    total = 0
-    for session in sessions:
-        meters = _session_template(session)
-        if meters is None:
-            return None
-        total += meters
-    return total
 
 
 def _distance_number(value: object) -> float | None:
@@ -227,9 +177,8 @@ def progress_weeks(
 
     A done or unmarked week has no countdown. The current week counts from
     today. An upcoming week counts from the Saturday that closes it.
-    A day with a loaded Intervals distance uses that distance. Any other
-    day uses its template meters. A week with no loaded file uses the
-    template total.
+    Volume is loaded WORK distance. A day with no file contributes 0.
+    A week with no file shows 0 m. Template meters are not used.
     """
     if isinstance(length, bool) or not isinstance(length, int) or length <= 0:
         return []

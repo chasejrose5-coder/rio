@@ -6,8 +6,9 @@ to_normalize_input builds the lap payload. The page then runs normalize,
 classify, and explain on that payload and shows the same fields as a fixture.
 quality_fill reads the same file for a quality session: WORK elapsed times,
 and the activity id or the filename. Activity distance and average heart
-rate are read from the same local file for display. This file does not
-call the network.
+rate are read from the same local file for display. Volume distance is
+the sum of WORK interval distances in that file. Warm-up and cool-down
+stay out. This file does not call the network.
 
 No scores. Prose spend stays capped at $25 where explain already records it.
 """
@@ -126,6 +127,35 @@ def activity_distance(activity: object) -> float | None:
     return _meters(activity.get("distance"))
 
 
+def work_distance(activity: object) -> float | None:
+    """Meters of WORK intervals. Warm-up, recovery, and cool-down stay out.
+
+    The activity distance is not used. A file with no WORK distance is unset.
+    """
+    if not isinstance(activity, dict):
+        return None
+    try:
+        payload = to_normalize_input(activity)
+    except (TypeError, ValueError):
+        return None
+    intervals = payload.get("intervals")
+    if not isinstance(intervals, list):
+        return None
+    total = 0.0
+    found = False
+    for step in intervals:
+        if not isinstance(step, dict) or step.get("role") != "work":
+            continue
+        meters = _meters(step.get("distance_m"))
+        if meters is None:
+            continue
+        total += meters
+        found = True
+    if not found:
+        return None
+    return total
+
+
 def activity_heart_rate(activity: object) -> float | None:
     """average_heartrate on the activity. Lap heart rates stay on the laps."""
     if not isinstance(activity, dict) or "average_heartrate" not in activity:
@@ -165,10 +195,11 @@ def loaded_distances(
     actuals: dict | None,
     directory: Path | None = None,
 ) -> dict[str, float]:
-    """Session date to activity distance for a stored Intervals file.
+    """Session date to WORK interval distance for a stored Intervals file.
 
-    The ref has to belong to that day's template. A missing file or a file
-    with no distance is left out. The read stays on disk.
+    The ref has to belong to that day's template. Warm-up and cool-down
+    stay out. A missing file or a file with no WORK distance is left out.
+    The read stays on disk. Template meters are not used.
     """
     if not isinstance(actuals, dict):
         return {}
@@ -198,7 +229,7 @@ def loaded_distances(
             continue
         if not text:
             continue
-        meters = activity_distance(index.get(text))
+        meters = work_distance(index.get(text))
         if meters is None:
             continue
         found[day] = meters

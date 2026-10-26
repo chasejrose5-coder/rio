@@ -29,6 +29,7 @@ from ui.last_session import (
     loaded_distances,
     open_intervals,
     quality_fill,
+    work_distance,
     work_elapsed,
 )
 from ui.result import filled_times, goal_seconds, judge, result_box_count
@@ -308,7 +309,10 @@ def test_local_file_distance_and_heart_rate() -> None:
 
 
 def test_loaded_distances_read_the_stored_file() -> None:
-    """A stored id or filename contributes its activity distance. A mismatch does not."""
+    """A stored id or filename contributes its WORK distance. A mismatch does not.
+
+    Warm-up and cool-down stay out. The activity total is not the volume number.
+    """
     sessions = [
         {"date": "2026-10-27", "template_id": "se_400_r90_x6"},
         {"date": "2026-10-29", "template_id": "se_400_r90_x6"},
@@ -338,14 +342,32 @@ def test_loaded_distances_read_the_stored_file() -> None:
                 }
             },
         )
-    if found != {"2026-10-27": 5600.0} or named != {"2026-10-27": 5600.0}:
+    recovery = json.loads(RECOVERY.read_text(encoding="utf-8"))
+    autosplit = json.loads(AUTOSPLIT.read_text(encoding="utf-8"))
+    if activity_distance(recovery) != 5600 or activity_distance(autosplit) != 5600:
+        raise AssertionError("the fixture activity distance changed")
+    if work_distance(recovery) != 2400 or work_distance(autosplit) != 2400:
+        raise AssertionError((work_distance(recovery), work_distance(autosplit)))
+    if found != {"2026-10-27": 2400.0} or named != {"2026-10-27": 2400.0}:
         raise AssertionError((found, named))
     activity = {"id": 44521, "distance": 8000, "average_heartrate": 151, "icu_intervals": []}
     blank = {"id": "no-distance", "icu_intervals": [{"distance": 400, "average_heartrate": 176}]}
+    work = {
+        "id": "work-day",
+        "distance": 9000,
+        "icu_intervals": [
+            {"type": "WARMUP", "distance": 1600},
+            {"type": "WORK", "distance": 400},
+            {"type": "RECOVERY", "distance": 250},
+            {"type": "WORK", "distance": 450},
+            {"type": "COOLDOWN", "distance": 1600},
+        ],
+    }
     with tempfile.TemporaryDirectory() as directory:
         folder = Path(directory)
         (folder / "real_tuesday.json").write_text(json.dumps(activity), encoding="utf-8")
         (folder / "real_blank.json").write_text(json.dumps(blank), encoding="utf-8")
+        (folder / "real_work.json").write_text(json.dumps(work), encoding="utf-8")
         (folder / "real_broken.json").write_text("{", encoding="utf-8")
         with patch("urllib.request.urlopen", side_effect=AssertionError("live API")):
             opened = activity_by_ref("44521", folder)
@@ -353,22 +375,31 @@ def test_loaded_distances_read_the_stored_file() -> None:
                 [
                     {"date": "2026-10-20", "template_id": "se_400_r90_x6"},
                     {"date": "2026-10-21", "template_id": "se_400_r90_x6"},
+                    {"date": "2026-10-22", "template_id": "se_400_r90_x6"},
                 ],
                 {
                     "2026-10-20": {"template_id": "se_400_r90_x6", "intervals": "44521"},
                     "2026-10-21": {"template_id": "se_400_r90_x6", "intervals": "no-distance"},
+                    "2026-10-22": {"template_id": "se_400_r90_x6", "intervals": "work-day"},
                 },
                 folder,
             )
             missing = loaded_distances(
-                [{"date": "2026-10-22", "template_id": "se_400_r90_x6"}],
-                {"2026-10-22": {"template_id": "se_400_r90_x6", "intervals": "real_broken.json"}},
+                [{"date": "2026-10-23", "template_id": "se_400_r90_x6"}],
+                {"2026-10-23": {"template_id": "se_400_r90_x6", "intervals": "real_broken.json"}},
                 folder,
             )
     if heart_rate_text(opened) != "151 bpm" or activity_distance(opened) != 8000:
         raise AssertionError((heart_rate_text(opened), activity_distance(opened)))
-    if distances != {"2026-10-20": 8000.0} or missing != {}:
+    if distances != {"2026-10-22": 850.0} or missing != {}:
         raise AssertionError((distances, missing))
+    reader = (ROOT / "ui" / "last_session.py").read_text(encoding="utf-8")
+    body = _function(reader, "loaded_distances")
+    if "activity_distance(" in body or "work_distance(" not in body:
+        raise AssertionError("loaded distance is not WORK interval distance")
+    work_body = _function(reader, "work_distance")
+    if "activity_distance(" in work_body or 'get("distance")' in work_body:
+        raise AssertionError("WORK distance reads the activity total")
 
 
 def test_session_shows_average_heart_rate() -> None:

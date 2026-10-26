@@ -118,9 +118,9 @@ def test_rows_keep_season_order() -> None:
 
 
 def test_volume_uses_loaded_distance() -> None:
-    """A loaded day uses that file. Any other day uses its template meters.
+    """A loaded day contributes that distance. A day with no file contributes 0.
 
-    A week with no file uses the template total.
+    A week with no file shows 0 m. Template meters are not used.
     """
     sessions = [
         {
@@ -150,7 +150,7 @@ def test_volume_uses_loaded_distance() -> None:
         marks={},
         today=date(2026, 4, 10),
     )
-    if plain[0]["volume"] != "4,800 m" or plain[1]["volume"] != "2,400 m":
+    if plain[0]["volume"] != "0 m" or plain[1]["volume"] != "0 m":
         raise AssertionError((plain[0]["volume"], plain[1]["volume"]))
     loaded = progress_weeks(
         start=START,
@@ -161,7 +161,7 @@ def test_volume_uses_loaded_distance() -> None:
         today=date(2026, 4, 10),
         distances={"2026-04-21": 5600, "2026-04-23": 1000, "1999-01-01": 9},
     )
-    if loaded[0]["volume"] != "6,600 m" or loaded[1]["volume"] != "2,400 m":
+    if loaded[0]["volume"] != "6,600 m" or loaded[1]["volume"] != "0 m":
         raise AssertionError((loaded[0]["volume"], loaded[1]["volume"]))
     partial = progress_weeks(
         start=START,
@@ -172,7 +172,7 @@ def test_volume_uses_loaded_distance() -> None:
         today=date(2026, 4, 10),
         distances={"2026-04-21": 5600, "2026-04-23": None, "1999-01-01": 9},
     )
-    if partial[0]["volume"] != "8,000 m" or partial[1]["volume"] != "2,400 m":
+    if partial[0]["volume"] != "5,600 m" or partial[1]["volume"] != "0 m":
         raise AssertionError((partial[0]["volume"], partial[1]["volume"]))
     broken = [
         {
@@ -194,7 +194,7 @@ def test_volume_uses_loaded_distance() -> None:
         marks={},
         today=date(2026, 4, 10),
     )
-    if cleared[0]["volume"] != "—":
+    if cleared[0]["volume"] != "0 m":
         raise AssertionError(cleared[0]["volume"])
     one_file = progress_weeks(
         start=START,
@@ -205,7 +205,7 @@ def test_volume_uses_loaded_distance() -> None:
         today=date(2026, 4, 10),
         distances={"2026-04-23": 1000},
     )
-    if one_file[0]["volume"] != "3,400 m":
+    if one_file[0]["volume"] != "1,000 m":
         raise AssertionError(one_file[0]["volume"])
     still_open = progress_weeks(
         start=START,
@@ -216,7 +216,7 @@ def test_volume_uses_loaded_distance() -> None:
         today=date(2026, 4, 10),
         distances={"2026-04-21": 1000},
     )
-    if still_open[0]["volume"] != "—":
+    if still_open[0]["volume"] != "1,000 m":
         raise AssertionError(still_open[0]["volume"])
     if "probability" in loaded[0] or "readiness" in loaded[0]:
         raise AssertionError("a score was added to a week")
@@ -230,6 +230,9 @@ def test_volume_uses_loaded_distance() -> None:
         raise AssertionError("progress does not show the distance")
     if "urlopen" in page or "fetch_activity" in page or "explain(" in page:
         raise AssertionError("progress calls the network or the model")
+    progress_source = (ROOT / "ui" / "progress.py").read_text(encoding="utf-8")
+    if "work_meters" in progress_source or "from engines" in progress_source:
+        raise AssertionError("volume uses template meters")
 
 
 def test_a_stored_plan_has_one_current_week() -> None:

@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from engines.season import adapt, sequence, work_meters
+from engines.season import adapt, sequence
 from ui.recap import recap_view
 
 START = date(2026, 4, 19)
@@ -35,10 +35,6 @@ def _rows(plan: dict, week: int) -> list[dict]:
     return [session for session in plan["sessions"] if session["week_number"] == week]
 
 
-def _meters(plan: dict, week: int) -> int:
-    return sum(work_meters(session["template_id"]) for session in _rows(plan, week))
-
-
 def _codes(plan: dict, week: int) -> set[str]:
     found = set()
     for session in _rows(plan, week):
@@ -60,7 +56,7 @@ def test_an_unmarked_week_is_a_blank_recap() -> None:
         raise AssertionError(f"completed was {view['completed']}")
     if view["marks"] != "—":
         raise AssertionError(f"marks were {view['marks']}")
-    expected = f"{_meters(plan, WEEK):,} m · {_meters(plan, WEEK - 1):,} m the week before"
+    expected = "0 m · 0 m the week before"
     if view["volume"] != expected:
         raise AssertionError(f"volume was {view['volume']}")
     if view["next"] != "Next week stays as written.":
@@ -157,19 +153,17 @@ def test_next_sentence_uses_codes_on_the_following_week() -> None:
             raise AssertionError(f"{outcome} was said as {view['next']}")
 
 
-def test_a_partial_load_counts_the_whole_week() -> None:
-    """A loaded day uses that file. Every other day keeps its template meters.
+def test_a_partial_load_counts_only_loaded_days() -> None:
+    """A loaded day contributes that distance. A day with no file contributes 0.
 
-    A week with no readable file keeps the template total.
+    A week with no file shows 0 m. Template meters are not used.
     """
     plan = _plan()
     rows = _rows(plan, WEEK)
     first = rows[0]["date"]
     second = rows[1]["date"]
-    previous_rows = _rows(plan, WEEK - 1)
-    previous = previous_rows[0]["date"]
-    rest = sum(work_meters(session["template_id"]) for session in rows[2:])
-    if rest <= 0:
+    previous = _rows(plan, WEEK - 1)[0]["date"]
+    if len(rows) < 3:
         raise AssertionError("the week had no unloaded day")
     view = recap_view(
         week=WEEK,
@@ -179,11 +173,9 @@ def test_a_partial_load_counts_the_whole_week() -> None:
         distances={first: 5600, second: 4000, "1999-01-01": 99999},
     )
     _no_score(view)
-    expected = f"{5600 + 4000 + rest:,} m · {_meters(plan, WEEK - 1):,} m the week before"
+    expected = "9,600 m · 0 m the week before"
     if view["volume"] != expected:
         raise AssertionError(f"loaded volume was {view['volume']}")
-    others = sum(work_meters(session["template_id"]) for session in rows[1:])
-    mixed_total = int(5600.6 + others + 0.5)
     mixed = recap_view(
         week=WEEK,
         sessions=plan["sessions"],
@@ -191,11 +183,8 @@ def test_a_partial_load_counts_the_whole_week() -> None:
         marks={},
         distances={first: 5600.6, second: None},
     )
-    if mixed["volume"] != f"{mixed_total:,} m · {_meters(plan, WEEK - 1):,} m the week before":
-        raise AssertionError(f"a blank file dropped the other days: {mixed['volume']}")
-    prev_rest = sum(work_meters(session["template_id"]) for session in previous_rows[1:])
-    if prev_rest <= 0:
-        raise AssertionError("the week before had no unloaded day")
+    if mixed["volume"] != "5,601 m · 0 m the week before":
+        raise AssertionError(f"a blank file kept template meters: {mixed['volume']}")
     earlier = recap_view(
         week=WEEK,
         sessions=plan["sessions"],
@@ -203,8 +192,8 @@ def test_a_partial_load_counts_the_whole_week() -> None:
         marks={},
         distances={previous: 8000},
     )
-    if earlier["volume"] != f"{_meters(plan, WEEK):,} m · {8000 + prev_rest:,} m the week before":
-        raise AssertionError(f"the week before ignored its other days: {earlier['volume']}")
+    if earlier["volume"] != "0 m · 8,000 m the week before":
+        raise AssertionError(f"the week before used template meters: {earlier['volume']}")
     blank = recap_view(
         week=WEEK,
         sessions=plan["sessions"],
@@ -212,9 +201,8 @@ def test_a_partial_load_counts_the_whole_week() -> None:
         marks={},
         distances={first: None, second: "5600"},
     )
-    template = f"{_meters(plan, WEEK):,} m · {_meters(plan, WEEK - 1):,} m the week before"
-    if blank["volume"] != template:
-        raise AssertionError(f"unreadable files left the template: {blank['volume']}")
+    if blank["volume"] != "0 m · 0 m the week before":
+        raise AssertionError(f"unreadable files used template meters: {blank['volume']}")
     if "probability" in view["volume"] or "readiness" in view["volume"]:
         raise AssertionError("volume named a score")
 
@@ -228,6 +216,9 @@ def test_weekly_page_reads_loaded_files() -> None:
         raise AssertionError("weekly recap ignores loaded Intervals files")
     if "urlopen" in page or "fetch_activity" in page or "explain(" in page:
         raise AssertionError("weekly recap calls the network or the model")
+    recap_source = (ROOT / "ui" / "recap.py").read_text(encoding="utf-8")
+    if "work_meters" in recap_source or "from engines" in recap_source:
+        raise AssertionError("the recap uses template meters")
 
 
 def test_the_last_week_has_nothing_after_it() -> None:
@@ -242,7 +233,7 @@ def test_the_last_week_has_nothing_after_it() -> None:
     first = recap_view(week=1, sessions=plan["sessions"], actuals={}, marks={})
     if "the week before" in first["volume"]:
         raise AssertionError("week 1 invented a previous week")
-    if first["volume"] != f"{_meters(plan, 1):,} m":
+    if first["volume"] != "0 m":
         raise AssertionError(f"week 1 volume was {first['volume']}")
 
 
@@ -250,7 +241,7 @@ def main() -> None:
     test_an_unmarked_week_is_a_blank_recap()
     test_results_and_a_week_mark()
     test_next_sentence_uses_codes_on_the_following_week()
-    test_a_partial_load_counts_the_whole_week()
+    test_a_partial_load_counts_only_loaded_days()
     test_weekly_page_reads_loaded_files()
     test_the_last_week_has_nothing_after_it()
     print("recap ok")
