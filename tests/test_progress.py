@@ -15,6 +15,8 @@ from engines.explain import SPEND_CAP_MICRO_USD
 from ui.progress import (
     days_label,
     days_remaining,
+    heart_rate_chart,
+    matched_heart_rates,
     phase_label,
     progress_weeks,
     volume_chart,
@@ -334,6 +336,102 @@ def test_the_line_is_weekly_completed_distance() -> None:
             raise AssertionError(f"{path.name} was changed for the line")
 
 
+def _heart_dots(svg: str) -> list[tuple[float, float]]:
+    needle = 'class="rio-heart-dot"'
+    dots = []
+    start = 0
+    while True:
+        found = svg.find(needle, start)
+        if found < 0:
+            break
+        tag_start = svg.rfind("<circle", 0, found)
+        tag_end = svg.find(">", found)
+        tag = svg[tag_start:tag_end]
+        cx = float(tag.split('cx="')[1].split('"')[0])
+        cy = float(tag.split('cy="')[1].split('"')[0])
+        dots.append((cx, cy))
+        start = tag_end
+    return dots
+
+
+def test_heart_rate_dots_are_matched_activities() -> None:
+    """One dot per matched activity with an average heart rate.
+
+    A day with no heart rate is absent. An unmatched activity is absent.
+    The dot carries the day and the value. No scores, and no spend.
+    """
+    if SPEND_CAP_MICRO_USD != 25_000_000:
+        raise AssertionError("spend cap is not $25")
+    activities = [
+        {"id": "a", "date": "2026-04-21", "matched": True, "heart_rate": 151},
+        {"id": "b", "date": "2026-04-23", "matched": True, "heart_rate": 148.0},
+        {"id": "c", "date": "2026-04-22", "matched": True, "name": "no hr"},
+        {"id": "d", "date": "2026-04-28", "matched": False, "heart_rate": 170},
+        {"id": "e", "date": "2026-04-28", "matched": True, "heart_rate": 160},
+        {"id": "f", "date": "2026-06-01", "matched": True, "heart_rate": 140},
+        {"id": "g", "date": "2026-04-21", "matched": True, "heart_rate": 0},
+        {"id": "h", "date": "2026-04-21", "matched": True, "heart_rate": True},
+        {"id": "i", "date": "2026-05-05", "matched": True, "heart_rate": 141.5},
+    ]
+    points = matched_heart_rates(activities)
+    if [row["date"] for row in points] != [
+        "2026-04-21",
+        "2026-04-23",
+        "2026-04-28",
+        "2026-05-05",
+        "2026-06-01",
+    ]:
+        raise AssertionError(points)
+    if [row["bpm"] for row in points] != [151, 148.0, 160, 141.5, 140]:
+        raise AssertionError(points)
+    svg = heart_rate_chart(points, start=START, weeks=3)
+    dots = _heart_dots(svg)
+    if len(dots) != 4:
+        raise AssertionError("a day outside the season or without heart rate was drawn")
+    if "2026-06-01" in svg or "· 170" in svg or "Apr 22" in svg:
+        raise AssertionError("a blank day was labeled")
+    if "<polyline" in svg or "<line " in svg:
+        raise AssertionError("a blank day was connected")
+    if not (dots[0][0] < dots[1][0] < dots[2][0] < dots[3][0]):
+        raise AssertionError(dots)
+    gap_day = dots[1][0] - dots[0][0]
+    gap_week = dots[2][0] - dots[1][0]
+    if abs(gap_day / 2 - gap_week / 5) > 1.5:
+        raise AssertionError("a day with no heart rate was not left blank")
+    if not (dots[2][1] < dots[0][1] < dots[1][1]):
+        raise AssertionError("a higher heart rate was not higher on the chart")
+    if "Tue 4/21 · 151" not in svg or "Thu 4/23 · 148" not in svg:
+        raise AssertionError(svg)
+    if "Tue 4/28 · 160" not in svg or "Tue 5/5 · 141.5" not in svg:
+        raise AssertionError(svg)
+    if "2026-04-21 · 151 bpm" not in svg:
+        raise AssertionError("the heart rate value was dropped")
+    if "Heart rate · bpm" not in svg or "probability" in svg or "readiness" in svg:
+        raise AssertionError(svg)
+    same_month = heart_rate_chart(points[:2], start=START, weeks=3)
+    if "Tue 21 · 151" not in same_month or "Thu 23 · 148" not in same_month:
+        raise AssertionError(same_month)
+    if heart_rate_chart([], start=START, weeks=3) != "":
+        raise AssertionError("no heart rates still drew a chart")
+    if heart_rate_chart(points, start=START, weeks=0) != "":
+        raise AssertionError("an empty season drew heart rates")
+    page = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
+    start = page.index("def page_progress(")
+    end = page.index("\ndef page_weekly(")
+    body = page[start:end]
+    if "heart_rate_chart(" not in body or "matched_heart_rates(" not in body:
+        raise AssertionError("progress does not plot matched heart rates")
+    if "explain(" in body or "urlopen" in body or "fetch_activity" in body:
+        raise AssertionError("the heart rate chart calls the network or the model")
+    progress_source = (ROOT / "ui" / "progress.py").read_text(encoding="utf-8")
+    if "from engines" in progress_source or "explain(" in progress_source:
+        raise AssertionError("the heart rate chart started spending")
+    for path in (ROOT / "engines").glob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        if "heart_rate_chart" in text or "matched_heart_rates" in text:
+            raise AssertionError(f"{path.name} was changed for heart rate")
+
+
 def test_a_stored_plan_has_one_current_week() -> None:
     """Progress reads sequence() output. It does not build another plan."""
     plan = sequence("2:02.9", START, "1:55.0", GOAL_DAY)
@@ -388,5 +486,6 @@ if __name__ == "__main__":
     test_rows_keep_season_order()
     test_volume_uses_loaded_distance()
     test_the_line_is_weekly_completed_distance()
+    test_heart_rate_dots_are_matched_activities()
     test_a_stored_plan_has_one_current_week()
     print("progress ok")

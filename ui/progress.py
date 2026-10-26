@@ -14,6 +14,10 @@ file contributes that file's WORK distance. A day with no file contributes
 0. A week with no file shows 0 m. The same weekly totals are a line, and
 a week with no file stays at 0. Template meters are not used.
 
+A dot marks each matched activity that has an average heart rate. The
+dot is labeled with the day and that value. A day with no heart rate is
+left blank.
+
 No model. No spend. No scores.
 """
 
@@ -435,3 +439,213 @@ def _point_caption(index: int, meters: int, unit: str, captions: list | None) ->
 
 def _esc(value: object) -> str:
     return escape(str(value), quote=True)
+
+
+_HR_W = 640
+_HR_H = 168
+_HR_LEFT = 28
+_HR_RIGHT = 22
+_HR_TOP = 26
+_HR_BOTTOM = 22
+_SHORT_DAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+
+
+def matched_heart_rates(activities: object) -> list[dict]:
+    """Matched activities that have an average heart rate, oldest first.
+
+    An unmatched activity is left out. A matched day with no heart rate is
+    left out. The value is the activity average, already stored.
+    """
+    found = []
+    for row in activities or []:
+        if not isinstance(row, dict) or row.get("matched") is not True:
+            continue
+        day = _chart_day(row.get("date"))
+        bpm = _bpm(row.get("heart_rate"))
+        if day is None or bpm is None:
+            continue
+        found.append({"date": day.isoformat(), "bpm": bpm})
+    found.sort(key=lambda item: (item["date"], item["bpm"]))
+    return found
+
+
+def heart_rate_chart(points: list, *, start: date, weeks: int) -> str:
+    """Dots for matched heart rates on this season. A day with none is blank.
+
+    points come from matched_heart_rates(). A date outside the season is
+    left out. Display only. No scores.
+    """
+    if isinstance(weeks, bool) or not isinstance(weeks, int) or weeks <= 0:
+        return ""
+    if type(start) is not date:
+        return ""
+    dots = _heart_dots(points, start, weeks)
+    if not dots:
+        return ""
+    _place_heart_labels(dots)
+    parts = [
+        '<div class="rio-heart">',
+        '<p class="rio-mark-label">Heart rate · bpm</p>',
+        (
+            f'<svg class="rio-heart-line" viewBox="0 0 {_HR_W} {_HR_H}" '
+            'role="img" aria-label="Average heart rate" '
+            'xmlns="http://www.w3.org/2000/svg" '
+            "style=\"font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif\">"
+        ),
+        "<title>Average heart rate</title>",
+        *_heart_marks(dots),
+        "</svg></div>",
+    ]
+    return "".join(parts)
+
+
+def _chart_day(value: object) -> date | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        return date.fromisoformat(value.strip())
+    except ValueError:
+        return None
+
+
+def _bpm(value: object) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    number = float(value)
+    if not math.isfinite(number) or number <= 0:
+        return None
+    return number
+
+
+def _bpm_text(bpm: float) -> str:
+    if float(bpm).is_integer():
+        return str(int(bpm))
+    return f"{bpm:.1f}"
+
+
+def _heart_dots(points: list, start: date, weeks: int) -> list[dict]:
+    origin = week_sunday(start, 1)
+    close = origin + timedelta(days=weeks * 7 - 1)
+    chosen = []
+    for point in points or []:
+        if not isinstance(point, dict):
+            continue
+        day = _chart_day(point.get("date"))
+        bpm = _bpm(point.get("bpm"))
+        if day is None or bpm is None or day < origin or day > close:
+            continue
+        chosen.append({"date": day, "bpm": bpm})
+    if not chosen:
+        return []
+    chosen.sort(key=lambda item: (item["date"], item["bpm"]))
+    months = {item["date"].month for item in chosen}
+    first = chosen[0]["date"]
+    last = chosen[-1]["date"]
+    span = (last - first).days
+    low = min(item["bpm"] for item in chosen)
+    high = max(item["bpm"] for item in chosen)
+    if high == low:
+        floor = low - 8
+        peak = high + 8
+    else:
+        pad = max(4.0, (high - low) * 0.18)
+        floor = low - pad
+        peak = high + pad
+    width = _HR_W - _HR_LEFT - _HR_RIGHT
+    height = _HR_H - _HR_TOP - _HR_BOTTOM
+    dots = []
+    for item in chosen:
+        if span == 0:
+            x = _HR_LEFT + width / 2
+        else:
+            x = _HR_LEFT + width * (item["date"] - first).days / span
+        y = _HR_TOP + height * (1 - (item["bpm"] - floor) / (peak - floor))
+        dots.append(
+            {
+                "x": x,
+                "y": y,
+                "bpm": item["bpm"],
+                "label": _heart_label(item["date"], item["bpm"], len(months) > 1),
+                "title": f"{item['date'].isoformat()} · {_bpm_text(item['bpm'])} bpm",
+            }
+        )
+    return dots
+
+
+def _heart_label(day: date, bpm: float, with_month: bool) -> str:
+    when = f"{day.month}/{day.day}" if with_month else str(day.day)
+    return f"{_SHORT_DAYS[day.weekday()]} {when} · {_bpm_text(bpm)}"
+
+
+def _heart_marks(dots: list[dict]) -> list[str]:
+    marks = []
+    for dot in dots:
+        marks.append(
+            f'<text class="rio-heart-label" x="{dot["label_x"]:.1f}" y="{dot["label_y"]:.1f}" '
+            f'text-anchor="{dot["anchor"]}" fill="#c8c8c8" font-size="10">'
+            f'{_esc(dot["label"])}</text>'
+        )
+        marks.append(
+            f'<circle class="rio-heart-dot" cx="{dot["x"]:.1f}" cy="{dot["y"]:.1f}" '
+            'r="3.4" fill="#e6e6e6">'
+            f'<title>{_esc(dot["title"])}</title></circle>'
+        )
+    return marks
+
+
+def _place_heart_labels(dots: list[dict]) -> None:
+    """Keep each label off the other labels. A day with no dot has no label."""
+    occupied: list[tuple[float, float, float, float]] = []
+    ordered = sorted(dots, key=lambda item: (item["x"], item["y"]))
+    for dot in ordered:
+        width = max(36.0, len(dot["label"]) * 5.6)
+        placed = None
+        for anchor in _heart_anchors(dot["x"], width):
+            for y in (dot["y"] - 16, dot["y"] + 20):
+                box = _heart_box(dot["x"], y, width, anchor)
+                if box[1] < 2 or box[3] > _HR_H - 2 or _heart_hit(box, occupied):
+                    continue
+                placed = (anchor, y, box)
+                break
+            if placed is not None:
+                break
+        if placed is None:
+            anchor = "middle"
+            y = dot["y"] - 12
+            placed = (anchor, y, _heart_box(dot["x"], y, width, anchor))
+        dot["anchor"] = placed[0]
+        dot["label_x"] = dot["x"]
+        dot["label_y"] = placed[1]
+        occupied.append(placed[2])
+
+
+def _heart_anchors(x: float, width: float) -> list[str]:
+    if x - width / 2 < 4:
+        return ["start", "middle", "end"]
+    if x + width / 2 > _HR_W - 4:
+        return ["end", "middle", "start"]
+    return ["middle", "start", "end"]
+
+
+def _heart_box(x: float, y: float, width: float, anchor: str) -> tuple[float, float, float, float]:
+    if anchor == "start":
+        left = x
+    elif anchor == "end":
+        left = x - width
+    else:
+        left = x - width / 2
+    return (left, y - 10, left + width, y + 3)
+
+
+def _heart_hit(
+    box: tuple[float, float, float, float],
+    occupied: list[tuple[float, float, float, float]],
+) -> bool:
+    left, top, right, bottom = box
+    for other in occupied:
+        if right + 4 <= other[0] or other[2] + 4 <= left:
+            continue
+        if bottom + 2 <= other[1] or other[3] + 2 <= top:
+            continue
+        return True
+    return False
