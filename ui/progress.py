@@ -9,8 +9,9 @@ has no countdown. The current week counts from today to the goal. An
 upcoming week counts from the Saturday that closes it, so the number
 steps down by a week each row.
 
-Each week shows a distance. Loaded Intervals files for that week are
-summed. A week with none uses the work distance written in the template ids.
+Each week shows a distance. A day with a loaded Intervals distance uses
+that distance. Any other day uses the work distance written in its
+template id. A week with no loaded file uses the template total.
 
 No model. No spend. No scores.
 """
@@ -90,19 +91,23 @@ def week_status(*, start: date, week_number: int, today: date, marked: bool) -> 
 
 
 def week_volume(sessions: list, distances: dict | None = None) -> str:
-    """This week's distance. Loaded Intervals files, or template meters."""
-    recorded = _recorded_meters(sessions, distances)
-    if recorded is not None:
-        return _meter_text(recorded)
-    return _meter_text(_template_meters(sessions))
+    """This week's distance.
+
+    A day with a loaded Intervals distance uses that distance. Any other
+    day uses its template meters. A week with no loaded file uses the
+    template total.
+    """
+    loaded = _loaded_meters(sessions, distances)
+    if not loaded:
+        return _meter_text(_template_meters(sessions))
+    return _meter_text(_mixed_meters(sessions, loaded))
 
 
-def _recorded_meters(sessions: list, distances: dict | None) -> float | None:
-    """Sum of loaded activity distances. None when this week has none."""
+def _loaded_meters(sessions: list, distances: dict | None) -> dict[str, float]:
+    """Dates in this week that have a loaded Intervals distance."""
     if not isinstance(distances, dict) or not sessions:
-        return None
-    total = 0.0
-    count = 0
+        return {}
+    found: dict[str, float] = {}
     for session in sessions:
         if not isinstance(session, dict):
             continue
@@ -112,11 +117,40 @@ def _recorded_meters(sessions: list, distances: dict | None) -> float | None:
         meters = _distance_number(distances.get(day))
         if meters is None:
             continue
-        total += meters
-        count += 1
-    if count == 0:
+        found[day] = meters
+    return found
+
+
+def _mixed_meters(sessions: list, loaded: dict[str, float]) -> float | None:
+    """Loaded distance where a day has one, otherwise that day's template meters."""
+    if not sessions:
         return None
+    total = 0.0
+    for session in sessions:
+        if not isinstance(session, dict):
+            return None
+        day = session.get("date")
+        if isinstance(day, str) and day in loaded:
+            total += loaded[day]
+            continue
+        meters = _session_template(session)
+        if meters is None:
+            return None
+        total += meters
     return total
+
+
+def _session_template(session: object) -> int | None:
+    """Work distance written in this session's template id."""
+    if not isinstance(session, dict):
+        return None
+    template_id = session.get("template_id")
+    if not isinstance(template_id, str) or not template_id:
+        return None
+    try:
+        return work_meters(template_id)
+    except ValueError:
+        return None
 
 
 def _template_meters(sessions: list) -> int | None:
@@ -125,15 +159,10 @@ def _template_meters(sessions: list) -> int | None:
         return None
     total = 0
     for session in sessions:
-        if not isinstance(session, dict):
+        meters = _session_template(session)
+        if meters is None:
             return None
-        template_id = session.get("template_id")
-        if not isinstance(template_id, str) or not template_id:
-            return None
-        try:
-            total += work_meters(template_id)
-        except ValueError:
-            return None
+        total += meters
     return total
 
 
@@ -198,7 +227,9 @@ def progress_weeks(
 
     A done or unmarked week has no countdown. The current week counts from
     today. An upcoming week counts from the Saturday that closes it.
-    Volume is the loaded Intervals distance for that week, or template meters.
+    A day with a loaded Intervals distance uses that distance. Any other
+    day uses its template meters. A week with no loaded file uses the
+    template total.
     """
     if isinstance(length, bool) or not isinstance(length, int) or length <= 0:
         return []

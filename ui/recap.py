@@ -4,11 +4,12 @@
 
 A session counts as completed when that day has a stored result for the
 same template. A week mark with no results still counts as marked. Marks
-are the stored on_track, not_hitting, and smashing words. Volume is the
-distance on loaded Intervals files, this week beside the week before.
-A week with no loaded file uses the work distance already written in the
-template ids. The next-week sentence is fixed words for an adapt reason
-code already stored on the following week.
+are the stored on_track, not_hitting, and smashing words. Volume is this
+week beside the week before. A day with a loaded Intervals distance uses
+that distance. Any other day uses the work distance written in its
+template id. A week with no loaded file uses the template total. The
+next-week sentence is fixed words for an adapt reason code already stored
+on the following week.
 
 No model. No spend. No scores.
 """
@@ -50,9 +51,10 @@ def recap_view(
     """Completed sessions, marks, volume, and one sentence for the next week.
 
     Actuals and marks are the ones already stored. A missing week is a blank.
-    Volume sums loaded Intervals distances for a week that has them, and
-    uses template meters for a week that has none. The sentence reads the
-    following week's reason codes and does not call adapt.
+    Volume uses a loaded Intervals distance for a day that has one, and
+    that day's template meters otherwise. A week with no loaded file uses
+    the template total. The sentence reads the following week's reason
+    codes and does not call adapt.
     """
     rows = week_rows(sessions, week)
     previous = week_rows(sessions, week - 1) if isinstance(week, int) and not isinstance(week, bool) else []

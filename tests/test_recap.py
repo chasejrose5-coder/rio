@@ -157,13 +157,20 @@ def test_next_sentence_uses_codes_on_the_following_week() -> None:
             raise AssertionError(f"{outcome} was said as {view['next']}")
 
 
-def test_loaded_distance_replaces_template_meters() -> None:
-    """Loaded Intervals distances are summed. A week with none keeps template meters."""
+def test_a_partial_load_counts_the_whole_week() -> None:
+    """A loaded day uses that file. Every other day keeps its template meters.
+
+    A week with no readable file keeps the template total.
+    """
     plan = _plan()
     rows = _rows(plan, WEEK)
     first = rows[0]["date"]
     second = rows[1]["date"]
-    previous = _rows(plan, WEEK - 1)[0]["date"]
+    previous_rows = _rows(plan, WEEK - 1)
+    previous = previous_rows[0]["date"]
+    rest = sum(work_meters(session["template_id"]) for session in rows[2:])
+    if rest <= 0:
+        raise AssertionError("the week had no unloaded day")
     view = recap_view(
         week=WEEK,
         sessions=plan["sessions"],
@@ -172,9 +179,11 @@ def test_loaded_distance_replaces_template_meters() -> None:
         distances={first: 5600, second: 4000, "1999-01-01": 99999},
     )
     _no_score(view)
-    expected = f"9,600 m · {_meters(plan, WEEK - 1):,} m the week before"
+    expected = f"{5600 + 4000 + rest:,} m · {_meters(plan, WEEK - 1):,} m the week before"
     if view["volume"] != expected:
         raise AssertionError(f"loaded volume was {view['volume']}")
+    others = sum(work_meters(session["template_id"]) for session in rows[1:])
+    mixed_total = int(5600.6 + others + 0.5)
     mixed = recap_view(
         week=WEEK,
         sessions=plan["sessions"],
@@ -182,8 +191,11 @@ def test_loaded_distance_replaces_template_meters() -> None:
         marks={},
         distances={first: 5600.6, second: None},
     )
-    if mixed["volume"] != f"5,601 m · {_meters(plan, WEEK - 1):,} m the week before":
-        raise AssertionError(f"a blank file changed the sum: {mixed['volume']}")
+    if mixed["volume"] != f"{mixed_total:,} m · {_meters(plan, WEEK - 1):,} m the week before":
+        raise AssertionError(f"a blank file dropped the other days: {mixed['volume']}")
+    prev_rest = sum(work_meters(session["template_id"]) for session in previous_rows[1:])
+    if prev_rest <= 0:
+        raise AssertionError("the week before had no unloaded day")
     earlier = recap_view(
         week=WEEK,
         sessions=plan["sessions"],
@@ -191,8 +203,8 @@ def test_loaded_distance_replaces_template_meters() -> None:
         marks={},
         distances={previous: 8000},
     )
-    if earlier["volume"] != f"{_meters(plan, WEEK):,} m · 8,000 m the week before":
-        raise AssertionError(f"the week before ignored its file: {earlier['volume']}")
+    if earlier["volume"] != f"{_meters(plan, WEEK):,} m · {8000 + prev_rest:,} m the week before":
+        raise AssertionError(f"the week before ignored its other days: {earlier['volume']}")
     blank = recap_view(
         week=WEEK,
         sessions=plan["sessions"],
@@ -238,7 +250,7 @@ def main() -> None:
     test_an_unmarked_week_is_a_blank_recap()
     test_results_and_a_week_mark()
     test_next_sentence_uses_codes_on_the_following_week()
-    test_loaded_distance_replaces_template_meters()
+    test_a_partial_load_counts_the_whole_week()
     test_weekly_page_reads_loaded_files()
     test_the_last_week_has_nothing_after_it()
     print("recap ok")

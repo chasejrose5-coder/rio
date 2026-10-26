@@ -118,7 +118,10 @@ def test_rows_keep_season_order() -> None:
 
 
 def test_volume_uses_loaded_distance() -> None:
-    """A week with Intervals files sums those distances. Otherwise template meters."""
+    """A loaded day uses that file. Any other day uses its template meters.
+
+    A week with no file uses the template total.
+    """
     sessions = [
         {
             "week_number": 1,
@@ -160,6 +163,61 @@ def test_volume_uses_loaded_distance() -> None:
     )
     if loaded[0]["volume"] != "6,600 m" or loaded[1]["volume"] != "2,400 m":
         raise AssertionError((loaded[0]["volume"], loaded[1]["volume"]))
+    partial = progress_weeks(
+        start=START,
+        goal=GOAL_DAY,
+        length=2,
+        sessions=sessions,
+        marks={},
+        today=date(2026, 4, 10),
+        distances={"2026-04-21": 5600, "2026-04-23": None, "1999-01-01": 9},
+    )
+    if partial[0]["volume"] != "8,000 m" or partial[1]["volume"] != "2,400 m":
+        raise AssertionError((partial[0]["volume"], partial[1]["volume"]))
+    broken = [
+        {
+            "week_number": 1,
+            "date": "2026-04-21",
+            "template_id": "se_400_r90_x6",
+        },
+        {
+            "week_number": 1,
+            "date": "2026-04-23",
+            "template_id": "no_distance",
+        },
+    ]
+    cleared = progress_weeks(
+        start=START,
+        goal=GOAL_DAY,
+        length=1,
+        sessions=broken,
+        marks={},
+        today=date(2026, 4, 10),
+    )
+    if cleared[0]["volume"] != "—":
+        raise AssertionError(cleared[0]["volume"])
+    one_file = progress_weeks(
+        start=START,
+        goal=GOAL_DAY,
+        length=1,
+        sessions=broken,
+        marks={},
+        today=date(2026, 4, 10),
+        distances={"2026-04-23": 1000},
+    )
+    if one_file[0]["volume"] != "3,400 m":
+        raise AssertionError(one_file[0]["volume"])
+    still_open = progress_weeks(
+        start=START,
+        goal=GOAL_DAY,
+        length=1,
+        sessions=broken,
+        marks={},
+        today=date(2026, 4, 10),
+        distances={"2026-04-21": 1000},
+    )
+    if still_open[0]["volume"] != "—":
+        raise AssertionError(still_open[0]["volume"])
     if "probability" in loaded[0] or "readiness" in loaded[0]:
         raise AssertionError("a score was added to a week")
     source = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")

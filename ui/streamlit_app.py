@@ -1,6 +1,6 @@
 # streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, Settings, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's distance from loaded Intervals files, or the template meters when that week has none. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. The recap volume sums loaded Intervals file distances, or uses the template meters when that week has none. Settings stores display preferences for this session. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. The page does not call Intervals.icu. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's distance from a loaded Intervals file on a day that has one, otherwise that day's template meters. A week with no loaded file uses the template total. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. The recap volume uses a loaded Intervals file for a day that has one, otherwise that day's template meters, for this week and the week before. A week with no loaded file uses the template total. Settings stores display preferences for this session. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. The page does not call Intervals.icu. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -3202,8 +3202,9 @@ def page_progress() -> None:
     has a mark is done. A week after today with no mark is upcoming.
     A done week has no countdown. The current week counts from today.
     An upcoming week counts from the Saturday that closes it.
-    Each week shows loaded Intervals distance, or template meters when
-    that week has none. No prose, so this page does not spend. No scores.
+    Each day uses a loaded Intervals distance when that day has one, and
+    that day's template meters otherwise. A week with no loaded file uses
+    the template total. No prose, so this page does not spend. No scores.
     """
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
@@ -3275,9 +3276,10 @@ def page_weekly() -> None:
 
     The control opens any week. The week that contains today is the one
     shown first. The recap reads that week: sessions already recorded, the
-    marks already stored, loaded Intervals distance or template meters
-    beside the week before, and one sentence from adapt codes already on
-    the next week. Each day is a card:
+    marks already stored, each day's loaded Intervals distance or that
+    day's template meters beside the week before, and one sentence from
+    adapt codes already on the next week. A week with no loaded file uses
+    the template total. Each day is a card:
     the day, the date, the plain workout, and the target outcome. A card
     opens that session. The mark calls adapt() for that week.
     No prose, so this page does not spend.
