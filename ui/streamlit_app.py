@@ -1,6 +1,6 @@
 # streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, Settings, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Settings stores display preferences for this session. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. A continuous session takes one time. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Settings stores display preferences for this session. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. A continuous session takes one time. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ from engines.prescribe import PARAMETER_KEYS, load_menu, prescribe
 from engines.season import adapt, sequence
 from ui.calendar import month_title, month_weeks, opening_month, plan_months
 from ui.library import filter_workouts, library_rows
+from ui.last_session import IntervalsFileError, intervals_json_paths, open_intervals
 from ui.dashboard import dashboard_view
 from ui.recap import recap_view
 from ui.settings import (
@@ -166,16 +167,57 @@ def selected_fixture_path() -> Path | None:
     return paths[names.index(selected)]
 
 
+def _selected_intervals_path(paths: list[Path], *, optional: bool) -> Path | None:
+    """One JSON file from tests/fixtures/intervals. Blank keeps the fixture."""
+    names = [path.name for path in paths]
+    if optional:
+        labels = ["—", *names]
+        selected = st.selectbox("Intervals file", labels, key="last-session-intervals")
+        if selected == "—":
+            return None
+        return paths[names.index(selected)]
+    selected = st.selectbox("Intervals file", names, key="last-session-intervals")
+    return paths[names.index(selected)]
+
+
+def _show_intervals_file(hero, path: Path) -> None:
+    """to_normalize_input, then the same normalize, classify, and explain fields."""
+    try:
+        payload, banner = open_intervals(path)
+    except IntervalsFileError as exc:
+        with hero:
+            st.markdown(_page_hero("Last Session"), unsafe_allow_html=True)
+        st.markdown(f'<p class="rio-empty">{_esc(str(exc))}</p>', unsafe_allow_html=True)
+        return
+    with hero:
+        st.markdown(_page_hero("Last Session", banner), unsafe_allow_html=True)
+    render_session(payload)
+
+
 def page_last_session() -> None:
+    """The fixture drop-down, or one local Intervals JSON file.
+
+    A chosen JSON file is read from disk. Prose spend stays capped at $25
+    in explain. This page does not call Intervals.icu.
+    """
     paths = fixture_paths(FIXTURES_DIR)
-    hero, controls = _open("Last Session", controls=bool(paths))
-    if not paths:
+    interval_paths = intervals_json_paths()
+    hero, controls = _open("Last Session", controls=bool(paths or interval_paths))
+    if not paths and not interval_paths:
         with hero:
             st.markdown(_page_hero("Last Session"), unsafe_allow_html=True)
         st.markdown('<p class="rio-empty">No session files.</p>', unsafe_allow_html=True)
         return
     with controls:
-        path = selected_fixture_path()
+        path = selected_fixture_path() if paths else None
+        interval_path = (
+            _selected_intervals_path(interval_paths, optional=bool(paths))
+            if interval_paths
+            else None
+        )
+    if interval_path is not None:
+        _show_intervals_file(hero, interval_path)
+        return
     if path is None:
         with hero:
             st.markdown(_page_hero("Last Session"), unsafe_allow_html=True)
