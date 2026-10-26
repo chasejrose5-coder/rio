@@ -117,6 +117,63 @@ def test_rows_keep_season_order() -> None:
         raise AssertionError("an empty season produced weeks")
 
 
+def test_volume_uses_loaded_distance() -> None:
+    """A week with Intervals files sums those distances. Otherwise template meters."""
+    sessions = [
+        {
+            "week_number": 1,
+            "date": "2026-04-21",
+            "template_id": "se_400_r90_x6",
+            "reason_codes": ["phase_1"],
+        },
+        {
+            "week_number": 1,
+            "date": "2026-04-23",
+            "template_id": "se_400_r90_x6",
+            "reason_codes": ["phase_1"],
+        },
+        {
+            "week_number": 2,
+            "date": "2026-04-28",
+            "template_id": "se_400_r90_x6",
+            "reason_codes": ["phase_2"],
+        },
+    ]
+    plain = progress_weeks(
+        start=START,
+        goal=GOAL_DAY,
+        length=2,
+        sessions=sessions,
+        marks={},
+        today=date(2026, 4, 10),
+    )
+    if plain[0]["volume"] != "4,800 m" or plain[1]["volume"] != "2,400 m":
+        raise AssertionError((plain[0]["volume"], plain[1]["volume"]))
+    loaded = progress_weeks(
+        start=START,
+        goal=GOAL_DAY,
+        length=2,
+        sessions=sessions,
+        marks={},
+        today=date(2026, 4, 10),
+        distances={"2026-04-21": 5600, "2026-04-23": 1000, "1999-01-01": 9},
+    )
+    if loaded[0]["volume"] != "6,600 m" or loaded[1]["volume"] != "2,400 m":
+        raise AssertionError((loaded[0]["volume"], loaded[1]["volume"]))
+    if "probability" in loaded[0] or "readiness" in loaded[0]:
+        raise AssertionError("a score was added to a week")
+    source = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
+    start = source.index("def page_progress(")
+    end = source.index("\ndef page_weekly(")
+    page = source[start:end]
+    if "loaded_distances(" not in page or "distances=" not in page:
+        raise AssertionError("progress ignores loaded Intervals files")
+    if "rio-progress-volume" not in source:
+        raise AssertionError("progress does not show the distance")
+    if "urlopen" in page or "fetch_activity" in page or "explain(" in page:
+        raise AssertionError("progress calls the network or the model")
+
+
 def test_a_stored_plan_has_one_current_week() -> None:
     """Progress reads sequence() output. It does not build another plan."""
     plan = sequence("2:02.9", START, "1:55.0", GOAL_DAY)
@@ -169,5 +226,6 @@ if __name__ == "__main__":
     test_a_midweek_start_uses_the_sunday()
     test_days_remaining_stop_at_the_goal()
     test_rows_keep_season_order()
+    test_volume_uses_loaded_distance()
     test_a_stored_plan_has_one_current_week()
     print("progress ok")

@@ -5,7 +5,9 @@
 to_normalize_input builds the lap payload. The page then runs normalize,
 classify, and explain on that payload and shows the same fields as a fixture.
 quality_fill reads the same file for a quality session: WORK elapsed times,
-and the activity id or the filename. This file does not call the network.
+and the activity id or the filename. Activity distance and average heart
+rate are read from the same local file for display. This file does not
+call the network.
 
 No scores. Prose spend stays capped at $25 where explain already records it.
 """
@@ -117,6 +119,92 @@ def fit_slots(times: object, count: int) -> list[float | None]:
     return slots
 
 
+def activity_distance(activity: object) -> float | None:
+    """Activity distance in meters. A missing distance stays unset."""
+    if not isinstance(activity, dict) or "distance" not in activity:
+        return None
+    return _meters(activity.get("distance"))
+
+
+def activity_heart_rate(activity: object) -> float | None:
+    """average_heartrate on the activity. Lap heart rates stay on the laps."""
+    if not isinstance(activity, dict) or "average_heartrate" not in activity:
+        return None
+    bpm = _finite(activity.get("average_heartrate"))
+    if bpm is None or bpm <= 0:
+        return None
+    return bpm
+
+
+def heart_rate_text(activity: object) -> str | None:
+    """Avg HR as shown. None when the activity JSON has no average heart rate."""
+    bpm = activity_heart_rate(activity)
+    if bpm is None:
+        return None
+    shown = str(int(bpm)) if bpm.is_integer() else f"{bpm:.1f}"
+    return f"{shown} bpm"
+
+
+def activity_by_ref(ref: object, directory: Path | None = None) -> dict | None:
+    """The local activity named by an id or a filename. No network."""
+    if isinstance(ref, bool):
+        return None
+    if isinstance(ref, int):
+        text = str(ref)
+    elif isinstance(ref, str):
+        text = ref.strip()
+    else:
+        return None
+    if not text:
+        return None
+    return _activity_index(directory).get(text)
+
+
+def loaded_distances(
+    sessions: list,
+    actuals: dict | None,
+    directory: Path | None = None,
+) -> dict[str, float]:
+    """Session date to activity distance for a stored Intervals file.
+
+    The ref has to belong to that day's template. A missing file or a file
+    with no distance is left out. The read stays on disk.
+    """
+    if not isinstance(actuals, dict):
+        return {}
+    templates: dict[str, str] = {}
+    for session in sessions or []:
+        if not isinstance(session, dict):
+            continue
+        day = session.get("date")
+        template_id = session.get("template_id")
+        if isinstance(day, str) and isinstance(template_id, str) and template_id:
+            templates[day] = template_id
+    index = _activity_index(directory)
+    found: dict[str, float] = {}
+    for day, row in actuals.items():
+        if not isinstance(day, str) or not isinstance(row, dict):
+            continue
+        if templates.get(day) != row.get("template_id"):
+            continue
+        ref = row.get("intervals")
+        if isinstance(ref, bool):
+            continue
+        if isinstance(ref, int):
+            text = str(ref)
+        elif isinstance(ref, str):
+            text = ref.strip()
+        else:
+            continue
+        if not text:
+            continue
+        meters = activity_distance(index.get(text))
+        if meters is None:
+            continue
+        found[day] = meters
+    return found
+
+
 def file_just_opened(previous: object, source: object) -> bool:
     """True on the run a file is chosen. The same file leaves an edit in place."""
     if not isinstance(source, str) or source.strip() == "":
@@ -165,11 +253,47 @@ def _activity_day(activity: dict) -> str:
     return ""
 
 
-def _elapsed(value: object) -> float | None:
+def _activity_index(directory: Path | None) -> dict[str, dict]:
+    """Filename and activity id to the activity object. Unreadable files are skipped."""
+    found: dict[str, dict] = {}
+    for path in intervals_json_paths(directory):
+        try:
+            activity = _load_activity(path)
+        except IntervalsFileError:
+            continue
+        _keep(found, path.name, activity)
+        _keep(found, intervals_source(path, activity), activity)
+    return found
+
+
+def _keep(found: dict[str, dict], key: object, activity: dict) -> None:
+    if not isinstance(key, str):
+        return
+    text = key.strip()
+    if not text or text in found:
+        return
+    found[text] = activity
+
+
+def _meters(value: object) -> float | None:
+    number = _finite(value)
+    if number is None or number < 0:
+        return None
+    return number
+
+
+def _finite(value: object) -> float | None:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
     number = float(value)
-    if not math.isfinite(number) or number <= 0:
+    if not math.isfinite(number):
+        return None
+    return number
+
+
+def _elapsed(value: object) -> float | None:
+    number = _finite(value)
+    if number is None or number <= 0:
         return None
     return round(number, 2)
 
@@ -204,3 +328,4 @@ def _says_synthetic(path: Path, activity: dict) -> bool:
         if isinstance(value, str) and _SYNTHETIC_WORD.search(value):
             return True
     return False
+

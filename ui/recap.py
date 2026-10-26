@@ -5,8 +5,9 @@
 A session counts as completed when that day has a stored result for the
 same template. A week mark with no results still counts as marked. Marks
 are the stored on_track, not_hitting, and smashing words. Volume is the
-work distance already written in the template ids, this week beside the
-week before. The next-week sentence is fixed words for an adapt reason
+distance on loaded Intervals files, this week beside the week before.
+A week with no loaded file uses the work distance already written in the
+template ids. The next-week sentence is fixed words for an adapt reason
 code already stored on the following week.
 
 No model. No spend. No scores.
@@ -14,8 +15,7 @@ No model. No spend. No scores.
 
 from __future__ import annotations
 
-from engines.season import work_meters
-from ui.progress import MARKS
+from ui.progress import MARKS, week_volume
 
 # Adapt codes, in the order they are stored. The first one present is the sentence.
 _CHANGE = (
@@ -45,11 +45,14 @@ def recap_view(
     sessions: list,
     actuals: dict | None,
     marks: dict | None,
+    distances: dict | None = None,
 ) -> dict:
     """Completed sessions, marks, volume, and one sentence for the next week.
 
     Actuals and marks are the ones already stored. A missing week is a blank.
-    The sentence reads the following week's reason codes and does not call adapt.
+    Volume sums loaded Intervals distances for a week that has them, and
+    uses template meters for a week that has none. The sentence reads the
+    following week's reason codes and does not call adapt.
     """
     rows = week_rows(sessions, week)
     previous = week_rows(sessions, week - 1) if isinstance(week, int) and not isinstance(week, bool) else []
@@ -59,7 +62,7 @@ def recap_view(
     return {
         "completed": _completed_text(rows, stored, week_mark),
         "marks": _marks_text(rows, stored, week_mark),
-        "volume": _volume_text(rows, previous),
+        "volume": _volume_text(rows, previous, distances),
         "next": _next_sentence(following),
     }
 
@@ -119,32 +122,11 @@ def _marks_text(rows: list[dict], actuals: dict, week_mark: str | None) -> str:
     return " · ".join(found)
 
 
-def _meters(rows: list[dict]) -> int | None:
-    if not rows:
-        return None
-    total = 0
-    for session in rows:
-        template_id = session.get("template_id")
-        if not isinstance(template_id, str) or not template_id:
-            return None
-        try:
-            total += work_meters(template_id)
-        except ValueError:
-            return None
-    return total
-
-
-def _meter_text(meters: int | None) -> str:
-    if meters is None:
-        return "—"
-    return f"{meters:,} m"
-
-
-def _volume_text(rows: list[dict], previous: list[dict]) -> str:
-    current = _meter_text(_meters(rows))
+def _volume_text(rows: list[dict], previous: list[dict], distances: dict | None) -> str:
+    current = week_volume(rows, distances)
     if not previous:
         return current
-    return f"{current} · {_meter_text(_meters(previous))} the week before"
+    return f"{current} · {week_volume(previous, distances)} the week before"
 
 
 def _next_sentence(following: list[dict]) -> str:

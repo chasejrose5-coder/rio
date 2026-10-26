@@ -1,6 +1,6 @@
 # streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, Settings, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Settings stores display preferences for this session. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. The page does not call Intervals.icu. A continuous session takes one time. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's distance from loaded Intervals files, or the template meters when that week has none. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. The recap volume sums loaded Intervals file distances, or uses the template meters when that week has none. Settings stores display preferences for this session. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. The page does not call Intervals.icu. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -27,9 +27,12 @@ from ui.calendar import month_title, month_weeks, opening_month, plan_months
 from ui.library import filter_workouts, library_rows
 from ui.last_session import (
     IntervalsFileError,
+    activity_by_ref,
     file_just_opened,
     fit_slots,
+    heart_rate_text,
     intervals_json_paths,
+    loaded_distances,
     open_intervals,
     quality_fill,
 )
@@ -1438,6 +1441,15 @@ h2.rio-week-title {
   color: #a3a3a3;
   font-size: 0.92rem;
 }
+.rio-progress-volume {
+  margin-top: 0.16rem;
+  color: #c8c8c8;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+.rio-progress-upcoming .rio-progress-volume,
+.rio-progress-open .rio-progress-volume { color: #6f6f6f; }
 .rio-progress-status {
   color: #8a8a8a;
   font-size: 0.72rem;
@@ -2825,15 +2837,34 @@ def page_start() -> None:
         )
 
 
+def _session_activity(session: dict, generation: int) -> dict | None:
+    """The Intervals file chosen on this page, or the one stored with the actual.
+
+    The file is read from disk. This does not call Intervals.icu.
+    """
+    day = str(session.get("date") or "")
+    selected = st.session_state.get(f"season-result-{generation}-{day}-intervals")
+    if isinstance(selected, str) and selected.strip() not in ("", "—"):
+        return activity_by_ref(selected)
+    saved = _actuals().get(day)
+    if not isinstance(saved, dict) or saved.get("template_id") != session.get("template_id"):
+        return None
+    return activity_by_ref(saved.get("intervals"))
+
+
 def _progress_html(row: dict) -> str:
     """One checklist row. An unmarked past week keeps a blank status."""
     status = row["status"] or "—"
     kind = row["status"] or "open"
+    volume = display_distance(row.get("volume") or "—", _prefs()["units"])
     return (
         f'<div class="rio-progress rio-progress-{kind}">'
         '<span class="rio-progress-tick"></span>'
         f'<div class="rio-progress-week">Week {_esc(row["week"])}</div>'
-        f'<div class="rio-progress-phase">Phase {_esc(row["phase"])}</div>'
+        '<div class="rio-progress-phase">'
+        f'Phase {_esc(row["phase"])}'
+        f'<div class="rio-progress-volume">{_esc(volume)}</div>'
+        "</div>"
         f'<div class="rio-progress-status">{_esc(status)}</div>'
         f'<div class="rio-progress-days">{_esc(days_label(row["days_remaining"]))}</div>'
         "</div>"
@@ -3171,7 +3202,8 @@ def page_progress() -> None:
     has a mark is done. A week after today with no mark is upcoming.
     A done week has no countdown. The current week counts from today.
     An upcoming week counts from the Saturday that closes it.
-    No prose, so this page does not spend. No scores.
+    Each week shows loaded Intervals distance, or template meters when
+    that week has none. No prose, so this page does not spend. No scores.
     """
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
@@ -3213,6 +3245,7 @@ def page_progress() -> None:
     if not isinstance(sessions, list):
         sessions = []
     marks = st.session_state.get("season_marks")
+    actuals = st.session_state.get("season_actuals")
     rows = progress_weeks(
         start=start,
         goal=goal,
@@ -3220,6 +3253,7 @@ def page_progress() -> None:
         sessions=sessions,
         marks=marks if isinstance(marks, dict) else {},
         today=date.today(),
+        distances=loaded_distances(sessions, actuals if isinstance(actuals, dict) else {}),
     )
     with hero:
         st.markdown(
@@ -3241,8 +3275,9 @@ def page_weekly() -> None:
 
     The control opens any week. The week that contains today is the one
     shown first. The recap reads that week: sessions already recorded, the
-    marks already stored, the meters beside the week before, and one
-    sentence from adapt codes already on the next week. Each day is a card:
+    marks already stored, loaded Intervals distance or template meters
+    beside the week before, and one sentence from adapt codes already on
+    the next week. Each day is a card:
     the day, the date, the plain workout, and the target outcome. A card
     opens that session. The mark calls adapt() for that week.
     No prose, so this page does not spend.
@@ -3303,11 +3338,14 @@ def page_weekly() -> None:
                 key=key,
             )
 
+    sessions = plan.get("sessions") or []
+    actuals = st.session_state.get("season_actuals")
     recap = recap_view(
         week=picked,
-        sessions=plan.get("sessions") or [],
-        actuals=st.session_state.get("season_actuals"),
+        sessions=sessions,
+        actuals=actuals,
         marks=st.session_state.get("season_marks"),
+        distances=loaded_distances(sessions, actuals if isinstance(actuals, dict) else {}),
     )
     _card(
         _label("Recap"),
@@ -3388,7 +3426,8 @@ def page_session() -> None:
     calls adapt(). Choosing an Intervals JSON file reads it locally and
     fills each box with that WORK interval's elapsed time. The numbers
     stay editable. Filled times go through judge(). The activity id or
-    the filename is stored with the actuals. A continuous session takes
+    the filename is stored with the actuals. When that activity JSON has
+    an average heart rate, the page shows it. A continuous session takes
     one time. This page does not call a model and does not spend.
     """
     chrome = st.container(gap=None)
@@ -3436,7 +3475,7 @@ def page_session() -> None:
             unsafe_allow_html=True,
         )
         return
-    _card(
+    parts = [
         _subject("Workout", _workout_text(session["template_id"])),
         _id_html(session["template_id"]),
         _label("Structure"),
@@ -3444,9 +3483,19 @@ def page_session() -> None:
         _label("Target outcome"),
         _note(_copy(str(session.get("target_outcome") or "—"))),
         _prep_lines(session),
-        _label("Reasons"),
-        _plain_reasons(session.get("reason_codes") or []),
+    ]
+    hr = heart_rate_text(
+        _session_activity(session, int(st.session_state.get("season_generation") or 0))
     )
+    if hr is not None:
+        parts.extend((_label("Avg HR"), _note(hr)))
+    parts.extend(
+        (
+            _label("Reasons"),
+            _plain_reasons(session.get("reason_codes") or []),
+        )
+    )
+    _card(*parts)
     if _quality_day(session):
         _render_result(plan, session, int(st.session_state.get("season_generation") or 0))
 

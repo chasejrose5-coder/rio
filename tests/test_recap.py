@@ -157,6 +157,67 @@ def test_next_sentence_uses_codes_on_the_following_week() -> None:
             raise AssertionError(f"{outcome} was said as {view['next']}")
 
 
+def test_loaded_distance_replaces_template_meters() -> None:
+    """Loaded Intervals distances are summed. A week with none keeps template meters."""
+    plan = _plan()
+    rows = _rows(plan, WEEK)
+    first = rows[0]["date"]
+    second = rows[1]["date"]
+    previous = _rows(plan, WEEK - 1)[0]["date"]
+    view = recap_view(
+        week=WEEK,
+        sessions=plan["sessions"],
+        actuals={},
+        marks={},
+        distances={first: 5600, second: 4000, "1999-01-01": 99999},
+    )
+    _no_score(view)
+    expected = f"9,600 m · {_meters(plan, WEEK - 1):,} m the week before"
+    if view["volume"] != expected:
+        raise AssertionError(f"loaded volume was {view['volume']}")
+    mixed = recap_view(
+        week=WEEK,
+        sessions=plan["sessions"],
+        actuals={},
+        marks={},
+        distances={first: 5600.6, second: None},
+    )
+    if mixed["volume"] != f"5,601 m · {_meters(plan, WEEK - 1):,} m the week before":
+        raise AssertionError(f"a blank file changed the sum: {mixed['volume']}")
+    earlier = recap_view(
+        week=WEEK,
+        sessions=plan["sessions"],
+        actuals={},
+        marks={},
+        distances={previous: 8000},
+    )
+    if earlier["volume"] != f"{_meters(plan, WEEK):,} m · 8,000 m the week before":
+        raise AssertionError(f"the week before ignored its file: {earlier['volume']}")
+    blank = recap_view(
+        week=WEEK,
+        sessions=plan["sessions"],
+        actuals={},
+        marks={},
+        distances={first: None, second: "5600"},
+    )
+    template = f"{_meters(plan, WEEK):,} m · {_meters(plan, WEEK - 1):,} m the week before"
+    if blank["volume"] != template:
+        raise AssertionError(f"unreadable files left the template: {blank['volume']}")
+    if "probability" in view["volume"] or "readiness" in view["volume"]:
+        raise AssertionError("volume named a score")
+
+
+def test_weekly_page_reads_loaded_files() -> None:
+    source = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
+    start = source.index("def page_weekly(")
+    end = source.index("\ndef page_season(")
+    page = source[start:end]
+    if "loaded_distances(" not in page or "distances=" not in page:
+        raise AssertionError("weekly recap ignores loaded Intervals files")
+    if "urlopen" in page or "fetch_activity" in page or "explain(" in page:
+        raise AssertionError("weekly recap calls the network or the model")
+
+
 def test_the_last_week_has_nothing_after_it() -> None:
     plan = _plan()
     last = plan["season_length_weeks"]
@@ -177,6 +238,8 @@ def main() -> None:
     test_an_unmarked_week_is_a_blank_recap()
     test_results_and_a_week_mark()
     test_next_sentence_uses_codes_on_the_following_week()
+    test_loaded_distance_replaces_template_meters()
+    test_weekly_page_reads_loaded_files()
     test_the_last_week_has_nothing_after_it()
     print("recap ok")
 

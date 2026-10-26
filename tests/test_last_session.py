@@ -19,9 +19,14 @@ from engines.explain import SPEND_CAP_MICRO_USD, explain
 from engines.normalize import normalize
 from ui.last_session import (
     IntervalsFileError,
+    activity_by_ref,
+    activity_distance,
+    activity_heart_rate,
     file_just_opened,
     fit_slots,
+    heart_rate_text,
     intervals_json_paths,
+    loaded_distances,
     open_intervals,
     quality_fill,
     work_elapsed,
@@ -259,6 +264,123 @@ def test_quality_file_stores_filename_without_an_id() -> None:
         raise AssertionError((long_times, long_source))
 
 
+def test_local_file_distance_and_heart_rate() -> None:
+    """Activity distance and average heart rate come from the local JSON. No live call."""
+    if SPEND_CAP_MICRO_USD != 25_000_000:
+        raise AssertionError("spend cap is not $25")
+    band = (ROOT / "ui" / "result.py").read_text(encoding="utf-8")
+    if "_BAND = 0.03" not in band:
+        raise AssertionError("the ±3% rule moved")
+    with patch("urllib.request.urlopen", side_effect=AssertionError("live API")):
+        recovery = activity_by_ref("synthetic-se-400-with-recovery")
+        by_name = activity_by_ref("synthetic_se_400_with_recovery.json")
+        autosplit = activity_by_ref("synthetic-autosplit-no-rest")
+    if recovery is None or by_name is None or by_name.get("id") != recovery.get("id"):
+        raise AssertionError("the activity id did not open the local file")
+    if activity_distance(recovery) != 5600 or heart_rate_text(recovery) != "148 bpm":
+        raise AssertionError((activity_distance(recovery), heart_rate_text(recovery)))
+    if heart_rate_text(autosplit) != "162 bpm":
+        raise AssertionError(heart_rate_text(autosplit))
+    laps_only = {
+        "distance": 4200,
+        "icu_intervals": [{"type": "WORK", "distance": 400, "average_heartrate": 176}],
+    }
+    if activity_heart_rate(laps_only) is not None or heart_rate_text(laps_only) is not None:
+        raise AssertionError("a lap heart rate was shown as the activity average")
+    if activity_distance(laps_only) != 4200:
+        raise AssertionError(activity_distance(laps_only))
+    if activity_distance({"average_heartrate": 140}) is not None:
+        raise AssertionError("a missing distance was invented")
+    if activity_distance({"distance": None}) is not None or activity_distance({"distance": -1}) is not None:
+        raise AssertionError("an unusable distance was kept")
+    if activity_heart_rate({"average_heartrate": 0}) is not None:
+        raise AssertionError("zero heart rate was shown")
+    if activity_heart_rate({"average_heartrate": True}) is not None:
+        raise AssertionError("a boolean heart rate was shown")
+    if heart_rate_text({"average_heartrate": 141.5}) != "141.5 bpm":
+        raise AssertionError(heart_rate_text({"average_heartrate": 141.5}))
+    if "probability" in (heart_rate_text(recovery) or "") or "readiness" in (heart_rate_text(recovery) or ""):
+        raise AssertionError("heart rate named a score")
+    reader = (ROOT / "ui" / "last_session.py").read_text(encoding="utf-8")
+    heart = _function(reader, "activity_heart_rate")
+    if "icu_intervals" in heart:
+        raise AssertionError("average heart rate was taken from a lap")
+
+
+def test_loaded_distances_read_the_stored_file() -> None:
+    """A stored id or filename contributes its activity distance. A mismatch does not."""
+    sessions = [
+        {"date": "2026-10-27", "template_id": "se_400_r90_x6"},
+        {"date": "2026-10-29", "template_id": "se_400_r90_x6"},
+    ]
+    actuals = {
+        "2026-10-27": {
+            "template_id": "se_400_r90_x6",
+            "intervals": "synthetic-se-400-with-recovery",
+        },
+        "2026-10-29": {
+            "template_id": "other",
+            "intervals": "synthetic-autosplit-no-rest",
+        },
+        "2026-10-31": {
+            "template_id": "se_400_r90_x6",
+            "intervals": "missing-file",
+        },
+    }
+    with patch("urllib.request.urlopen", side_effect=AssertionError("live API")):
+        found = loaded_distances(sessions, actuals)
+        named = loaded_distances(
+            sessions,
+            {
+                "2026-10-27": {
+                    "template_id": "se_400_r90_x6",
+                    "intervals": "synthetic_autosplit_no_rest.json",
+                }
+            },
+        )
+    if found != {"2026-10-27": 5600.0} or named != {"2026-10-27": 5600.0}:
+        raise AssertionError((found, named))
+    activity = {"id": 44521, "distance": 8000, "average_heartrate": 151, "icu_intervals": []}
+    blank = {"id": "no-distance", "icu_intervals": [{"distance": 400, "average_heartrate": 176}]}
+    with tempfile.TemporaryDirectory() as directory:
+        folder = Path(directory)
+        (folder / "real_tuesday.json").write_text(json.dumps(activity), encoding="utf-8")
+        (folder / "real_blank.json").write_text(json.dumps(blank), encoding="utf-8")
+        (folder / "real_broken.json").write_text("{", encoding="utf-8")
+        with patch("urllib.request.urlopen", side_effect=AssertionError("live API")):
+            opened = activity_by_ref("44521", folder)
+            distances = loaded_distances(
+                [
+                    {"date": "2026-10-20", "template_id": "se_400_r90_x6"},
+                    {"date": "2026-10-21", "template_id": "se_400_r90_x6"},
+                ],
+                {
+                    "2026-10-20": {"template_id": "se_400_r90_x6", "intervals": "44521"},
+                    "2026-10-21": {"template_id": "se_400_r90_x6", "intervals": "no-distance"},
+                },
+                folder,
+            )
+            missing = loaded_distances(
+                [{"date": "2026-10-22", "template_id": "se_400_r90_x6"}],
+                {"2026-10-22": {"template_id": "se_400_r90_x6", "intervals": "real_broken.json"}},
+                folder,
+            )
+    if heart_rate_text(opened) != "151 bpm" or activity_distance(opened) != 8000:
+        raise AssertionError((heart_rate_text(opened), activity_distance(opened)))
+    if distances != {"2026-10-20": 8000.0} or missing != {}:
+        raise AssertionError((distances, missing))
+
+
+def test_session_shows_average_heart_rate() -> None:
+    """Session detail shows Avg HR from the activity JSON. It does not call the API."""
+    app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
+    page = _function(app, "page_session")
+    if "heart_rate_text(" not in page or "Avg HR" not in page:
+        raise AssertionError("the session page does not show average heart rate")
+    if "fetch_activity" in page or "urlopen" in page or "explain(" in page or "SPEND_CAP" in page:
+        raise AssertionError("the session page calls the network or spends")
+
+
 def test_quality_session_prefills_from_the_file() -> None:
     """The session page fills the existing boxes and keeps judge() and adapt()."""
     app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
@@ -376,6 +498,9 @@ if __name__ == "__main__":
     test_bad_json_stays_local()
     test_quality_file_fills_work_times()
     test_quality_file_stores_filename_without_an_id()
+    test_local_file_distance_and_heart_rate()
+    test_loaded_distances_read_the_stored_file()
+    test_session_shows_average_heart_rate()
     test_quality_session_prefills_from_the_file()
     test_page_keeps_the_fixture_dropdown_and_stays_offline()
     print("last session ok")

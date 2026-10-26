@@ -9,12 +9,18 @@ has no countdown. The current week counts from today to the goal. An
 upcoming week counts from the Saturday that closes it, so the number
 steps down by a week each row.
 
+Each week shows a distance. Loaded Intervals files for that week are
+summed. A week with none uses the work distance written in the template ids.
+
 No model. No spend. No scores.
 """
 
 from __future__ import annotations
 
+import math
 from datetime import date, timedelta
+
+from engines.season import work_meters
 
 # The three marks adapt() already stores. Anything else is not a mark.
 MARKS = ("on_track", "not_hitting", "smashing")
@@ -83,6 +89,75 @@ def week_status(*, start: date, week_number: int, today: date, marked: bool) -> 
     return None
 
 
+def week_volume(sessions: list, distances: dict | None = None) -> str:
+    """This week's distance. Loaded Intervals files, or template meters."""
+    recorded = _recorded_meters(sessions, distances)
+    if recorded is not None:
+        return _meter_text(recorded)
+    return _meter_text(_template_meters(sessions))
+
+
+def _recorded_meters(sessions: list, distances: dict | None) -> float | None:
+    """Sum of loaded activity distances. None when this week has none."""
+    if not isinstance(distances, dict) or not sessions:
+        return None
+    total = 0.0
+    count = 0
+    for session in sessions:
+        if not isinstance(session, dict):
+            continue
+        day = session.get("date")
+        if not isinstance(day, str) or day not in distances:
+            continue
+        meters = _distance_number(distances.get(day))
+        if meters is None:
+            continue
+        total += meters
+        count += 1
+    if count == 0:
+        return None
+    return total
+
+
+def _template_meters(sessions: list) -> int | None:
+    """Work distance written in the template ids. One unreadable id clears the week."""
+    if not sessions:
+        return None
+    total = 0
+    for session in sessions:
+        if not isinstance(session, dict):
+            return None
+        template_id = session.get("template_id")
+        if not isinstance(template_id, str) or not template_id:
+            return None
+        try:
+            total += work_meters(template_id)
+        except ValueError:
+            return None
+    return total
+
+
+def _distance_number(value: object) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    number = float(value)
+    if not math.isfinite(number) or number < 0:
+        return None
+    return number
+
+
+def _meter_text(meters: int | float | None) -> str:
+    if isinstance(meters, bool) or not isinstance(meters, (int, float)):
+        return "—"
+    if isinstance(meters, float):
+        if not math.isfinite(meters) or meters < 0:
+            return "—"
+        meters = int(meters + 0.5)
+    if meters < 0:
+        return "—"
+    return f"{meters:,} m"
+
+
 def phase_label(sessions: list) -> str:
     """The phase digits already stored on the week's sessions."""
     found: list[str] = []
@@ -117,11 +192,13 @@ def progress_weeks(
     sessions: list,
     marks: dict | None,
     today: date,
+    distances: dict | None = None,
 ) -> list[dict]:
-    """Week number, phase, status, and days remaining, in season order.
+    """Week number, phase, status, days remaining, and volume, in season order.
 
     A done or unmarked week has no countdown. The current week counts from
     today. An upcoming week counts from the Saturday that closes it.
+    Volume is the loaded Intervals distance for that week, or template meters.
     """
     if isinstance(length, bool) or not isinstance(length, int) or length <= 0:
         return []
@@ -154,6 +231,7 @@ def progress_weeks(
                     goal=goal,
                     today=today,
                 ),
+                "volume": week_volume(grouped.get(number, []), distances),
             }
         )
     return rows
