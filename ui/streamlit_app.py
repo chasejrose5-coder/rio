@@ -1,6 +1,6 @@
-# streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, Settings, and Session. Display only. No classification rules.
+# streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Activity data, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, Settings, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening the app, Dashboard, or Weekly reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved in this browser with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. The page does not call Intervals.icu. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity data lists every matched Intervals activity and shows the activity header, the Intervals table, the HR summary, and streams when that activity has them. A field the adapter does not store says not pulled. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening the app, Dashboard, or Weekly reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved in this browser with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. The page does not call Intervals.icu. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -35,6 +35,12 @@ from ui.activities import (
     sync_recent,
     weekday_name,
     with_matched_distances,
+)
+from ui.activity_data import (
+    activity_banner,
+    activity_view,
+    choice_labels,
+    matched_activities,
 )
 from ui.last_session import (
     IntervalsFileError,
@@ -1726,6 +1732,11 @@ h2.rio-week-title {
   font-weight: 500;
   line-height: 1.45;
   overflow-wrap: anywhere;
+}
+.rio-v .rio-missing,
+.rio-table td .rio-missing {
+  color: #8a8a8a;
+  font-weight: 400;
 }
 .rio-prose {
   margin: 0.35rem 0 0.15rem !important;
@@ -3815,6 +3826,84 @@ def page_session() -> None:
         _render_result(plan, session, int(st.session_state.get("season_generation") or 0))
 
 
+def _data_value(value: object) -> str:
+    text = "" if value is None else str(value).strip()
+    if text == "not pulled.":
+        return '<span class="rio-missing">not pulled.</span>'
+    return _esc(_plain(value))
+
+
+def _data_fields(pairs: list[tuple[str, object]]) -> str:
+    rows = []
+    for label, value in pairs:
+        rows.append(
+            '<div class="rio-field">'
+            f'<div class="rio-k">{_esc(label)}</div>'
+            f'<div class="rio-v">{_data_value(value)}</div>'
+            "</div>"
+        )
+    return f'<div class="rio-fields">{"".join(rows)}</div>'
+
+
+def _data_table(rows: list[dict]) -> str:
+    if not rows:
+        return '<p class="rio-empty">—</p>'
+    headers = list(rows[0].keys())
+    head = "".join(f"<th>{_esc(header)}</th>" for header in headers)
+    body = []
+    for row in rows:
+        cells = "".join(f"<td>{_data_value(row.get(header))}</td>" for header in headers)
+        body.append(f"<tr>{cells}</tr>")
+    return (
+        '<div class="rio-table-wrap"><table class="rio-table"><thead><tr>'
+        f"{head}</tr></thead><tbody>{''.join(body)}</tbody></table></div>"
+    )
+
+
+def page_activity() -> None:
+    """Every matched Intervals activity, in the four v0.1 field groups.
+
+    The drop-down is the matched activities this browser has stored. A field
+    the adapter does not store says not pulled. Streams stay off the page
+    until the activity has them. No prose, so this page does not spend.
+    No scores.
+    """
+    rows = matched_activities(_stored_activities())
+    hero, controls = _open("Activity data", controls=bool(rows))
+    selected = None
+    if rows and controls is not None:
+        labels = choice_labels(rows)
+        key = "activity-data"
+        if st.session_state.get(key) not in labels:
+            st.session_state.pop(key, None)
+        with controls:
+            chosen = st.selectbox("Activity", labels, key=key)
+        selected = rows[labels.index(chosen)]
+    with hero:
+        st.markdown(
+            _page_hero("Activity data", activity_banner(selected) if selected else None),
+            unsafe_allow_html=True,
+        )
+    if selected is None:
+        st.markdown(
+            '<p class="rio-empty">No matched activities.</p>',
+            unsafe_allow_html=True,
+        )
+        return
+    view = activity_view(selected, date_format=_prefs()["date_format"])
+    _card(_label("Activity header"), _data_fields(view["header"]))
+    _card(_label("Intervals"), _data_table(view["intervals"]))
+    _card(_label("HR summary"), _data_fields(view["hr"]))
+    streams = view.get("streams")
+    if streams == "not pulled.":
+        _card(
+            _label("Streams"),
+            '<p class="rio-note"><span class="rio-missing">not pulled.</span></p>',
+        )
+    elif streams:
+        _card(_label("Streams"), _data_fields(streams))
+
+
 def _setting_widgets(prefs: dict) -> None:
     """Seed the controls once. Later runs keep the widget value."""
     seed = {
@@ -3888,6 +3977,7 @@ _NAV_PAGES[:] = [
     ("Calendar", st.Page(_with_plan(page_calendar), title="Calendar", url_path="calendar")),
     ("Library", st.Page(_with_plan(page_library), title="Library", url_path="library")),
     ("Last Session", st.Page(_with_plan(page_last_session), title="Last Session", url_path="last-session")),
+    ("Activity data", st.Page(_with_plan(page_activity), title="Activity data", url_path="activity")),
     ("Next", st.Page(_with_plan(page_next), title="Next", url_path="next")),
     ("Decisions", st.Page(_with_plan(page_decisions), title="Decisions", url_path="decisions")),
     ("Ledger", st.Page(_with_plan(page_ledger), title="Ledger", url_path="ledger")),
