@@ -16,6 +16,7 @@ from ui.activity_data import (
     NOT_PULLED,
     activity_banner,
     activity_view,
+    all_activities,
     choice_labels,
     file_heart_rates,
     heart_rate_points,
@@ -272,6 +273,128 @@ def test_a_row_is_one_matched_session() -> None:
         raise AssertionError(named[0]["label"])
 
 
+def test_every_activity_is_listed_and_an_unmatched_row_is_extra() -> None:
+    """Date, name, activity distance, and average heart rate.
+
+    The matched table still lists only a planned day with work or heart
+    rate. WORK meters are not the activity distance. An activity with no
+    distance and no heart rate stays off both lists.
+    """
+    activities = [
+        {
+            "id": "a",
+            "matched": True,
+            "date": "2026-04-21",
+            "start": "2026-04-21T08:00:00",
+            "template_id": "se_400_r90_x6",
+            "name": "Synthetic 6 x 400",
+            "work_m": 800,
+            "heart_rate": 151,
+            "distance": 5600,
+        },
+        {
+            "id": "long",
+            "matched": True,
+            "date": "2026-04-23",
+            "start": "2026-04-23T09:00:00",
+            "name": "Long Z2 Test",
+            "work_m": 7500,
+            "heart_rate": 142,
+            "distance": 9000,
+        },
+        {
+            "id": "extra",
+            "matched": False,
+            "date": "2026-04-28",
+            "start": "2026-04-28T07:00:00",
+            "name": "Easy",
+            "work_m": 8000,
+            "heart_rate": 170,
+            "distance": 8200,
+        },
+        {
+            "id": "hr-only",
+            "matched": False,
+            "date": "2026-04-22",
+            "name": "Spin",
+            "heart_rate": 132,
+            "work_m": 400,
+        },
+        {
+            "id": "distance-only",
+            "matched": True,
+            "date": "2026-04-20",
+            "name": "  Walk  ",
+            "distance": 3000,
+        },
+        {
+            "id": "work-only",
+            "matched": True,
+            "date": "2026-04-19",
+            "name": "Intervals",
+            "work_m": 800,
+        },
+        {
+            "id": "empty",
+            "matched": False,
+            "date": "2026-04-18",
+            "name": "Empty",
+            "distance": 0,
+        },
+        {
+            "id": "",
+            "matched": False,
+            "date": "2026-04-30",
+            "name": "Blank",
+            "distance": 1000,
+            "heart_rate": 140,
+        },
+        "nope",
+    ]
+    rows = all_activities(activities)
+    if [row["id"] for row in rows] != ["extra", "long", "hr-only", "a", "distance-only"]:
+        raise AssertionError([row["id"] for row in rows])
+    easy = rows[0]
+    if easy["name"] != "Easy" or easy["extra"] is not True or easy["distance"] != "8,200 m":
+        raise AssertionError(easy)
+    if easy["hr"] != "170 bpm" or easy["meters"] != 8200 or easy["meters"] == 8000:
+        raise AssertionError("WORK meters replaced the activity distance")
+    speed = next(row for row in rows if row["id"] == "a")
+    if speed["extra"] is not False or speed["name"] != "Synthetic 6 x 400":
+        raise AssertionError(speed)
+    if speed["distance"] != "5,600 m" or speed["meters"] != 5600 or speed["hr"] != "151 bpm":
+        raise AssertionError(speed)
+    if speed["meters"] == 800:
+        raise AssertionError("WORK meters replaced the activity distance")
+    spin = next(row for row in rows if row["id"] == "hr-only")
+    if spin["extra"] is not True or spin["distance"] != "—" or spin["hr"] != "132 bpm":
+        raise AssertionError(spin)
+    if spin["meters"] is not None:
+        raise AssertionError("WORK meters were shown as the activity distance")
+    walk = next(row for row in rows if row["id"] == "distance-only")
+    if walk["name"] != "Walk" or walk["hr"] != "—" or walk["meters"] != 3000 or walk["extra"] is not False:
+        raise AssertionError(walk)
+    if any(row["id"] in {"work-only", "empty"} for row in rows):
+        raise AssertionError("an empty activity was listed")
+    if any("probability" in row or "readiness" in row for row in rows):
+        raise AssertionError("a score was added")
+    short = all_activities(
+        [{"id": "a", "matched": False, "date": "2026-04-21", "name": "", "heart_rate": 151}],
+        date_format="short",
+    )
+    if short[0]["shown_date"] != "Apr 21, 2026" or short[0]["name"] != "—":
+        raise AssertionError(short[0])
+    if short[0]["extra"] is not True or short[0]["distance"] != "—":
+        raise AssertionError(short[0])
+    matched = session_rows(activities, PLAN)
+    if [row["id"] for row in matched] != ["long", "a", "work-only"]:
+        raise AssertionError([row["id"] for row in matched])
+    if matched[1]["meters"] != 800 or matched[1]["label"] != "Speed endurance":
+        raise AssertionError(matched[1])
+    if "5,600" in matched[1]["work"] or matched[1]["meters"] == 5600:
+        raise AssertionError("the activity distance replaced WORK meters")
+
+
 def test_weekly_work_is_matched_distance_only() -> None:
     """Each plan week sums WORK meters. A week with no match is 0.
 
@@ -445,11 +568,35 @@ def test_the_page_lists_matched_activities_and_does_not_spend() -> None:
     if "probability" in page.lower() or "readiness" in page.lower():
         raise AssertionError("the page adds a score")
     season = (ROOT / "engines" / "season.py").read_text(encoding="utf-8")
-    if "activity_view" in season or "page_activity" in season or "session_rows" in season:
+    if "all_activities" in season or "activity_view" in season or "page_activity" in season:
+        raise AssertionError("season.py was changed for this page")
+    if "session_rows" in season:
         raise AssertionError("season.py was changed for this page")
     classify = (ROOT / "engines" / "classify.py").read_text(encoding="utf-8")
-    if "activity_view" in classify or "not pulled" in classify or "session_rows" in classify:
+    if "all_activities" in classify or "activity_view" in classify or "not pulled" in classify:
         raise AssertionError("classification was changed for this page")
+    if "session_rows" in classify:
+        raise AssertionError("classification was changed for this page")
+    listed = source[source.index("def all_activities(") : source.index("\ndef choice_labels(")]
+    if 'get("distance")' not in listed or 'get("work_m")' in listed:
+        raise AssertionError("the all-activities list uses WORK meters")
+    if 'activity.get("matched") is not True' not in listed:
+        raise AssertionError("an unmatched activity is not marked extra")
+    all_table = app[app.index("def _all_activities_table(") : app.index("\ndef _activity_table(")]
+    for heading in ("Date", "Activity", "Distance", "Avg HR"):
+        if heading not in all_table:
+            raise AssertionError(f"the all-activities table omits {heading}")
+    if 'label = "extra"' not in all_table:
+        raise AssertionError("an unmatched row is not labeled extra")
+    if "Workout" in all_table:
+        raise AssertionError("the all-activities table uses the matched workout label")
+    if "all_activities(" not in page or "_all_activities_table(" not in page or "All activities" not in page:
+        raise AssertionError("the page does not list every activity")
+    tail = page[page.index("No matched activities.") :]
+    if "return" in tail:
+        raise AssertionError("an empty matched list hides the other activities")
+    if "_activity_table(" not in tail or "_all_activities_table(" not in tail:
+        raise AssertionError("one of the activity tables was removed")
 
 
 def main() -> None:
@@ -458,6 +605,7 @@ def main() -> None:
     test_stored_header_and_hr_show_and_the_rest_is_not_pulled()
     test_streams_show_only_when_present_and_stay_not_pulled()
     test_a_row_is_one_matched_session()
+    test_every_activity_is_listed_and_an_unmatched_row_is_extra()
     test_weekly_work_is_matched_distance_only()
     test_a_loaded_file_supplies_work_and_heart_rate()
     test_heart_rate_dots_are_labeled_with_the_date()

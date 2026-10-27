@@ -5,8 +5,15 @@
 One row is one matched session: the date, the template or the activity
 label, WORK meters, and average heart rate. Weekly meters sum that work.
 Warm-up and cool-down stay out. Template meters are not used. A day with
-no stored match and no Intervals file is left out, so an empty record
+no stored match and no Intervals file is left out. A matched activity
+with no work meters and no heart rate is left out, so an empty record
 draws no line and no dot.
+
+A second list is every stored activity that has an activity distance or
+an average heart rate. Each row shows the date, the activity name, that
+distance, and the heart rate. An unmatched activity is labeled extra.
+An activity with no distance and no heart rate is left out. WORK meters
+are not that distance.
 
 The field groups remain for a stored activity whose samples were not
 pulled. The header and the Intervals table follow the locked field map.
@@ -88,6 +95,50 @@ def matched_activities(activities: object) -> list[dict]:
         ),
         reverse=True,
     )
+    return rows
+
+
+def all_activities(activities: object, *, date_format: str = "iso") -> list[dict]:
+    """Every stored activity with a distance or an average heart rate.
+
+    Newest start first. The name is the activity name. Distance is the
+    activity distance, not WORK meters. An unmatched activity is labeled
+    extra. An activity with no distance and no heart rate is left out.
+    """
+    rows = []
+    for activity in activities or []:
+        if not isinstance(activity, dict):
+            continue
+        ident = _ident(activity.get("id"))
+        if ident is None:
+            continue
+        meters = _whole_meters(activity.get("distance"))
+        if meters == 0:
+            meters = None
+        bpm = _bpm(activity.get("heart_rate"))
+        if meters is None and bpm is None:
+            continue
+        day = activity.get("date") if isinstance(activity.get("date"), str) else ""
+        name = activity.get("name")
+        title = name.strip() if isinstance(name, str) and name.strip() else "—"
+        shown = format_date(day, date_format) if day else "—"
+        if not shown:
+            shown = "—"
+        rows.append(
+            {
+                "date": day,
+                "shown_date": shown,
+                "name": title,
+                "meters": meters,
+                "distance": _work_text(meters),
+                "heart_rate": bpm,
+                "hr": _hr_text(bpm),
+                "extra": activity.get("matched") is not True,
+                "id": ident,
+                "start": str(activity.get("start") or ""),
+            }
+        )
+    rows.sort(key=lambda row: (row["date"], row["start"], row["id"]), reverse=True)
     return rows
 
 
@@ -289,6 +340,7 @@ def session_rows(
     WORK distance. A loaded file fills a planned day that has no matched
     work meters. Warm-up, cool-down, activity totals, and template meters
     are not used. A day with neither a match nor a file is left out.
+    A matched activity with no work meters and no heart rate is left out.
     """
     planned = _planned(sessions)
     distances = file_distances if isinstance(file_distances, dict) else {}
@@ -306,6 +358,8 @@ def session_rows(
         bpm = _bpm(activity.get("heart_rate"))
         if bpm is None and day:
             bpm = _bpm(rates.get(day))
+        if meters is None and bpm is None:
+            continue
         rows.append(
             _session_row(
                 day,
