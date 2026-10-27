@@ -1,11 +1,13 @@
-# activities.py — pull recent Intervals activities and match them by date.
+# activities.py — pull Intervals activities and match them by date.
 
-"""Read the last 14 days and attach each activity to the planned day.
+"""Read activities and attach each one to the planned day.
 
-list_activities asks Intervals.icu for that window. The key and the athlete
-id come from the local environment, filled from .env when a value is not
-already set. fetch_activity then reads each activity. The earliest run on a
-planned date fills that session. Any other activity is an extra session.
+The last 14 days are the Dashboard and Weekly window. Activity data asks
+for every activity through today. list_activities asks Intervals.icu for
+that range. The key and the athlete id come from the local environment,
+filled from .env when a value is not already set. fetch_activity then reads
+each activity. The earliest run on a planned date fills that session. Any
+other activity is an extra session.
 
 A matched day keeps that activity's WORK elapsed times, WORK distance, and
 average heart rate. Warm-up and cool-down stay out of the distance. The
@@ -40,7 +42,9 @@ _ENV_ALIASES = (
 
 # Today and the 13 days before it. oldest and newest are both included.
 WINDOW_DAYS = 14
-# A long history in one response does not turn into an unbounded fetch.
+# Activity data asks from this day through today. Both ends are included.
+HISTORY_START = date(1970, 1, 1)
+# A 14-day list does not turn into an unbounded fetch. Activity data has no cap.
 MAX_FETCH = 40
 _ID_LIMIT = 120
 _NAME_LIMIT = 120
@@ -56,6 +60,14 @@ def activity_window(today: date) -> tuple[str, str]:
     if type(today) is not date:
         raise TypeError("today must be a date")
     oldest = today - timedelta(days=WINDOW_DAYS - 1)
+    return oldest.isoformat(), today.isoformat()
+
+
+def activity_history(today: date) -> tuple[str, str]:
+    """Oldest and newest day, YYYY-MM-DD, covering every activity through today."""
+    if type(today) is not date:
+        raise TypeError("today must be a date")
+    oldest = HISTORY_START if today >= HISTORY_START else today
     return oldest.isoformat(), today.isoformat()
 
 
@@ -92,40 +104,49 @@ def pull_recent(
     fetch_fn=None,
     load_env=None,
 ) -> list[dict]:
-    """Activities in the window, each matched or marked extra.
+    """Activities in the last 14 days, each matched or marked extra.
 
     The default list and fetch call Intervals.icu with the local key.
-    A failed detail read keeps the listed row. A failed list raises PullError
-    from sync_recent. Nothing is written here.
+    At most MAX_FETCH activities are read. A failed detail read keeps the
+    listed row. A failed list raises PullError from sync_recent. Nothing
+    is written here.
     """
-    if load_env is None:
-        load_env = load_local_env
-    load_env()
     oldest, newest = activity_window(today)
-    if list_fn is None:
-        summaries = list_activities(oldest, newest)
-    else:
-        summaries = list_fn(oldest, newest)
-    if not isinstance(summaries, list):
-        raise IntervalsIcuError("Intervals.icu activity list was not a JSON array.")
-    details = []
-    for summary in _newest_first(summaries)[:MAX_FETCH]:
-        activity_id = summary.get("id")
-        if activity_id is None or str(activity_id).strip() == "":
-            continue
-        if fetch_fn is None:
-            try:
-                fetched = fetch_activity(activity_id)
-            except IntervalsIcuError:
-                fetched = summary
-        else:
-            try:
-                fetched = fetch_fn(activity_id)
-            except IntervalsIcuError:
-                fetched = summary
-        if isinstance(fetched, dict):
-            details.append(fetched)
-    return match_activities(sessions, details)
+    return _pull(
+        sessions,
+        oldest,
+        newest,
+        limit=MAX_FETCH,
+        list_fn=list_fn,
+        fetch_fn=fetch_fn,
+        load_env=load_env,
+    )
+
+
+def pull_all(
+    sessions: list,
+    today: date,
+    *,
+    list_fn=None,
+    fetch_fn=None,
+    load_env=None,
+) -> list[dict]:
+    """Every activity through today, each matched or marked extra.
+
+    The default list and fetch call Intervals.icu with the local key.
+    Each listed activity is read. A failed detail read keeps the listed row.
+    A failed list raises PullError from sync_all. Nothing is written here.
+    """
+    oldest, newest = activity_history(today)
+    return _pull(
+        sessions,
+        oldest,
+        newest,
+        limit=None,
+        list_fn=list_fn,
+        fetch_fn=fetch_fn,
+        load_env=load_env,
+    )
 
 
 def sync_recent(
@@ -137,7 +158,7 @@ def sync_recent(
     fetch_fn=None,
     load_env=None,
 ) -> list[dict]:
-    """Pull the window and replace stored activities inside it.
+    """Pull the last 14 days and replace stored activities inside that window.
 
     Activities outside the window stay. A list failure raises PullError and
     leaves the caller holding the previous record.
@@ -154,6 +175,81 @@ def sync_recent(
         raise PullError(str(exc)) from exc
     oldest, newest = activity_window(today)
     return merge_activities(stored, pulled, oldest, newest)
+
+
+def sync_all(
+    sessions: list,
+    stored: object,
+    today: date,
+    *,
+    list_fn=None,
+    fetch_fn=None,
+    load_env=None,
+) -> list[dict]:
+    """Pull every activity through today and replace stored rows in that range.
+
+    Activities after today stay. A list failure raises PullError and leaves
+    the caller holding the previous record.
+    """
+    try:
+        pulled = pull_all(
+            sessions,
+            today,
+            list_fn=list_fn,
+            fetch_fn=fetch_fn,
+            load_env=load_env,
+        )
+    except IntervalsIcuError as exc:
+        raise PullError(str(exc)) from exc
+    oldest, newest = activity_history(today)
+    return merge_activities(stored, pulled, oldest, newest)
+
+
+def _pull(
+    sessions: list,
+    oldest: str,
+    newest: str,
+    *,
+    limit: int | None,
+    list_fn=None,
+    fetch_fn=None,
+    load_env=None,
+) -> list[dict]:
+    """List the range, read each activity, and match by date.
+
+    limit caps how many listed rows are read, newest first. None reads every
+    listed activity. The local key is loaded before the list call.
+    """
+    if load_env is None:
+        load_env = load_local_env
+    load_env()
+    if list_fn is None:
+        summaries = list_activities(oldest, newest)
+    else:
+        summaries = list_fn(oldest, newest)
+    if not isinstance(summaries, list):
+        raise IntervalsIcuError("Intervals.icu activity list was not a JSON array.")
+    ordered = _newest_first(summaries)
+    if limit is not None:
+        ordered = ordered[:limit]
+    details = []
+    for summary in ordered:
+        activity_id = summary.get("id")
+        if activity_id is None or str(activity_id).strip() == "":
+            continue
+        if fetch_fn is None:
+            try:
+                fetched = fetch_activity(activity_id)
+            except IntervalsIcuError:
+                fetched = summary
+        else:
+            try:
+                fetched = fetch_fn(activity_id)
+            except IntervalsIcuError:
+                fetched = summary
+        if isinstance(fetched, dict):
+            details.append(fetched)
+    return match_activities(sessions, details)
 
 
 def match_activities(sessions: list, activities: list) -> list[dict]:

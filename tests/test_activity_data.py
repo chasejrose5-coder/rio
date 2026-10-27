@@ -380,7 +380,7 @@ def test_heart_rate_dots_are_labeled_with_the_date() -> None:
 
 
 def test_the_page_lists_matched_activities_and_does_not_spend() -> None:
-    """Activity data is in the nav. Opening it pulls. Refresh pulls again.
+    """Activity data is in the nav. Opening it reads every activity. Refresh reads again.
 
     The page does not classify, score, or call the model. The adapter is the
     only reader. Prose spend stays capped at $25. Season and classification
@@ -432,8 +432,10 @@ def test_the_page_lists_matched_activities_and_does_not_spend() -> None:
     pull_for = app[app.index("def _pull_for(") : app.index("\ndef _with_plan(")]
     if 'st.session_state.get("activity-refresh") is True' not in pull_for:
         raise AssertionError("refresh does not read activities again")
+    if 'page_name == "page_activity"' not in pull_for or "sync_all(" not in pull_for:
+        raise AssertionError("opening Activity data does not read every activity")
     if "sync_recent(" not in pull_for:
-        raise AssertionError("refresh does not call the adapter")
+        raise AssertionError("dashboard and weekly do not read the last 14 days")
     if "explain(" in page or "classify(" in page or "sequence(" in page or "adapt(" in page:
         raise AssertionError("the page spends or classifies")
     if "fetch_activity" in page or "urlopen" in page or "list_activities" in page:
