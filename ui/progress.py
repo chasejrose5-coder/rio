@@ -469,17 +469,24 @@ def matched_heart_rates(activities: object) -> list[dict]:
     return found
 
 
-def heart_rate_chart(points: list, *, start: date, weeks: int) -> str:
+def heart_rate_chart(
+    points: list,
+    *,
+    start: date,
+    weeks: int,
+    captions: dict | None = None,
+) -> str:
     """Dots for matched heart rates on this season. A day with none is blank.
 
     points come from matched_heart_rates(). A date outside the season is
-    left out. Display only. No scores.
+    left out. captions replaces the visible label for that ISO date. The
+    value stays on the dot. Display only. No scores.
     """
     if isinstance(weeks, bool) or not isinstance(weeks, int) or weeks <= 0:
         return ""
     if type(start) is not date:
         return ""
-    dots = _heart_dots(points, start, weeks)
+    dots = _heart_dots(points, start, weeks, captions)
     if not dots:
         return ""
     _place_heart_labels(dots)
@@ -523,7 +530,12 @@ def _bpm_text(bpm: float) -> str:
     return f"{bpm:.1f}"
 
 
-def _heart_dots(points: list, start: date, weeks: int) -> list[dict]:
+def _heart_dots(
+    points: list,
+    start: date,
+    weeks: int,
+    captions: dict | None = None,
+) -> list[dict]:
     origin = week_sunday(start, 1)
     close = origin + timedelta(days=weeks * 7 - 1)
     chosen = []
@@ -565,11 +577,30 @@ def _heart_dots(points: list, start: date, weeks: int) -> list[dict]:
                 "x": x,
                 "y": y,
                 "bpm": item["bpm"],
-                "label": _heart_label(item["date"], item["bpm"], len(months) > 1),
+                "label": _heart_caption(
+                    item["date"],
+                    item["bpm"],
+                    len(months) > 1,
+                    captions,
+                ),
                 "title": f"{item['date'].isoformat()} · {_bpm_text(item['bpm'])} bpm",
             }
         )
     return dots
+
+
+def _heart_caption(
+    day: date,
+    bpm: float,
+    with_month: bool,
+    captions: dict | None,
+) -> str:
+    """The visible label. A date caption replaces the weekday line."""
+    if isinstance(captions, dict):
+        found = captions.get(day.isoformat())
+        if isinstance(found, str) and found.strip() and found.strip() != "—":
+            return found.strip()
+    return _heart_label(day, bpm, with_month)
 
 
 def _heart_label(day: date, bpm: float, with_month: bool) -> str:
