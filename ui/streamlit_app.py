@@ -1,6 +1,6 @@
 # streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Activity data, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, Settings, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity data lists every matched Intervals activity and shows the activity header, the Intervals table, the HR summary, and streams when that activity has them. A field the adapter does not store says not pulled. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening the app, Dashboard, or Weekly reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved in this browser with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. The page does not call Intervals.icu. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity data lists one row per matched Intervals workout: the date, the template or label, completed work meters, and average heart rate. The line is weekly completed WORK distance. Warm-up, cool-down, and template meters stay out. A dot marks each matched workout that has an average heart rate, labeled with the date. No stored match and no Intervals file leaves that page empty. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening the app, Dashboard, or Weekly reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved in this browser with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. The page does not call Intervals.icu. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -38,9 +38,10 @@ from ui.activities import (
 )
 from ui.activity_data import (
     activity_banner,
-    activity_view,
-    choice_labels,
-    matched_activities,
+    file_heart_rates,
+    heart_rate_points,
+    session_rows,
+    weekly_completed_meters,
 )
 from ui.last_session import (
     IntervalsFileError,
@@ -3833,18 +3834,6 @@ def _data_value(value: object) -> str:
     return _esc(_plain(value))
 
 
-def _data_fields(pairs: list[tuple[str, object]]) -> str:
-    rows = []
-    for label, value in pairs:
-        rows.append(
-            '<div class="rio-field">'
-            f'<div class="rio-k">{_esc(label)}</div>'
-            f'<div class="rio-v">{_data_value(value)}</div>'
-            "</div>"
-        )
-    return f'<div class="rio-fields">{"".join(rows)}</div>'
-
-
 def _data_table(rows: list[dict]) -> str:
     if not rows:
         return '<p class="rio-empty">—</p>'
@@ -3860,48 +3849,154 @@ def _data_table(rows: list[dict]) -> str:
     )
 
 
-def page_activity() -> None:
-    """Every matched Intervals activity, in the four v0.1 field groups.
+def _activity_banner(activities: object, actuals: object) -> str | None:
+    """SYNTHETIC / FIXTURE when a stored match or a chosen file says synthetic."""
+    for row in activities or []:
+        found = activity_banner(row)
+        if found:
+            return found
+    if not isinstance(actuals, dict):
+        return None
+    for row in actuals.values():
+        if not isinstance(row, dict):
+            continue
+        found = activity_banner({"name": row.get("intervals"), "id": row.get("intervals")})
+        if found:
+            return found
+    return None
 
-    The drop-down is the matched activities this browser has stored. A field
-    the adapter does not store says not pulled. Streams stay off the page
-    until the activity has them. No prose, so this page does not spend.
-    No scores.
+
+def _activity_date_captions(rows: list[dict]) -> dict[str, str]:
+    """Visible heart-rate labels. Each dot uses the session date."""
+    captions: dict[str, str] = {}
+    for row in rows:
+        day = row.get("date")
+        shown = row.get("shown_date")
+        if not isinstance(day, str) or not day or not isinstance(shown, str):
+            continue
+        text = shown.strip()
+        if text and text != "—":
+            captions[day] = text
+    return captions
+
+
+def _activity_table(rows: list[dict]) -> str:
+    """Date, template or label, work meters, and average heart rate."""
+    units = _prefs()["units"]
+    show_ids = _prefs()["show_ids"]
+    table = []
+    for row in rows:
+        label = str(row.get("label") or "—")
+        template_id = str(row.get("template_id") or "").strip()
+        if show_ids and template_id and template_id not in label:
+            label = f"{label} · {template_id}"
+        work = str(row.get("work") or "—")
+        if row.get("meters") is not None:
+            work = display_distance(work, units) or work
+        table.append(
+            {
+                "Date": row.get("shown_date") or "—",
+                "Workout": label,
+                "Work": work,
+                "Avg HR": row.get("hr") or "—",
+            }
+        )
+    return _data_table(table)
+
+
+def page_activity() -> None:
+    """Matched Intervals workouts from the plan Start stored.
+
+    One row per matched session: date, template or label, work meters, and
+    average heart rate. The line is weekly completed WORK distance. Warm-up
+    and cool-down stay out. Template meters are not used. A dot marks each
+    matched workout that has an average heart rate, labeled with the date.
+    Marks stay on the stored plan. No stored match and no Intervals file
+    leaves the page empty. No prose, so this page does not spend. No scores.
     """
-    rows = matched_activities(_stored_activities())
-    hero, controls = _open("Activity data", controls=bool(rows))
-    selected = None
-    if rows and controls is not None:
-        labels = choice_labels(rows)
-        key = "activity-data"
-        if st.session_state.get(key) not in labels:
-            st.session_state.pop(key, None)
-        with controls:
-            chosen = st.selectbox("Activity", labels, key=key)
-        selected = rows[labels.index(chosen)]
+    chrome = st.container(gap=None)
+    hero = st.container(gap=None)
+    with chrome:
+        st.markdown(_css(), unsafe_allow_html=True)
+        _render_nav("Activity data")
+
+    plan, start, goal, error = _stored_season()
+    if plan is None or start is None or goal is None:
+        with hero:
+            if error:
+                st.markdown(
+                    '<header class="rio-hero">'
+                    '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
+                    "<h1>Activity data</h1>"
+                    f'<p class="rio-error">{_esc(error)}</p></header>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    _page_hero("Activity data", "SYNTHETIC / DEMO"),
+                    unsafe_allow_html=True,
+                )
+        if not error:
+            st.markdown(
+                '<p class="rio-empty">Generate a season on Start.</p>',
+                unsafe_allow_html=True,
+            )
+        return
+
+    length = plan.get("season_length_weeks")
+    sessions = plan.get("sessions")
+    if not isinstance(sessions, list):
+        sessions = []
+    if isinstance(length, bool) or not isinstance(length, int) or length <= 0:
+        with hero:
+            st.markdown(_page_hero("Activity data", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
+        st.markdown('<p class="rio-empty">—</p>', unsafe_allow_html=True)
+        return
+
+    activities = _stored_activities()
+    actuals = st.session_state.get("season_actuals")
+    stored_actuals = actuals if isinstance(actuals, dict) else {}
+    distances = loaded_distances(sessions, stored_actuals)
+    rates = file_heart_rates(sessions, stored_actuals)
+    rows = session_rows(
+        activities,
+        sessions,
+        file_distances=distances,
+        file_heart_rates=rates,
+        date_format=_prefs()["date_format"],
+    )
     with hero:
         st.markdown(
-            _page_hero("Activity data", activity_banner(selected) if selected else None),
+            _page_hero(
+                "Activity data",
+                _activity_banner(activities, stored_actuals),
+                f"{_date_text(start)} — {_date_text(goal)}",
+            ),
             unsafe_allow_html=True,
         )
-    if selected is None:
+    if not rows:
         st.markdown(
             '<p class="rio-empty">No matched activities.</p>',
             unsafe_allow_html=True,
         )
         return
-    view = activity_view(selected, date_format=_prefs()["date_format"])
-    _card(_label("Activity header"), _data_fields(view["header"]))
-    _card(_label("Intervals"), _data_table(view["intervals"]))
-    _card(_label("HR summary"), _data_fields(view["hr"]))
-    streams = view.get("streams")
-    if streams == "not pulled.":
-        _card(
-            _label("Streams"),
-            '<p class="rio-note"><span class="rio-missing">not pulled.</span></p>',
-        )
-    elif streams:
-        _card(_label("Streams"), _data_fields(streams))
+
+    units = _prefs()["units"]
+    meters = weekly_completed_meters(rows, start=start, length=length)
+    if meters:
+        captions = [display_distance(f"{value:,} m", units) for value in meters]
+        chart = volume_chart(meters, units, captions)
+        if chart:
+            st.markdown(chart, unsafe_allow_html=True)
+    heart = heart_rate_chart(
+        heart_rate_points(rows),
+        start=start,
+        weeks=length,
+        captions=_activity_date_captions(rows),
+    )
+    if heart:
+        st.markdown(heart, unsafe_allow_html=True)
+    _card(_label("Sessions"), _activity_table(rows))
 
 
 def _setting_widgets(prefs: dict) -> None:

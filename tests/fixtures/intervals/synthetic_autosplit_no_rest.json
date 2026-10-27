@@ -6,6 +6,7 @@
   "type": "Run",
   "distance": 5600,
   "elapsed_time": 1485,
+  "average_heartrate": 162,
   "icu_intervals": [
     {
       "id": 0,
