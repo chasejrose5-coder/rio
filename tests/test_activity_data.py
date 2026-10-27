@@ -250,16 +250,22 @@ def test_a_row_is_one_matched_session() -> None:
     if any(row["id"] == "extra" for row in rows):
         raise AssertionError("an unmatched activity was listed")
     short = session_rows(
-        [{"id": "a", "matched": True, "date": "2026-04-21", "name": "Long Z2 Test"}],
+        [{"id": "a", "matched": True, "date": "2026-04-21", "name": "Long Z2 Test", "heart_rate": 151}],
         [],
         date_format="short",
     )
     if short[0]["shown_date"] != "Apr 21, 2026" or short[0]["label"] != "Long Z2 Test":
         raise AssertionError(short[0])
-    if short[0]["work"] != "—" or short[0]["hr"] != "—" or short[0]["meters"] is not None:
-        raise AssertionError("a missing file invented work or heart rate")
+    if short[0]["work"] != "—" or short[0]["hr"] != "151 bpm" or short[0]["meters"] is not None:
+        raise AssertionError("a missing file invented work")
+    empty = session_rows(
+        [{"id": "empty", "matched": True, "date": "2026-04-22", "name": "Empty"}],
+        PLAN,
+    )
+    if empty:
+        raise AssertionError("an empty activity was listed")
     named = session_rows(
-        [{"id": "a", "matched": True, "date": "2026-04-21", "template_id": "custom_thing", "name": ""}],
+        [{"id": "a", "matched": True, "date": "2026-04-21", "template_id": "custom_thing", "name": "", "work_m": 400}],
         [],
     )
     if named[0]["label"] != "custom_thing":
@@ -374,9 +380,11 @@ def test_heart_rate_dots_are_labeled_with_the_date() -> None:
 
 
 def test_the_page_lists_matched_activities_and_does_not_spend() -> None:
-    """Activity data is in the nav. It does not classify, score, or call the model.
+    """Activity data is in the nav. Opening it pulls. Refresh pulls again.
 
-    Prose spend stays capped at $25. Season and classification stay untouched.
+    The page does not classify, score, or call the model. The adapter is the
+    only reader. Prose spend stays capped at $25. Season and classification
+    stay untouched.
     """
     if SPEND_CAP_MICRO_USD != 25_000_000:
         raise AssertionError("spend cap is not $25")
@@ -415,10 +423,21 @@ def test_the_page_lists_matched_activities_and_does_not_spend() -> None:
             raise AssertionError(f"the page omits {call}")
     if "No matched activities." not in page:
         raise AssertionError("an empty record does not say so")
+    if 'st.button("Refresh", key="activity-refresh")' not in page:
+        raise AssertionError("Activity data has no refresh")
+    if "_activities_notice(" not in page:
+        raise AssertionError("a failed pull is hidden")
+    if '_PULL_PAGES = ("page_dashboard", "page_weekly", "page_activity")' not in app:
+        raise AssertionError("opening Activity data does not pull")
+    pull_for = app[app.index("def _pull_for(") : app.index("\ndef _with_plan(")]
+    if 'st.session_state.get("activity-refresh") is True' not in pull_for:
+        raise AssertionError("refresh does not read activities again")
+    if "sync_recent(" not in pull_for:
+        raise AssertionError("refresh does not call the adapter")
     if "explain(" in page or "classify(" in page or "sequence(" in page or "adapt(" in page:
         raise AssertionError("the page spends or classifies")
     if "fetch_activity" in page or "urlopen" in page or "list_activities" in page:
-        raise AssertionError("the page calls the live API")
+        raise AssertionError("the page calls the live API directly")
     if "work_meters" in page:
         raise AssertionError("the page uses template meters")
     if "probability" in page.lower() or "readiness" in page.lower():
