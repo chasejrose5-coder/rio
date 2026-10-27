@@ -10,8 +10,9 @@ each activity. The earliest run on a planned date fills that session. Any
 other activity is an extra session.
 
 A matched day keeps that activity's WORK elapsed times, WORK distance, and
-average heart rate. Warm-up and cool-down stay out of the distance. The
-activity total is not the volume. Lap heart rates stay on the laps.
+average heart rate. Warm-up and cool-down stay out of the WORK distance.
+The activity distance is stored beside that and is not the volume. Lap
+heart rates stay on the laps.
 
 The browser record stores the match. A reload shows it again. Another
 athlete opening the same link uses the key on their own machine.
@@ -30,7 +31,12 @@ from adapters.intervals_icu import (
     fetch_activity,
     list_activities,
 )
-from ui.last_session import activity_heart_rate, work_distance, work_elapsed
+from ui.last_session import (
+    activity_distance,
+    activity_heart_rate,
+    work_distance,
+    work_elapsed,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -257,7 +263,8 @@ def match_activities(sessions: list, activities: list) -> list[dict]:
 
     A date with no run takes the earliest activity. A date with no planned
     session is extra. WORK times, WORK distance, and average heart rate are
-    copied off the activity. The activity distance is not copied.
+    copied off the activity. The activity distance is stored on its own and
+    is not used as the WORK distance.
     """
     planned: dict[str, str] = {}
     for session in sessions or []:
@@ -506,6 +513,10 @@ def _record(activity: dict, *, matched: bool, template_id: str | None) -> dict |
     heart = activity_heart_rate(activity)
     if heart is not None:
         row["heart_rate"] = _whole(heart)
+    # Activity distance stays off the WORK total.
+    total = activity_distance(activity)
+    if total is not None and total > 0:
+        row["distance"] = _whole(total)
     try:
         meters = work_distance(activity)
     except (TypeError, ValueError):
