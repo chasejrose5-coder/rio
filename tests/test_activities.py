@@ -15,14 +15,17 @@ if str(ROOT) not in sys.path:
 from adapters.intervals_icu import IntervalsIcuError
 from engines.explain import SPEND_CAP_MICRO_USD
 from ui.activities import (
+    HISTORY_START,
     MAX_FETCH,
     WINDOW_DAYS,
     PullError,
+    activity_history,
     activity_window,
     extras_between,
     load_local_env,
     match_activities,
     merge_activities,
+    sync_all,
     sync_recent,
     with_matched_distances,
 )
@@ -94,6 +97,8 @@ def test_a_run_on_a_planned_day_supplies_reps_volume_and_heart_rate() -> None:
         raise AssertionError(matched["work_m"])
     if matched["heart_rate"] != 151:
         raise AssertionError(matched["heart_rate"])
+    if matched.get("distance") != 99999:
+        raise AssertionError("the activity distance was not stored")
     if matched["work_m"] == 99999 or 180 in (matched["heart_rate"],):
         raise AssertionError("activity total or a lap heart rate was used")
     if by_id["ride-1"]["matched"] is not False or by_id["later"]["matched"] is not False:
@@ -102,6 +107,16 @@ def test_a_run_on_a_planned_day_supplies_reps_volume_and_heart_rate() -> None:
         raise AssertionError("an unmatched activity was given the planned template")
     if {row["id"] for row in rows if row["date"] == "2026-10-22"}:
         raise AssertionError("a planned day with no activity invented a match")
+    if by_id["easy"].get("distance") != 99999:
+        raise AssertionError("an extra activity dropped its distance")
+    zero = _run("2026-10-21", "zero", "07:30:00")
+    zero["distance"] = 0
+    zero["average_heartrate"] = None
+    zeroed = match_activities(PLANNED, [zero])
+    if len(zeroed) != 1 or "distance" in zeroed[0] or "heart_rate" in zeroed[0]:
+        raise AssertionError(zeroed[0])
+    if zeroed[0]["work_m"] == 0:
+        raise AssertionError("a zero activity distance became the WORK distance")
 
 
 def test_only_a_ride_still_matches_the_day() -> None:
@@ -112,6 +127,128 @@ def test_only_a_ride_still_matches_the_day() -> None:
     matched = [row for row in rows if row["matched"]]
     if len(matched) != 1 or matched[0]["id"] != "early":
         raise AssertionError(rows)
+
+
+def test_history_covers_every_activity_through_today() -> None:
+    """Activity data asks from 1970-01-01 through today. Both ends are included."""
+    if HISTORY_START != date(1970, 1, 1):
+        raise AssertionError(HISTORY_START)
+    oldest, newest = activity_history(TODAY)
+    if (oldest, newest) != ("1970-01-01", "2026-10-25"):
+        raise AssertionError((oldest, newest))
+    if oldest == activity_window(TODAY)[0]:
+        raise AssertionError("activity data still uses the 14-day window")
+
+
+def test_pull_all_lists_every_activity_and_matches_by_date() -> None:
+    """The list is the whole history. An older planned day still matches.
+
+    WORK distance and the activity heart rate are kept. Warm-up and the
+    activity total stay out. A day with no planned session stays extra.
+    """
+    planned = [
+        {"date": "2024-06-02", "template_id": "se_400_r90_x6", "day_of_week": "Sunday"},
+        {"date": "2026-10-20", "template_id": "aer_8000_r0_x1", "day_of_week": "Tuesday"},
+    ]
+    seen = {"env": False, "listed": None, "fetched": []}
+
+    def load_env() -> None:
+        seen["env"] = True
+
+    def list_fn(oldest: str, newest: str) -> list[dict]:
+        if seen["env"] is not True:
+            raise AssertionError("the list ran before the local key was loaded")
+        seen["listed"] = (oldest, newest)
+        return [
+            {"id": "old", "start_date_local": "2024-06-02T08:00:00"},
+            {"id": "extra", "start_date_local": "2024-06-03T08:00:00"},
+            {"id": "new", "start_date_local": "2026-10-20T08:00:00"},
+        ]
+
+    def fetch_fn(activity_id: object) -> dict:
+        seen["fetched"].append(activity_id)
+        days = {"old": "2024-06-02", "extra": "2024-06-03", "new": "2026-10-20"}
+        return _run(days[str(activity_id)], activity_id, "08:00:00")
+
+    rows = sync_all(planned, [], TODAY, list_fn=list_fn, fetch_fn=fetch_fn, load_env=load_env)
+    if seen["listed"] != activity_history(TODAY):
+        raise AssertionError(seen["listed"])
+    if seen["listed"] == activity_window(TODAY):
+        raise AssertionError("the list was the last 14 days")
+    if sorted(seen["fetched"]) != ["extra", "new", "old"]:
+        raise AssertionError(seen["fetched"])
+    by_id = {row["id"]: row for row in rows}
+    matched = by_id["old"]
+    if matched["matched"] is not True or matched["date"] != "2024-06-02":
+        raise AssertionError(matched)
+    if matched["template_id"] != "se_400_r90_x6" or matched["work_m"] != 800:
+        raise AssertionError(matched)
+    if matched["heart_rate"] != 148 or matched["work_m"] == 99999:
+        raise AssertionError("warm-up or the activity total replaced WORK distance")
+    if matched.get("distance") != 99999 or by_id["extra"].get("distance") != 99999:
+        raise AssertionError("the activity distance was not stored")
+    if by_id["extra"]["matched"] is not False or "template_id" in by_id["extra"]:
+        raise AssertionError(by_id["extra"])
+    if by_id["new"]["matched"] is not True or by_id["new"]["work_m"] != 800:
+        raise AssertionError(by_id["new"])
+
+
+def test_pull_all_fetches_every_listed_activity() -> None:
+    """The 14-day cap does not drop an older activity."""
+    fetched = []
+    count = MAX_FETCH + 3
+
+    def list_fn(oldest: str, newest: str) -> list[dict]:
+        if (oldest, newest) != activity_history(TODAY):
+            raise AssertionError((oldest, newest))
+        return [
+            {
+                "id": f"id-{number:02d}",
+                "start_date_local": f"2020-01-01T00:{number % 60:02d}:00",
+                "type": "Run",
+            }
+            for number in range(count)
+        ]
+
+    def fetch_fn(activity_id: object) -> dict:
+        fetched.append(activity_id)
+        return {
+            "id": activity_id,
+            "name": str(activity_id),
+            "start_date_local": "2020-01-01T08:00:00",
+            "type": "Run",
+        }
+
+    sync_all([], [], TODAY, list_fn=list_fn, fetch_fn=fetch_fn, load_env=lambda: None)
+    if len(fetched) != count:
+        raise AssertionError(len(fetched))
+    if "id-00" not in fetched:
+        raise AssertionError("an older activity was left out")
+
+
+def test_a_failed_history_list_keeps_stored_matches() -> None:
+    """A list failure leaves the stored matches in place. The message has no key."""
+    stored = match_activities(PLANNED, [_run("2026-10-20", "44521", "08:00:00")])
+    secret = "local-athlete-key"
+
+    def list_fn(oldest: str, newest: str) -> list[dict]:
+        raise IntervalsIcuError("Intervals.icu returned 401 Unauthorized. Check RIO_INTERVALS_API_KEY.")
+
+    try:
+        sync_all(PLANNED, stored, TODAY, list_fn=list_fn, load_env=lambda: None)
+    except PullError as exc:
+        message = str(exc)
+    else:
+        raise AssertionError("a failed list still returned rows")
+    if secret in message:
+        raise AssertionError("the failure included a key")
+    oldest, newest = activity_history(TODAY)
+    kept = merge_activities(stored, [], "2026-10-26", "2026-10-26")
+    if kept != stored:
+        raise AssertionError("a day after today was treated as part of the history")
+    replaced = merge_activities(stored, [], oldest, newest)
+    if replaced:
+        raise AssertionError("a successful empty history pull did not replace the stored day")
 
 
 def test_pull_lists_the_window_and_fetches_each_activity() -> None:
@@ -237,6 +374,8 @@ def test_reload_keeps_matches_outside_a_failed_pull() -> None:
         raise AssertionError("a reload did not keep the match")
     if activities[0]["reps"] != [57.5, 58] or activities[0]["work_m"] != 800:
         raise AssertionError(activities[0])
+    if activities[0].get("distance") != 99999:
+        raise AssertionError("a reload dropped the activity distance")
     if "probability" in raw or "readiness" in raw:
         raise AssertionError("a score was stored with the match")
 
@@ -329,28 +468,41 @@ def test_unprefixed_env_names_fill_the_rio_names() -> None:
 def test_pull_uses_the_adapter_and_does_not_spend() -> None:
     """The app asks for the list on load and when Dashboard or Weekly opens.
 
-    The session page and Last Session stay off the network. Engines are not
-    used for the match. Prose spend stays capped at $25.
+    Opening Activity data, or Refresh, lists every activity. The session page
+    and Last Session stay off the network. Engines are not used for the match.
+    Prose spend stays capped at $25.
     """
     if SPEND_CAP_MICRO_USD != 25_000_000:
         raise AssertionError("spend cap is not $25")
     source = (ROOT / "ui" / "activities.py").read_text(encoding="utf-8")
-    pull = _function(source, "pull_recent")
+    pull = _function(source, "_pull")
+    recent = _function(source, "pull_recent")
+    history = _function(source, "pull_all")
     if "list_activities(oldest, newest)" not in pull:
         raise AssertionError("the pull does not call list_activities")
     if "fetch_activity(activity_id)" not in pull:
         raise AssertionError("the pull does not read the activity")
     if "load_local_env" not in pull:
         raise AssertionError("the pull does not load the local key")
+    if "activity_window(today)" not in recent or "limit=MAX_FETCH" not in recent:
+        raise AssertionError("the 14-day pull changed")
+    if "activity_history(today)" not in history or "limit=None" not in history:
+        raise AssertionError("activity data does not ask for every activity")
+    if "MAX_FETCH" in history or "activity_window" in history:
+        raise AssertionError("activity data still uses the 14-day window")
     if "from engines" in source or "explain(" in source or "print(" in source:
         raise AssertionError("the pull started prose spend or printed a value")
     if "athlete_id" in pull or "api_key" in pull:
         raise AssertionError("the pull picks an athlete or a key of its own")
     app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
-    if '_PULL_PAGES = ("page_dashboard", "page_weekly")' not in app:
-        raise AssertionError("dashboard and weekly do not open a pull")
+    if '_PULL_PAGES = ("page_dashboard", "page_weekly", "page_activity")' not in app:
+        raise AssertionError("dashboard, weekly, and activity data do not open a pull")
     wrapper = _function(app, "_with_plan")
     pull_for = _function(app, "_pull_for")
+    if 'st.session_state.get("activity-refresh") is True' not in pull_for:
+        raise AssertionError("refresh does not read activities again")
+    if 'page_name == "page_activity"' not in pull_for or "sync_all(" not in pull_for:
+        raise AssertionError("opening Activity data does not read every activity")
     if "_pull_for(" not in wrapper or "sync_recent(" not in pull_for:
         raise AssertionError("opening a page does not pull")
     if wrapper.index("_pull_for(") > wrapper.index("_sync_browser_store("):
@@ -387,14 +539,18 @@ def test_pull_uses_the_adapter_and_does_not_spend() -> None:
     engines = ROOT / "engines"
     for path in engines.glob("*.py"):
         text = path.read_text(encoding="utf-8")
-        if "list_activities" in text or "sync_recent" in text:
+        if "list_activities" in text or "sync_recent" in text or "sync_all" in text:
             raise AssertionError(f"{path.name} was changed for the pull")
 
 
 def main() -> None:
     test_window_is_fourteen_days()
+    test_history_covers_every_activity_through_today()
     test_a_run_on_a_planned_day_supplies_reps_volume_and_heart_rate()
     test_only_a_ride_still_matches_the_day()
+    test_pull_all_lists_every_activity_and_matches_by_date()
+    test_pull_all_fetches_every_listed_activity()
+    test_a_failed_history_list_keeps_stored_matches()
     test_pull_lists_the_window_and_fetches_each_activity()
     test_a_failed_detail_keeps_the_listed_row()
     test_fetch_stops_after_the_newest_forty()

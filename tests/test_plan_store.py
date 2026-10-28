@@ -238,6 +238,7 @@ def test_pulled_activities_round_trip() -> None:
                 "template_id": "se_400_r90_x6",
                 "start": "2026-10-20T08:00:00",
                 "heart_rate": 148,
+                "distance": 5600,
                 "work_m": 2400,
                 "reps": [57.5, None, 58],
                 "probability": 0.4,
@@ -249,6 +250,7 @@ def test_pulled_activities_round_trip() -> None:
                 "date": "2026-10-21",
                 "matched": False,
                 "heart_rate": 132,
+                "distance": 4200,
                 "work_m": 8000,
                 "template_id": "should-stay-off",
             },
@@ -267,6 +269,7 @@ def test_pulled_activities_round_trip() -> None:
     if activities != [
         {
             "date": "2026-10-20",
+            "distance": 5600,
             "heart_rate": 148,
             "id": "44521",
             "matched": True,
@@ -278,6 +281,7 @@ def test_pulled_activities_round_trip() -> None:
         },
         {
             "date": "2026-10-21",
+            "distance": 4200,
             "heart_rate": 132,
             "id": "extra-1",
             "matched": False,
@@ -289,6 +293,49 @@ def test_pulled_activities_round_trip() -> None:
     again = dump_record({}, {}, activities)
     if again != raw or load_record(again)[2] != activities:
         raise AssertionError(again)
+    blank = load_record(
+        dump_record(
+            {},
+            {},
+            [
+                {
+                    "id": "n",
+                    "name": "None",
+                    "date": "2026-10-23",
+                    "matched": False,
+                    "distance": 0,
+                    "heart_rate": 120,
+                },
+                {
+                    "id": "neg",
+                    "name": "Neg",
+                    "date": "2026-10-24",
+                    "matched": True,
+                    "distance": -5,
+                    "template_id": "se_400_r90_x6",
+                    "work_m": 800,
+                },
+            ],
+        )
+    )[2]
+    if blank != [
+        {
+            "date": "2026-10-23",
+            "heart_rate": 120,
+            "id": "n",
+            "matched": False,
+            "name": "None",
+        },
+        {
+            "date": "2026-10-24",
+            "id": "neg",
+            "matched": True,
+            "name": "Neg",
+            "template_id": "se_400_r90_x6",
+            "work_m": 800,
+        },
+    ]:
+        raise AssertionError(blank)
 
 
 def test_store_does_not_leave_the_browser() -> None:
