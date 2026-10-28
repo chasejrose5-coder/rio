@@ -1,6 +1,6 @@
-# streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Activity data, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, Settings, About, and Session. Display only. No classification rules.
+# streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Activity data, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, Profile, Settings, About, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity data lists one row per matched Intervals workout: the date, the template or label, completed work meters, and average heart rate. The line is weekly completed WORK distance. Warm-up, cool-down, and template meters stay out. A dot marks each matched workout that has an average heart rate, labeled with the date. An unmatched activity stays off that matched list. A matched activity with no work meters and no heart rate stays off it. A second table lists every activity: the date, the activity name, the activity distance, and average heart rate. An unmatched row is labeled extra. An activity with no distance and no heart rate stays off both lists. No stored match and no Intervals file leaves the matched list empty. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening the app, Dashboard, or Weekly reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. Opening Activity data, or Refresh, reads every activity for this athlete with the local key and matches each activity to the planned session on that date. A matched Tuesday or Thursday quality day is judged from that activity's WORK elapsed times. The mark and those times are stored with the session, and adapt() changes only later weeks. A day that already has a mark is left as stored. Recovery days, long runs, extra activities, and empty rep times do not call adapt(). A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved in this browser with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. The page does not call Intervals.icu. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. About states the eight phases, the 10% rule, that classification is rules, not AI, and that a hard-day mark adapts later weeks. About does not call a model. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity data lists one row per matched Intervals workout: the date, the template or label, completed work meters, and average heart rate. The line is weekly completed WORK distance. Warm-up, cool-down, and template meters stay out. A dot marks each matched workout that has an average heart rate, labeled with the date. An unmatched activity stays off that matched list. A matched activity with no work meters and no heart rate stays off it. A second table lists every activity: the date, the activity name, the activity distance, and average heart rate. An unmatched row is labeled extra. An activity with no distance and no heart rate stays off both lists. No stored match and no Intervals file leaves the matched list empty. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening the app, Dashboard, or Weekly reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. Opening Activity data, or Refresh, reads every activity for this athlete with the local key and matches each activity to the planned session on that date. A matched Tuesday or Thursday quality day is judged from that activity's WORK elapsed times. The mark and those times are stored with the session, and adapt() changes only later weeks. A day that already has a mark is left as stored. Recovery days, long runs, extra activities, and empty rep times do not call adapt(). A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved in this browser with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Profile shows the current 800 time, the start date, the goal 800 time, and the goal date already stored from Start. Saving a goal time keeps it in this browser and leaves the season as stored. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. The page does not call Intervals.icu. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. About states the eight phases, the 10% rule, that classification is rules, not AI, and that a hard-day mark adapts later weeks. About does not call a model. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -74,6 +74,14 @@ from ui.plan_store import (
     plan_inputs,
     query_values,
     storage_key,
+)
+from ui.profile import (
+    clean_goal,
+    dump_goal,
+    load_goal,
+    profile_fields,
+    profile_key,
+    shown_goal,
 )
 from ui.progress import (
     days_label,
@@ -1852,15 +1860,22 @@ h2.rio-week-title {
   color: #d7e3d6 !important;
 }
 
-[class*="st-key-rio-start"] {
+[class*="st-key-rio-start"],
+[class*="st-key-rio-profile-edit"] {
   max-width: 22rem;
   padding-bottom: 2.5rem;
 }
-[class*="st-key-rio-start"] [data-testid="stVerticalBlock"] {
+[class*="st-key-rio-profile-edit"] {
+  margin-top: 0.35rem;
+}
+[class*="st-key-rio-start"] [data-testid="stVerticalBlock"],
+[class*="st-key-rio-profile-edit"] [data-testid="stVerticalBlock"] {
   gap: 0.85rem !important;
 }
 [class*="st-key-rio-start"] button,
-[class*="st-key-rio-start"] [data-testid="stBaseButton-primary"] {
+[class*="st-key-rio-start"] [data-testid="stBaseButton-primary"],
+[class*="st-key-rio-profile-edit"] button,
+[class*="st-key-rio-profile-edit"] [data-testid="stBaseButton-primary"] {
   background: transparent !important;
   border: 1px solid #4E6E4D !important;
   border-radius: 8px !important;
@@ -1873,11 +1888,15 @@ h2.rio-week-title {
   box-shadow: none !important;
 }
 [class*="st-key-rio-start"] button p,
-[class*="st-key-rio-start"] button span {
+[class*="st-key-rio-start"] button span,
+[class*="st-key-rio-profile-edit"] button p,
+[class*="st-key-rio-profile-edit"] button span {
   color: inherit !important;
 }
 [class*="st-key-rio-start"] button:hover,
-[class*="st-key-rio-start"] [data-testid="stBaseButton-primary"]:hover {
+[class*="st-key-rio-start"] [data-testid="stBaseButton-primary"]:hover,
+[class*="st-key-rio-profile-edit"] button:hover,
+[class*="st-key-rio-profile-edit"] [data-testid="stBaseButton-primary"]:hover {
   background: #4E6E4D !important;
   border-color: #4E6E4D !important;
   color: #f0f0f0 !important;
@@ -2044,7 +2063,8 @@ h2.rio-week-title {
 [class*="st-key-rio-confirm"] {
   margin: 0.35rem 0 0.8rem !important;
 }
-[class*="st-key-rio-plan-store"] {
+[class*="st-key-rio-plan-store"],
+[class*="st-key-rio-profile-store"] {
   height: 0 !important;
   min-height: 0 !important;
   margin: 0 !important;
@@ -4126,6 +4146,185 @@ def _setting_widgets(prefs: dict) -> None:
             st.session_state[key] = value
 
 
+# Reads and writes this browser's goal time. The four Start inputs stay in the URL.
+_PROFILE_STORE_JS = """
+export default function (component) {
+  var data = component.data;
+  if (!data || typeof data.key !== "string" || !data.key) {
+    return;
+  }
+  var key = data.key;
+  if (data.mode === "write" && typeof data.payload === "string") {
+    try {
+      if (window.localStorage.getItem(key) !== data.payload) {
+        window.localStorage.setItem(key, data.payload);
+      }
+    } catch (err) {}
+  }
+  var body = "";
+  try {
+    var stored = window.localStorage.getItem(key);
+    body = stored === null ? "" : String(stored);
+  } catch (err) {
+    body = "";
+  }
+  var token = key + "\\n" + body;
+  if (window.__rioProfileToken === token) {
+    return;
+  }
+  window.__rioProfileToken = token;
+  component.setStateValue("record", { key: key, body: body });
+}
+"""
+
+
+def _profile_component():
+    """The goal-time bridge. Registered once per process."""
+    import ui.profile as profile
+
+    cached = getattr(profile, "_browser_component", None)
+    if cached is None:
+        cached = st.components.v2.component(
+            "rio_profile_store",
+            js=_PROFILE_STORE_JS,
+            isolate_styles=False,
+        )
+        profile._browser_component = cached
+    return cached
+
+
+def _mount_profile(data: dict, *, widget_key: str = "rio-profile-store"):
+    """Mount the goal-time bridge. Read and write use different keys in one run."""
+    return _profile_component()(
+        key=widget_key,
+        data=data,
+        width="content",
+        height="content",
+    )
+
+
+def _profile_slot(inputs: tuple[str, str, str, str]) -> dict:
+    """This browser's saved goal, read once. A miss stays empty."""
+    key = profile_key(inputs)
+    slot = st.session_state.get("rio_profile")
+    if isinstance(slot, dict) and slot.get("key") == key and slot.get("loaded") is True:
+        return slot
+    result = _mount_profile({"key": key, "mode": "read"})
+    record = getattr(result, "record", None)
+    if (
+        not isinstance(record, dict)
+        or record.get("key") != key
+        or not isinstance(record.get("body"), str)
+    ):
+        st.stop()
+    goal = load_goal(record["body"])
+    slot = {"key": key, "loaded": True, "goal_time": goal, "dirty": False}
+    st.session_state["rio_profile"] = slot
+    return slot
+
+
+def _write_profile(inputs: tuple[str, str, str, str]) -> None:
+    """Save the goal time on this browser. The URL and the season stay put."""
+    slot = st.session_state.get("rio_profile")
+    key = profile_key(inputs)
+    if not isinstance(slot, dict) or slot.get("key") != key or slot.get("dirty") is not True:
+        return
+    goal = clean_goal(slot.get("goal_time"))
+    if goal is None:
+        return
+    _mount_profile(
+        {"key": key, "mode": "write", "payload": dump_goal(goal)},
+        widget_key="rio-profile-store-write",
+    )
+    st.session_state["rio_profile"] = {
+        "key": key,
+        "loaded": True,
+        "goal_time": goal,
+        "dirty": False,
+    }
+
+
+def page_profile() -> None:
+    """The four values Start stored. The goal time can be saved in this browser.
+
+    The saved time stays on this browser. The season stays as stored.
+    No prose, so this page does not spend.
+    """
+    inputs = st.session_state.get("season_inputs")
+    plan, _start, _goal_day, error = _stored_season()
+    ready = plan is not None and inputs_ok(inputs)
+    slot = _profile_slot(inputs) if ready else None
+    hero, _controls = _open("Profile")
+    if not ready or slot is None or not inputs_ok(inputs):
+        with hero:
+            if error:
+                st.markdown(
+                    '<header class="rio-hero">'
+                    '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
+                    "<h1>Profile</h1>"
+                    f'<p class="rio-error">{_esc(error)}</p></header>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    _page_hero("Profile", "SYNTHETIC / DEMO"),
+                    unsafe_allow_html=True,
+                )
+        if not error:
+            st.markdown(
+                '<p class="rio-empty">Generate a season on Start.</p>',
+                unsafe_allow_html=True,
+            )
+        return
+
+    goal_time = shown_goal(inputs[2], slot.get("goal_time"))
+    with hero:
+        st.markdown(_page_hero("Profile", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
+    _card(
+        _fields(
+            profile_fields(
+                inputs[0],
+                _date_text(inputs[1]),
+                goal_time,
+                _date_text(inputs[3]),
+            )
+        )
+    )
+    pending = st.session_state.pop("profile_goal_apply", None)
+    if isinstance(pending, str):
+        st.session_state["profile_goal_time"] = pending
+    with st.container(key="rio-profile-edit"):
+        with st.form("profile-goal", border=False, clear_on_submit=False):
+            draft = st.text_input(
+                "Goal 800 time",
+                key="profile_goal_time",
+                **_fresh_value("profile_goal_time", goal_time),
+            )
+            submitted = st.form_submit_button("Save", type="primary", width="stretch")
+        if submitted:
+            cleaned = clean_goal(draft)
+            if cleaned is None:
+                st.markdown(
+                    '<p class="rio-error">goal_time is not an 800 time</p>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.session_state["rio_profile"] = {
+                    "key": profile_key(inputs),
+                    "loaded": True,
+                    "goal_time": cleaned,
+                    "dirty": True,
+                }
+                st.session_state["profile_goal_apply"] = cleaned
+                st.rerun()
+        if isinstance(slot.get("goal_time"), str) and slot.get("goal_time"):
+            st.markdown(
+                '<p class="rio-settings-note">Saved in this browser.</p>',
+                unsafe_allow_html=True,
+            )
+    _write_profile(inputs)
+
+
 def page_about() -> None:
     """The eight phases, the 10% rule, rules-based labels, and hard-day marks.
 
@@ -4212,6 +4411,7 @@ _NAV_PAGES[:] = [
     ("Progress", st.Page(_with_plan(page_progress), title="Progress", url_path="progress")),
     ("Weekly", st.Page(_with_plan(page_weekly), title="Weekly", url_path="weekly")),
     ("Season", st.Page(_with_plan(page_season), title="Season", url_path="season")),
+    ("Profile", st.Page(_with_plan(page_profile), title="Profile", url_path="profile")),
     ("Settings", st.Page(_with_plan(page_settings), title="Settings", url_path="settings")),
     ("About", st.Page(_with_plan(page_about), title="About", url_path="about")),
 ]
