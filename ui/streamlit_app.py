@@ -1,6 +1,6 @@
-# streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Activity data, Next, Decisions, Ledger, Goal, Progress, Season, Weekly, Profile, Settings, About, and Session. Display only. No classification rules.
+# streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Activity data, Next, Decisions, Ledger, Goal, Progress, Season, Past seasons, Weekly, Profile, Settings, About, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity data lists one row per matched Intervals workout: the date, the template or label, completed work meters, and average heart rate. The line is weekly completed WORK distance. Warm-up, cool-down, and template meters stay out. A dot marks each matched workout that has an average heart rate, labeled with the date. An unmatched activity stays off that matched list. A matched activity with no work meters and no heart rate stays off it. A second table lists every activity: the date, the activity name, the activity distance, and average heart rate. An unmatched row is labeled extra. An activity with no distance and no heart rate stays off both lists. No stored match and no Intervals file leaves the matched list empty. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening the app, Dashboard, or Weekly reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. Opening Activity data, or Refresh, reads every activity for this athlete with the local key and matches each activity to the planned session on that date. A matched Tuesday or Thursday quality day is judged from that activity's WORK elapsed times. The mark and those times are stored with the session, and adapt() changes only later weeks. A day that already has a mark is left as stored. Recovery days, long runs, extra activities, and empty rep times do not call adapt(). A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved in this browser with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Profile shows the current 800 time, the start date, the goal 800 time, and the goal date already stored from Start. Saving a goal time keeps it in this browser and leaves the season as stored. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. The page does not call Intervals.icu. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. About states the eight phases, the 10% rule, that classification is rules, not AI, and that a hard-day mark adapts later weeks. About does not call a model. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity data lists one row per matched Intervals workout: the date, the template or label, completed work meters, and average heart rate. The line is weekly completed WORK distance. Warm-up, cool-down, and template meters stay out. A dot marks each matched workout that has an average heart rate, labeled with the date. An unmatched activity stays off that matched list. A matched activity with no work meters and no heart rate stays off it. A second table lists every activity: the date, the activity name, the activity distance, and average heart rate. An unmatched row is labeled extra. An activity with no distance and no heart rate stays off both lists. No stored match and no Intervals file leaves the matched list empty. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening the app, Dashboard, or Weekly reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. Opening Activity data, or Refresh, reads every activity for this athlete with the local key and matches each activity to the planned session on that date. A matched Tuesday or Thursday quality day is judged from that activity's WORK elapsed times. The mark and those times are stored with the session, and adapt() changes only later weeks. A day that already has a mark is left as stored. Recovery days, long runs, extra activities, and empty rep times do not call adapt(). A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved in this browser with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Profile shows the current 800 time, the start date, the goal 800 time, and the goal date already stored from Start. Saving a goal time keeps it in this browser and leaves the season as stored. Past seasons lists each season this browser has already stored. A row shows the start date, the goal date, and the goal time from that plan key. Choosing a row opens that season from those four inputs. The page does not build a season. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. The page does not call Intervals.icu. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. About states the eight phases, the 10% rule, that classification is rules, not AI, and that a hard-day mark adapts later weeks. About does not call a model. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -75,6 +75,7 @@ from ui.plan_store import (
     query_values,
     storage_key,
 )
+from ui.past_seasons import KEY_PREFIX, entry_fields, season_entries
 from ui.profile import (
     clean_goal,
     dump_goal,
@@ -1475,6 +1476,7 @@ h2.rio-week-title {
 [class*="st-key-rio-hit-"]:focus-within .rio-day,
 [class*="st-key-rio-hit-"]:focus-within .rio-daycard,
 [class*="st-key-rio-hit-"]:focus-within .rio-cal-day,
+[class*="st-key-rio-hit-"]:focus-within .rio-past-row,
 [class*="st-key-rio-hit-dash"]:focus-within .rio-hero {
   outline: 1px solid #4E6E4D;
   outline-offset: 2px;
@@ -2064,13 +2066,47 @@ h2.rio-week-title {
   margin: 0.35rem 0 0.8rem !important;
 }
 [class*="st-key-rio-plan-store"],
-[class*="st-key-rio-profile-store"] {
+[class*="st-key-rio-profile-store"],
+[class*="st-key-rio-past-seasons-store"] {
   height: 0 !important;
   min-height: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
   overflow: hidden !important;
   border: 0 !important;
+}
+[class*="st-key-rio-past-list"] {
+  background: #1a1a1a;
+  border: 1px solid #242424;
+  border-radius: 16px;
+  padding: 0.2rem 0.35rem;
+  margin: 0.35rem 0 1.15rem !important;
+}
+.rio-past-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.15fr) auto;
+  column-gap: 1.25rem;
+  align-items: end;
+  padding: 0.85rem 0.9rem;
+}
+.rio-past-rule { border-top: 1px solid #262626; }
+.rio-past-k {
+  color: #6e6e6e;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+.rio-past-v {
+  margin-top: 0.28rem;
+  color: #f0f0f0;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+.rio-past-time { text-align: right; }
+[class*="st-key-rio-hit-past-"]:hover .rio-past-row {
+  background: #161616;
 }
 
 @media (max-width: 720px) {
@@ -2096,6 +2132,8 @@ h2.rio-week-title {
   .rio-cal-dow { letter-spacing: 0.04em; font-size: 0.58rem; }
   .rio-day { grid-template-columns: 1fr; row-gap: 0.35rem; }
   .rio-lib-row { grid-template-columns: 1fr; row-gap: 0.22rem; }
+  .rio-past-row { grid-template-columns: 1fr; row-gap: 0.55rem; }
+  .rio-past-time { text-align: left; }
   .rio-lib-cap { text-align: left; padding-top: 0; }
   .rio-status { text-align: left; padding-top: 0; }
   .rio-progress {
@@ -4393,6 +4431,137 @@ def page_settings() -> None:
     st.session_state["rio_settings"] = stored
 
 
+# Reads the plan keys already in this browser. It does not write a season.
+_PAST_SEASONS_JS = """
+export default function (component) {
+  var data = component.data;
+  if (!data || typeof data.prefix !== "string" || !data.prefix) {
+    return;
+  }
+  var prefix = data.prefix;
+  var keys = [];
+  try {
+    for (var i = 0; i < window.localStorage.length; i++) {
+      var key = window.localStorage.key(i);
+      if (typeof key === "string" && key.indexOf(prefix) === 0) {
+        keys.push(key);
+      }
+    }
+  } catch (err) {
+    keys = [];
+  }
+  keys.sort();
+  var token = prefix + "\\n" + keys.join("\\n");
+  if (window.__rioPastSeasonsToken === token) {
+    return;
+  }
+  window.__rioPastSeasonsToken = token;
+  component.setStateValue("record", { prefix: prefix, keys: keys });
+}
+"""
+
+
+def _past_component():
+    """The stored-season bridge. Registered once per process."""
+    import ui.past_seasons as past_seasons
+
+    cached = getattr(past_seasons, "_browser_component", None)
+    if cached is None:
+        cached = st.components.v2.component(
+            "rio_past_seasons",
+            js=_PAST_SEASONS_JS,
+            isolate_styles=False,
+        )
+        past_seasons._browser_component = cached
+    return cached
+
+
+def _mount_past(data: dict):
+    """Mount the list bridge. The plan body stays unread."""
+    return _past_component()(
+        key="rio-past-seasons-store",
+        data=data,
+        width="content",
+        height="content",
+    )
+
+
+def _stored_season_keys() -> list:
+    """Plan keys in this browser. A miss waits for the bridge."""
+    result = _mount_past({"prefix": KEY_PREFIX})
+    record = getattr(result, "record", None)
+    if (
+        not isinstance(record, dict)
+        or record.get("prefix") != KEY_PREFIX
+        or not isinstance(record.get("keys"), list)
+    ):
+        st.stop()
+    return record["keys"]
+
+
+def _past_token(inputs: tuple[str, str, str, str]) -> str:
+    raw = "-".join(inputs)
+    token = "".join(char if char.isalnum() or char in "-_" else "-" for char in raw)
+    return token[:180] or "season"
+
+
+def _past_row(inputs: tuple[str, str, str, str], *, first: bool) -> str:
+    """Start date, goal date, and goal time. The dates use the display format."""
+    cells = []
+    for label, value in entry_fields(inputs):
+        shown = value if label == "Goal time" else _date_text(value)
+        kind = " rio-past-time" if label == "Goal time" else ""
+        cells.append(
+            f'<div class="rio-past-cell{kind}">'
+            f'<div class="rio-past-k">{_esc(label)}</div>'
+            f'<div class="rio-past-v">{_esc(shown)}</div>'
+            "</div>"
+        )
+    rule = "" if first else " rio-past-rule"
+    return f'<div class="rio-past-row{rule}">{"".join(cells)}</div>'
+
+
+def _open_past(inputs: tuple[str, str, str, str], *, first: bool) -> None:
+    """The row opens Season with the four inputs already stored."""
+    html = _past_row(inputs, first=first)
+    page = _nav_page("Season")
+    if page is None:
+        st.markdown(html, unsafe_allow_html=True)
+        return
+    with st.container(key=f"rio-hit-past-{_past_token(inputs)}", gap=None):
+        st.markdown(html, unsafe_allow_html=True)
+        st.page_link(
+            page,
+            label=f"{inputs[1]} {inputs[3]} {inputs[2]}",
+            icon="",
+            query_params=query_values(inputs),
+            width="stretch",
+        )
+
+
+def page_past_seasons() -> None:
+    """Seasons this browser already stored.
+
+    Each row is a start date, a goal date, and a goal time from a plan key
+    already in this browser. Choosing a row opens that season from those
+    four inputs. Nothing here builds a season. No prose, so this page does
+    not spend.
+    """
+    rows = season_entries(_stored_season_keys())
+    hero, _controls = _open("Past seasons")
+    with hero:
+        st.markdown(_page_hero("Past seasons", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
+    if not rows:
+        st.markdown(
+            '<p class="rio-empty">No seasons in this browser.</p>',
+            unsafe_allow_html=True,
+        )
+        return
+    with st.container(key="rio-past-list"):
+        for index, inputs in enumerate(rows):
+            _open_past(inputs, first=index == 0)
+
+
 st.set_page_config(page_title="rio", layout="centered")
 _start_page = st.Page(_with_plan(page_start), title="Start", default=True)
 _session_page = st.Page(_with_plan(page_session), title="Session", url_path="session")
@@ -4411,6 +4580,7 @@ _NAV_PAGES[:] = [
     ("Progress", st.Page(_with_plan(page_progress), title="Progress", url_path="progress")),
     ("Weekly", st.Page(_with_plan(page_weekly), title="Weekly", url_path="weekly")),
     ("Season", st.Page(_with_plan(page_season), title="Season", url_path="season")),
+    ("Past seasons", st.Page(_with_plan(page_past_seasons), title="Past seasons", url_path="past-seasons")),
     ("Profile", st.Page(_with_plan(page_profile), title="Profile", url_path="profile")),
     ("Settings", st.Page(_with_plan(page_settings), title="Settings", url_path="settings")),
     ("About", st.Page(_with_plan(page_about), title="About", url_path="about")),
