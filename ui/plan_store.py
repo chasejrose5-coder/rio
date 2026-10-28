@@ -302,6 +302,9 @@ def _clean_activity(value: object) -> dict | None:
     heart = _positive(value.get("heart_rate"))
     if heart is not None:
         row["heart_rate"] = heart
+    distance = _meters(value.get("distance"))
+    if distance is not None and distance > 0:
+        row["distance"] = distance
     meters = _meters(value.get("work_m"))
     if meters is not None:
         row["work_m"] = meters
