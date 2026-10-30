@@ -503,11 +503,11 @@ def test_heart_rate_dots_are_labeled_with_the_date() -> None:
 
 
 def test_the_page_lists_matched_activities_and_does_not_spend() -> None:
-    """Activity data is in the nav. Opening it reads every activity. Refresh reads again.
+    """Activity data is in the nav. Opening it reads the last 14 days.
 
-    The page does not classify, score, or call the model. The adapter is the
-    only reader. Prose spend stays capped at $25. Season and classification
-    stay untouched.
+    Refresh reads every activity. The page does not classify, score, or call
+    the model. The adapter is the only reader. Prose spend stays capped at
+    $25. Season and classification stay untouched.
     """
     if SPEND_CAP_MICRO_USD != 25_000_000:
         raise AssertionError("spend cap is not $25")
@@ -550,15 +550,25 @@ def test_the_page_lists_matched_activities_and_does_not_spend() -> None:
         raise AssertionError("Activity data has no refresh")
     if "_activities_notice(" not in page:
         raise AssertionError("a failed pull is hidden")
-    if '_PULL_PAGES = ("page_dashboard", "page_weekly", "page_activity")' not in app:
-        raise AssertionError("opening Activity data does not pull")
+    block = app[app.index("_PULL_PAGES") : app.index("def _pull_for(")]
+    for name in (
+        "page_dashboard",
+        "page_weekly",
+        "page_session",
+        "page_progress",
+        "page_activity",
+    ):
+        if name not in block:
+            raise AssertionError(f"{name} does not pull on open")
     pull_for = app[app.index("def _pull_for(") : app.index("\ndef _with_plan(")]
     if 'st.session_state.get("activity-refresh") is True' not in pull_for:
         raise AssertionError("refresh does not read activities again")
-    if 'page_name == "page_activity"' not in pull_for or "sync_all(" not in pull_for:
-        raise AssertionError("opening Activity data does not read every activity")
-    if "sync_recent(" not in pull_for:
-        raise AssertionError("dashboard and weekly do not read the last 14 days")
+    branches = pull_for.split("if refresh:", 1)[1]
+    history, recent = branches.split("else:", 1)
+    if "sync_all(" not in history or "sync_recent(" in history:
+        raise AssertionError("refresh does not read every activity")
+    if "sync_recent(" not in recent:
+        raise AssertionError("opening Activity data does not read the last 14 days")
     if "explain(" in page or "classify(" in page or "sequence(" in page or "adapt(" in page:
         raise AssertionError("the page spends or classifies")
     if "fetch_activity" in page or "urlopen" in page or "list_activities" in page:

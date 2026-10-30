@@ -8,7 +8,7 @@ Intervals.icu is a read-only adapter. The product is the season, the menu, and t
 
 These are the paths that exist. They do not all meet.
 
-1. **Season plan.** Start takes four inputs: current 800 time, start date, goal 800 time, goal date. `sequence()` builds an ordered list of sessions from the frozen menu and the locked 800 m weights. The four inputs go in the URL. Marks, entered results, and pulled activities stay in this browser. Season and Weekly can mark a week `on_track`, `not_hitting`, or `smashing`. `adapt()` then rewrites only the weeks after that week. Session can enter rep times, or fill them from a local Intervals JSON file, and the same adapt runs. Activity data can do that automatically for a matched Tuesday or Thursday that does not already have a mark.
+1. **Season plan.** Start takes four inputs: current 800 time, start date, goal 800 time, goal date. `sequence()` builds an ordered list of sessions from the frozen menu and the locked 800 m weights. The four inputs go in the URL. Marks, entered results, and pulled activities stay in this browser. Season and Weekly can mark a week `on_track`, `not_hitting`, or `smashing`. `adapt()` then rewrites only the weeks after that week. Session can enter rep times, or fill them from a local Intervals JSON file, and the same adapt runs. Opening Dashboard, Weekly, Session, Progress, or Activity data can do that automatically for a matched Tuesday or Thursday that does not already have a mark. The stored times fill that day's boxes and stay editable.
 
 2. **Classify a session.** A fixture YAML file, a local Intervals JSON file, or a live Intervals activity becomes laps in `normalize()`. `classify()` applies if-then rules and returns one family, reason codes, a confidence word (`high` or `unsure`), and `ontology_version` `v0.1`. Last Session shows that. The CLI prints it. The ledger can store it in memory. This path does not change the season plan.
 
@@ -16,7 +16,7 @@ These are the paths that exist. They do not all meet.
 
 4. **Explain.** Last Session, Next, and Decisions ask `explain.py` for one paragraph. If the explain API is configured and recorded spend is under $25, the paragraph may be rephrased. A rephrase that changes the family, the template id, or the reasons is dropped. The rules text remains. No other page calls the model.
 
-5. **Pull activities.** Opening the app, Dashboard, or Weekly asks Intervals for the last 14 days and matches each activity to a planned date. Opening Activity data, or Refresh on that page, asks for every activity from 1970-01-01 through today, matches them, and then runs auto-adapt. The reduced rows are saved in this browser with the marks. The full activity JSON is not stored. Nothing is written back to Intervals.
+5. **Pull activities.** Opening Dashboard, Weekly, Session, Progress, or Activity data asks Intervals for the last 14 days, matches each activity to a planned date, and then runs auto-adapt. The first open of any other page asks for that same 14-day window and does not judge a mark. Refresh on Activity data asks for every activity from 1970-01-01 through today, matches them, and then runs auto-adapt. The reduced rows are saved in this browser with the marks. The full activity JSON is not stored. Nothing is written back to Intervals.
 
 6. **Load fixtures into SQLite.** `db/load.py` can create `data/rio.sqlite` from `db/schema.sql` and the four YAML fixtures. The Streamlit app does not open that database.
 
@@ -26,7 +26,7 @@ These are the paths that exist. They do not all meet.
 | --- | --- | --- |
 | `adapters/intervals_icu.py` | GET one activity, or GET a date range, when the API key is set | `to_normalize_input()` also runs on a JSON object already in memory |
 | `adapters/intervals_cli.py` | `--activity-id` and `--list` | `--file` reads a JSON file and does not use the network. `--save-json` writes the fetched body to disk |
-| `ui/activities.py` | `list_activities` and `fetch_activity` on Dashboard, Weekly, app load, and Activity data | Tests pass fake list and fetch functions |
+| `ui/activities.py` | `list_activities` and `fetch_activity` on Dashboard, Weekly, Session, Progress, Activity data, and app load | Tests pass fake list and fetch functions |
 | `ui/auto_adapt.py` | No | Judges rows already stored from a pull or a test |
 | `ui/last_session.py` | No | Reads `tests/fixtures/intervals/*.json` |
 | `ui/activity_data.py` | No | Displays stored rows and, for a planned day with no match, a local JSON file named by the result |
@@ -221,11 +221,12 @@ Browser key is `rio.plan.v1` plus those four strings. The payload is JSON: `mark
 
 Pull rules inside the wrapper:
 
-- Dashboard, Weekly, and the first open of any other page call `sync_recent` for the last 14 days, at most 40 activities, newest first.
-- Activity data, and its Refresh button, call `sync_all` from 1970-01-01 through today, with no cap, and then `auto_adapt`.
-- Opening Dashboard or Weekly again pulls the 14-day window again.
+- Dashboard, Weekly, Session, Progress, and Activity data call `sync_recent` for the last 14 days, at most 40 activities, newest first, and then `auto_adapt`.
+- The first open of any other page calls `sync_recent` once and does not judge a mark.
+- Refresh on Activity data calls `sync_all` from 1970-01-01 through today, with no cap, and then `auto_adapt`.
+- Opening one of those five pages again pulls the 14-day window again.
 - A failed list keeps the previous stored activities and shows the error. The key stays in the environment and is not printed.
-- Auto-adapt does not run on the 14-day pull. It runs after a successful full pull on Activity data.
+- Auto-adapt runs after a successful pull on those five pages, and after Refresh. It does not run on the first-load pull of another page.
 
 Marks the user taps on Season or Weekly call `adapt()` for that week. A result on Session calls `judge()` and then the same adapt. Settings can require a confirm step before either of those. Auto-adapt does not use that confirm step.
 
@@ -239,7 +240,7 @@ Does not classify inside the season pages. Does not call explain except on Last 
 
 **Start** (`page_start`, default). Four inputs. Generate season calls `sequence()` and opens Season with those inputs in the URL. A bad input stays on the page with the error. Does not adapt. Does not read `docs/goal.md`.
 
-**Dashboard** (`/dashboard`). From the stored plan: the next session on or after today, days until the goal, the current phase, the last week mark, and one focus line from this week's primary templates. Extra activities in the last 14 days are listed. Does not call explain. Does not call `adapt()`.
+**Dashboard** (`/dashboard`). From the stored plan: the next session on or after today, days until the goal, the current phase, the last week mark, and one focus line from this week's primary templates. Extra activities in the last 14 days are listed. Opening the page reads those 14 days and can store a mark for an unmarked quality day before the page draws. Does not call explain.
 
 **Calendar** (`/calendar`). One month of the stored plan, Sunday–Saturday. Opens on the month that contains today. A session day gets a short label and links to Session. Race is only `rr_800_r0_x1`. Does not call explain or `adapt()`.
 
@@ -247,7 +248,7 @@ Does not classify inside the season pages. Does not call explain except on Last 
 
 **Last Session** (`/last-session`). A fixture YAML file, or a JSON file from `tests/fixtures/intervals`. The JSON path runs `to_normalize_input`, then `normalize`, `classify`, and `explain`. The YAML path parses the fixture and runs the same three. Does not call Intervals. Explain spend stays capped at $25.
 
-**Activity data** (`/activity`). After the full pull: one row per matched session with a date, a template or label, WORK meters, and average heart rate. A line is weekly completed WORK meters. A dot is each matched row that has an average heart rate. A second table lists every stored activity that has an activity distance or an average heart rate. An unmatched row is labeled extra. Warm-up and cool-down stay out of WORK meters. Template meters are not used. A local JSON file can fill a planned day that has a result ref and no matched work meters. Detail groups for distance, elapsed time, the interval table, max heart rate, zones, decoupling, and stream samples say `not pulled.` because those samples are not in the stored row. Does not call explain. Does call `adapt()` through auto-adapt when a matched quality day can be judged.
+**Activity data** (`/activity`). After the 14-day pull, or a full pull from Refresh: one row per matched session with a date, a template or label, WORK meters, and average heart rate. A line is weekly completed WORK meters. A dot is each matched row that has an average heart rate. A second table lists every stored activity that has an activity distance or an average heart rate. An unmatched row is labeled extra. Warm-up and cool-down stay out of WORK meters. Template meters are not used. A local JSON file can fill a planned day that has a result ref and no matched work meters. Detail groups for distance, elapsed time, the interval table, max heart rate, zones, decoupling, and stream samples say `not pulled.` because those samples are not in the stored row. Does not call explain. Does call `adapt()` through auto-adapt when a matched quality day can be judged.
 
 **Next** (`/next`). One fixture, recorded yesterday on a fresh ledger, then `prescribe()` as of today. Shows the template id, the day, the recipe parameters, the reason codes, and `explain_prescription`. Does not write a planned file and does not touch the season.
 
@@ -257,13 +258,13 @@ Does not classify inside the season pages. Does not call explain except on Last 
 
 **Goal** (`/goal`). The four fields of `rio/v0.1/goal.yml`. Does not show `docs/goal.md`.
 
-**Progress** (`/progress`). One row per plan week: phase, status, days remaining, and completed WORK distance. The week that contains today is current even if it has a mark. Another marked week is done. An unmarked week after today is upcoming. A past week with no mark has a blank status. Volume is loaded file distance overridden by a matched activity's WORK meters. A day with neither is 0. A line plots that weekly distance. Dots are matched activities that have an average heart rate, clipped to the season. Does not call explain or `adapt()`.
+**Progress** (`/progress`). One row per plan week: phase, status, days remaining, and completed WORK distance. The week that contains today is current even if it has a mark. Another marked week is done. An unmarked week after today is upcoming. A past week with no mark has a blank status. Volume is loaded file distance overridden by a matched activity's WORK meters. A day with neither is 0. A line plots that weekly distance. Dots are matched activities that have an average heart rate, clipped to the season. Opening the page reads the last 14 days and can store a mark for an unmarked quality day before the page draws. Does not call explain.
 
-**Weekly** (`/weekly`). One week of the plan, defaulting to the week that contains today. Recap shows sessions with a stored result, the marks, this week's WORK volume beside the week before, and one sentence if the next week already carries an adapt reason code. Day cards link to Session. A matched day shows that activity's rep times, WORK distance, and heart rate. Extra activities in the week are listed. The mark buttons call `adapt()`. The recap itself does not call `adapt()` or explain.
+**Weekly** (`/weekly`). One week of the plan, defaulting to the week that contains today. Recap shows sessions with a stored result, the marks, this week's WORK volume beside the week before, and one sentence if the next week already carries an adapt reason code. Day cards link to Session. A matched day shows that activity's rep times, WORK distance, and heart rate. Extra activities in the week are listed. Opening the page reads the last 14 days and can store a mark for an unmarked quality day before the page draws. The mark buttons call `adapt()`. The recap itself does not call `adapt()` or explain.
 
 **Season** (`/season`). The plan grouped by week, Sunday through Saturday, with the calendar date. A row opens Session. Reason codes are in an expander. The mark buttons call `adapt()`. Does not record workouts by itself.
 
-**Session** (`/session`). One planned day, or an extra activity opened by id. Shows the plain workout text, the recipe structure, the target outcome, fixed warm-up and cool-down lines, and core on a quality day. Those prep lines are not stored on the session, so `adapt()` never reads them. Tuesday and Thursday quality, other than an `aer_` id, take one time per rep. A continuous session takes one time. A local JSON file fills WORK elapsed times into those boxes. The numbers stay editable. Filled times go through `judge()`. The activity id or the filename is stored on the actual. A matched activity can seed the boxes and can show rep times, WORK distance, and heart rate. Does not call Intervals and does not call explain.
+**Session** (`/session`). One planned day, or an extra activity opened by id. Shows the plain workout text, the recipe structure, the target outcome, fixed warm-up and cool-down lines, and core on a quality day. Those prep lines are not stored on the session, so `adapt()` never reads them. Tuesday and Thursday quality, other than an `aer_` id, take one time per rep. A continuous session takes one time. A local JSON file fills WORK elapsed times into those boxes. The numbers stay editable. Filled times go through `judge()`. The activity id or the filename is stored on the actual. Opening the page reads the last 14 days. A matched quality day's stored WORK times fill the boxes and stay editable. A matched activity can also show rep times, WORK distance, and heart rate. Does not write to Intervals and does not call explain.
 
 **Settings** (`/settings`). The display preferences above. Confirm sits in front of a hand-entered result and a hand-entered week mark. Nothing here is written onto the plan.
 
@@ -413,7 +414,7 @@ There is no test module for `db/load.py`. There is no separate test module for `
 
 ## What is wired, and what is only on disk
 
-Wired into the running app: the season builder and `adapt()`, the menu, the weights file, the browser store, the activity pull, matching, auto-adapt on Activity data, hand-entered results, local Intervals JSON for Last Session and for Session boxes, classify and normalize on Last Session, prescribe on Next, the planned YAML file on Decisions, the in-memory ledger on Ledger, `goal.yml` on Goal, and explain on the three prose pages.
+Wired into the running app: the season builder and `adapt()`, the menu, the weights file, the browser store, the activity pull, matching, auto-adapt on Dashboard, Weekly, Session, Progress, and Activity data, hand-entered results, local Intervals JSON for Last Session and for Session boxes, classify and normalize on Last Session, prescribe on Next, the planned YAML file on Decisions, the in-memory ledger on Ledger, `goal.yml` on Goal, and explain on the three prose pages.
 
 Present and used by a script, not by a page: `adapters/intervals_cli.py`, `db/load.py`, `engines/accept.py` as a writer (the page only reads what it wrote), and the stdout helpers on season and prescribe.
 
