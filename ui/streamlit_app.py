@@ -1524,6 +1524,15 @@ h2.rio-week-title {
   width: 100%;
   height: auto;
 }
+.rio-heart {
+  padding-bottom: 0.9rem;
+}
+.rio-heart-label {
+  fill: #f0f0f0 !important;
+}
+.rio-heart-dot {
+  fill: #f5f5f5 !important;
+}
 .rio-progress-list {
   background: #1a1a1a;
   border: 1px solid #242424;
