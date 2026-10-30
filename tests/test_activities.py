@@ -466,11 +466,12 @@ def test_unprefixed_env_names_fill_the_rio_names() -> None:
 
 
 def test_pull_uses_the_adapter_and_does_not_spend() -> None:
-    """The app asks for the list on load and when Dashboard or Weekly opens.
+    """The app asks for the last 14 days when a live page opens.
 
-    Opening Activity data, or Refresh, lists every activity. The session page
-    and Last Session stay off the network. Engines are not used for the match.
-    Prose spend stays capped at $25.
+    Dashboard, Weekly, Session, Progress, and Activity data use that pull.
+    Refresh on Activity data lists every activity. The page functions stay
+    off the network. Engines are not used for the match. Prose spend stays
+    capped at $25.
     """
     if SPEND_CAP_MICRO_USD != 25_000_000:
         raise AssertionError("spend cap is not $25")
@@ -495,14 +496,26 @@ def test_pull_uses_the_adapter_and_does_not_spend() -> None:
     if "athlete_id" in pull or "api_key" in pull:
         raise AssertionError("the pull picks an athlete or a key of its own")
     app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
-    if '_PULL_PAGES = ("page_dashboard", "page_weekly", "page_activity")' not in app:
-        raise AssertionError("dashboard, weekly, and activity data do not open a pull")
+    block = app[app.index("_PULL_PAGES"):app.index("def _pull_for(")]
+    for name in (
+        "page_dashboard",
+        "page_weekly",
+        "page_session",
+        "page_progress",
+        "page_activity",
+    ):
+        if name not in block:
+            raise AssertionError(f"{name} does not open a pull")
     wrapper = _function(app, "_with_plan")
     pull_for = _function(app, "_pull_for")
     if 'st.session_state.get("activity-refresh") is True' not in pull_for:
         raise AssertionError("refresh does not read activities again")
-    if 'page_name == "page_activity"' not in pull_for or "sync_all(" not in pull_for:
-        raise AssertionError("opening Activity data does not read every activity")
+    branches = pull_for.split("if refresh:", 1)[1]
+    history, recent = branches.split("else:", 1)
+    if "sync_all(" not in history or "sync_recent(" in history:
+        raise AssertionError("refresh does not read every activity")
+    if "sync_recent(" not in recent:
+        raise AssertionError("opening a live page does not read the last 14 days")
     if "_pull_for(" not in wrapper or "sync_recent(" not in pull_for:
         raise AssertionError("opening a page does not pull")
     if wrapper.index("_pull_for(") > wrapper.index("_sync_browser_store("):

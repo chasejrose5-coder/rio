@@ -280,8 +280,12 @@ def test_a_changed_future_workout_is_not_judged_in_the_same_call() -> None:
         raise AssertionError("week 2 was adapted from the workout it replaced")
 
 
-def test_activity_data_calls_adapt_and_does_not_spend() -> None:
-    """Opening Activity data judges the match. The page does not spend or score."""
+def test_live_pages_pull_recent_and_judge() -> None:
+    """Opening a live page reads the last 14 days and judges an unmarked quality day.
+
+    Refresh on Activity data still reads every activity. The boxes show the
+    stored times and stay editable. The page does not spend or score.
+    """
     if SPEND_CAP_MICRO_USD != 25_000_000:
         raise AssertionError("spend cap is not $25")
     source = (ROOT / "ui" / "auto_adapt.py").read_text(encoding="utf-8")
@@ -297,15 +301,32 @@ def test_activity_data_calls_adapt_and_does_not_spend() -> None:
     if "auto_adapt" in season:
         raise AssertionError("season.py was changed for auto-adapt")
     app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
+    block = app[app.index("_PULL_PAGES"):app.index("def _pull_for(")]
+    for name in (
+        "page_dashboard",
+        "page_weekly",
+        "page_session",
+        "page_progress",
+        "page_activity",
+    ):
+        if name not in block:
+            raise AssertionError(f"{name} does not pull on open")
     pull = _function(app, "_pull_for")
     apply = _function(app, "_apply_activity_marks")
     if pull.count("_apply_activity_marks(") != 1:
-        raise AssertionError("activity data does not judge a match once")
-    guard = 'if page_name == "page_activity":\n            _apply_activity_marks(plan)'
-    if guard not in pull:
-        raise AssertionError("dashboard or weekly auto-adapts")
-    if "sync_recent(" in pull.split(guard, 1)[0] and "sync_all(" not in pull:
-        raise AssertionError("activity data stopped reading every activity")
+        raise AssertionError("a live page does not judge a match once")
+    if "if opened:" not in pull or "_apply_activity_marks(plan)" not in pull:
+        raise AssertionError("opening a live page does not judge")
+    if 'if page_name == "page_activity":\n            _apply_activity_marks(plan)' in pull:
+        raise AssertionError("only activity data judges a match")
+    if 'st.session_state.get("activity-refresh") is True' not in pull:
+        raise AssertionError("refresh does not read activities again")
+    branches = pull.split("if refresh:", 1)[1]
+    history, recent = branches.split("else:", 1)
+    if "sync_all(" not in history or "sync_recent(" not in recent:
+        raise AssertionError("opening a live page does not use the recent adapter")
+    if "sync_recent(" in history:
+        raise AssertionError("refresh stopped reading every activity")
     if "auto_adapt(" not in apply:
         raise AssertionError("the match does not call adapt()")
     if "explain(" in apply or "print(" in apply or "SPEND_CAP" in apply:
@@ -313,6 +334,11 @@ def test_activity_data_calls_adapt_and_does_not_spend() -> None:
     page = _function(app, "page_activity")
     if "adapt(" in page or "explain(" in page or "probability" in page.lower():
         raise AssertionError("the activity page spends or classifies")
+    result = _function(app, "_render_result")
+    if "_initial_slots(" not in result or "actual-seed" not in result or "_boxes_blank(" not in result:
+        raise AssertionError("a stored quality day does not fill the boxes")
+    if "disabled" in _function(app, "_time_box"):
+        raise AssertionError("the time boxes are locked")
     activities = (ROOT / "ui" / "activities.py").read_text(encoding="utf-8")
     if "from engines" in activities or "auto_adapt" in activities:
         raise AssertionError("the pull started calling adapt()")
@@ -325,7 +351,7 @@ def main() -> None:
     test_recovery_long_run_extra_and_empty_reps_do_not_adapt()
     test_a_later_week_adapts_from_that_week()
     test_a_changed_future_workout_is_not_judged_in_the_same_call()
-    test_activity_data_calls_adapt_and_does_not_spend()
+    test_live_pages_pull_recent_and_judge()
     print("auto adapt ok")
 
 

@@ -1,6 +1,6 @@
 # streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Activity data, Next, Decisions, Ledger, Goal, Progress, Season, Past seasons, Weekly, Profile, Settings, About, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity data lists one row per matched Intervals workout: the date, the template or label, completed work meters, and average heart rate. The line is weekly completed WORK distance. Warm-up, cool-down, and template meters stay out. A dot marks each matched workout that has an average heart rate, labeled with the date. An unmatched activity stays off that matched list. A matched activity with no work meters and no heart rate stays off it. A second table lists every activity: the date, the activity name, the activity distance, and average heart rate. An unmatched row is labeled extra. An activity with no distance and no heart rate stays off both lists. No stored match and no Intervals file leaves the matched list empty. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening the app, Dashboard, or Weekly reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. Opening Activity data, or Refresh, reads every activity for this athlete with the local key and matches each activity to the planned session on that date. A matched Tuesday or Thursday quality day is judged from that activity's WORK elapsed times. The mark and those times are stored with the session, and adapt() changes only later weeks. A day that already has a mark is left as stored. Recovery days, long runs, extra activities, and empty rep times do not call adapt(). A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved in this browser with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Profile shows the current 800 time, the start date, the goal 800 time, and the goal date already stored from Start. Saving a goal time keeps it in this browser and leaves the season as stored. Past seasons lists each season this browser has already stored. A row shows the start date, the goal date, and the goal time from that plan key. Choosing a row opens that season from those four inputs. The page does not build a season. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. The page does not call Intervals.icu. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. About states the eight phases, the 10% rule, that classification is rules, not AI, and that a hard-day mark adapts later weeks. About does not call a model. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity data lists one row per matched Intervals workout: the date, the template or label, completed work meters, and average heart rate. The line is weekly completed WORK distance. Warm-up, cool-down, and template meters stay out. A dot marks each matched workout that has an average heart rate, labeled with the date. An unmatched activity stays off that matched list. A matched activity with no work meters and no heart rate stays off it. A second table lists every activity: the date, the activity name, the activity distance, and average heart rate. An unmatched row is labeled extra. An activity with no distance and no heart rate stays off both lists. No stored match and no Intervals file leaves the matched list empty. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening Dashboard, Weekly, Session, Progress, or Activity data reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. Refresh on Activity data reads every activity for this athlete. A matched Tuesday or Thursday quality day with no stored mark is judged from that activity's WORK elapsed times. The mark and those times are stored with the session, and adapt() changes only later weeks. Those times fill the quality-day boxes and stay editable. A day that already has a mark is left as stored. Recovery days, long runs, extra activities, and empty rep times do not call adapt(). A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved in this browser with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Profile shows the current 800 time, the start date, the goal 800 time, and the goal date already stored from Start. Saving a goal time keeps it in this browser and leaves the season as stored. Past seasons lists each season this browser has already stored. A row shows the start date, the goal date, and the goal time from that plan key. Choosing a row opens that season from those four inputs. The page does not build a season. Session shows one day of that plan. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. Opening Session reads recent activities through the read-only adapter and does not write back to Intervals. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. About states the eight phases, the 10% rule, that classification is rules, not AI, and that a hard-day mark adapts later weeks. About does not call a model. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -768,19 +768,28 @@ def _restore_if_needed() -> None:
     _restore_record(storage_key(inputs))
 
 
-# Dashboard and Weekly read the last 14 days when they are opened.
-# Opening Activity data, or Refresh, reads every activity. Any other first
-# page is the app load. The names are the page functions _with_plan wraps.
-_PULL_PAGES = ("page_dashboard", "page_weekly", "page_activity")
+# Dashboard, Weekly, Session, Progress, and Activity data read the last 14
+# days when they are opened. Refresh on Activity data reads every activity.
+# Any other first page is the app load and does not judge a mark. The names
+# are the page functions _with_plan wraps.
+_PULL_PAGES = (
+    "page_dashboard",
+    "page_weekly",
+    "page_session",
+    "page_progress",
+    "page_activity",
+)
 
 
 def _pull_for(page_name: str) -> None:
-    """Dashboard and Weekly match the last 14 days. Activity data matches every activity.
+    """Those pages match the last 14 days and judge an unmarked quality day.
 
-    Opening Activity data, or Refresh, reads every activity for this athlete.
-    A matched quality day is then judged from its WORK times, and adapt()
-    changes only later weeks. A day that already has a mark is left as stored.
-    A failure keeps the stored matches. The key stays in the environment.
+    Opening Dashboard, Weekly, Session, Progress, or Activity data reads the
+    last 14 days through the existing adapter. Refresh on Activity data reads
+    every activity. A matched Tuesday or Thursday with no mark is judged from
+    its WORK times, and adapt() changes only later weeks. A day that already
+    has a mark is left as stored. A failure keeps the stored matches. The key
+    stays in the environment. Nothing is written to Intervals.
     """
     plan = st.session_state.get("season_plan")
     if not isinstance(plan, dict):
@@ -796,7 +805,7 @@ def _pull_for(page_name: str) -> None:
     if not isinstance(sessions, list):
         sessions = []
     try:
-        if page_name == "page_activity":
+        if refresh:
             updated = sync_all(
                 sessions,
                 st.session_state.get("season_activities"),
@@ -813,7 +822,7 @@ def _pull_for(page_name: str) -> None:
     else:
         st.session_state["season_activities"] = updated
         st.session_state.pop("activities_notice", None)
-        if page_name == "page_activity":
+        if opened:
             _apply_activity_marks(plan)
     st.session_state["activities_trigger"] = trigger
     st.session_state["activities_loaded"] = True
@@ -822,9 +831,10 @@ def _pull_for(page_name: str) -> None:
 def _with_plan(page):
     """Draw the page after the shared plan is in the session.
 
-    The first open reads recent activities. Dashboard and Weekly read the
-    last 14 days again when they are opened. Opening Activity data, or
-    Refresh, reads every activity. The write saves the matches with the marks.
+    Dashboard, Weekly, Session, Progress, and Activity data read the last 14
+    days when they are opened, then judge an unmarked quality day. Refresh
+    on Activity data reads every activity and judges the same way. The write
+    saves the matches with the marks.
     """
 
     def wrapped() -> None:
@@ -2736,6 +2746,18 @@ def _intervals_ref(value: object) -> str | None:
     return text
 
 
+def _boxes_blank(keys: list[str]) -> bool:
+    """True when every result box is empty or not on the page yet."""
+    for key in keys:
+        if key not in st.session_state:
+            continue
+        value = st.session_state.get(key)
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            continue
+        return False
+    return True
+
+
 def _initial_slots(saved: dict | None, count: int) -> list[float | None]:
     """Refill each box. A saved gap stays empty. Older results fill from the left."""
     slots: list[float | None] = [None] * count
@@ -2966,6 +2988,7 @@ def _render_result(plan: dict, session: dict, generation: int) -> None:
             st.session_state[applied_key] = source
         initial = _initial_slots(saved, count)
         seed_key = f"{stem}-activity-seed"
+        actual_seed = f"{stem}-actual-seed"
         match = matched_on(_stored_activities(), day)
         seeded = False
         if (
@@ -2979,6 +3002,15 @@ def _render_result(plan: dict, session: dict, generation: int) -> None:
                 initial = fitted
                 seeded = True
             st.session_state[seed_key] = match.get("id")
+        elif (
+            isinstance(saved, dict)
+            and any(slot is not None for slot in initial)
+            and _boxes_blank(keys)
+        ):
+            token = str(saved.get("text") or "")
+            if token and st.session_state.get(actual_seed) != token:
+                seeded = True
+                st.session_state[actual_seed] = token
         for key, slot in zip(keys, initial):
             if key not in st.session_state or (seeded and st.session_state.get(key) is None):
                 st.session_state[key] = slot
@@ -3313,9 +3345,10 @@ def page_dashboard() -> None:
     The next workout is the first session on or after today. The phase and
     the one-line focus are that week's, from reason codes already stored.
     The last mark is the latest week mark, when one exists. Days until the
-    goal count from today. Activities from the last 14 days are already
-    matched. An unmatched activity is an extra session. No prose, so this
-    page does not spend. No scores.
+    goal count from today. Opening this page reads the last 14 days and
+    matches each activity to that date. An unmarked quality day can already
+    hold the mark from those WORK times. An unmatched activity is an extra
+    session. No prose, so this page does not spend. No scores.
     """
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
@@ -3602,8 +3635,9 @@ def page_progress() -> None:
     shows 0 m. A line plots that same weekly distance, and a week with no
     file stays at 0. A dot marks each matched activity that has an average
     heart rate, labeled with the day and the value. A day with no heart rate
-    is left blank. Template meters are not used. No prose, so this page
-    does not spend. No scores.
+    is left blank. Template meters are not used. Opening this page reads the
+    last 14 days and matches each activity to that date. No prose, so this
+    page does not spend. No scores.
     """
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
@@ -3700,7 +3734,8 @@ def page_weekly() -> None:
     the day, the date, the plain workout, and the target outcome. A matched
     day adds that activity's rep times, WORK distance, and heart rate. An
     activity with no planned session on its date is an extra session. A card
-    opens that session. The mark calls adapt() for that week.
+    opens that session. Opening this page reads the last 14 days and matches
+    each activity to that date. The mark calls adapt() for that week.
     No prose, so this page does not spend.
     """
     chrome = st.container(gap=None)
@@ -3851,13 +3886,14 @@ def page_session() -> None:
     the structure, the three placeholder lines, and the reason words are
     fixed. A Tuesday or Thursday quality day takes one time per rep and
     calls adapt(). Choosing an Intervals JSON file reads it locally and
-    fills each box with that WORK interval's elapsed time. The numbers
-    stay editable. Filled times go through judge(). The activity id or
-    the filename is stored with the actuals. When that activity JSON has
-    an average heart rate, the page shows it. A matched activity shows its
-    rep times, its WORK distance, and that heart rate. An extra session
+    fills each box with that WORK interval's elapsed time. A matched
+    quality day fills those same boxes from the stored WORK times. The
+    numbers stay editable. Filled times go through judge(). The activity
+    id or the filename is stored with the actuals. When that activity JSON
+    has an average heart rate, the page shows it. A matched activity shows
+    its rep times, its WORK distance, and that heart rate. An extra session
     opens on its own. A continuous session takes one time. This page does
-    not call a model and does not spend.
+    not call a model and does not spend. Nothing is written to Intervals.
     """
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
@@ -4063,10 +4099,10 @@ def _activity_table(rows: list[dict]) -> str:
 def page_activity() -> None:
     """Matched Intervals workouts from the plan Start stored.
 
-    Opening this page reads every activity through the Intervals adapter
-    and matches them to that plan by date. Refresh reads them again. One row
-    per matched session: date, template or label, work meters, and average
-    heart rate. The line is weekly completed WORK distance. Warm-up and
+    Opening this page reads the last 14 days through the Intervals adapter
+    and matches them to that plan by date. Refresh reads every activity.
+    One row per matched session: date, template or label, work meters, and
+    average heart rate. The line is weekly completed WORK distance. Warm-up and
     cool-down stay out. Template meters are not used. A dot marks each
     matched workout that has an average heart rate, labeled with the date.
     An unmatched activity stays off that list. A matched activity with no
