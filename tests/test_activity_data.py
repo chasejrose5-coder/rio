@@ -500,9 +500,9 @@ def test_heart_rate_dots_are_labeled_with_the_date() -> None:
         raise AssertionError(svg)
     if "probability" in svg or "readiness" in svg or "mileage" in svg.lower():
         raise AssertionError(svg)
-    if 'fill="#f0f0f0"' not in svg or 'font-size="12"' not in svg:
+    if 'fill="#f4f4f4"' not in svg or 'font-size="12"' not in svg:
         raise AssertionError("the date is still faint")
-    if 'r="5"' not in svg or 'fill="#f5f5f5"' not in svg:
+    if 'r="5"' not in svg or 'fill="#6db892"' not in svg:
         raise AssertionError("the dot is still faint")
     _assert_dates_clear_the_dots(svg)
 

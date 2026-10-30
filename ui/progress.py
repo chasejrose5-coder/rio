@@ -351,10 +351,10 @@ def _series(points: list[tuple[float, float]]) -> str:
     if len(points) == 1:
         x, y = points[0]
         return (
-            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2.4" fill="#d5d5d5" />'
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2.4" fill="#f4f4f4" />'
         )
     return (
-        f'<polyline points="{drawn}" fill="none" stroke="#d5d5d5" '
+        f'<polyline points="{drawn}" fill="none" stroke="#f4f4f4" '
         'stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" '
         'vector-effect="non-scaling-stroke" />'
     )
@@ -375,7 +375,7 @@ def _y_labels(values: list[int], unit: str, points: list[tuple[float, float]]) -
         text = _esc(_format_amount(amount, unit))
         labels.append(
             f'<text x="{_CHART_LEFT - 8:.1f}" y="{y:.1f}" text-anchor="end" '
-            'dominant-baseline="middle" fill="#6f6f6f" font-size="10">'
+            'dominant-baseline="middle" fill="#8f8f8f" font-size="10">'
             f"{text}</text>"
         )
     return labels
@@ -406,7 +406,7 @@ def _x_labels(count: int, points: list[tuple[float, float]]) -> list[str]:
             anchor = "middle"
         labels.append(
             f'<text x="{x:.1f}" y="{y:.1f}" text-anchor="{anchor}" '
-            'fill="#6f6f6f" font-size="10">'
+            'fill="#8f8f8f" font-size="10">'
             f"{index + 1}</text>"
         )
     return labels
@@ -616,13 +616,13 @@ def _heart_marks(dots: list[dict]) -> list[str]:
     for dot in dots:
         marks.append(
             f'<text class="rio-heart-label" x="{dot["label_x"]:.1f}" y="{dot["label_y"]:.1f}" '
-            f'text-anchor="{dot["anchor"]}" fill="#f0f0f0" font-size="{_HR_FONT}" font-weight="500">'
+            f'text-anchor="{dot["anchor"]}" fill="#f4f4f4" font-size="{_HR_FONT}" font-weight="500">'
             f'{_esc(dot["label"])}</text>'
         )
     for dot in dots:
         marks.append(
             f'<circle class="rio-heart-dot" cx="{dot["x"]:.1f}" cy="{dot["y"]:.1f}" '
-            'r="5" fill="#f5f5f5">'
+            'r="5" fill="#6db892">'
             f'<title>{_esc(dot["title"])}</title></circle>'
         )
     return marks
