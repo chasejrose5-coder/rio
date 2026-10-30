@@ -543,10 +543,21 @@ def test_pull_uses_the_adapter_and_does_not_spend() -> None:
         raise AssertionError("weekly calls the network or the model")
     if "fetch_activity" in progress or "urlopen" in progress or "explain(" in progress:
         raise AssertionError("progress calls the network or the model")
+    supplied = _function(app, "_supplied_html")
+    if "_supplied_html(" not in session or "rio-session-split" not in session:
+        raise AssertionError("Intervals data is not beside the template")
     if "heart_rate_text(" not in session or "Avg HR" not in session:
         raise AssertionError("a matched day does not show heart rate")
-    if "Reps" not in session or "Volume" not in session or "_render_logged_activity(" not in session:
-        raise AssertionError("a matched day does not show reps, volume, or an extra")
+    if "Reps" not in supplied or "Work" not in supplied or "Avg HR" not in supplied:
+        raise AssertionError("a matched day does not show reps, work, or heart rate")
+    if 'match.get("reps")' not in supplied or 'match.get("work_m")' not in supplied:
+        raise AssertionError("the session page does not read the matched activity")
+    if 'match.get("distance")' in supplied or "activity_distance(" in supplied:
+        raise AssertionError("completed work uses the activity total")
+    if "_render_logged_activity(" not in session:
+        raise AssertionError("an extra session is hidden")
+    if "disabled" in _function(app, "_time_box"):
+        raise AssertionError("the time boxes are locked")
     if "fetch_activity" in session or "urlopen" in session or "explain(" in session:
         raise AssertionError("the session page calls the network or spends")
     engines = ROOT / "engines"
