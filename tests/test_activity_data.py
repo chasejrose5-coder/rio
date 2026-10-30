@@ -614,8 +614,8 @@ def test_the_page_lists_matched_activities_and_does_not_spend() -> None:
     if "work_meters" in source:
         raise AssertionError("the view uses template meters")
     app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
-    if '("Activity data", st.Page(' not in app or 'url_path="activity"' not in app:
-        raise AssertionError("Activity data is not in the nav")
+    if '("Activity", st.Page(' not in app or 'url_path="activity"' not in app:
+        raise AssertionError("Activity is not in the nav")
     table = app[app.index("def _activity_table(") : app.index("\ndef page_activity(")]
     for heading in ("Date", "Workout", "Work", "Avg HR"):
         if heading not in table:

@@ -112,8 +112,8 @@ def test_page_lists_stored_inputs_and_does_not_build() -> None:
         raise AssertionError("the page does not list stored seasons")
     if '_open("Past seasons")' not in page or "query_values(" not in page:
         raise AssertionError("a row does not open the stored season")
-    if '_nav_page("Season")' not in page or "st.page_link(" not in page:
-        raise AssertionError("a row does not open the season page")
+    if '_nav_page("Plan")' not in page or "st.page_link(" not in page:
+        raise AssertionError("a row does not open the plan page")
     if "_date_text(" not in page:
         raise AssertionError("the dates are not the stored ones")
     for blob in (bridge, page):
