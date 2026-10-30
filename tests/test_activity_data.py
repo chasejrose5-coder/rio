@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sys
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -500,6 +500,97 @@ def test_heart_rate_dots_are_labeled_with_the_date() -> None:
         raise AssertionError(svg)
     if "probability" in svg or "readiness" in svg or "mileage" in svg.lower():
         raise AssertionError(svg)
+    if 'fill="#f0f0f0"' not in svg or 'font-size="12"' not in svg:
+        raise AssertionError("the date is still faint")
+    if 'r="5"' not in svg or 'fill="#f5f5f5"' not in svg:
+        raise AssertionError("the dot is still faint")
+    _assert_dates_clear_the_dots(svg)
+
+
+def test_close_dates_stay_on_separate_rows() -> None:
+    """Workouts a day apart keep their own date, off the other dates and the dot."""
+    points = []
+    captions = {}
+    for index in range(6):
+        day = date(2026, 4, 21) + timedelta(days=index)
+        iso = day.isoformat()
+        points.append({"date": iso, "bpm": 142 + index * 3})
+        captions[iso] = iso
+    svg = heart_rate_chart(
+        points,
+        start=date(2026, 4, 19),
+        weeks=3,
+        captions=captions,
+    )
+    if svg.count('class="rio-heart-dot"') != 6:
+        raise AssertionError("a matched workout did not get its own dot")
+    if "<polyline" in svg or "<line " in svg:
+        raise AssertionError("close dates were connected")
+    _assert_dates_clear_the_dots(svg)
+
+
+def _assert_dates_clear_the_dots(svg: str) -> None:
+    labels = _heart_labels(svg)
+    dots = _heart_dot_points(svg)
+    if not labels or len(labels) != len(dots):
+        raise AssertionError("a dot has no date")
+    if max(label[1] for label in labels) >= min(dot[1] for dot in dots):
+        raise AssertionError("a date sits on its dot")
+    for index, label in enumerate(labels):
+        for other in labels[index + 1 :]:
+            if abs(label[1] - other[1]) > 8:
+                continue
+            if label[2] + 8 <= other[0] or other[2] + 8 <= label[0]:
+                continue
+            raise AssertionError("two dates share a row")
+
+
+def _heart_labels(svg: str) -> list[tuple[float, float, float]]:
+    needle = 'class="rio-heart-label"'
+    found = []
+    start = 0
+    while True:
+        at = svg.find(needle, start)
+        if at < 0:
+            break
+        tag_end = svg.find(">", at)
+        tag = svg[svg.rfind("<text", 0, at) : tag_end]
+        text_end = svg.find("</text>", tag_end)
+        text = svg[tag_end + 1 : text_end]
+        x = float(tag.split('x="')[1].split('"')[0])
+        y = float(tag.split('y="')[1].split('"')[0])
+        anchor = tag.split('text-anchor="')[1].split('"')[0]
+        width = len(text) * 6.2
+        if anchor == "start":
+            left = x
+        elif anchor == "end":
+            left = x - width
+        else:
+            left = x - width / 2
+        found.append((left, y, left + width))
+        start = text_end
+    return found
+
+
+def _heart_dot_points(svg: str) -> list[tuple[float, float]]:
+    needle = 'class="rio-heart-dot"'
+    found = []
+    start = 0
+    while True:
+        at = svg.find(needle, start)
+        if at < 0:
+            break
+        tag_start = svg.rfind("<circle", 0, at)
+        tag_end = svg.find(">", at)
+        tag = svg[tag_start:tag_end]
+        found.append(
+            (
+                float(tag.split('cx="')[1].split('"')[0]),
+                float(tag.split('cy="')[1].split('"')[0]),
+            )
+        )
+        start = tag_end
+    return found
 
 
 def test_the_page_lists_matched_activities_and_does_not_spend() -> None:
@@ -619,6 +710,7 @@ def main() -> None:
     test_weekly_work_is_matched_distance_only()
     test_a_loaded_file_supplies_work_and_heart_rate()
     test_heart_rate_dots_are_labeled_with_the_date()
+    test_close_dates_stay_on_separate_rows()
     test_the_page_lists_matched_activities_and_does_not_spend()
     print("activity data ok")
 

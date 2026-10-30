@@ -442,11 +442,14 @@ def _esc(value: object) -> str:
 
 
 _HR_W = 640
-_HR_H = 168
-_HR_LEFT = 28
-_HR_RIGHT = 22
-_HR_TOP = 26
+_HR_FONT = 12
+_HR_PAD_X = 24
+_HR_TOP = 18
+_HR_ROW = 30
+_HR_BAND = 20
+_HR_PLOT = 136
 _HR_BOTTOM = 22
+_HR_GAP = 18
 _SHORT_DAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
 
@@ -480,7 +483,8 @@ def heart_rate_chart(
 
     points come from matched_heart_rates(). A date outside the season is
     left out. captions replaces the visible label for that ISO date. The
-    value stays on the dot. Display only. No scores.
+    value stays on the dot. Dates sit above the dots, on another row when
+    they would collide. Display only. No scores.
     """
     if isinstance(weeks, bool) or not isinstance(weeks, int) or weeks <= 0:
         return ""
@@ -489,15 +493,15 @@ def heart_rate_chart(
     dots = _heart_dots(points, start, weeks, captions)
     if not dots:
         return ""
-    _place_heart_labels(dots)
+    height = _place_heart_labels(dots)
     parts = [
         '<div class="rio-heart">',
         '<p class="rio-mark-label">Heart rate · bpm</p>',
         (
-            f'<svg class="rio-heart-line" viewBox="0 0 {_HR_W} {_HR_H}" '
+            f'<svg class="rio-heart-line" viewBox="0 0 {_HR_W} {height}" '
             'role="img" aria-label="Average heart rate" '
             'xmlns="http://www.w3.org/2000/svg" '
-            "style=\"font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif\">"
+            "style=\"font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-variant-numeric: tabular-nums\">"
         ),
         "<title>Average heart rate</title>",
         *_heart_marks(dots),
@@ -563,19 +567,18 @@ def _heart_dots(
         pad = max(4.0, (high - low) * 0.18)
         floor = low - pad
         peak = high + pad
-    width = _HR_W - _HR_LEFT - _HR_RIGHT
-    height = _HR_H - _HR_TOP - _HR_BOTTOM
+    width = _HR_W - _HR_PAD_X * 2
     dots = []
     for item in chosen:
         if span == 0:
-            x = _HR_LEFT + width / 2
+            x = _HR_W / 2
         else:
-            x = _HR_LEFT + width * (item["date"] - first).days / span
-        y = _HR_TOP + height * (1 - (item["bpm"] - floor) / (peak - floor))
+            x = _HR_PAD_X + width * (item["date"] - first).days / span
+        t = 1 - (item["bpm"] - floor) / (peak - floor)
         dots.append(
             {
                 "x": x,
-                "y": y,
+                "t": t,
                 "bpm": item["bpm"],
                 "label": _heart_caption(
                     item["date"],
@@ -613,70 +616,87 @@ def _heart_marks(dots: list[dict]) -> list[str]:
     for dot in dots:
         marks.append(
             f'<text class="rio-heart-label" x="{dot["label_x"]:.1f}" y="{dot["label_y"]:.1f}" '
-            f'text-anchor="{dot["anchor"]}" fill="#c8c8c8" font-size="10">'
+            f'text-anchor="{dot["anchor"]}" fill="#f0f0f0" font-size="{_HR_FONT}" font-weight="500">'
             f'{_esc(dot["label"])}</text>'
         )
+    for dot in dots:
         marks.append(
             f'<circle class="rio-heart-dot" cx="{dot["x"]:.1f}" cy="{dot["y"]:.1f}" '
-            'r="3.4" fill="#e6e6e6">'
+            'r="5" fill="#f5f5f5">'
             f'<title>{_esc(dot["title"])}</title></circle>'
         )
     return marks
 
 
-def _place_heart_labels(dots: list[dict]) -> None:
-    """Keep each label off the other labels. A day with no dot has no label."""
-    occupied: list[tuple[float, float, float, float]] = []
-    ordered = sorted(dots, key=lambda item: (item["x"], item["y"]))
+def _place_heart_labels(dots: list[dict]) -> int:
+    """Put each date above its dot. A colliding date takes the next row.
+
+    The plot stays under the dates, so a label does not cover a dot.
+    """
+    rows: list[list[tuple[float, float]]] = []
+    ordered = sorted(dots, key=lambda item: (item["x"], item["bpm"]))
     for dot in ordered:
-        width = max(36.0, len(dot["label"]) * 5.6)
-        placed = None
-        for anchor in _heart_anchors(dot["x"], width):
-            for y in (dot["y"] - 16, dot["y"] + 20):
-                box = _heart_box(dot["x"], y, width, anchor)
-                if box[1] < 2 or box[3] > _HR_H - 2 or _heart_hit(box, occupied):
-                    continue
-                placed = (anchor, y, box)
-                break
-            if placed is not None:
-                break
-        if placed is None:
-            anchor = "middle"
-            y = dot["y"] - 12
-            placed = (anchor, y, _heart_box(dot["x"], y, width, anchor))
-        dot["anchor"] = placed[0]
+        width = _heart_label_width(dot["label"])
+        anchor = _heart_anchor(dot["x"], width)
+        box = _heart_span(dot["x"], width, anchor)
+        row_index = 0
+        while row_index < len(rows) and _heart_span_hit(box, rows[row_index]):
+            row_index += 1
+        if row_index == len(rows):
+            rows.append([])
+        rows[row_index].append(box)
+        dot["anchor"] = anchor
+        dot["row"] = row_index
         dot["label_x"] = dot["x"]
-        dot["label_y"] = placed[1]
-        occupied.append(placed[2])
+    row_count = len(rows)
+    plot_top = _HR_TOP + row_count * _HR_ROW + _HR_BAND
+    for dot in dots:
+        dot["label_y"] = _HR_TOP + dot["row"] * _HR_ROW + 14
+        dot["y"] = plot_top + dot["t"] * _HR_PLOT
+    return plot_top + _HR_PLOT + _HR_BOTTOM
 
 
-def _heart_anchors(x: float, width: float) -> list[str]:
-    if x - width / 2 < 4:
-        return ["start", "middle", "end"]
-    if x + width / 2 > _HR_W - 4:
-        return ["end", "middle", "start"]
-    return ["middle", "start", "end"]
+def _heart_label_width(text: str) -> float:
+    """Width of a 12px label, a little wide so two dates do not touch."""
+    width = 0.0
+    for char in text:
+        if char == " ":
+            width += 3.2
+        elif char in ".,'":
+            width += 3.2
+        elif char in "-/":
+            width += 4.0
+        elif char == "·":
+            width += 4.5
+        elif char.isdigit():
+            width += 6.6
+        elif char.isupper():
+            width += 7.2
+        else:
+            width += 5.6
+    return width + 8.0
 
 
-def _heart_box(x: float, y: float, width: float, anchor: str) -> tuple[float, float, float, float]:
+def _heart_anchor(x: float, width: float) -> str:
+    if x - width / 2 < 6:
+        return "start"
+    if x + width / 2 > _HR_W - 6:
+        return "end"
+    return "middle"
+
+
+def _heart_span(x: float, width: float, anchor: str) -> tuple[float, float]:
     if anchor == "start":
-        left = x
-    elif anchor == "end":
-        left = x - width
-    else:
-        left = x - width / 2
-    return (left, y - 10, left + width, y + 3)
+        return (x, x + width)
+    if anchor == "end":
+        return (x - width, x)
+    return (x - width / 2, x + width / 2)
 
 
-def _heart_hit(
-    box: tuple[float, float, float, float],
-    occupied: list[tuple[float, float, float, float]],
-) -> bool:
-    left, top, right, bottom = box
+def _heart_span_hit(box: tuple[float, float], occupied: list[tuple[float, float]]) -> bool:
+    left, right = box
     for other in occupied:
-        if right + 4 <= other[0] or other[2] + 4 <= left:
-            continue
-        if bottom + 2 <= other[1] or other[3] + 2 <= top:
+        if right + _HR_GAP <= other[0] or other[1] + _HR_GAP <= left:
             continue
         return True
     return False
