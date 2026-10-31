@@ -1,6 +1,6 @@
 # streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Activity, Next, Decisions, Ledger, Goal, Progress, Season, Past seasons, Weekly, Profile, Settings, About, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: the next workout, the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity lists one row per matched Intervals workout: the date, the template or label, completed work meters, and average heart rate. The line is weekly completed WORK distance. Warm-up, cool-down, and template meters stay out. A dot marks each matched workout that has an average heart rate, labeled with the date. An unmatched activity stays off that matched list. A matched activity with no work meters and no heart rate stays off it. A second table lists every activity: the date, the activity name, the activity distance, and average heart rate. An unmatched row is labeled extra. An activity with no distance and no heart rate stays off both lists. No stored match and no Intervals file leaves the matched list empty. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening Dashboard, Weekly, Session, Progress, or Activity reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. Refresh on Activity reads every activity for this athlete. A matched Tuesday or Thursday quality day with no stored mark is judged from that activity's WORK elapsed times. The mark and those times are stored with the session, and adapt() changes only later weeks. Those times fill the quality-day boxes and stay editable. A day that already has a mark is left as stored. Recovery days, long runs, extra activities, and empty rep times do not call adapt(). A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved in this browser with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Profile shows the current 800 time, the start date, the goal 800 time, and the goal date already stored from Start. Saving a goal time keeps it in this browser and leaves the season as stored. Past seasons lists each season this browser has already stored. A row shows the start date, the goal date, and the goal time from that plan key. Choosing a row opens that season from those four inputs. The page does not build a season. Session shows one day of that plan. A matched activity shows its rep times, completed WORK distance, and average heart rate beside the template. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. Opening Session reads recent activities through the read-only adapter and does not write back to Intervals. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. About states the eight phases, the 10% rule, that classification is rules, not AI, and that a hard-day mark adapts later weeks. About does not call a model. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: a track for the next session, with distance, pace, rest, and reps, plus the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity lists one row per matched Intervals workout: the date, the template or label, completed work meters, and average heart rate. The line is weekly completed WORK distance. Warm-up, cool-down, and template meters stay out. A dot marks each matched workout that has an average heart rate, labeled with the date. An unmatched activity stays off that matched list. A matched activity with no work meters and no heart rate stays off it. A second table lists every activity: the date, the activity name, the activity distance, and average heart rate. An unmatched row is labeled extra. An activity with no distance and no heart rate stays off both lists. No stored match and no Intervals file leaves the matched list empty. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening Dashboard, Weekly, Session, Progress, or Activity reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. Refresh on Activity reads every activity for this athlete. A matched Tuesday or Thursday quality day with no stored mark is judged from that activity's WORK elapsed times. The mark and those times are stored with the session, and adapt() changes only later weeks. Those times fill the quality-day boxes and stay editable. A day that already has a mark is left as stored. Recovery days, long runs, extra activities, and empty rep times do not call adapt(). A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved in this browser with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Profile shows the current 800 time, the start date, the goal 800 time, and the goal date already stored from Start. Saving a goal time keeps it in this browser and leaves the season as stored. Past seasons lists each season this browser has already stored. A row shows the start date, the goal date, and the goal time from that plan key. Choosing a row opens that season from those four inputs. The page does not build a season. Session shows one day of that plan. A matched activity shows its rep times, completed WORK distance, and average heart rate beside the template. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. Opening Session reads recent activities through the read-only adapter and does not write back to Intervals. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. About states the eight phases, the 10% rule, that classification is rules, not AI, and that a hard-day mark adapts later weeks. About does not call a model. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ from ui.last_session import (
     open_intervals,
     quality_fill,
 )
-from ui.dashboard import dashboard_view
+from ui.dashboard import dashboard_view, session_facts
 from ui.recap import recap_view
 from ui.settings import (
     display_distance,
@@ -977,7 +977,7 @@ _MARK_PREFIX = "season"
 
 _APP_CSS = """
 <style>
-::selection { background: #2a4a3a; color: #f4f4f4; }
+::selection { background: #4a2c22; color: #f4f4f4; }
 html, body, .stApp, [data-testid="stAppViewContainer"],
 [data-testid="stMain"], [data-testid="stMainBlockContainer"],
 [data-testid="stBottom"], [data-testid="stBottomBlockContainer"] {
@@ -1121,7 +1121,7 @@ footer {
   background: transparent !important;
 }
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] {
-  border-bottom-color: #4a8c6a !important;
+  border-bottom-color: #e25a32 !important;
 }
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"],
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] span,
@@ -1146,7 +1146,7 @@ footer {
 }
 [class*="st-key-rio-nav"] [data-testid="stPageLink-NavLink"]:focus-visible,
 button:focus-visible {
-  outline: 1px solid #6db892;
+  outline: 1px solid #ff7a45;
   outline-offset: 3px;
 }
 
@@ -1176,7 +1176,7 @@ button:focus-visible {
 
 .rio-hero h1.rio-key,
 .stMarkdown .rio-hero h1.rio-key {
-  color: #6db892 !important;
+  color: #ff7a45 !important;
 }
 .rio-range {
   margin: 0.9rem 0 0 !important;
@@ -1200,8 +1200,8 @@ button:focus-visible {
 }
 [data-testid="stTextInputRootElement"],
 [data-testid="stDateInputField"] {
-  background: #14241c !important;
-  border: 1px solid #24382e !important;
+  background: #1c1410 !important;
+  border: 1px solid #3a2820 !important;
   border-radius: 8px !important;
   color: #f4f4f4 !important;
 }
@@ -1222,7 +1222,7 @@ button:focus-visible {
 }
 [data-testid="stTextInputRootElement"]:focus-within,
 [data-testid="stDateInputField"]:focus-within {
-  border-color: #6db892 !important;
+  border-color: #ff7a45 !important;
   box-shadow: none !important;
 }
 [data-testid="stDateInput"] svg { fill: #d4d4d4 !important; }
@@ -1233,8 +1233,8 @@ button:focus-visible {
 }
 
 [class*="st-key-rio-week"] {
-  background: #14241c !important;
-  border: 1px solid #24382e;
+  background: #1c1410 !important;
+  border: 1px solid #3a2820;
   border-radius: 16px;
   padding: 1.45rem 1.55rem 1.15rem !important;
   margin: 0 0 1.65rem !important;
@@ -1292,7 +1292,7 @@ h2.rio-week-title {
   padding: 0.95rem 0;
 }
 .rio-day + .rio-day,
-.rio-day-next { border-top: 1px solid #24382e; }
+.rio-day-next { border-top: 1px solid #3a2820; }
 .rio-dow {
   color: #f4f4f4;
   font-size: 0.98rem;
@@ -1323,8 +1323,8 @@ h2.rio-week-title {
   margin: 0 0 1.85rem !important;
 }
 .rio-daycard {
-  background: #14241c;
-  border: 1px solid #24382e;
+  background: #1c1410;
+  border: 1px solid #3a2820;
   border-radius: 16px;
   padding: 1.7rem 1.75rem 1.5rem;
   margin: 0 0 0.95rem;
@@ -1359,7 +1359,7 @@ h2.rio-week-title {
 .rio-daycard-target {
   margin-top: 0.95rem;
   padding-top: 0.9rem;
-  border-top: 1px solid #24382e;
+  border-top: 1px solid #3a2820;
   color: #d4d4d4;
   font-size: 0.95rem;
   line-height: 1.5;
@@ -1423,11 +1423,11 @@ h2.rio-week-title {
   padding: 0.42rem 0.4rem 0.45rem;
 }
 .rio-cal-session {
-  background: #14241c;
-  border-color: #24382e;
+  background: #1c1410;
+  border-color: #3a2820;
 }
 .rio-cal-today {
-  border-color: #4a8c6a;
+  border-color: #e25a32;
 }
 .rio-cal-num,
 .rio-cal-label {
@@ -1488,25 +1488,29 @@ h2.rio-week-title {
   outline: none !important;
 }
 [class*="st-key-rio-hit-row-"]:hover .rio-day {
-  background: #1a2e24;
+  background: #2a1c16;
 }
 [class*="st-key-rio-hit-card-"]:hover .rio-daycard {
-  border-color: #2a4a3a;
+  border-color: #4a2c22;
 }
 [class*="st-key-rio-hit-"]:focus-within .rio-day,
 [class*="st-key-rio-hit-"]:focus-within .rio-daycard,
 [class*="st-key-rio-hit-"]:focus-within .rio-cal-day,
 [class*="st-key-rio-hit-"]:focus-within .rio-past-row,
 [class*="st-key-rio-hit-dash"]:focus-within .rio-next,
-[class*="st-key-rio-hit-dash"]:focus-within .rio-hero {
-  outline: 1px solid #6db892;
+[class*="st-key-rio-hit-dash"]:focus-within .rio-hero,
+[class*="st-key-rio-hit-dash"]:focus-within .rio-track-stage {
+  outline: 1px solid #ff7a45;
   outline-offset: 2px;
 }
 [class*="st-key-rio-hit-cal-"]:hover .rio-cal-session {
-  border-color: #2a4a3a;
+  border-color: #4a2c22;
 }
 [class*="st-key-rio-hit-dash"]:hover .rio-next-work {
-  color: #8fd4b0 !important;
+  color: #ffb089 !important;
+}
+[class*="st-key-rio-hit-dash"]:hover .rio-track-svg {
+  color: #ff6a3c !important;
 }
 .rio-status {
   text-align: right;
@@ -1518,8 +1522,8 @@ h2.rio-week-title {
 }
 .rio-volume,
 .rio-heart {
-  background: #14241c;
-  border: 1px solid #24382e;
+  background: #1c1410;
+  border: 1px solid #3a2820;
   border-radius: 16px;
   padding: 0.95rem 1.15rem 0.55rem;
   margin: 0 0 1.15rem;
@@ -1542,18 +1546,18 @@ h2.rio-week-title {
   fill: #f4f4f4 !important;
 }
 .rio-heart-dot {
-  fill: #6db892 !important;
+  fill: #ff7a45 !important;
 }
 .rio-progress-list {
-  background: #14241c;
-  border: 1px solid #24382e;
+  background: #1c1410;
+  border: 1px solid #3a2820;
   border-radius: 16px;
   padding: 0.2rem 1.35rem;
   margin: 0 0 1.15rem;
 }
 .rio-lib {
-  background: #14241c;
-  border: 1px solid #24382e;
+  background: #1c1410;
+  border: 1px solid #3a2820;
   border-radius: 16px;
   padding: 0.15rem 1.35rem;
   margin: 0.35rem 0 1.15rem;
@@ -1565,7 +1569,7 @@ h2.rio-week-title {
   align-items: start;
   padding: 0.92rem 0;
 }
-.rio-lib-row + .rio-lib-row { border-top: 1px solid #24382e; }
+.rio-lib-row + .rio-lib-row { border-top: 1px solid #3a2820; }
 .rio-lib-name {
   color: #f4f4f4;
   font-size: 0.98rem;
@@ -1604,7 +1608,7 @@ h2.rio-week-title {
   align-items: baseline;
   padding: 0.82rem 0;
 }
-.rio-progress + .rio-progress { border-top: 1px solid #24382e; }
+.rio-progress + .rio-progress { border-top: 1px solid #3a2820; }
 .rio-progress-tick {
   width: 0.55rem;
   height: 0.55rem;
@@ -1614,12 +1618,12 @@ h2.rio-week-title {
   align-self: center;
 }
 .rio-progress-done .rio-progress-tick {
-  background: #4a8c6a;
-  border-color: #4a8c6a;
+  background: #e25a32;
+  border-color: #e25a32;
 }
 .rio-progress-current .rio-progress-tick {
-  background: #6db892;
-  border-color: #6db892;
+  background: #ff7a45;
+  border-color: #ff7a45;
 }
 .rio-progress-week {
   color: #f4f4f4;
@@ -1713,7 +1717,7 @@ h2.rio-week-title {
 }
 [class*="st-key-rio-week"] button {
   background: transparent !important;
-  border: 1px solid #24382e !important;
+  border: 1px solid #3a2820 !important;
   border-radius: 8px !important;
   color: #f4f4f4 !important;
   min-height: 2.15rem !important;
@@ -1725,19 +1729,19 @@ h2.rio-week-title {
 [class*="st-key-rio-week"] button p { color: inherit !important; }
 [class*="st-key-rio-week"] button[kind="primary"],
 [class*="st-key-rio-week"] [data-testid="stBaseButton-primary"] {
-  border-color: #4a8c6a !important;
-  color: #8fd4b0 !important;
+  border-color: #e25a32 !important;
+  color: #ffb089 !important;
   background: transparent !important;
 }
 [class*="st-key-rio-week"] button[kind="secondary"]:hover,
 [class*="st-key-rio-week"] [data-testid="stBaseButton-secondary"]:hover {
-  border-color: #4a8c6a !important;
+  border-color: #e25a32 !important;
   color: #f4f4f4 !important;
   background: transparent !important;
 }
 [class*="st-key-rio-week"] button[kind="primary"]:hover,
 [class*="st-key-rio-week"] [data-testid="stBaseButton-primary"]:hover {
-  background: #4a8c6a !important;
+  background: #e25a32 !important;
   color: #000000 !important;
 }
 [class*="st-key-rio-week"] [data-testid="stHorizontalBlock"] {
@@ -1748,8 +1752,8 @@ h2.rio-week-title {
 }
 
 .rio-card {
-  background: #14241c;
-  border: 1px solid #24382e;
+  background: #1c1410;
+  border: 1px solid #3a2820;
   border-radius: 16px;
   padding: 1.35rem 1.55rem 1.15rem;
   margin: 0 0 1.15rem;
@@ -1777,7 +1781,7 @@ h2.rio-week-title {
 .rio-fields { margin-top: 0.1rem; }
 .rio-card .rio-note + .rio-fields > .rio-field:first-child,
 .rio-card .rio-prose + .rio-fields > .rio-field:first-child {
-  border-top: 1px solid #24382e;
+  border-top: 1px solid #3a2820;
   margin-top: 0.85rem;
   padding-top: 0.85rem;
 }
@@ -1789,7 +1793,7 @@ h2.rio-week-title {
   padding: 0.78rem 0;
 }
 .rio-field + .rio-field,
-.rio-fields + .rio-fields > .rio-field:first-child { border-top: 1px solid #24382e; }
+.rio-fields + .rio-fields > .rio-field:first-child { border-top: 1px solid #3a2820; }
 .rio-k {
   color: #d4d4d4;
   font-size: 0.78rem;
@@ -1810,7 +1814,7 @@ h2.rio-week-title {
 .rio-prose {
   margin: 0.35rem 0 0.15rem !important;
   padding-top: 0.95rem;
-  border-top: 1px solid #24382e;
+  border-top: 1px solid #3a2820;
   color: #f4f4f4 !important;
   font-size: 1.02rem !important;
   line-height: 1.6 !important;
@@ -1824,7 +1828,7 @@ h2.rio-week-title {
 .rio-prep {
   margin: 0.95rem 0 0.2rem !important;
   padding-top: 0.85rem;
-  border-top: 1px solid #24382e;
+  border-top: 1px solid #3a2820;
 }
 .rio-prep-line {
   margin: 0 !important;
@@ -1855,7 +1859,7 @@ h2.rio-week-title {
   font-weight: 500;
   letter-spacing: 0.01em;
   padding: 0.15rem 0.7rem 0.55rem 0;
-  border-bottom: 1px solid #24382e;
+  border-bottom: 1px solid #3a2820;
   white-space: nowrap;
 }
 .rio-table td {
@@ -1863,7 +1867,7 @@ h2.rio-week-title {
   font-size: 0.9rem;
   line-height: 1.4;
   padding: 0.72rem 0.7rem 0.72rem 0;
-  border-bottom: 1px solid #24382e;
+  border-bottom: 1px solid #3a2820;
   font-variant-numeric: tabular-nums;
   vertical-align: top;
   white-space: nowrap;
@@ -1877,7 +1881,7 @@ h2.rio-week-title {
 }
 [class*="st-key-rio-activity-refresh"] button {
   background: transparent !important;
-  border: 1px solid #24382e !important;
+  border: 1px solid #3a2820 !important;
   border-radius: 8px !important;
   color: #f4f4f4 !important;
   min-height: 2.15rem !important;
@@ -1888,8 +1892,8 @@ h2.rio-week-title {
 }
 [class*="st-key-rio-activity-refresh"] button p { color: inherit !important; }
 [class*="st-key-rio-activity-refresh"] button:hover {
-  border-color: #4a8c6a !important;
-  color: #8fd4b0 !important;
+  border-color: #e25a32 !important;
+  color: #ffb089 !important;
 }
 
 [class*="st-key-rio-start"],
@@ -1909,9 +1913,9 @@ h2.rio-week-title {
 [class*="st-key-rio-profile-edit"] button,
 [class*="st-key-rio-profile-edit"] [data-testid="stBaseButton-primary"] {
   background: transparent !important;
-  border: 1px solid #4a8c6a !important;
+  border: 1px solid #e25a32 !important;
   border-radius: 8px !important;
-  color: #8fd4b0 !important;
+  color: #ffb089 !important;
   min-height: 2.45rem !important;
   margin-top: 0.75rem !important;
   padding: 0.4rem 0.9rem !important;
@@ -1929,18 +1933,18 @@ h2.rio-week-title {
 [class*="st-key-rio-start"] [data-testid="stBaseButton-primary"]:hover,
 [class*="st-key-rio-profile-edit"] button:hover,
 [class*="st-key-rio-profile-edit"] [data-testid="stBaseButton-primary"]:hover {
-  background: #4a8c6a !important;
-  border-color: #4a8c6a !important;
+  background: #e25a32 !important;
+  border-color: #e25a32 !important;
   color: #000000 !important;
 }
 
 [data-testid="stSelectbox"] [role="group"] {
-  background: #14241c !important;
-  border: 1px solid #24382e !important;
+  background: #1c1410 !important;
+  border: 1px solid #3a2820 !important;
   border-radius: 8px !important;
 }
 [data-testid="stSelectbox"] [role="group"]:focus-within {
-  border-color: #6db892 !important;
+  border-color: #ff7a45 !important;
   box-shadow: none !important;
 }
 [data-testid="stSelectbox"] input {
@@ -1964,9 +1968,9 @@ h2.rio-week-title {
 }
 [data-testid="stSelectbox"] svg { fill: #d4d4d4 !important; }
 [data-testid="stSelectboxVirtualDropdown"] {
-  background: #1a2e24 !important;
+  background: #2a1c16 !important;
   color: #f4f4f4 !important;
-  border: 1px solid #24382e !important;
+  border: 1px solid #3a2820 !important;
   border-radius: 8px !important;
   box-shadow: none !important;
 }
@@ -1976,13 +1980,13 @@ h2.rio-week-title {
 }
 [data-testid="stSelectboxVirtualDropdown"] [role="option"][aria-selected="true"],
 [data-testid="stSelectboxVirtualDropdown"] [role="option"]:hover {
-  background: #2a4a3a !important;
-  color: #8fd4b0 !important;
+  background: #4a2c22 !important;
+  color: #ffb089 !important;
 }
 
 [class*="st-key-rio-result"] {
-  background: #14241c;
-  border: 1px solid #24382e;
+  background: #1c1410;
+  border: 1px solid #3a2820;
   border-radius: 16px;
   padding: 1.15rem 1.55rem 1.2rem;
   margin: 0 0 1.15rem;
@@ -2017,12 +2021,12 @@ h2.rio-week-title {
   margin-bottom: 0.28rem !important;
 }
 [class*="st-key-rio-result"] [data-testid="stNumberInputContainer"] {
-  background: #1a2e24 !important;
-  border: 1px solid #24382e !important;
+  background: #2a1c16 !important;
+  border: 1px solid #3a2820 !important;
   border-radius: 8px !important;
 }
 [class*="st-key-rio-result"] [data-testid="stNumberInputContainer"]:focus-within {
-  border-color: #6db892 !important;
+  border-color: #ff7a45 !important;
   box-shadow: none !important;
 }
 [class*="st-key-rio-result"] [data-testid="stNumberInputField"] {
@@ -2069,7 +2073,7 @@ h2.rio-week-title {
   padding: 0 0 0.4rem !important;
 }
 .rio-supplied {
-  border-left: 1px solid #24382e;
+  border-left: 1px solid #3a2820;
   padding: 0 0 0.1rem 1.35rem;
 }
 .rio-supplied .rio-field {
@@ -2089,8 +2093,8 @@ h2.rio-week-title {
   line-height: 1.4 !important;
 }
 [class*="st-key-rio-settings"] {
-  background: #14241c;
-  border: 1px solid #24382e;
+  background: #1c1410;
+  border: 1px solid #3a2820;
   border-radius: 16px;
   padding: 0.85rem 1.35rem 0.45rem;
   margin: 0 0 1.15rem !important;
@@ -2104,15 +2108,15 @@ h2.rio-week-title {
   gap: 1.1rem;
 }
 [class*="st-key-rio-settings"] input[type="radio"] {
-  accent-color: #4a8c6a;
+  accent-color: #e25a32;
 }
 [class*="st-key-rio-settings"] [data-testid="stCheckbox"] label > div:first-of-type {
-  background: #1a2e24 !important;
-  border: 1px solid #24382e !important;
+  background: #2a1c16 !important;
+  border: 1px solid #3a2820 !important;
 }
 [class*="st-key-rio-settings"] [data-testid="stCheckbox"]:has(input:checked) label > div:first-of-type {
-  background: #4a8c6a !important;
-  border-color: #4a8c6a !important;
+  background: #e25a32 !important;
+  border-color: #e25a32 !important;
 }
 [class*="st-key-rio-confirm"] {
   margin: 0.35rem 0 0.8rem !important;
@@ -2128,8 +2132,8 @@ h2.rio-week-title {
   border: 0 !important;
 }
 [class*="st-key-rio-past-list"] {
-  background: #14241c;
-  border: 1px solid #24382e;
+  background: #1c1410;
+  border: 1px solid #3a2820;
   border-radius: 16px;
   padding: 0.2rem 0.35rem;
   margin: 0.35rem 0 1.15rem !important;
@@ -2141,7 +2145,7 @@ h2.rio-week-title {
   align-items: end;
   padding: 0.85rem 0.9rem;
 }
-.rio-past-rule { border-top: 1px solid #24382e; }
+.rio-past-rule { border-top: 1px solid #3a2820; }
 .rio-past-k {
   color: #8f8f8f;
   font-size: 0.68rem;
@@ -2158,7 +2162,7 @@ h2.rio-week-title {
 }
 .rio-past-time { text-align: right; }
 [class*="st-key-rio-hit-past-"]:hover .rio-past-row {
-  background: #1a2e24;
+  background: #2a1c16;
 }
 
 h2.rio-section,
@@ -2173,6 +2177,82 @@ h2.rio-section,
 }
 .rio-section-sub {
   margin: -0.35rem 0 1.1rem !important;
+}
+.rio-track-kicker {
+  padding: 1.15rem 0 0;
+}
+.rio-track-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1.75fr) minmax(8.75rem, 0.62fr);
+  column-gap: 1.6rem;
+  align-items: center;
+  margin: 0.15rem 0 0.35rem;
+}
+.rio-track-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  color: #f2513a;
+}
+.rio-track-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+  background: #1c1410;
+  border: 1px solid #3a2820;
+  border-radius: 16px;
+  padding: 0.95rem 1rem 1rem;
+}
+.rio-track-fact .rio-mark-label,
+.rio-track-meta .rio-mark-label {
+  margin: 0 !important;
+  padding: 0 0 0.28rem !important;
+}
+.rio-track-day {
+  margin: 0;
+  color: #f4f4f4;
+  font-size: 1.02rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+.rio-track-sub {
+  display: block;
+  margin-top: 0.18rem;
+  color: #8f8f8f;
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+.rio-track-fact-value {
+  margin: 0;
+  color: #f4f4f4;
+  font-size: 1.55rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: break-word;
+}
+.rio-track-id { margin-top: 0.15rem; }
+.rio-track-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.85rem 2rem;
+  margin: 0.15rem 0 1.35rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #1a1a1a;
+}
+.rio-track-meta-value {
+  margin: 0;
+  color: #d4d4d4;
+  font-size: 1.02rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 .rio-stats {
   display: grid;
@@ -2204,8 +2284,8 @@ h2.rio-section,
   min-height: 7.5rem;
 }
 .rio-next {
-  background: #14241c;
-  border: 1px solid #24382e;
+  background: #1c1410;
+  border: 1px solid #3a2820;
   border-radius: 16px;
   padding: 1.35rem 1.5rem 1.25rem;
   margin: 0 0 0.95rem;
@@ -2225,8 +2305,8 @@ h2.rio-section,
 .rio-next .rio-range { margin-top: 0.35rem !important; }
 .rio-next .rio-next-work { margin-top: 0.95rem !important; font-size: 1.15rem !important; }
 .rio-mini {
-  background: #14241c;
-  border: 1px solid #24382e;
+  background: #1c1410;
+  border: 1px solid #3a2820;
   border-radius: 14px;
   padding: 0.95rem 1rem 0.9rem;
   min-height: 7.2rem;
@@ -2259,14 +2339,14 @@ h2.rio-section,
 .rio-phase {
   flex: 1 0 3.1rem;
   min-width: 3.1rem;
-  background: #14241c;
-  border: 1px solid #24382e;
+  background: #1c1410;
+  border: 1px solid #3a2820;
   border-radius: 10px;
   padding: 0.45rem 0.35rem 0.5rem;
   text-align: center;
 }
 .rio-phase-now {
-  border-color: #4a8c6a;
+  border-color: #e25a32;
 }
 .rio-phase-week {
   color: #8f8f8f;
@@ -2303,7 +2383,7 @@ h2.rio-section,
 [class*="st-key-rio-sub-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] span,
 [class*="st-key-rio-sub-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] p {
   color: #f4f4f4 !important;
-  border-bottom-color: #4a8c6a !important;
+  border-bottom-color: #e25a32 !important;
 }
 [class*="st-key-rio-quick"] {
   display: flex !important;
@@ -2312,8 +2392,8 @@ h2.rio-section,
   margin: 0.2rem 0 1.4rem !important;
 }
 [class*="st-key-rio-quick"] [data-testid="stPageLink-NavLink"] {
-  background: #14241c !important;
-  border: 1px solid #24382e !important;
+  background: #1c1410 !important;
+  border: 1px solid #3a2820 !important;
   border-radius: 999px !important;
   padding: 0.38rem 0.85rem !important;
 }
@@ -2334,7 +2414,7 @@ h2.rio-section,
   min-width: 0 !important;
 }
 [class*="st-key-rio-hit-mini-"]:hover .rio-mini {
-  border-color: #2a4a3a;
+  border-color: #4a2c22;
 }
 [class*="st-key-rio-start"] { max-width: 26rem; }
 
@@ -2343,7 +2423,7 @@ h2.rio-section,
 [class*="st-key-rio-confirm"] [data-testid="stBaseButton-primary"],
 [class*="st-key-rio-confirm"] [data-testid="stBaseButton-secondary"] {
   background: transparent !important;
-  border: 1px solid #24382e !important;
+  border: 1px solid #3a2820 !important;
   border-radius: 8px !important;
   color: #f4f4f4 !important;
   min-height: 2.15rem !important;
@@ -2355,20 +2435,20 @@ h2.rio-section,
 [class*="st-key-rio-confirm"] button p { color: inherit !important; }
 [class*="st-key-rio-confirm"] button[kind="primary"],
 [class*="st-key-rio-confirm"] [data-testid="stBaseButton-primary"] {
-  border-color: #4a8c6a !important;
-  color: #8fd4b0 !important;
+  border-color: #e25a32 !important;
+  color: #ffb089 !important;
   background: transparent !important;
 }
 [class*="st-key-rio-confirm"] button[kind="secondary"]:hover,
 [class*="st-key-rio-confirm"] [data-testid="stBaseButton-secondary"]:hover {
-  border-color: #4a8c6a !important;
+  border-color: #e25a32 !important;
   color: #f4f4f4 !important;
   background: transparent !important;
 }
 [class*="st-key-rio-confirm"] button[kind="primary"]:hover,
 [class*="st-key-rio-confirm"] [data-testid="stBaseButton-primary"]:hover {
-  background: #4a8c6a !important;
-  border-color: #4a8c6a !important;
+  background: #e25a32 !important;
+  border-color: #e25a32 !important;
   color: #000000 !important;
 }
 [class*="st-key-rio-settings"] [data-testid="stCheckbox"]:has(input:checked) svg {
@@ -2414,7 +2494,7 @@ h2.rio-section,
   .rio-session-split { grid-template-columns: 1fr; row-gap: 1.05rem; }
   .rio-supplied {
     border-left: none;
-    border-top: 1px solid #24382e;
+    border-top: 1px solid #3a2820;
     padding: 0.95rem 0 0;
   }
   .rio-supplied .rio-field {
@@ -2426,6 +2506,17 @@ h2.rio-section,
   [class*="st-key-rio-result-one"] [data-testid="stNumberInput"] { max-width: 100% !important; }
   .rio-daycard-dow { font-size: 1.32rem; }
   .rio-stats, .rio-grid { grid-template-columns: 1fr; }
+  .rio-track-stage {
+    grid-template-columns: 1fr;
+    row-gap: 1.05rem;
+  }
+  .rio-track-facts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem 1.1rem;
+  }
+  .rio-track-facts > .rio-track-fact:first-child { grid-column: 1 / -1; }
+  .rio-track-fact-value { font-size: 1.28rem; }
   .rio-next-day { font-size: 1.45rem; }
 }
 </style>
@@ -2450,6 +2541,8 @@ _COMPACT_CSS = """
 .rio-lib-row { padding: 0.55rem 0; }
 .rio-volume,
 .rio-heart { padding: 0.7rem 0.95rem 0.4rem; margin-bottom: 0.7rem; }
+.rio-track-kicker { padding-top: 0.45rem; }
+.rio-track-meta { margin-bottom: 0.85rem; }
 </style>
 """
 
@@ -3647,20 +3740,160 @@ def _mark_text(mark: dict | None) -> str:
     return f"Week {week} · {name}"
 
 
-def _dash_hero(workout: dict) -> None:
-    """Day, date, and the plain workout. The block opens that session."""
+def _stadium(cx: float, cy: float, half: float, radius: float) -> str:
+    """One closed oval. The straight is 2 * half. The ends are semicircles."""
+    left = cx - half
+    right = cx + half
+    top = cy - radius
+    bottom = cy + radius
+    return (
+        f"M {left:.2f} {top:.2f} "
+        f"H {right:.2f} "
+        f"A {radius:.2f} {radius:.2f} 0 0 1 {right:.2f} {bottom:.2f} "
+        f"H {left:.2f} "
+        f"A {radius:.2f} {radius:.2f} 0 0 1 {left:.2f} {top:.2f} Z"
+    )
+
+
+def _track_label(x: float, y: float, text: str) -> str:
+    """A small mark on the track. Display only."""
+    return (
+        f'<text x="{x:.1f}" y="{y:.1f}" fill="#f4f4f4" font-size="13" '
+        'font-family="Segoe UI, Helvetica, Arial, sans-serif" '
+        f'text-anchor="middle">{text}</text>'
+    )
+
+
+def _track_svg() -> str:
+    """Eight coral lanes, and the straight that runs past both ends.
+
+    The straight sits on the home straight and continues past the curves.
+    A finish line crosses that straight and runs past its rails.
+    """
+    lanes = 8
+    lane = 13.0
+    inner = 62.0
+    outer = inner + lanes * lane
+    cx, cy, half = 410.0, 188.0, 124.0
+    extend_left, extend_right = 62.0, 40.0
+    bar_top = cy + inner - 3.0
+    bar_bot = cy + outer
+    bar_left = cx - half - outer - extend_left
+    bar_right = cx + half + outer + extend_right
+    pad = 22.0
+    vb_x = bar_left - pad
+    vb_y = cy - outer - 28.0
+    vb_w = (bar_right - bar_left) + pad * 2
+    vb_h = (bar_bot + 28.0) - vb_y
+    radii = [inner + lane * index for index in range(lanes + 1)]
+    band = (
+        '<path fill="currentColor" fill-rule="evenodd" d="'
+        f"{_stadium(cx, cy, half, outer)} {_stadium(cx, cy, half, inner)}"
+        '"/>'
+    )
+    bar = (
+        f'<rect x="{bar_left:.2f}" y="{bar_top:.2f}" '
+        f'width="{(bar_right - bar_left):.2f}" height="{(bar_bot - bar_top):.2f}" '
+        'fill="currentColor"/>'
+    )
+    lines = []
+    for index in range(lanes + 1):
+        y = cy + inner + lane * index
+        lines.append(
+            '<path fill="none" stroke="#fff" stroke-opacity="0.78" stroke-width="1.6" '
+            f'd="M {bar_left:.2f} {y:.2f} H {bar_right:.2f}"/>'
+        )
+    lines.append(
+        '<path fill="none" stroke="#fff" stroke-opacity="0.9" stroke-width="1.8" '
+        f'd="M {bar_left:.2f} {bar_top:.2f} V {bar_bot:.2f} '
+        f"M {bar_right:.2f} {bar_top:.2f} V {bar_bot:.2f}\"/>"
+    )
+    for radius in radii:
+        lines.append(
+            '<path fill="none" stroke="#fff" stroke-opacity="0.82" stroke-width="1.6" '
+            f'd="{_stadium(cx, cy, half, radius)}"/>'
+        )
+    finish_x = cx + 36.0
+    finish = (
+        f'<path fill="none" stroke="#fff" stroke-width="2.6" '
+        f'd="M {finish_x:.2f} {bar_top - 16:.2f} V {bar_bot + 16:.2f}"/>'
+    )
+    labels = "".join(
+        (
+            _track_label(cx - 78.0, cy - outer - 10.0, "100m"),
+            _track_label(cx + 70.0, cy - outer - 10.0, "200m"),
+            _track_label(cx - 92.0, cy + inner * 0.42, "100m"),
+            _track_label(finish_x - 58.0, cy + inner * 0.42, "Start"),
+            _track_label(finish_x, bar_bot + 22.0, "Finish"),
+        )
+    )
+    return (
+        f'<svg class="rio-track-svg" viewBox="{vb_x:.1f} {vb_y:.1f} {vb_w:.1f} {vb_h:.1f}" '
+        'aria-hidden="true">'
+        f"{bar}{band}{''.join(lines)}{finish}{labels}</svg>"
+    )
+
+
+def _track_fact(label: str, value: str) -> str:
+    return (
+        '<div class="rio-track-fact">'
+        f"{_label(label)}"
+        f'<p class="rio-track-fact-value">{_esc(value)}</p>'
+        "</div>"
+    )
+
+
+def _track_stage(workout: dict | None) -> str:
+    """The oval, with the next session beside it. Display only."""
+    if isinstance(workout, dict):
+        template = str(workout.get("template_id") or "").strip()
+        day = str(workout.get("day_of_week") or "—")
+        when = _date_text(workout.get("date") or "—")
+        facts = session_facts(template, _WORKOUT_TEXT.get(template, ""))
+        distance = _copy(facts["distance"])
+        ident = _id_html(template, "rio-track-id")
+        caption = (
+            '<div class="rio-track-fact">'
+            f"{_label('Next workout')}"
+            f'<p class="rio-track-day">{_esc(day)}'
+            f'<span class="rio-track-sub">{_esc(when)}</span></p>'
+            "</div>"
+        )
+        pace = str(facts["pace"])
+        rest = str(facts["rest"])
+        reps = str(facts["reps"])
+    else:
+        distance = pace = rest = reps = "—"
+        ident = ""
+        caption = (
+            '<div class="rio-track-fact">'
+            f"{_label('Next workout')}"
+            '<p class="rio-track-day">—</p>'
+            "</div>"
+        )
+    details = "".join(
+        (
+            caption,
+            _track_fact("Distance", distance),
+            _track_fact("Pace", pace),
+            _track_fact("Rest", rest),
+            _track_fact("Reps", reps),
+        )
+    )
+    return (
+        '<div class="rio-track-stage">'
+        f"{_track_svg()}"
+        f'<div class="rio-track-facts">{details}{ident}</div>'
+        "</div>"
+    )
+
+
+def _track_hero(workout: dict) -> None:
+    """The track opens that session. The plan stays as stored."""
     day = str(workout.get("day_of_week") or "—")
     when = str(workout.get("date") or "—")
     plain = _workout_text(workout.get("template_id"))
-    html = (
-        '<div class="rio-next">'
-        '<p class="rio-mark-label">Next workout</p>'
-        f'<div class="rio-next-day">{_esc(day)}</div>'
-        f'<p class="rio-range">{_esc(_date_text(when))}</p>'
-        f'<p class="rio-next-work">{_esc(plain)}</p>'
-        f'{_id_html(workout.get("template_id"), "rio-next-id")}'
-        "</div>"
-    )
+    html = _track_stage(workout)
     page = _SESSION_PAGE
     if page is None or when == "—":
         st.markdown(html, unsafe_allow_html=True)
@@ -3712,23 +3945,25 @@ def _phase_timeline(start: date, length: int, sessions: list) -> str:
     return f'<div class="rio-phases">{"".join(cells)}</div>'
 
 
-def _home_stats(view: dict) -> str:
+def _track_meta(view: dict) -> str:
+    """Days and phase under the track. Smaller than the session facts."""
     remaining = view.get("days_remaining")
-    number = str(remaining) if isinstance(remaining, int) and not isinstance(remaining, bool) else "—"
+    number = (
+        str(remaining)
+        if isinstance(remaining, int) and not isinstance(remaining, bool)
+        else "—"
+    )
     return (
-        '<header class="rio-hero">'
-        '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
-        '<div class="rio-stats">'
-        '<div class="rio-stat">'
-        '<p class="rio-mark-label">Days to goal</p>'
-        f'<h1 class="rio-key">{_esc(number)}</h1>'
+        '<div class="rio-track-meta">'
+        "<div>"
+        f"{_label('Days to goal')}"
+        f'<p class="rio-track-meta-value">{_esc(number)}</p>'
         "</div>"
-        '<div class="rio-stat">'
-        '<p class="rio-mark-label">Current phase</p>'
-        f'<p class="rio-stat-value">{_esc(_phase_text(view.get("phase")))}</p>'
+        "<div>"
+        f"{_label('Current phase')}"
+        f'<p class="rio-track-meta-value">{_esc(_phase_text(view.get("phase")))}</p>'
         "</div>"
         "</div>"
-        "</header>"
     )
 
 
@@ -3758,8 +3993,10 @@ def _quick_links() -> None:
 def page_dashboard() -> None:
     """The plan Start stored, as of today.
 
-    The next workout is the first session on or after today. The phase and
-    the one-line focus are that week's, from reason codes already stored.
+    The next workout is the first session on or after today. The track
+    shows that session's distance, pace, rest, and reps. Days until the
+    goal and the current phase sit under the track. The phase and the
+    one-line focus are that week's, from reason codes already stored.
     The last mark is the latest week mark, when one exists. Days until the
     goal count from today. Opening this page reads the last 14 days and
     matches each activity to that date. An unmarked quality day can already
@@ -3816,14 +4053,19 @@ def page_dashboard() -> None:
     )
     workout = view.get("next")
     with hero:
-        st.markdown(_home_stats(view), unsafe_allow_html=True)
+        st.markdown(
+            '<p class="rio-synthetic rio-track-kicker">SYNTHETIC / DEMO</p>',
+            unsafe_allow_html=True,
+        )
         if isinstance(workout, dict):
-            _dash_hero(workout)
+            _track_hero(workout)
         else:
+            st.markdown(_track_stage(None), unsafe_allow_html=True)
             st.markdown(
                 '<p class="rio-empty">No workout left in this plan.</p>',
                 unsafe_allow_html=True,
             )
+        st.markdown(_track_meta(view), unsafe_allow_html=True)
     _activities_notice()
     st.markdown(
         '<div class="rio-grid">'

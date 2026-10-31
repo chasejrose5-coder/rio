@@ -622,7 +622,7 @@ def _heart_marks(dots: list[dict]) -> list[str]:
     for dot in dots:
         marks.append(
             f'<circle class="rio-heart-dot" cx="{dot["x"]:.1f}" cy="{dot["y"]:.1f}" '
-            'r="5" fill="#6db892">'
+            'r="5" fill="#ff7a45">'
             f'<title>{_esc(dot["title"])}</title></circle>'
         )
     return marks

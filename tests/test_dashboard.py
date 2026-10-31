@@ -16,6 +16,7 @@ from ui.dashboard import (
     dashboard_view,
     last_mark,
     next_workout,
+    session_facts,
     week_focus,
 )
 from ui.progress import days_label, days_remaining
@@ -277,10 +278,73 @@ def test_a_stored_plan_fills_the_home_page() -> None:
         raise AssertionError("dashboard called an engine")
 
 
+def test_session_facts_read_the_frozen_id() -> None:
+    """Distance, rest, and reps are the id. Pace is the written sentence."""
+    found = session_facts(
+        "se_400_r90_x6",
+        "6 × 400 m near goal 800 pace, 90 s rest",
+    )
+    if found != {
+        "distance": "400 m",
+        "pace": "Near goal 800",
+        "rest": "90 s",
+        "reps": "6",
+    }:
+        raise AssertionError(f"400s were {found}")
+    easy = session_facts("aer_10000_r0_x1", "10 km easy, Zone 2, talkable")
+    if easy["distance"] != "10000 m" or easy["rest"] != "—" or easy["reps"] != "1":
+        raise AssertionError(f"an easy run was {easy}")
+    if easy["pace"] != "Easy":
+        raise AssertionError(f"easy pace was {easy['pace']}")
+    minutes = session_facts("se_500_r120_x4", "4 × 500 m near goal 800 pace, 2 min rest")
+    if minutes["rest"] != "2 min" or minutes["reps"] != "4":
+        raise AssertionError(f"two-minute rest was {minutes}")
+    ladder = session_facts("thr_up_800to1600_r60_x3", "comfortably hard")
+    if ladder["distance"] != "800–1600 m" or ladder["rest"] != "60 s" or ladder["reps"] != "3":
+        raise AssertionError(f"a ladder was {ladder}")
+    if ladder["pace"] != "Comfortably hard":
+        raise AssertionError(f"ladder pace was {ladder['pace']}")
+    pyramid = session_facts("se_py_200to400_r90_x5", "near goal 800 pace")
+    if pyramid["distance"] != "200–400 m" or pyramid["pace"] != "Near goal 800":
+        raise AssertionError(f"a pyramid was {pyramid}")
+    race = session_facts("rr_800_r0_x1", "800 m race")
+    if race["pace"] != "Race" or race["rest"] != "—" or race["distance"] != "800 m":
+        raise AssertionError(f"a race was {race}")
+    slower = session_facts(
+        "ap_800_r90_x5",
+        "5 × 800 m strong, clearly slower than goal 800 pace, 90 s rest",
+    )
+    if slower["pace"] != "Slower than goal 800":
+        raise AssertionError(f"slower pace was {slower['pace']}")
+    blank = session_facts("not-a-session", "near goal 800 pace")
+    if blank != {"distance": "—", "pace": "—", "rest": "—", "reps": "—"}:
+        raise AssertionError(f"an unknown id grew facts: {blank}")
+    if session_facts("", "")["distance"] != "—":
+        raise AssertionError("a blank id grew a distance")
+
+
+def test_home_track_does_not_spend() -> None:
+    """The home page draws the track from stored fields. It does not call a model."""
+    app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
+    start = app.index("def page_dashboard(")
+    page = app[start : app.index("\ndef ", start + 1)]
+    if "_track_hero(" not in page or "_track_stage(" not in page or "_track_meta(" not in page:
+        raise AssertionError("the track is not the home page")
+    if "explain(" in page or "probability" in page.lower() or "readiness" in page.lower():
+        raise AssertionError("home started prose or a score")
+    source = (ROOT / "ui" / "dashboard.py").read_text(encoding="utf-8")
+    if "engines" in source or "explain(" in source:
+        raise AssertionError("session facts called an engine")
+    if "session_facts(" not in app[app.index("def _track_stage(") : app.index("def _track_hero(")]:
+        raise AssertionError("the track does not read the session facts")
+
+
 if __name__ == "__main__":
     test_next_workout_is_today_or_later()
     test_last_mark_is_the_latest_week()
     test_focus_names_primary_work_in_day_order()
     test_view_uses_the_current_week_only()
     test_a_stored_plan_fills_the_home_page()
+    test_session_facts_read_the_frozen_id()
+    test_home_track_does_not_spend()
     print("dashboard ok")

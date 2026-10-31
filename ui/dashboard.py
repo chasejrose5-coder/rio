@@ -2,9 +2,11 @@
 
 """Display fields for the home page. The plan is the one Start stored.
 
-The next workout is the first session on or after today. The phase and the
-one-line focus belong to the week that contains today. The last mark is the
-latest week mark, when one was stored. Days until the goal count from today.
+The next workout is the first session on or after today. Distance, pace,
+rest, and reps for that session are read from the frozen id and the plain
+description already written for it. The phase and the one-line focus belong
+to the week that contains today. The last mark is the latest week mark, when
+one was stored. Days until the goal count from today.
 
 The focus line is fixed words for reason codes and primary templates already
 on that week. No model. No spend. No scores.
@@ -12,6 +14,7 @@ on that week. No model. No spend. No scores.
 
 from __future__ import annotations
 
+import re
 from datetime import date
 
 from ui.progress import MARKS, days_label, days_remaining, phase_label, week_status
@@ -174,6 +177,83 @@ def _focus_label(template_id: object) -> str:
         if text.startswith(prefix):
             return label
     return ""
+
+
+# Frozen ids: se_400_r90_x6, aer_10000_r0_x1, thr_up_800to1600_r60_x3.
+_ID_FACTS = re.compile(
+    r"(?:^|_)(?:py_|up_)?(\d+)(?:to(\d+))?_r(\d+)_x(\d+)$"
+)
+
+# Pace words already written on the card. First match wins. Display only.
+_PACE = (
+    ("800 m race", "Race"),
+    ("at or faster than goal 800", "Goal 800 or faster"),
+    ("near goal 800", "Near goal 800"),
+    ("at goal 800", "Goal 800"),
+    ("clearly slower than goal 800", "Slower than goal 800"),
+    ("slower than goal 800", "Slower than goal 800"),
+    ("comfortably hard", "Comfortably hard"),
+    ("not goal 800", "Not 800 pace"),
+    ("not 800 pace", "Not 800 pace"),
+    ("zone 2", "Easy"),
+    ("talkable", "Easy"),
+    ("very easy", "Easy"),
+    ("easy", "Easy"),
+    ("strong", "Strong"),
+    ("fast", "Fast"),
+    ("hard", "Hard"),
+)
+
+
+def session_facts(template_id: object, description: object = "") -> dict:
+    """Distance, pace, rest, and reps for the home track.
+
+    Distance, rest, and reps come from the frozen id. Pace comes from the
+    plain description already written for that id. An id that does not
+    name them stays blank. No new plan.
+    """
+    blank = {"distance": "—", "pace": "—", "rest": "—", "reps": "—"}
+    text = str(template_id or "").strip()
+    found = _ID_FACTS.search(text)
+    if found is None:
+        return blank
+    start = int(found.group(1))
+    end = found.group(2)
+    rest = int(found.group(3))
+    reps = int(found.group(4))
+    if start <= 0 or rest < 0 or reps <= 0:
+        return blank
+    if end is None:
+        distance = f"{start} m"
+    else:
+        finish = int(end)
+        if finish <= start:
+            return blank
+        distance = f"{start}–{finish} m"
+    return {
+        "distance": distance,
+        "pace": _pace_label(description),
+        "rest": _rest_text(rest),
+        "reps": str(reps),
+    }
+
+
+def _pace_label(description: object) -> str:
+    text = str(description or "").strip().lower()
+    if not text:
+        return "—"
+    for needle, label in _PACE:
+        if needle in text:
+            return label
+    return "—"
+
+
+def _rest_text(seconds: int) -> str:
+    if seconds <= 0:
+        return "—"
+    if seconds >= 120 and seconds % 60 == 0:
+        return f"{seconds // 60} min"
+    return f"{seconds} s"
 
 
 def _join_focus(labels: list[str]) -> str:
