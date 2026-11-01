@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -11,6 +12,7 @@ if str(ROOT) not in sys.path:
 
 from ui.plan_store import (
     dump_record,
+    export_season,
     inputs_ok,
     load_record,
     plan_inputs,
@@ -356,6 +358,22 @@ def test_store_does_not_leave_the_browser() -> None:
         raise AssertionError("plan persistence started spending")
 
 
+def test_export_season_is_json() -> None:
+    """The file is the season plus marks and actuals. A score is left out."""
+    plan = {"ontology_version": "v0.1", "sessions": [], "probability": 0.2, "readiness_score": 1}
+    text = export_season(INPUTS, plan, {1: "on_track"}, {})
+    if "probability" in text or "readiness" in text:
+        raise AssertionError("a score was exported")
+    parsed = json.loads(text)
+    if parsed["current_time"] != "2:02.9" or parsed["goal_time"] != "1:55.0":
+        raise AssertionError(parsed)
+    if parsed["marks"] != {"1": "on_track"}:
+        raise AssertionError(parsed["marks"])
+    if parsed["season"] != {"ontology_version": "v0.1", "sessions": []}:
+        raise AssertionError(parsed["season"])
+    _no_score(text)
+
+
 def main() -> None:
     test_url_keeps_the_four_inputs()
     test_storage_key_follows_the_inputs()
@@ -363,6 +381,7 @@ def main() -> None:
     test_intervals_ref_round_trips_with_the_actual()
     test_pulled_activities_round_trip()
     test_store_does_not_leave_the_browser()
+    test_export_season_is_json()
     print("plan store ok")
 
 

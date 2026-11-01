@@ -336,6 +336,8 @@ def test_home_track_does_not_spend() -> None:
     page = app[start : app.index("\ndef ", start + 1)]
     if "_track_hero(" not in page or "_track_stage(" not in page or "_track_meta(" not in page:
         raise AssertionError("the track is not the home page")
+    if "hey(" not in page or "plan_title(" not in page:
+        raise AssertionError("home does not show the name")
     if "_activities_notice(" in page or "RIO_INTERVALS_API_KEY" in page:
         raise AssertionError("the home page shows the Intervals key warning")
     if "explain(" in page or "probability" in page.lower() or "readiness" in page.lower():

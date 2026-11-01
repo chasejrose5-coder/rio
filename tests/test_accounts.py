@@ -18,14 +18,24 @@ from engines.explain import SPEND_CAP_MICRO_USD
 from ui.accounts import (
     AccountError,
     authenticate,
+    change_email,
+    change_password,
     create_account,
+    delete_account,
+    delete_records,
+    hey,
     issue_session,
     last_key,
     normalize_email,
+    normalize_name,
     open_session,
     password_ok,
+    plan_title,
+    read_local,
     read_record,
     record_keys,
+    shown_name,
+    write_local,
     write_record,
 )
 from ui.past_seasons import has_active_plan
@@ -65,7 +75,7 @@ def test_create_login_and_a_wrong_password() -> None:
     """Create signs in. The same email cannot be created twice. A wrong password does not."""
     directory, path = _fresh_file()
     try:
-        email, secret = create_account(path, "Jay@Example.com", "correct-horse")
+        email, secret = create_account(path, "Jay@Example.com", "correct-horse", "Jay")
         if email != "jay@example.com" or not isinstance(secret, str) or len(secret) != 64:
             raise AssertionError(email)
         again = authenticate(path, "jay@example.com", "correct-horse")
@@ -78,14 +88,14 @@ def test_create_login_and_a_wrong_password() -> None:
         if authenticate(path, "not-an-email", "correct-horse") is not None:
             raise AssertionError("a bad email signed in")
         try:
-            create_account(path, "jay@example.com", "another-password")
+            create_account(path, "jay@example.com", "another-password", "Jay")
         except AccountError as exc:
             if str(exc) != "An account with that email already exists.":
                 raise AssertionError(exc) from exc
         else:
             raise AssertionError("the same email was created twice")
         try:
-            create_account(path, "second@example.com", "short")
+            create_account(path, "second@example.com", "short", "Ada")
         except AccountError as exc:
             if str(exc) != "Use at least 8 characters.":
                 raise AssertionError(exc) from exc
@@ -99,8 +109,8 @@ def test_each_account_keeps_its_own_plan() -> None:
     """The same four inputs are a different record on each account. The file hides them."""
     directory, path = _fresh_file()
     try:
-        first, first_secret = create_account(path, "one@example.com", "password-one")
-        second, second_secret = create_account(path, "two@example.com", "password-two")
+        first, first_secret = create_account(path, "one@example.com", "password-one", "One")
+        second, second_secret = create_account(path, "two@example.com", "password-two", "Two")
         key = storage_key(INPUTS)
         other = storage_key(OTHER)
         left = dump_record({2: "not_hitting"}, {}, [])
@@ -202,7 +212,7 @@ def test_a_signed_token_lasts_one_day() -> None:
     try:
         os.environ["RIO_SESSION_KEY"] = "ab" * 32
         os.environ.pop("RIO_SESSION_KEY_PATH", None)
-        email, secret = create_account(path, "Jay@Example.com", "correct-horse")
+        email, secret = create_account(path, "Jay@Example.com", "correct-horse", "Jay")
         before = path.read_bytes()
         now = 1_700_000_000
         token = issue_session(email, secret, now=now)
@@ -388,6 +398,8 @@ def test_accounts_stay_local_and_spend_stays_capped() -> None:
         raise AssertionError("create account is not its own screen")
     if "Back to log in" not in create or "Create account" not in create or "create_account(" not in create:
         raise AssertionError("create account is missing its screen")
+    if 'st.text_input("Name"' not in create or "create_account(accounts_path(), email, password, name)" not in create:
+        raise AssertionError("create account does not ask for a name")
     if "authenticate(" not in login:
         raise AssertionError("log in is missing its screen")
     if "has_active_plan(" not in route or '_nav_page("Home")' not in route or "_start_page" not in route:
@@ -416,6 +428,175 @@ def test_accounts_stay_local_and_spend_stays_capped() -> None:
             raise AssertionError(f"{path.name} was changed for accounts")
 
 
+def test_a_name_is_stored_with_the_account() -> None:
+    """Create requires a name. Home can greet it. The password stays hashed."""
+    if normalize_name("  Chase  ") != "Chase":
+        raise AssertionError(normalize_name("  Chase  "))
+    if normalize_name("Mary-Jane") != "Mary-Jane" or normalize_name("O'Brien") != "O'Brien":
+        raise AssertionError("a real name was refused")
+    for bad in ("", "   ", "123", "Chase!", None, "x" * 41):
+        if normalize_name(bad) is not None:
+            raise AssertionError(bad)
+    if hey(shown_name("Chase", "")) != "Hey, Chase":
+        raise AssertionError(hey(shown_name("Chase", "")))
+    if hey(shown_name("Chase", "CJ")) != "Hey, CJ":
+        raise AssertionError("the nickname was ignored")
+    if plan_title(shown_name("Chase", "")) != "Chase's plan":
+        raise AssertionError(plan_title("Chase"))
+    if hey("") or plan_title("") or hey(None) or plan_title(None):
+        raise AssertionError("a missing name grew a greeting")
+    directory, path = _fresh_file()
+    try:
+        try:
+            create_account(path, "ada@example.com", "correct-horse", "  ")
+        except AccountError as exc:
+            if str(exc) != "Enter a name.":
+                raise AssertionError(exc) from exc
+        else:
+            raise AssertionError("a blank name was stored")
+        email, secret = create_account(path, "Ada@Example.com", "correct-horse", "  Chase ")
+        local = read_local(path, email)
+        if local is None or local["name"] != "Chase" or local["preferred"] != "":
+            raise AssertionError(local)
+        raw = path.read_text(encoding="utf-8")
+        if "Chase" not in raw or "correct-horse" in raw:
+            raise AssertionError("the name was hidden or the password was written")
+        saved = write_local(
+            path,
+            email,
+            secret,
+            "Chase",
+            "CJ",
+            "America/Los_Angeles",
+            {"units": "miles", "reminders": True},
+        )
+        if saved["preferred"] != "CJ" or saved["timezone"] != "America/Los_Angeles":
+            raise AssertionError(saved)
+        if saved["settings"].get("units") != "miles" or saved["settings"].get("reminders") is not True:
+            raise AssertionError(saved["settings"])
+        if read_local(path, email) != saved:
+            raise AssertionError("the profile did not stay on the account")
+        try:
+            write_local(path, email, secret, "", "CJ", "UTC", {})
+        except AccountError as exc:
+            if str(exc) != "Enter a name.":
+                raise AssertionError(exc) from exc
+        else:
+            raise AssertionError("the name was cleared")
+        if read_local(path, email)["name"] != "Chase":
+            raise AssertionError("a refused edit changed the name")
+        try:
+            write_local(path, email, "ab" * 32, "Chase", "CJ", "UTC", {})
+        except AccountError:
+            pass
+        else:
+            raise AssertionError("a bad seal changed the profile")
+        if read_local(path, email)["preferred"] != "CJ":
+            raise AssertionError("a bad seal changed the nickname")
+        _no_score(saved)
+    finally:
+        shutil.rmtree(directory, ignore_errors=True)
+
+
+def test_password_email_and_delete_stay_on_the_account() -> None:
+    """A new password reseals records. Email moves. Delete removes the account."""
+    directory, path = _fresh_file()
+    try:
+        email, secret = create_account(path, "chase@example.com", "correct-horse", "Chase")
+        key = storage_key(INPUTS)
+        payload = dump_record({2: "on_track"}, {}, [])
+        write_record(path, email, secret, key, payload)
+        before = path.read_bytes()
+        try:
+            change_password(path, email, secret, "wrong-password", "another-password")
+        except AccountError as exc:
+            if str(exc) != "Password does not match.":
+                raise AssertionError(exc) from exc
+        else:
+            raise AssertionError("a wrong password was accepted")
+        if path.read_bytes() != before:
+            raise AssertionError("a wrong password changed the file")
+        try:
+            change_password(path, email, secret, "correct-horse", "short")
+        except AccountError as exc:
+            if str(exc) != "Use at least 8 characters.":
+                raise AssertionError(exc) from exc
+        else:
+            raise AssertionError("a short password replaced the old one")
+        new_secret = change_password(path, email, secret, "correct-horse", "new-password-1")
+        if new_secret == secret or authenticate(path, email, "correct-horse") is not None:
+            raise AssertionError("the old password still signs in")
+        again = authenticate(path, email, "new-password-1")
+        if again != (email, new_secret):
+            raise AssertionError(again)
+        if read_record(path, email, new_secret, key) != payload:
+            raise AssertionError("the new password lost the record")
+        if read_record(path, email, secret, key) is not None:
+            raise AssertionError("the old seal still opens the record")
+        if read_local(path, email)["name"] != "Chase":
+            raise AssertionError("a new password dropped the name")
+        if "new-password-1" in path.read_text(encoding="utf-8") or "correct-horse" in path.read_text(encoding="utf-8"):
+            raise AssertionError("a password was written")
+        other, _other_secret = create_account(path, "other@example.com", "other-password", "Other")
+        try:
+            change_email(path, email, new_secret, "new-password-1", other)
+        except AccountError as exc:
+            if str(exc) != "An account with that email already exists.":
+                raise AssertionError(exc) from exc
+        else:
+            raise AssertionError("two accounts share an email")
+        moved = change_email(path, email, new_secret, "new-password-1", "New@Example.com")
+        if moved != "new@example.com":
+            raise AssertionError(moved)
+        if authenticate(path, email, "new-password-1") is not None:
+            raise AssertionError("the old email still signs in")
+        if authenticate(path, moved, "new-password-1") != (moved, new_secret):
+            raise AssertionError("the new email did not keep the seal")
+        if read_record(path, moved, new_secret, key) != payload:
+            raise AssertionError("the move dropped the record")
+        if read_local(path, moved)["name"] != "Chase":
+            raise AssertionError("the move dropped the name")
+        try:
+            delete_account(path, moved, new_secret, "wrong-password")
+        except AccountError as exc:
+            if str(exc) != "Password does not match.":
+                raise AssertionError(exc) from exc
+        else:
+            raise AssertionError("a wrong password deleted the account")
+        if read_local(path, moved)["name"] != "Chase":
+            raise AssertionError("a refused delete removed the account")
+        delete_account(path, moved, new_secret, "new-password-1")
+        if read_local(path, moved) is not None or authenticate(path, moved, "new-password-1") is not None:
+            raise AssertionError("the account was still there")
+        if read_local(path, other)["name"] != "Other":
+            raise AssertionError("another account was removed")
+        _no_score(payload)
+    finally:
+        shutil.rmtree(directory, ignore_errors=True)
+
+
+def test_reset_removes_seasons_and_keeps_the_account() -> None:
+    """Plan records can be removed. The name and the account stay."""
+    directory, path = _fresh_file()
+    try:
+        email, secret = create_account(path, "chase@example.com", "correct-horse", "Chase")
+        plan_key = storage_key(INPUTS)
+        other_key = "rio.note.v1\nkeep"
+        write_record(path, email, secret, plan_key, dump_record({1: "on_track"}, {}, []))
+        write_record(path, email, secret, other_key, "note")
+        delete_records(path, email, secret, "rio.plan.v1\n")
+        if record_keys(path, email, secret, "rio.plan.v1\n") != []:
+            raise AssertionError("a plan record stayed")
+        if read_record(path, email, secret, other_key) != "note":
+            raise AssertionError("a reset removed more than the plan")
+        if read_local(path, email)["name"] != "Chase":
+            raise AssertionError("a reset removed the account")
+        if last_key(path, email, secret) != other_key:
+            raise AssertionError(last_key(path, email, secret))
+    finally:
+        shutil.rmtree(directory, ignore_errors=True)
+
+
 def main() -> None:
     test_email_and_password_rules()
     test_create_login_and_a_wrong_password()
@@ -425,6 +606,9 @@ def main() -> None:
     test_a_reload_restores_the_token_and_logout_clears_it()
     test_a_reload_opens_home_when_a_plan_is_still_ahead()
     test_accounts_stay_local_and_spend_stays_capped()
+    test_a_name_is_stored_with_the_account()
+    test_password_email_and_delete_stay_on_the_account()
+    test_reset_removes_seasons_and_keeps_the_account()
     print("accounts ok")
 
 

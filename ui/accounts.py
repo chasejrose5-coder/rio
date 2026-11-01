@@ -2,9 +2,9 @@
 
 """A local account file. The password is hashed. Plan records are sealed with it.
 
-The file lives on this machine. No external auth service. No model. No spend.
-No scores. A signed token holds the email and the seal key for one day. The
-seal key is not written to the file.
+The name is stored with the account. The file lives on this machine. No
+external auth service. No model. No spend. No scores. A signed token holds
+the email and the seal key for one day. The seal key is not written to the file.
 """
 
 from __future__ import annotations
@@ -77,15 +77,62 @@ def password_ok(value: object) -> bool:
     return True
 
 
-def create_account(path: Path, email: object, password: object) -> tuple[str, str]:
+def normalize_name(value: object) -> str | None:
+    """A display name. A first name is enough. Blank is not a name."""
+    if not isinstance(value, str):
+        return None
+    text = " ".join(value.split())
+    if not text or len(text) > 40:
+        return None
+    if any(ord(char) < 32 or ord(char) == 127 for char in text):
+        return None
+    if not any(char.isalpha() for char in text):
+        return None
+    for char in text:
+        if char.isalpha() or char in " '-.":
+            continue
+        return None
+    return text
+
+
+def shown_name(name: object, preferred: object) -> str:
+    """The nickname when this account has one, otherwise the stored name."""
+    if isinstance(preferred, str) and preferred.strip():
+        return " ".join(preferred.split())
+    if isinstance(name, str) and name.strip():
+        return " ".join(name.split())
+    return ""
+
+
+def hey(name: object) -> str:
+    """A short greeting. Blank when this account has no name."""
+    text = shown_name(name, "")
+    if not text:
+        return ""
+    return f"Hey, {text}"
+
+
+def plan_title(name: object) -> str:
+    """The plan line for this name. Blank when this account has no name."""
+    text = shown_name(name, "")
+    if not text:
+        return ""
+    return f"{text}'s plan"
+
+
+def create_account(path: Path, email: object, password: object, name: object) -> tuple[str, str]:
     """Create one account and return its email and seal key.
 
-    The seal key opens that account's records for this session. A second
-    create for the same email is refused. The password is not written.
+    The name is stored with the account. The seal key opens that account's
+    records for this session. A second create for the same email is refused.
+    The password is not written.
     """
     cleaned = normalize_email(email)
     if cleaned is None:
         raise AccountError("Enter an email address.")
+    stored_name = normalize_name(name)
+    if stored_name is None:
+        raise AccountError("Enter a name.")
     if not password_ok(password) or not isinstance(password, str):
         raise AccountError("Use at least 8 characters.")
     with _LOCK:
@@ -96,6 +143,8 @@ def create_account(path: Path, email: object, password: object) -> tuple[str, st
         seal = _seal_key(password, salt)
         store["accounts"][cleaned] = {
             "login": _login_hash(password, salt).hex(),
+            "name": stored_name,
+            "profile": {"preferred": "", "settings": {}, "timezone": ""},
             "records": _seal_records({}, seal),
             "salt": salt.hex(),
         }
@@ -249,6 +298,262 @@ def open_session(token: object, *, now: int) -> tuple[str, str] | None:
     if age < 0 or age >= _SESSION_MAX_AGE:
         return None
     return cleaned, seal.hex()
+
+
+def read_local(path: Path, email: object) -> dict | None:
+    """The stored name and local profile, or None when this email has no account.
+
+    The seal is not required. A missing name is "".
+    """
+    cleaned = normalize_email(email)
+    if cleaned is None:
+        return None
+    with _LOCK:
+        store = _load(path)
+        account = store["accounts"].get(cleaned)
+        if not isinstance(account, dict):
+            return None
+        return _local_view(account)
+
+
+def write_local(
+    path: Path,
+    email: object,
+    secret: object,
+    name: object,
+    preferred: object,
+    timezone: object,
+    settings: object,
+) -> dict:
+    """Store the name and local profile. A bad seal leaves the file as it was."""
+    cleaned = normalize_email(email)
+    seal = _secret_bytes(secret)
+    if cleaned is None or seal is None:
+        raise AccountError("This account could not be saved.")
+    with _LOCK:
+        store = _load(path)
+        account = store["accounts"].get(cleaned)
+        if not isinstance(account, dict):
+            raise AccountError("This account could not be saved.")
+        if _open_bundle(account.get("records"), seal) is None:
+            raise AccountError("This account could not be saved.")
+        current = _local_view(account)
+        nxt = {
+            "name": _apply_name(current["name"], name),
+            "preferred": _apply_preferred(preferred),
+            "settings": _clean_settings(settings),
+            "timezone": _apply_zone(timezone, current["timezone"]),
+        }
+        if nxt != current:
+            account["name"] = nxt["name"]
+            account["profile"] = {
+                "preferred": nxt["preferred"],
+                "settings": nxt["settings"],
+                "timezone": nxt["timezone"],
+            }
+            _save(path, store)
+        return nxt
+
+
+def change_password(path: Path, email: object, secret: object, current: object, new: object) -> str:
+    """Replace the password and return the new seal key. Records are sealed again."""
+    cleaned = normalize_email(email)
+    if cleaned is None:
+        raise AccountError("This account could not be saved.")
+    if not isinstance(new, str) or not password_ok(new):
+        raise AccountError("Use at least 8 characters.")
+    if not isinstance(current, str) or not password_ok(current):
+        raise AccountError("Password does not match.")
+    seal = _secret_bytes(secret)
+    if seal is None:
+        raise AccountError("This account could not be saved.")
+    with _LOCK:
+        store = _load(path)
+        account = store["accounts"].get(cleaned)
+        if not isinstance(account, dict):
+            raise AccountError("This account could not be saved.")
+        if not _password_matches(account, current):
+            raise AccountError("Password does not match.")
+        opened = _open_bundle(account.get("records"), seal)
+        if opened is None:
+            raise AccountError("This account could not be saved.")
+        records, last = opened
+        salt = secrets.token_bytes(_SALT_BYTES)
+        nxt = _seal_key(new, salt)
+        account["salt"] = salt.hex()
+        account["login"] = _login_hash(new, salt).hex()
+        account["records"] = _seal_records(records, nxt, last)
+        _save(path, store)
+    return nxt.hex()
+
+
+def change_email(path: Path, email: object, secret: object, password: object, new_email: object) -> str:
+    """Move this account to another email. The seal key stays the same."""
+    cleaned = normalize_email(email)
+    target = normalize_email(new_email)
+    if cleaned is None or target is None:
+        raise AccountError("Enter an email address.")
+    if not isinstance(password, str) or not password_ok(password):
+        raise AccountError("Password does not match.")
+    seal = _secret_bytes(secret)
+    if seal is None:
+        raise AccountError("This account could not be saved.")
+    with _LOCK:
+        store = _load(path)
+        account = store["accounts"].get(cleaned)
+        if not isinstance(account, dict):
+            raise AccountError("This account could not be saved.")
+        if not _password_matches(account, password):
+            raise AccountError("Password does not match.")
+        if _open_bundle(account.get("records"), seal) is None:
+            raise AccountError("This account could not be saved.")
+        if target == cleaned:
+            return cleaned
+        if target in store["accounts"]:
+            raise AccountError("An account with that email already exists.")
+        store["accounts"][target] = account
+        del store["accounts"][cleaned]
+        _save(path, store)
+    return target
+
+
+def delete_account(path: Path, email: object, secret: object, password: object) -> None:
+    """Remove this account after the password matches. Its records go with it."""
+    cleaned = normalize_email(email)
+    if cleaned is None:
+        raise AccountError("This account could not be saved.")
+    if not isinstance(password, str) or not password_ok(password):
+        raise AccountError("Password does not match.")
+    seal = _secret_bytes(secret)
+    if seal is None:
+        raise AccountError("This account could not be saved.")
+    with _LOCK:
+        store = _load(path)
+        account = store["accounts"].get(cleaned)
+        if not isinstance(account, dict):
+            raise AccountError("This account could not be saved.")
+        if not _password_matches(account, password):
+            raise AccountError("Password does not match.")
+        if _open_bundle(account.get("records"), seal) is None:
+            raise AccountError("This account could not be saved.")
+        del store["accounts"][cleaned]
+        _save(path, store)
+
+
+def delete_records(path: Path, email: object, secret: object, prefix: object) -> None:
+    """Remove saved records whose key starts with prefix. The account stays."""
+    if not isinstance(prefix, str) or len(prefix) < 8 or len(prefix) > _KEY_LIMIT:
+        raise AccountError("This account could not be saved.")
+    seal = _secret_bytes(secret)
+    if seal is None or not isinstance(email, str):
+        raise AccountError("This account could not be saved.")
+    with _LOCK:
+        store = _load(path)
+        account = store["accounts"].get(email)
+        if not isinstance(account, dict):
+            raise AccountError("This account could not be saved.")
+        opened = _open_bundle(account.get("records"), seal)
+        if opened is None:
+            raise AccountError("This account could not be saved.")
+        records, last = opened
+        kept = {key: value for key, value in records.items() if not key.startswith(prefix)}
+        if len(kept) == len(records):
+            return
+        if last not in kept:
+            last = ""
+        account["records"] = _seal_records(kept, seal, last)
+        _save(path, store)
+
+
+def _local_view(account: dict) -> dict:
+    raw_name = account.get("name")
+    name = raw_name.strip() if isinstance(raw_name, str) else ""
+    profile = account.get("profile")
+    if not isinstance(profile, dict):
+        profile = {}
+    preferred = profile.get("preferred")
+    preferred = preferred.strip() if isinstance(preferred, str) else ""
+    timezone = profile.get("timezone")
+    if not _zone_ok(timezone):
+        timezone = ""
+    return {
+        "name": name,
+        "preferred": preferred,
+        "settings": _clean_settings(profile.get("settings")),
+        "timezone": timezone,
+    }
+
+
+def _apply_name(current: str, proposed: object) -> str:
+    if not isinstance(proposed, str) or not proposed.strip():
+        if current:
+            raise AccountError("Enter a name.")
+        return ""
+    cleaned = normalize_name(proposed)
+    if cleaned is None:
+        raise AccountError("Enter a name.")
+    return cleaned
+
+
+def _apply_preferred(proposed: object) -> str:
+    if not isinstance(proposed, str) or not proposed.strip():
+        return ""
+    cleaned = normalize_name(proposed)
+    if cleaned is None:
+        raise AccountError("That nickname will not work.")
+    return cleaned
+
+
+def _zone_ok(value: object) -> bool:
+    if not isinstance(value, str) or not value or len(value) > 64:
+        return False
+    for char in value:
+        if char.isalnum() or char in "+-_/":
+            continue
+        return False
+    return True
+
+
+def _apply_zone(proposed: object, current: str) -> str:
+    if _zone_ok(proposed):
+        return str(proposed)
+    if _zone_ok(current):
+        return current
+    return "UTC"
+
+
+def _clean_settings(value: object) -> dict:
+    if not isinstance(value, dict):
+        return {}
+    cleaned: dict = {}
+    for key, item in value.items():
+        if not isinstance(key, str) or not key or len(key) > 40:
+            continue
+        if any(ord(char) < 32 or ord(char) == 127 for char in key):
+            continue
+        if isinstance(item, bool):
+            cleaned[key] = item
+            continue
+        if not isinstance(item, str):
+            continue
+        text = item.strip()
+        if not text or len(text) > 64:
+            continue
+        if any(ord(char) < 32 or ord(char) == 127 for char in text):
+            continue
+        cleaned[key] = text
+    return cleaned
+
+
+def _password_matches(account: dict, password: str) -> bool:
+    salt = _salt_bytes(account.get("salt"))
+    login = account.get("login")
+    if salt is None or not isinstance(login, str):
+        raise AccountError("Accounts could not be read.")
+    found = _login_hash(password, salt).hex()
+    if len(login) != len(found):
+        return False
+    return hmac.compare_digest(found, login)
 
 
 def _locked_records(path: Path, email: object, secret: object) -> dict[str, str] | None:

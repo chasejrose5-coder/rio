@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import sys
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from engines.explain import SPEND_CAP_MICRO_USD
 from ui.settings import (
+    APP_VERSION,
     DEFAULTS,
+    TIME_ZONES,
     display_distance,
     display_km,
     display_meters,
@@ -19,6 +22,8 @@ from ui.settings import (
     distance_number,
     format_date,
     normalize,
+    start_on,
+    suggested_timezone,
 )
 
 
@@ -54,8 +59,17 @@ def test_defaults_and_rejected_values() -> None:
         raise AssertionError("a non-boolean became on")
     if not mixed["notifications"]:
         raise AssertionError("notifications did not stay on")
+    if mixed["start_date"] != "today" or mixed["theme"] != "dark":
+        raise AssertionError("a blank preference grew a value")
+    if mixed["reminders"] or mixed["recap"]:
+        raise AssertionError("a blank toggle was on")
     if "probability" in mixed:
         raise AssertionError("a score was stored")
+    forced = normalize({"theme": "light", "start_date": "yesterday", "reminders": True, "units": "miles"})
+    if forced["theme"] != "dark" or forced["start_date"] != "today" or forced["units"] != "miles":
+        raise AssertionError(forced)
+    if not forced["reminders"] or not forced["notifications"]:
+        raise AssertionError("a reminder did not stay on")
     source = Path(ROOT / "ui" / "settings.py").read_text(encoding="utf-8")
     if "explain(" in source or "engines" in source:
         raise AssertionError("settings reached an engine")
@@ -141,10 +155,70 @@ def test_distance_labels_follow_the_unit() -> None:
             raise AssertionError(label)
 
 
+def test_start_date_and_the_settings_page() -> None:
+    """Next Sunday is the training week. Settings keeps the new sections local."""
+    if SPEND_CAP_MICRO_USD != 25_000_000:
+        raise AssertionError("spend cap is not $25")
+    if APP_VERSION != "0.1":
+        raise AssertionError(APP_VERSION)
+    sunday = date(2026, 11, 1)
+    if sunday.weekday() != 6:
+        raise AssertionError("the sample Sunday moved")
+    if start_on(sunday, "today") != sunday or start_on(sunday, "sunday") != sunday:
+        raise AssertionError("Sunday was moved")
+    monday = date(2026, 11, 2)
+    if start_on(monday, "sunday") != monday + timedelta(days=6):
+        raise AssertionError(start_on(monday, "sunday"))
+    if start_on(date(2026, 11, 7), "sunday") != date(2026, 11, 8):
+        raise AssertionError("Saturday did not reach Sunday")
+    if start_on(monday, "today") != monday:
+        raise AssertionError("today was moved")
+    if suggested_timezone() not in TIME_ZONES:
+        raise AssertionError(suggested_timezone())
+    app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
+    page = app[app.index("def page_settings(") : app.index("\ndef page_plan(")]
+    for label in (
+        "Profile",
+        "Preferences",
+        "Notifications",
+        "Data",
+        "Account",
+        "Privacy",
+        "About",
+        "Preferred name / nickname",
+        "Time zone",
+        "Change password",
+        "Metric",
+        "Imperial",
+        "Next Sunday",
+        "Dark",
+        "Workout reminders",
+        "Weekly recap",
+        "Export season as JSON",
+        "Clear all marks / actuals",
+        "Reset plan",
+        "Change email",
+        "Delete account",
+        "Clear local data",
+        "APP_VERSION",
+        "Placeholder. Nothing is sent.",
+    ):
+        if label not in page:
+            raise AssertionError(label)
+    if "explain(" in page or "probability" in page.lower() or "readiness" in page.lower():
+        raise AssertionError("settings started prose or a score")
+    if "https://intervals.icu" in page or "SPEND_CAP" in page:
+        raise AssertionError("settings started a pull or spend")
+    source = (ROOT / "ui" / "settings.py").read_text(encoding="utf-8")
+    if "explain(" in source or "engines" in source:
+        raise AssertionError("settings reached an engine")
+
+
 def main() -> None:
     test_defaults_and_rejected_values()
     test_dates_and_distances_are_display_only()
     test_distance_labels_follow_the_unit()
+    test_start_date_and_the_settings_page()
     print("settings ok")
 
 

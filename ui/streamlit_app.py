@@ -1,6 +1,6 @@
 # streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Activity, Next, Decisions, Ledger, Goal, Progress, Season, Past seasons, Weekly, Profile, Settings, About, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. The first screen is Log in. A signed token in this browser keeps the email and seal key for one day. Each page load restores them when that token is under a day old. That page load opens Home when the account has a plan whose goal date is today or later, and Start when there is no plan or that goal date is past. Log out clears it, and so does a token that is a day old or older. Create account is its own screen. A successful create or log in opens Home when a stored plan's goal date is today or later, and Start when there is no plan or that goal date is past. Marks and actuals are saved on that account under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores that account's marks and actuals. Dashboard reads that plan: a track for the next session, with distance, pace, rest, and reps, plus the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity lists one row per matched Intervals workout: the date, the template or label, completed work meters, and average heart rate. The line is weekly completed WORK distance. Warm-up, cool-down, and template meters stay out. A dot marks each matched workout that has an average heart rate, labeled with the date. An unmatched activity stays off that matched list. A matched activity with no work meters and no heart rate stays off it. A second table lists every activity: the date, the activity name, the activity distance, and average heart rate. An unmatched row is labeled extra. An activity with no distance and no heart rate stays off both lists. No stored match and no Intervals file leaves the matched list empty. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening Dashboard, Weekly, Session, Progress, or Activity reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. Refresh on Activity reads every activity for this athlete. A matched Tuesday or Thursday quality day with no stored mark is judged from that activity's WORK elapsed times. The mark and those times are stored with the session, and adapt() changes only later weeks. Those times fill the quality-day boxes and stay editable. A day that already has a mark is left as stored. Recovery days, long runs, extra activities, and empty rep times do not call adapt(). A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved on that account with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Profile shows the current 800 time, the start date, the goal 800 time, and the goal date already stored from Start. Saving a goal time keeps it for this account in this browser and leaves the season as stored. Past seasons lists each season this account has already stored. A row shows the start date, the goal date, and the goal time from that plan key. Choosing a row opens that season from those four inputs. The page does not build a season. Session shows one day of that plan. Fixed pre-warm-up, warm-up, cool-down, and core notes follow the workout and are not stored on the session. A matched activity shows its rep times, completed WORK distance, and average heart rate beside the template. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. Opening Session reads recent activities through the read-only adapter and does not write back to Intervals. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. About states the eight phases, the 10% rule, that classification is rules, not AI, and that a hard-day mark adapts later weeks. About does not call a model. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. The first screen is Log in. A signed token in this browser keeps the email and seal key for one day. Each page load restores them when that token is under a day old. That page load opens Home when the account has a plan whose goal date is today or later, and Start when there is no plan or that goal date is past. Log out clears it, and so does a token that is a day old or older. Create account is its own screen. A successful create or log in opens Home when a stored plan's goal date is today or later, and Start when there is no plan or that goal date is past. Marks and actuals are saved on that account under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores that account's marks and actuals. Dashboard reads that plan: a track for the next session, with distance, pace, rest, and reps, plus the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity lists one row per matched Intervals workout: the date, the template or label, completed work meters, and average heart rate. The line is weekly completed WORK distance. Warm-up, cool-down, and template meters stay out. A dot marks each matched workout that has an average heart rate, labeled with the date. An unmatched activity stays off that matched list. A matched activity with no work meters and no heart rate stays off it. A second table lists every activity: the date, the activity name, the activity distance, and average heart rate. An unmatched row is labeled extra. An activity with no distance and no heart rate stays off both lists. No stored match and no Intervals file leaves the matched list empty. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening Dashboard, Weekly, Session, Progress, or Activity reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. Refresh on Activity reads every activity for this athlete. A matched Tuesday or Thursday quality day with no stored mark is judged from that activity's WORK elapsed times. The mark and those times are stored with the session, and adapt() changes only later weeks. Those times fill the quality-day boxes and stay editable. A day that already has a mark is left as stored. Recovery days, long runs, extra activities, and empty rep times do not call adapt(). A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved on that account with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Create account asks for a name and stores it with the account. Home greets that name. Settings keeps the name, local preferences, and account actions on this machine. Profile shows the current 800 time, the start date, the goal 800 time, and the goal date already stored from Start. Saving a goal time keeps it for this account in this browser and leaves the season as stored. Past seasons lists each season this account has already stored. A row shows the start date, the goal date, and the goal time from that plan key. Choosing a row opens that season from those four inputs. The page does not build a season. Session shows one day of that plan. Fixed pre-warm-up, warm-up, cool-down, and core notes follow the workout and are not stored on the session. A matched activity shows its rep times, completed WORK distance, and average heart rate beside the template. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. Opening Session reads recent activities through the read-only adapter and does not write back to Intervals. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. About states the eight phases, the 10% rule, that classification is rules, not AI, and that a hard-day mark adapts later weeks. About does not call a model. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -62,27 +62,42 @@ from ui.last_session import (
 from ui.dashboard import dashboard_view, session_facts
 from ui.recap import recap_view
 from ui.settings import (
+    APP_VERSION,
+    TIME_ZONES,
     display_distance,
     distance_heading,
     distance_number,
     format_date,
     normalize as normalize_prefs,
+    start_on,
+    suggested_timezone,
 )
 from ui.start_form import start_form_defaults
 from ui.accounts import (
     AccountError,
     accounts_path,
     authenticate,
+    change_email,
+    change_password,
     create_account,
+    delete_account,
+    delete_records,
+    hey,
     issue_session,
     last_key,
+    normalize_name,
     open_session,
+    plan_title,
+    read_local,
     read_record,
     record_keys,
+    shown_name,
+    write_local,
     write_record,
 )
 from ui.plan_store import (
     dump_record,
+    export_season,
     inputs_ok,
     load_record,
     plan_inputs,
@@ -726,7 +741,30 @@ _ACCOUNT_SESSION = (
     "rio_adapt_pending",
     "rio_auth_screen",
     "rio_create_email",
+    "rio_create_name",
     "rio_create_password",
+    "rio_local",
+    "rio_local_email",
+    "rio_settings",
+    "settings-clear-ok",
+    "settings-compact",
+    "settings-confirm",
+    "settings-dates",
+    "settings-delete-email",
+    "settings-delete-ok",
+    "settings-delete-password",
+    "settings-email",
+    "settings-ids",
+    "settings-name",
+    "settings-notes",
+    "settings-preferred",
+    "settings-recap",
+    "settings-reminders",
+    "settings-reset-ok",
+    "settings-start",
+    "settings-timezone",
+    "settings-units",
+    "settings-clear-marks-ok",
     "rio_login_email",
     "rio_login_error",
     "rio_login_password",
@@ -773,13 +811,17 @@ _SESSION_STORE_JS = """
 export default function (component) {
   var data = component.data || {};
   var mode = data.mode;
-  if (mode !== "read" && mode !== "write" && mode !== "clear") {
+  if (mode !== "read" && mode !== "write" && mode !== "clear" && mode !== "clear-all") {
     return;
   }
   var key = "rio.session.v1";
-  if (mode === "clear") {
+  if (mode === "clear" || mode === "clear-all") {
     try {
-      window.localStorage.removeItem(key);
+      if (mode === "clear-all") {
+        window.localStorage.clear();
+      } else {
+        window.localStorage.removeItem(key);
+      }
     } catch (err) {}
   }
   if (mode === "write" && typeof data.payload === "string") {
@@ -862,8 +904,10 @@ def _restore_session() -> None:
     """
     now = int(time.time())
     if st.session_state.get("rio_session_clear") is True:
-        if _browser_session("clear") == "":
+        mode = "clear-all" if st.session_state.get("rio_clear_browser") is True else "clear"
+        if _browser_session(mode) == "":
             st.session_state.pop("rio_session_clear", None)
+            st.session_state.pop("rio_clear_browser", None)
         return
     token = st.session_state.get("rio_session_token")
     if _account_identity() is not None:
@@ -1085,6 +1129,7 @@ def _with_plan(page):
         # Log in and a restored token both set this. Home or Start opens first.
         if st.session_state.get("rio_enter") is True:
             _route_after_login()
+        _load_local()
         _load_shared_plan()
         _pull_for(page.__name__)
         _sync_browser_store()
@@ -1444,6 +1489,20 @@ button:focus-visible {
   font-size: 1.05rem !important;
   line-height: 1.4 !important;
   font-variant-numeric: tabular-nums;
+}
+.rio-hello {
+  margin: 0.85rem 0 0 !important;
+  color: #f4f4f4 !important;
+  font-size: 1.65rem !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.03em !important;
+  line-height: 1.15 !important;
+}
+.rio-hello-plan {
+  margin: 0.35rem 0 0.85rem !important;
+  color: #d4d4d4 !important;
+  font-size: 0.95rem !important;
+  line-height: 1.4 !important;
 }
 .rio-error {
   margin: 0.85rem 0 0;
@@ -2759,6 +2818,44 @@ h2.rio-section,
 [class*="st-key-rio-settings"] [data-testid="stCheckbox"]:has(input:checked) svg {
   fill: #000000 !important;
 }
+[class*="st-key-rio-settings"] button,
+[class*="st-key-rio-settings"] [data-testid="stBaseButton-primary"],
+[class*="st-key-rio-settings"] [data-testid="stBaseButton-secondary"],
+[class*="st-key-rio-settings"] [data-testid="stDownloadButton"] button {
+  background: transparent !important;
+  border: 1px solid #3a2820 !important;
+  border-radius: 8px !important;
+  color: #f4f4f4 !important;
+  min-height: 2.15rem !important;
+  margin-top: 0.35rem !important;
+  padding: 0.35rem 0.85rem !important;
+  font-size: 0.85rem !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+}
+[class*="st-key-rio-settings"] button p,
+[class*="st-key-rio-settings"] button span {
+  color: inherit !important;
+}
+[class*="st-key-rio-settings"] button:hover,
+[class*="st-key-rio-settings"] [data-testid="stDownloadButton"] button:hover {
+  border-color: #e25a32 !important;
+  color: #ffb089 !important;
+  background: transparent !important;
+}
+[class*="st-key-rio-settings"] [data-testid="stBaseButton-primary"] {
+  border-color: #e25a32 !important;
+  color: #ffb089 !important;
+}
+[class*="st-key-rio-settings"] [data-testid="stBaseButton-primary"]:hover {
+  background: #e25a32 !important;
+  border-color: #e25a32 !important;
+  color: #000000 !important;
+}
+[class*="st-key-rio-settings"] input:disabled {
+  color: #d4d4d4 !important;
+  -webkit-text-fill-color: #d4d4d4 !important;
+}
 
 @media (max-width: 720px) {
   [class*="st-key-rio-nav"] {
@@ -2865,12 +2962,56 @@ def _prefs() -> dict:
         ("settings-compact", "compact"),
         ("settings-dates", "date_format"),
         ("settings-confirm", "confirm_adapt"),
-        ("settings-notes", "notifications"),
+        ("settings-start", "start_date"),
+        ("settings-reminders", "reminders"),
+        ("settings-recap", "recap"),
     )
     for key, name in widget:
         if key in st.session_state:
             raw[name] = st.session_state[key]
     return normalize_prefs(raw)
+
+
+def _load_local() -> None:
+    """Read this account's name and preferences once. The plan is not opened."""
+    who = _account_identity()
+    if who is None:
+        return
+    if st.session_state.get("rio_local_email") == who[0] and isinstance(st.session_state.get("rio_local"), dict):
+        return
+    try:
+        local = read_local(accounts_path(), who[0])
+    except AccountError:
+        return
+    if not isinstance(local, dict):
+        return
+    st.session_state["rio_local"] = local
+    st.session_state["rio_local_email"] = who[0]
+    if "rio_settings" not in st.session_state:
+        st.session_state["rio_settings"] = dict(local.get("settings") or {})
+
+
+def _display_name() -> str:
+    """The nickname, or the name stored with this account."""
+    local = st.session_state.get("rio_local")
+    if not isinstance(local, dict):
+        return ""
+    return shown_name(local.get("name"), local.get("preferred"))
+
+
+def _refresh_session(email: str, secret: str) -> None:
+    """Keep the signed token aligned with this email and seal key."""
+    try:
+        token = issue_session(email, secret, now=int(time.time()))
+    except AccountError as exc:
+        st.session_state["rio_settings_error"] = str(exc)
+        st.rerun()
+    st.session_state["rio_account"] = email
+    st.session_state["rio_account_secret"] = secret
+    st.session_state["rio_session_token"] = token
+    st.session_state["rio_session_write"] = token
+    st.session_state["rio_local_email"] = email
+    st.session_state.pop("settings-email", None)
 
 
 def _css() -> str:
@@ -3957,6 +4098,7 @@ def page_start() -> None:
         unsafe_allow_html=True,
     )
     current_default, start_default, goal_default, goal_day_default = start_form_defaults(date.today())
+    start_default = start_on(start_default, _prefs()["start_date"])
     with st.container(key="rio-start"):
         current_time = st.text_input(
             "Current 800",
@@ -4299,21 +4441,26 @@ def page_dashboard() -> None:
     with chrome:
         st.markdown(_css(), unsafe_allow_html=True)
         _render_nav("Home")
+    named = _display_name()
+    hello = hey(named)
+    title = plan_title(named)
 
     plan, start, goal, error = _stored_season()
     if plan is None or start is None or goal is None:
         with hero:
             if error:
+                greet = f'<p class="rio-hello">{_esc(hello)}</p>' if hello else ""
                 st.markdown(
                     '<header class="rio-hero">'
                     '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
                     "<h1>Home</h1>"
+                    f"{greet}"
                     f'<p class="rio-error">{_esc(error)}</p></header>',
                     unsafe_allow_html=True,
                 )
             else:
                 st.markdown(
-                    _page_hero("Home", "SYNTHETIC / DEMO"),
+                    _page_hero("Home", "SYNTHETIC / DEMO", hello or None),
                     unsafe_allow_html=True,
                 )
         if not error:
@@ -4329,7 +4476,10 @@ def page_dashboard() -> None:
         sessions = []
     if isinstance(length, bool) or not isinstance(length, int) or length <= 0:
         with hero:
-            st.markdown(_page_hero("Home", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
+            st.markdown(
+                _page_hero("Home", "SYNTHETIC / DEMO", hello or None),
+                unsafe_allow_html=True,
+            )
         st.markdown('<p class="rio-empty">—</p>', unsafe_allow_html=True)
         return
 
@@ -4348,6 +4498,13 @@ def page_dashboard() -> None:
             '<p class="rio-synthetic rio-track-kicker">SYNTHETIC / DEMO</p>',
             unsafe_allow_html=True,
         )
+        greet = []
+        if hello:
+            greet.append(f'<p class="rio-hello">{_esc(hello)}</p>')
+        if title:
+            greet.append(f'<p class="rio-hello-plan">{_esc(title)}</p>')
+        if greet:
+            st.markdown("".join(greet), unsafe_allow_html=True)
         if isinstance(workout, dict):
             _track_hero(workout)
         else:
@@ -5276,11 +5433,135 @@ def _setting_widgets(prefs: dict) -> None:
         "settings-compact": prefs["compact"],
         "settings-dates": prefs["date_format"],
         "settings-confirm": prefs["confirm_adapt"],
-        "settings-notes": prefs["notifications"],
+        "settings-start": prefs["start_date"],
+        "settings-reminders": prefs["reminders"],
+        "settings-recap": prefs["recap"],
     }
     for key, value in seed.items():
         if key not in st.session_state:
             st.session_state[key] = value
+
+
+def _settings_line(kind: str, text: str) -> None:
+    st.markdown(f'<p class="rio-{kind}">{_esc(text)}</p>', unsafe_allow_html=True)
+
+
+def _seed_profile_fields(local: dict, email: str) -> None:
+    zone = local.get("timezone") if isinstance(local.get("timezone"), str) else ""
+    if zone not in TIME_ZONES:
+        zone = suggested_timezone()
+    seed = {
+        "settings-name": local.get("name") if isinstance(local.get("name"), str) else "",
+        "settings-preferred": local.get("preferred") if isinstance(local.get("preferred"), str) else "",
+        "settings-timezone": zone,
+        "settings-email": email,
+    }
+    for key, value in seed.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+
+
+def _persist_local(name: object, preferred: object, timezone: object, settings: dict) -> None:
+    """Write name and preferences when they differ from the stored profile."""
+    who = _account_identity()
+    if who is None:
+        return
+    local = st.session_state.get("rio_local")
+    current = local if isinstance(local, dict) else {}
+    stored_name = current.get("name") if isinstance(current.get("name"), str) else ""
+    draft = name
+    if normalize_name(name) is None:
+        if isinstance(name, str) and name.strip():
+            _settings_line("error", "Enter a name.")
+        elif stored_name:
+            _settings_line("error", "Enter a name.")
+        draft = stored_name
+    try:
+        saved = write_local(
+            accounts_path(),
+            who[0],
+            who[1],
+            draft,
+            preferred,
+            timezone,
+            settings,
+        )
+    except AccountError as exc:
+        _settings_line("error", str(exc))
+        return
+    previous = current.get("settings") if isinstance(current.get("settings"), dict) else {}
+    if normalize_prefs(previous).get("start_date") != saved["settings"].get("start_date"):
+        st.session_state.pop("start_start_date", None)
+    st.session_state["rio_local"] = saved
+    st.session_state["rio_local_email"] = who[0]
+    st.session_state["rio_settings"] = dict(saved["settings"])
+
+
+def _clear_season_marks() -> None:
+    """Drop marks and actuals. The season is rebuilt from the four inputs."""
+    who = _account_identity()
+    inputs = st.session_state.get("season_inputs")
+    if who is None or not inputs_ok(inputs) or not isinstance(st.session_state.get("season_plan"), dict):
+        st.session_state["rio_settings_error"] = "Generate a season on Start."
+        st.rerun()
+    try:
+        fresh = sequence(*inputs)
+    except ValueError as exc:
+        st.session_state["rio_settings_error"] = str(exc)
+        st.rerun()
+    st.session_state["season_plan"] = fresh
+    st.session_state["season_marks"] = {}
+    st.session_state["season_actuals"] = {}
+    st.session_state["season_activities"] = []
+    st.session_state["season_quality_base"] = {}
+    st.session_state["rio_store_loaded"] = True
+    st.session_state["season_generation"] = int(st.session_state.get("season_generation") or 0) + 1
+    try:
+        write_record(
+            accounts_path(),
+            who[0],
+            who[1],
+            storage_key(inputs),
+            dump_record({}, {}, []),
+        )
+    except AccountError as exc:
+        st.session_state["rio_settings_error"] = str(exc)
+        st.rerun()
+    st.session_state["rio_settings_note"] = "Marks and actuals are cleared."
+    st.rerun()
+
+
+def _reset_saved_plan() -> None:
+    """Remove stored seasons. The account stays."""
+    who = _account_identity()
+    if who is None:
+        return
+    try:
+        delete_records(accounts_path(), who[0], who[1], KEY_PREFIX)
+    except AccountError as exc:
+        st.session_state["rio_settings_error"] = str(exc)
+        st.rerun()
+    for key in (
+        "activities_loaded",
+        "activities_notice",
+        "activities_trigger",
+        "rio_adapt_pending",
+        "rio_profile",
+        "rio_store_loaded",
+        "season_activities",
+        "season_actuals",
+        "season_generation",
+        "season_inputs",
+        "season_link_attempt",
+        "season_link_error",
+        "season_marks",
+        "season_plan",
+        "season_quality_base",
+    ):
+        st.session_state.pop(key, None)
+    st.query_params.clear()
+    if _start_page is not None:
+        st.switch_page(_start_page)
 
 
 # Reads and writes this browser's goal time. The four Start inputs stay in the URL.
@@ -5490,22 +5771,80 @@ def page_about() -> None:
 
 
 def page_settings() -> None:
-    """Display preferences for this browser session.
+    """Name, preferences, and account actions on this machine.
 
     Units, dates, template ids, and compact mode change what is shown.
-    Confirm sits in front of adapt(). Notifications are stored and do
-    nothing else. Nothing here is written onto the plan.
+    Reminders and the weekly recap are stored and are not sent. Nothing
+    here is written onto the plan.
     """
     st.markdown(_css(), unsafe_allow_html=True)
     _render_nav("Settings")
     st.markdown(_page_hero("Settings", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
+    notice = st.session_state.pop("rio_settings_error", None)
+    note = st.session_state.pop("rio_settings_note", None)
+    if isinstance(notice, str) and notice.strip():
+        _settings_line("error", notice.strip())
+    if isinstance(note, str) and note.strip():
+        _settings_line("settings-note", note.strip())
+    who = _account_identity()
+    email = who[0] if who is not None else ""
+    local = st.session_state.get("rio_local")
+    if not isinstance(local, dict):
+        local = {}
+    _seed_profile_fields(local, email)
     _setting_widgets(_prefs())
-    with st.container(key="rio-settings"):
+    zones = list(TIME_ZONES)
+    picked = st.session_state.get("settings-timezone")
+    if isinstance(picked, str) and picked not in zones:
+        zones.insert(0, picked)
+
+    with st.container(key="rio-settings-profile"):
+        st.markdown(_label("Profile"), unsafe_allow_html=True)
+        name = st.text_input("Name", key="settings-name")
+        preferred = st.text_input("Preferred name / nickname", key="settings-preferred")
+        st.text_input("Email", key="settings-email", disabled=True)
+        timezone = st.selectbox("Time zone", zones, key="settings-timezone")
+        st.markdown(
+            '<p class="rio-settings-note">First name is enough. Saved on this machine.</p>',
+            unsafe_allow_html=True,
+        )
+        with st.form("rio-password", border=False, clear_on_submit=True):
+            current_pw = st.text_input("Current password", type="password")
+            new_pw = st.text_input("New password", type="password")
+            change_pw = st.form_submit_button("Change password", type="primary")
+        if change_pw and who is not None:
+            try:
+                secret = change_password(accounts_path(), who[0], who[1], current_pw, new_pw)
+            except AccountError as exc:
+                st.session_state["rio_settings_error"] = str(exc)
+                st.rerun()
+            _refresh_session(who[0], secret)
+            st.session_state["rio_settings_note"] = "Password updated."
+            st.rerun()
+
+    with st.container(key="rio-settings-prefs"):
+        st.markdown(_label("Preferences"), unsafe_allow_html=True)
         units = st.radio(
             "Units",
             ["km", "miles"],
+            format_func=lambda item: "Metric" if item == "km" else "Imperial",
             horizontal=True,
             key="settings-units",
+        )
+        start_date = st.radio(
+            "Default start date",
+            ["today", "sunday"],
+            format_func=lambda item: "Today" if item == "today" else "Next Sunday",
+            horizontal=True,
+            key="settings-start",
+        )
+        st.markdown(
+            '<p class="rio-settings-note">Next Sunday starts the training week.</p>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            '<p class="rio-mark-label">Theme</p><p class="rio-note">Dark</p>',
+            unsafe_allow_html=True,
         )
         show_ids = st.toggle("Show template ids", key="settings-ids")
         compact = st.toggle("Compact mode", key="settings-compact")
@@ -5516,12 +5855,113 @@ def page_settings() -> None:
             horizontal=True,
             key="settings-dates",
         )
-        confirm = st.toggle("Confirm before adapt", key="settings-confirm")
-        notifications = st.toggle("Notifications", key="settings-notes")
+        confirm = st.toggle("Confirm before a mark changes later weeks", key="settings-confirm")
+
+    with st.container(key="rio-settings-notes"):
+        st.markdown(_label("Notifications"), unsafe_allow_html=True)
+        reminders = st.toggle("Workout reminders", key="settings-reminders")
+        recap = st.toggle("Weekly recap", key="settings-recap")
         st.markdown(
             '<p class="rio-settings-note">Placeholder. Nothing is sent.</p>',
             unsafe_allow_html=True,
         )
+
+    with st.container(key="rio-settings-data"):
+        st.markdown(_label("Data"), unsafe_allow_html=True)
+        plan = st.session_state.get("season_plan")
+        inputs = st.session_state.get("season_inputs")
+        if isinstance(plan, dict) and inputs_ok(inputs):
+            try:
+                body = export_season(
+                    inputs,
+                    plan,
+                    st.session_state.get("season_marks"),
+                    st.session_state.get("season_actuals"),
+                )
+            except ValueError:
+                body = ""
+            if body:
+                st.download_button(
+                    "Export season as JSON",
+                    data=body,
+                    file_name="rio-season.json",
+                    mime="application/json",
+                    key="settings-export",
+                )
+        else:
+            st.markdown(
+                '<p class="rio-settings-note">Generate a season on Start.</p>',
+                unsafe_allow_html=True,
+            )
+        st.checkbox("Confirm clear", key="settings-clear-marks-ok")
+        if st.button("Clear all marks / actuals", key="settings-clear-marks"):
+            if st.session_state.get("settings-clear-marks-ok") is not True:
+                st.session_state["rio_settings_error"] = "Confirm to clear marks and actuals."
+                st.rerun()
+            _clear_season_marks()
+        st.checkbox("Confirm reset", key="settings-reset-ok")
+        if st.button("Reset plan", key="settings-reset"):
+            if st.session_state.get("settings-reset-ok") is not True:
+                st.session_state["rio_settings_error"] = "Confirm to reset the plan."
+                st.rerun()
+            _reset_saved_plan()
+        st.markdown(
+            '<p class="rio-settings-note">Reset removes stored seasons. The account stays.</p>',
+            unsafe_allow_html=True,
+        )
+
+    with st.container(key="rio-settings-account"):
+        st.markdown(_label("Account"), unsafe_allow_html=True)
+        with st.form("rio-email", border=False, clear_on_submit=True):
+            new_email = st.text_input("New email")
+            email_pw = st.text_input("Password", type="password")
+            change_mail = st.form_submit_button("Change email", type="primary")
+        if change_mail and who is not None:
+            try:
+                updated = change_email(accounts_path(), who[0], who[1], email_pw, new_email)
+            except AccountError as exc:
+                st.session_state["rio_settings_error"] = str(exc)
+                st.rerun()
+            _refresh_session(updated, who[1])
+            st.session_state["rio_settings_note"] = "Email updated."
+            st.rerun()
+        st.checkbox("I want to delete this account", key="settings-delete-ok")
+        st.text_input("Type your email to confirm", key="settings-delete-email")
+        delete_pw = st.text_input("Password", type="password", key="settings-delete-password")
+        if st.button("Delete account", key="settings-delete"):
+            typed = st.session_state.get("settings-delete-email")
+            typed_email = typed.strip().casefold() if isinstance(typed, str) else ""
+            if st.session_state.get("settings-delete-ok") is not True or typed_email != email:
+                st.session_state["rio_settings_error"] = "Confirm with your email to delete this account."
+                st.rerun()
+            try:
+                delete_account(accounts_path(), email, who[1] if who is not None else "", delete_pw)
+            except AccountError as exc:
+                st.session_state["rio_settings_error"] = str(exc)
+                st.rerun()
+            _sign_out()
+
+    with st.container(key="rio-settings-privacy"):
+        st.markdown(_label("Privacy"), unsafe_allow_html=True)
+        st.checkbox("Clear data stored in this browser", key="settings-clear-ok")
+        if st.button("Clear local data", key="settings-clear"):
+            if st.session_state.get("settings-clear-ok") is not True:
+                st.session_state["rio_settings_error"] = "Confirm to clear local data."
+                st.rerun()
+            st.session_state["rio_clear_browser"] = True
+            _sign_out()
+        st.markdown(
+            '<p class="rio-settings-note">Clears this browser. The account stays on this machine.</p>',
+            unsafe_allow_html=True,
+        )
+
+    with st.container(key="rio-settings-about"):
+        st.markdown(_label("About"), unsafe_allow_html=True)
+        st.markdown(
+            f'<p class="rio-settings-note">RIO {_esc(APP_VERSION)}</p>',
+            unsafe_allow_html=True,
+        )
+
     stored = normalize_prefs(
         {
             "units": units,
@@ -5529,12 +5969,16 @@ def page_settings() -> None:
             "compact": compact,
             "date_format": date_format,
             "confirm_adapt": confirm,
-            "notifications": notifications,
+            "start_date": start_date,
+            "reminders": reminders,
+            "recap": recap,
+            "notifications": bool(reminders or recap),
         }
     )
     if not stored["confirm_adapt"]:
         _clear_adapt()
     st.session_state["rio_settings"] = stored
+    _persist_local(name, preferred, timezone, stored)
 
 
 def page_plan() -> None:
@@ -5612,7 +6056,7 @@ _MORE_BLURB = (
     ("Goal", "The four fields as written."),
     ("Past seasons", "Seasons this browser already stored."),
     ("Profile", "The four Start values. The goal time can be saved here."),
-    ("Settings", "Units, dates, template ids, and compact mode."),
+    ("Settings", "Name, units, and this account."),
     ("About", "Phases, the 10% rule, and what a mark changes."),
 )
 
@@ -5822,7 +6266,7 @@ def _auth_notice() -> None:
 
 
 def _render_create_account() -> None:
-    """Email and password for a new account. Back returns to Log in."""
+    """Name, email, and password for a new account. Back returns to Log in."""
     st.markdown(_css(), unsafe_allow_html=True)
     st.markdown(
         _page_hero("Create account", "RIO"),
@@ -5831,13 +6275,14 @@ def _render_create_account() -> None:
     with st.container(key="rio-start"):
         _auth_notice()
         with st.form("rio-create", border=False):
+            name = st.text_input("Name", key="rio_create_name")
             email = st.text_input("Email", key="rio_create_email")
             password = st.text_input("Password", type="password", key="rio_create_password")
             create = st.form_submit_button("Create account", type="primary", width="stretch")
         with st.container(key="rio-auth-switch"):
             back = st.button("Back to log in", key="rio-back-login", width="stretch")
         st.markdown(
-            '<p class="rio-settings-note">At least 8 characters. Saved on this machine.</p>',
+            '<p class="rio-settings-note">First name is enough. At least 8 characters. Saved on this machine.</p>',
             unsafe_allow_html=True,
         )
     if back:
@@ -5845,7 +6290,7 @@ def _render_create_account() -> None:
     if not create:
         return
     try:
-        signed = create_account(accounts_path(), email, password)
+        signed = create_account(accounts_path(), email, password, name)
     except AccountError as exc:
         st.session_state["rio_login_error"] = str(exc)
         st.rerun()

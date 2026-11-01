@@ -12,7 +12,7 @@ No model. No spend. No scores.
 from __future__ import annotations
 
 import re
-from datetime import date
+from datetime import date, datetime, timedelta
 
 _MONTHS = (
     "Jan",
@@ -41,6 +41,29 @@ _LADDER_SPLIT = re.compile(r"\s*[-–—]\s*|,\s+")
 _REP = re.compile(r"(?:×|(?<![A-Za-z])x)\s*$", re.IGNORECASE)
 _ISO = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
 
+# Display only. The season stays in meters. Theme does not switch.
+APP_VERSION = "0.1"
+TIME_ZONES = (
+    "UTC",
+    "Pacific/Honolulu",
+    "America/Anchorage",
+    "America/Los_Angeles",
+    "America/Phoenix",
+    "America/Denver",
+    "America/Chicago",
+    "America/New_York",
+    "America/Sao_Paulo",
+    "Europe/London",
+    "Europe/Paris",
+    "Europe/Berlin",
+    "Africa/Johannesburg",
+    "Asia/Kolkata",
+    "Asia/Singapore",
+    "Asia/Tokyo",
+    "Australia/Sydney",
+    "Pacific/Auckland",
+)
+
 DEFAULTS = {
     "units": "km",
     "show_ids": False,
@@ -48,6 +71,10 @@ DEFAULTS = {
     "date_format": "iso",
     "confirm_adapt": False,
     "notifications": False,
+    "start_date": "today",
+    "reminders": False,
+    "recap": False,
+    "theme": "dark",
 }
 
 
@@ -56,14 +83,48 @@ def normalize(raw: object) -> dict:
     found = raw if isinstance(raw, dict) else {}
     units = found.get("units")
     date_format = found.get("date_format")
+    start_date = found.get("start_date")
+    reminders = found.get("reminders") is True
+    recap = found.get("recap") is True
     return {
         "units": units if units in ("km", "miles") else DEFAULTS["units"],
         "show_ids": found.get("show_ids") is True,
         "compact": found.get("compact") is True,
         "date_format": date_format if date_format in ("iso", "short") else DEFAULTS["date_format"],
         "confirm_adapt": found.get("confirm_adapt") is True,
-        "notifications": found.get("notifications") is True,
+        "notifications": found.get("notifications") is True or reminders or recap,
+        "start_date": start_date if start_date in ("today", "sunday") else DEFAULTS["start_date"],
+        "reminders": reminders,
+        "recap": recap,
+        "theme": "dark",
     }
+
+
+def suggested_timezone() -> str:
+    """A zone from this machine when it is one we list. Otherwise UTC."""
+    key = None
+    try:
+        key = getattr(datetime.now().astimezone().tzinfo, "key", None)
+    except (OSError, OverflowError, ValueError):
+        key = None
+    if isinstance(key, str) and key in TIME_ZONES:
+        return key
+    return "UTC"
+
+
+def start_on(day: date, behavior: object) -> date:
+    """Today, or the Sunday that starts this training week or the next one.
+
+    Sunday stays Sunday. Any other day moves forward to Sunday.
+    """
+    if not isinstance(day, date) or behavior != "sunday":
+        if isinstance(day, date):
+            return day
+        raise ValueError("today is not a calendar date")
+    shift = (6 - day.weekday()) % 7
+    if shift == 0:
+        return day
+    return day + timedelta(days=shift)
 
 
 def format_date(value: object, date_format: str) -> str:

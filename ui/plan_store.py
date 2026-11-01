@@ -90,6 +90,27 @@ def dump_record(marks: object, actuals: object, activities: object = None) -> st
     return json.dumps(payload, separators=(",", ":"), sort_keys=True)
 
 
+def export_season(inputs: object, plan: object, marks: object, actuals: object) -> str:
+    """The season, the four inputs, and the marks and actuals, as JSON text."""
+    if not inputs_ok(inputs) or not isinstance(plan, dict):
+        raise ValueError("season is not stored")
+    season = {
+        key: value
+        for key, value in plan.items()
+        if key not in ("probability", "readiness", "readiness_score")
+    }
+    payload = {
+        "actuals": _clean_actuals(actuals),
+        "current_time": inputs[0],
+        "goal_date": inputs[3],
+        "goal_time": inputs[2],
+        "marks": _clean_marks(marks),
+        "season": season,
+        "start_date": inputs[1],
+    }
+    return json.dumps(payload, indent=2, sort_keys=True)
+
+
 def load_record(raw: object) -> tuple[dict, dict, list]:
     """Marks keyed by week number, actuals keyed by date, and pulled activities.
 
