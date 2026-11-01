@@ -302,6 +302,53 @@ def test_a_reload_restores_the_token_and_logout_clears_it() -> None:
         raise AssertionError("login started a pull or spend")
 
 
+def test_a_reload_opens_home_when_a_plan_is_still_ahead() -> None:
+    """A valid token on page load opens Home or Start. The token check stays."""
+    if SPEND_CAP_MICRO_USD != 25_000_000:
+        raise AssertionError("spend cap is not $25")
+    app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
+    restore = app[app.index("def _restore_session(") : app.index("def _restore_record(")]
+    if "rio_enter" in restore or "has_active_plan(" in restore or "switch_page(" in restore:
+        raise AssertionError("a page load changed the token check")
+    if "authenticate(" in restore or "create_account(" in restore or "issue_session(" in restore:
+        raise AssertionError("a page load changed the token check")
+    opened = app[app.index("def _open_restored_session(") : app.index("def _route_after_login(")]
+    if '["rio_enter"]' not in opened or "_account_identity()" not in opened:
+        raise AssertionError("a reload does not choose a page")
+    if "was_signed_in" not in opened:
+        raise AssertionError("a reload moves a session that was already open")
+    for token in (
+        "open_session(",
+        "authenticate(",
+        "create_account(",
+        "issue_session(",
+        "write_record(",
+        "sequence(",
+        "read_record(",
+        "has_active_plan(",
+    ):
+        if token in opened:
+            raise AssertionError("a reload rechecked the token or rebuilt a plan")
+    boot = app[app.index("\nst.set_page_config(") :]
+    gate_at = boot.index("if _account_identity() is None:")
+    head = boot[:gate_at]
+    if head.index("_open_restored_session(") < head.index("_restore_session()"):
+        raise AssertionError("a reload routes before the token is restored")
+    wrapped = app[app.index("def _with_plan(") : app.index("def _seed_start_form(")]
+    if 'get("rio_enter")' not in wrapped or "_route_after_login()" not in wrapped:
+        raise AssertionError("a reload does not open Home or Start")
+    route = app[app.index("def _route_after_login(") : app.index("def _with_plan(")]
+    if "has_active_plan(" not in route or '_nav_page("Home")' not in route or "_start_page" not in route:
+        raise AssertionError("a reload does not choose Home or Start")
+    if "date.today()" not in route:
+        raise AssertionError("a reload does not use today")
+    blob = opened + route
+    if "probability" in blob.lower() or "readiness" in blob.lower():
+        raise AssertionError("a score was added")
+    if "https://intervals.icu" in app or "SPEND_CAP" in app:
+        raise AssertionError("a reload started a pull or spend")
+
+
 def test_accounts_stay_local_and_spend_stays_capped() -> None:
     """No engine, no model, no external auth. Prose spend stays at $25."""
     if SPEND_CAP_MICRO_USD != 25_000_000:
@@ -376,6 +423,7 @@ def main() -> None:
     test_an_active_plan_is_a_goal_still_ahead()
     test_a_signed_token_lasts_one_day()
     test_a_reload_restores_the_token_and_logout_clears_it()
+    test_a_reload_opens_home_when_a_plan_is_still_ahead()
     test_accounts_stay_local_and_spend_stays_capped()
     print("accounts ok")
 
