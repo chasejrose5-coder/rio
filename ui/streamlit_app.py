@@ -68,6 +68,7 @@ from ui.settings import (
     format_date,
     normalize as normalize_prefs,
 )
+from ui.start_form import start_form_defaults
 from ui.accounts import (
     AccountError,
     accounts_path,
@@ -1091,22 +1092,6 @@ def _with_plan(page):
 
     wrapped.__name__ = page.__name__
     return wrapped
-
-
-def _seed_start_form() -> None:
-    """Show the linked inputs. A value the user already edited stays."""
-    inputs = st.session_state.get("season_inputs")
-    if not inputs_ok(inputs):
-        return
-    current, start, goal, goal_day = inputs
-    if "start_current_time" not in st.session_state:
-        st.session_state["start_current_time"] = current
-    if "start_goal_time" not in st.session_state:
-        st.session_state["start_goal_time"] = goal
-    if "start_start_date" not in st.session_state:
-        st.session_state["start_start_date"] = date.fromisoformat(start)
-    if "start_goal_date" not in st.session_state:
-        st.session_state["start_goal_date"] = date.fromisoformat(goal_day)
 
 
 def _fresh_value(key: str, default):
@@ -3960,34 +3945,38 @@ def _render_schedule(plan: dict, generation: int) -> None:
 
 
 def page_start() -> None:
-    """Four inputs. Generate calls sequence() and opens Home."""
+    """Four inputs. Generate calls sequence() and opens Home.
+
+    Start is today. The goal date is five months later. Both times stay blank
+    until they are typed. A value already edited on this form stays.
+    """
     st.markdown(_css(), unsafe_allow_html=True)
     _render_nav("")
     st.markdown(
         _page_hero("Start", "SYNTHETIC / DEMO", "Current 800, the start, the goal, the date."),
         unsafe_allow_html=True,
     )
-    _seed_start_form()
+    current_default, start_default, goal_default, goal_day_default = start_form_defaults(date.today())
     with st.container(key="rio-start"):
         current_time = st.text_input(
             "Current 800",
             key="start_current_time",
-            **_fresh_value("start_current_time", "2:02.9"),
+            **_fresh_value("start_current_time", current_default),
         )
         start_date = st.date_input(
             "Start date",
             key="start_start_date",
-            **_fresh_value("start_start_date", date(2026, 4, 19)),
+            **_fresh_value("start_start_date", start_default),
         )
         goal_time = st.text_input(
             "Goal 800",
             key="start_goal_time",
-            **_fresh_value("start_goal_time", "1:55.0"),
+            **_fresh_value("start_goal_time", goal_default),
         )
         goal_date = st.date_input(
             "Goal date",
             key="start_goal_date",
-            **_fresh_value("start_goal_date", date(2027, 3, 19)),
+            **_fresh_value("start_goal_date", goal_day_default),
         )
         if not st.button("Generate", type="primary", width="stretch"):
             return

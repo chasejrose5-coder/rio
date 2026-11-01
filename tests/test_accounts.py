@@ -334,7 +334,7 @@ def test_a_reload_opens_home_when_a_plan_is_still_ahead() -> None:
     head = boot[:gate_at]
     if head.index("_open_restored_session(") < head.index("_restore_session()"):
         raise AssertionError("a reload routes before the token is restored")
-    wrapped = app[app.index("def _with_plan(") : app.index("def _seed_start_form(")]
+    wrapped = app[app.index("def _with_plan(") : app.index("def _fresh_value(")]
     if 'get("rio_enter")' not in wrapped or "_route_after_login()" not in wrapped:
         raise AssertionError("a reload does not open Home or Start")
     route = app[app.index("def _route_after_login(") : app.index("def _with_plan(")]
