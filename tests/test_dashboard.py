@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from engines.explain import SPEND_CAP_MICRO_USD
 from engines.season import sequence
 from ui.dashboard import (
     current_week,
@@ -324,12 +325,19 @@ def test_session_facts_read_the_frozen_id() -> None:
 
 
 def test_home_track_does_not_spend() -> None:
-    """The home page draws the track from stored fields. It does not call a model."""
+    """The home page draws the track from stored fields. It does not call a model.
+
+    A missing Intervals key is not shown here. Prose spend stays capped at $25.
+    """
+    if SPEND_CAP_MICRO_USD != 25_000_000:
+        raise AssertionError("spend cap is not $25")
     app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
     start = app.index("def page_dashboard(")
     page = app[start : app.index("\ndef ", start + 1)]
     if "_track_hero(" not in page or "_track_stage(" not in page or "_track_meta(" not in page:
         raise AssertionError("the track is not the home page")
+    if "_activities_notice(" in page or "RIO_INTERVALS_API_KEY" in page:
+        raise AssertionError("the home page shows the Intervals key warning")
     if "explain(" in page or "probability" in page.lower() or "readiness" in page.lower():
         raise AssertionError("home started prose or a score")
     source = (ROOT / "ui" / "dashboard.py").read_text(encoding="utf-8")

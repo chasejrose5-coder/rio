@@ -4357,7 +4357,6 @@ def page_dashboard() -> None:
                 unsafe_allow_html=True,
             )
         st.markdown(_track_meta(view), unsafe_allow_html=True)
-    _activities_notice()
     st.markdown(
         '<div class="rio-grid">'
         '<div class="rio-card">'
