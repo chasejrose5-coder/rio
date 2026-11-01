@@ -1,10 +1,11 @@
 # streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Activity, Next, Decisions, Ledger, Goal, Progress, Season, Past seasons, Weekly, Profile, Settings, About, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. The first screen is Log in. Create account is its own screen. A successful create or log in opens Home when a stored plan's goal date is today or later, and Start when there is no plan or that goal date is past. Marks and actuals are saved on that account under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores that account's marks and actuals. Dashboard reads that plan: a track for the next session, with distance, pace, rest, and reps, plus the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity lists one row per matched Intervals workout: the date, the template or label, completed work meters, and average heart rate. The line is weekly completed WORK distance. Warm-up, cool-down, and template meters stay out. A dot marks each matched workout that has an average heart rate, labeled with the date. An unmatched activity stays off that matched list. A matched activity with no work meters and no heart rate stays off it. A second table lists every activity: the date, the activity name, the activity distance, and average heart rate. An unmatched row is labeled extra. An activity with no distance and no heart rate stays off both lists. No stored match and no Intervals file leaves the matched list empty. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening Dashboard, Weekly, Session, Progress, or Activity reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. Refresh on Activity reads every activity for this athlete. A matched Tuesday or Thursday quality day with no stored mark is judged from that activity's WORK elapsed times. The mark and those times are stored with the session, and adapt() changes only later weeks. Those times fill the quality-day boxes and stay editable. A day that already has a mark is left as stored. Recovery days, long runs, extra activities, and empty rep times do not call adapt(). A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved on that account with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Profile shows the current 800 time, the start date, the goal 800 time, and the goal date already stored from Start. Saving a goal time keeps it for this account in this browser and leaves the season as stored. Past seasons lists each season this account has already stored. A row shows the start date, the goal date, and the goal time from that plan key. Choosing a row opens that season from those four inputs. The page does not build a season. Session shows one day of that plan. Fixed pre-warm-up, warm-up, cool-down, and core notes follow the workout and are not stored on the session. A matched activity shows its rep times, completed WORK distance, and average heart rate beside the template. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. Opening Session reads recent activities through the read-only adapter and does not write back to Intervals. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. About states the eight phases, the 10% rule, that classification is rules, not AI, and that a hard-day mark adapts later weeks. About does not call a model. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. The first screen is Log in. A signed token in this browser keeps the email and seal key for one day. Each page load restores them when that token is under a day old. Log out clears it, and so does a token that is a day old or older. Create account is its own screen. A successful create or log in opens Home when a stored plan's goal date is today or later, and Start when there is no plan or that goal date is past. Marks and actuals are saved on that account under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores that account's marks and actuals. Dashboard reads that plan: a track for the next session, with distance, pace, rest, and reps, plus the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity lists one row per matched Intervals workout: the date, the template or label, completed work meters, and average heart rate. The line is weekly completed WORK distance. Warm-up, cool-down, and template meters stay out. A dot marks each matched workout that has an average heart rate, labeled with the date. An unmatched activity stays off that matched list. A matched activity with no work meters and no heart rate stays off it. A second table lists every activity: the date, the activity name, the activity distance, and average heart rate. An unmatched row is labeled extra. An activity with no distance and no heart rate stays off both lists. No stored match and no Intervals file leaves the matched list empty. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening Dashboard, Weekly, Session, Progress, or Activity reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. Refresh on Activity reads every activity for this athlete. A matched Tuesday or Thursday quality day with no stored mark is judged from that activity's WORK elapsed times. The mark and those times are stored with the session, and adapt() changes only later weeks. Those times fill the quality-day boxes and stay editable. A day that already has a mark is left as stored. Recovery days, long runs, extra activities, and empty rep times do not call adapt(). A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved on that account with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Profile shows the current 800 time, the start date, the goal 800 time, and the goal date already stored from Start. Saving a goal time keeps it for this account in this browser and leaves the season as stored. Past seasons lists each season this account has already stored. A row shows the start date, the goal date, and the goal time from that plan key. Choosing a row opens that season from those four inputs. The page does not build a season. Session shows one day of that plan. Fixed pre-warm-up, warm-up, cool-down, and core notes follow the workout and are not stored on the session. A matched activity shows its rep times, completed WORK distance, and average heart rate beside the template. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. Opening Session reads recent activities through the read-only adapter and does not write back to Intervals. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. About states the eight phases, the 10% rule, that classification is rules, not AI, and that a hard-day mark adapts later weeks. About does not call a model. No scores. No spend."""
 
 from __future__ import annotations
 
 import sys
+import time
 from datetime import date, timedelta
 from html import escape
 from pathlib import Path
@@ -72,7 +73,9 @@ from ui.accounts import (
     accounts_path,
     authenticate,
     create_account,
+    issue_session,
     last_key,
+    open_session,
     read_record,
     record_keys,
     write_record,
@@ -764,13 +767,125 @@ def _apply_session_reset() -> None:
     st.session_state.pop("rio_reset_session", None)
 
 
+# This browser keeps a signed token for one day. The account file does not.
+_SESSION_STORE_JS = """
+export default function (component) {
+  var data = component.data || {};
+  var mode = data.mode;
+  if (mode !== "read" && mode !== "write" && mode !== "clear") {
+    return;
+  }
+  var key = "rio.session.v1";
+  if (mode === "clear") {
+    try {
+      window.localStorage.removeItem(key);
+    } catch (err) {}
+  }
+  if (mode === "write" && typeof data.payload === "string") {
+    try {
+      if (window.localStorage.getItem(key) !== data.payload) {
+        window.localStorage.setItem(key, data.payload);
+      }
+    } catch (err) {}
+  }
+  var body = "";
+  try {
+    var stored = window.localStorage.getItem(key);
+    body = stored === null ? "" : String(stored);
+  } catch (err) {
+    body = "";
+  }
+  var token = mode + "\\n" + body;
+  if (window.__rioSessionToken === token) {
+    return;
+  }
+  window.__rioSessionToken = token;
+  component.setStateValue("record", { body: body });
+}
+"""
+
+
+def _session_component():
+    """The signed-token bridge. Registered once per process."""
+    import ui.accounts as accounts
+
+    cached = getattr(accounts, "_browser_component", None)
+    if cached is None:
+        cached = st.components.v2.component(
+            "rio_session_store",
+            js=_SESSION_STORE_JS,
+            isolate_styles=False,
+        )
+        accounts._browser_component = cached
+    return cached
+
+
+def _mount_session(data: dict, *, widget_key: str):
+    """Mount the token bridge. One run mounts one mode on one key."""
+    return _session_component()(
+        key=widget_key,
+        data=data,
+        width="content",
+        height="content",
+    )
+
+
+def _browser_session(mode: str, payload: str | None = None) -> str | None:
+    """The token currently in this browser, once the bridge has answered."""
+    data = {"mode": mode}
+    if payload is not None:
+        data["payload"] = payload
+    result = _mount_session(data, widget_key="rio-keep-session")
+    record = getattr(result, "record", None)
+    if not isinstance(record, dict) or not isinstance(record.get("body"), str):
+        return None
+    return record["body"]
+
+
 def _sign_out() -> None:
-    """End this session. The account file stays on this machine."""
+    """End this session and clear the signed token. The account file stays."""
     st.session_state["rio_reset_session"] = True
+    st.session_state["rio_session_clear"] = True
     st.session_state.pop("rio_account", None)
     st.session_state.pop("rio_account_secret", None)
+    st.session_state.pop("rio_session_token", None)
+    st.session_state.pop("rio_session_write", None)
     st.query_params.clear()
     st.rerun()
+
+
+def _restore_session() -> None:
+    """On each page load, a signed token under a day old restores this session.
+
+    Log out clears the token. A token a day old or older is cleared too.
+    """
+    now = int(time.time())
+    if st.session_state.get("rio_session_clear") is True:
+        if _browser_session("clear") == "":
+            st.session_state.pop("rio_session_clear", None)
+        return
+    token = st.session_state.get("rio_session_token")
+    if _account_identity() is not None:
+        if not isinstance(token, str) or open_session(token, now=now) is None:
+            _sign_out()
+            return
+        pending = st.session_state.get("rio_session_write")
+        if isinstance(pending, str) and pending:
+            if _browser_session("write", pending) == pending:
+                st.session_state.pop("rio_session_write", None)
+        return
+    body = _browser_session("read")
+    if body is None:
+        st.stop()
+    if not body:
+        return
+    opened = open_session(body, now=now)
+    if opened is None:
+        st.session_state["rio_session_clear"] = True
+        st.rerun()
+    st.session_state["rio_account"] = opened[0]
+    st.session_state["rio_account_secret"] = opened[1]
+    st.session_state["rio_session_token"] = body
 
 
 def _restore_record(key: str) -> None:
@@ -5680,12 +5795,20 @@ def _open_auth(screen: str) -> None:
 
 
 def _enter_account(signed: tuple[str, str]) -> None:
-    """Keep this account for the session. Home or Start follows from the stored plan."""
+    """Keep this account for the session. A signed token keeps it for one day."""
+    try:
+        token = issue_session(signed[0], signed[1], now=int(time.time()))
+    except AccountError as exc:
+        st.session_state["rio_login_error"] = str(exc)
+        st.rerun()
     st.session_state.pop("rio_auth_screen", None)
     st.session_state.pop("rio_login_error", None)
+    st.session_state.pop("rio_session_clear", None)
     st.session_state["rio_enter"] = True
     st.session_state["rio_account"] = signed[0]
     st.session_state["rio_account_secret"] = signed[1]
+    st.session_state["rio_session_token"] = token
+    st.session_state["rio_session_write"] = token
     st.rerun()
 
 
@@ -5767,6 +5890,7 @@ def _render_login() -> None:
 
 st.set_page_config(page_title="rio", layout="centered")
 _apply_session_reset()
+_restore_session()
 _start_page = st.Page(_with_plan(page_start), title="Start", default=True)
 _session_page = st.Page(_with_plan(page_session), title="Session", url_path="session")
 _HOME_PAGE = _start_page

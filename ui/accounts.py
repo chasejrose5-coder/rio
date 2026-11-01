@@ -3,8 +3,8 @@
 """A local account file. The password is hashed. Plan records are sealed with it.
 
 The file lives on this machine. No external auth service. No model. No spend.
-No scores. The seal key stays in the session that signed in. It is not written
-to the file.
+No scores. A signed token holds the email and the seal key for one day. The
+seal key is not written to the file.
 """
 
 from __future__ import annotations
@@ -26,6 +26,9 @@ _KEY_LIMIT = 500
 _RECORD_LIMIT = 64
 # Used only so a missing account takes the same kind of work as a real one.
 _DUMMY_SALT = bytes.fromhex("5c" * _SALT_BYTES)
+# A token this old is cleared. Younger than this still restores the session.
+_SESSION_MAX_AGE = 24 * 60 * 60
+_SESSION_TOKEN_LIMIT = 4_000
 
 _LOCK = threading.Lock()
 
@@ -183,6 +186,69 @@ def last_key(path: Path, email: object, secret: object) -> str | None:
     if len(records) == 1:
         return next(iter(records))
     return ""
+
+
+def issue_session(email: str, secret: str, *, now: int) -> str:
+    """A signed token that holds the email, the seal key, and when it was issued.
+
+    The account file is not changed. The signing key stays on this machine.
+    """
+    cleaned = normalize_email(email)
+    seal = _secret_bytes(secret)
+    issued = _unix_time(now)
+    if cleaned is None or seal is None or issued is None:
+        raise AccountError("This session could not be saved.")
+    key = _session_signing_key(create=True)
+    if key is None:
+        raise AccountError("This session could not be saved.")
+    payload = json.dumps(
+        {"email": cleaned, "issued": issued, "seal": seal.hex()},
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    sig = hmac.new(key, payload, hashlib.sha256).digest()
+    return "v1." + payload.hex() + "." + sig.hex()
+
+
+def open_session(token: object, *, now: int) -> tuple[str, str] | None:
+    """The email and seal key when the signature matches and the token is under a day old."""
+    issued_now = _unix_time(now)
+    if issued_now is None or not isinstance(token, str) or not token or len(token) > _SESSION_TOKEN_LIMIT:
+        return None
+    parts = token.split(".")
+    if len(parts) != 3 or parts[0] != "v1":
+        return None
+    try:
+        payload = bytes.fromhex(parts[1])
+        sig = bytes.fromhex(parts[2])
+    except ValueError:
+        return None
+    key = _session_signing_key(create=False)
+    if key is None:
+        return None
+    expected = hmac.new(key, payload, hashlib.sha256).digest()
+    if len(sig) != len(expected) or not hmac.compare_digest(sig, expected):
+        return None
+    try:
+        parsed = json.loads(payload.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError):
+        return None
+    if not isinstance(parsed, dict):
+        return None
+    email = parsed.get("email")
+    cleaned = normalize_email(email)
+    if not isinstance(email, str) or cleaned is None or cleaned != email:
+        return None
+    seal = _secret_bytes(parsed.get("seal"))
+    if seal is None or parsed.get("seal") != seal.hex():
+        return None
+    issued = _unix_time(parsed.get("issued"))
+    if issued is None:
+        return None
+    age = issued_now - issued
+    if age < 0 or age >= _SESSION_MAX_AGE:
+        return None
+    return cleaned, seal.hex()
 
 
 def _locked_records(path: Path, email: object, secret: object) -> dict[str, str] | None:
@@ -366,3 +432,48 @@ def _mac_key(key: bytes) -> bytes:
 
 def _xor(left: bytes, right: bytes) -> bytes:
     return bytes(a ^ b for a, b in zip(left, right))
+
+
+def _unix_time(value: object) -> int | None:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return None
+    return value
+
+
+def _session_key_path() -> Path:
+    """The local signing key. RIO_SESSION_KEY_PATH overrides it for a test."""
+    override = os.environ.get("RIO_SESSION_KEY_PATH", "").strip()
+    if override:
+        return Path(override)
+    return accounts_path().parent / "session.key"
+
+
+def _session_signing_key(*, create: bool) -> bytes | None:
+    """The key that signs session tokens. It is not written into the account file."""
+    override = os.environ.get("RIO_SESSION_KEY", "").strip()
+    if override:
+        key = _secret_bytes(override)
+        if key is None and create:
+            raise AccountError("This session could not be saved.")
+        return key
+    path = _session_key_path()
+    with _LOCK:
+        if path.is_file():
+            try:
+                found = _secret_bytes(path.read_text(encoding="utf-8").strip())
+            except (OSError, UnicodeError):
+                found = None
+            if found is None and create:
+                raise AccountError("This session could not be saved.")
+            return found
+        if not create:
+            return None
+        key = secrets.token_bytes(_KEY_BYTES)
+        temporary = path.with_name(path.name + ".tmp")
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            temporary.write_text(key.hex(), encoding="utf-8")
+            temporary.replace(path)
+        except OSError as exc:
+            raise AccountError("This session could not be saved.") from exc
+        return key

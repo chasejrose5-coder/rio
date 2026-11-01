@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -18,8 +19,10 @@ from ui.accounts import (
     AccountError,
     authenticate,
     create_account,
+    issue_session,
     last_key,
     normalize_email,
+    open_session,
     password_ok,
     read_record,
     record_keys,
@@ -178,6 +181,127 @@ def test_an_active_plan_is_a_goal_still_ahead() -> None:
     _no_score(has_active_plan([storage_key(later)], today))
 
 
+def _restore_env(saved: dict[str, str | None]) -> None:
+    for name, value in saved.items():
+        if value is None:
+            os.environ.pop(name, None)
+        else:
+            os.environ[name] = value
+
+
+def test_a_signed_token_lasts_one_day() -> None:
+    """The token holds the email and seal key, and it dies at one day.
+
+    The account file is unchanged. Another signing key cannot open it.
+    """
+    directory, path = _fresh_file()
+    saved = {
+        "RIO_SESSION_KEY": os.environ.get("RIO_SESSION_KEY"),
+        "RIO_SESSION_KEY_PATH": os.environ.get("RIO_SESSION_KEY_PATH"),
+    }
+    try:
+        os.environ["RIO_SESSION_KEY"] = "ab" * 32
+        os.environ.pop("RIO_SESSION_KEY_PATH", None)
+        email, secret = create_account(path, "Jay@Example.com", "correct-horse")
+        before = path.read_bytes()
+        now = 1_700_000_000
+        token = issue_session(email, secret, now=now)
+        if path.read_bytes() != before:
+            raise AssertionError("issuing a token rewrote the account file")
+        stored = path.read_text(encoding="utf-8")
+        if secret in stored or token in stored or "correct-horse" in stored:
+            raise AssertionError("the seal key was written to the account file")
+        payload = bytes.fromhex(token.split(".")[1]).decode("utf-8")
+        if email not in payload or secret not in payload:
+            raise AssertionError("the token does not hold the email and seal key")
+        if "correct-horse" in payload or "probability" in payload or "readiness" in payload:
+            raise AssertionError("the token holds a password or a score")
+        if open_session(token, now=now) != (email, secret):
+            raise AssertionError("a fresh token did not open")
+        day = 24 * 60 * 60
+        if open_session(token, now=now + day - 1) != (email, secret):
+            raise AssertionError("a token under a day was dropped")
+        if open_session(token, now=now + day) is not None:
+            raise AssertionError("a day-old token was kept")
+        if open_session(token, now=now - 1) is not None:
+            raise AssertionError("a token from the future was kept")
+        flipped = token[:-1] + ("0" if token[-1] != "0" else "1")
+        if open_session(flipped, now=now) is not None:
+            raise AssertionError("a changed token was accepted")
+        for bad in ("", None, "v1.zz.zz", "nope"):
+            if open_session(bad, now=now) is not None:
+                raise AssertionError(bad)
+        try:
+            issue_session(email, secret, now=True)
+        except AccountError as exc:
+            if str(exc) != "This session could not be saved.":
+                raise AssertionError(exc) from exc
+        else:
+            raise AssertionError("a bad time was signed")
+        os.environ["RIO_SESSION_KEY"] = "cd" * 32
+        if open_session(token, now=now) is not None:
+            raise AssertionError("another key opened the token")
+        if (directory / "session.key").exists():
+            raise AssertionError("the env key was written to disk")
+        os.environ.pop("RIO_SESSION_KEY", None)
+        key_file = directory / "session.key"
+        os.environ["RIO_SESSION_KEY_PATH"] = str(key_file)
+        file_token = issue_session(email, secret, now=now)
+        if path.read_bytes() != before:
+            raise AssertionError("the signing key was written into the account file")
+        if not key_file.is_file() or key_file.resolve() == path.resolve():
+            raise AssertionError("the signing key is not a local file of its own")
+        if secret in path.read_text(encoding="utf-8") or file_token in path.read_text(encoding="utf-8"):
+            raise AssertionError("the seal key was written to the account file")
+        if open_session(file_token, now=now) != (email, secret):
+            raise AssertionError("the local key did not open the token")
+        if open_session(token, now=now) is not None:
+            raise AssertionError("a token from another key was accepted")
+        _no_score(payload)
+    finally:
+        _restore_env(saved)
+        shutil.rmtree(directory, ignore_errors=True)
+
+
+def test_a_reload_restores_the_token_and_logout_clears_it() -> None:
+    """Page load restores a young token. Log out and an old token clear it."""
+    if SPEND_CAP_MICRO_USD != 25_000_000:
+        raise AssertionError("spend cap is not $25")
+    source = (ROOT / "ui" / "accounts.py").read_text(encoding="utf-8")
+    if "24 * 60 * 60" not in source:
+        raise AssertionError("a session does not last one day")
+    app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
+    enter = app[app.index("def _enter_account(") : app.index("def _render_create_account(")]
+    if "issue_session(" not in enter or '["rio_session_token"]' not in enter:
+        raise AssertionError("login does not store a signed token")
+    if "rio_reset_session" in enter:
+        raise AssertionError("login sets rio_reset_session")
+    sign_out = app[app.index("def _sign_out(") : app.index("def _restore_session(")]
+    if 'pop("rio_session_token"' not in sign_out or "rio_session_clear" not in sign_out:
+        raise AssertionError("logout does not clear the token")
+    restore = app[app.index("def _restore_session(") : app.index("def _restore_record(")]
+    if "open_session(" not in restore or "rio_session_clear" not in restore:
+        raise AssertionError("a page load does not check the token")
+    if "_sign_out()" not in restore:
+        raise AssertionError("an old token stays signed in")
+    if "authenticate(" in restore or "create_account(" in restore or "write_record(" in restore:
+        raise AssertionError("a page load signs in again")
+    boot = app[app.index("\nst.set_page_config(") :]
+    gate_at = boot.index("if _account_identity() is None:")
+    if "_restore_session()" not in boot[:gate_at]:
+        raise AssertionError("a page load does not restore the session")
+    session_js = app[app.index("_SESSION_STORE_JS") : app.index("def _session_component(")]
+    if "rio.session.v1" not in session_js or "localStorage.removeItem" not in session_js:
+        raise AssertionError("the session token is not stored in this browser")
+    if "localStorage.setItem" not in session_js or "localStorage.getItem" not in session_js:
+        raise AssertionError("login does not store the token in this browser")
+    blob = enter + sign_out + restore + session_js
+    if "probability" in blob.lower() or "readiness" in blob.lower():
+        raise AssertionError("a score was added")
+    if "https://intervals.icu" in app or "SPEND_CAP" in app:
+        raise AssertionError("login started a pull or spend")
+
+
 def test_accounts_stay_local_and_spend_stays_capped() -> None:
     """No engine, no model, no external auth. Prose spend stays at $25."""
     if SPEND_CAP_MICRO_USD != 25_000_000:
@@ -250,6 +374,8 @@ def main() -> None:
     test_create_login_and_a_wrong_password()
     test_each_account_keeps_its_own_plan()
     test_an_active_plan_is_a_goal_still_ahead()
+    test_a_signed_token_lasts_one_day()
+    test_a_reload_restores_the_token_and_logout_clears_it()
     test_accounts_stay_local_and_spend_stays_capped()
     print("accounts ok")
 

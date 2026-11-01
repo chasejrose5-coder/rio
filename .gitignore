@@ -224,3 +224,5 @@ data/explain_spend.json
 data/explain_spend.json.tmp
 data/accounts.json
 data/accounts.json.tmp
+data/session.key
+data/session.key.tmp
