@@ -1,6 +1,6 @@
 # streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Activity, Next, Decisions, Ledger, Goal, Progress, Season, Past seasons, Weekly, Profile, Settings, About, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. The first screen asks for an email and a password, or creates an account. Marks and actuals are saved on that account under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores that account's marks and actuals. Dashboard reads that plan: a track for the next session, with distance, pace, rest, and reps, plus the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity lists one row per matched Intervals workout: the date, the template or label, completed work meters, and average heart rate. The line is weekly completed WORK distance. Warm-up, cool-down, and template meters stay out. A dot marks each matched workout that has an average heart rate, labeled with the date. An unmatched activity stays off that matched list. A matched activity with no work meters and no heart rate stays off it. A second table lists every activity: the date, the activity name, the activity distance, and average heart rate. An unmatched row is labeled extra. An activity with no distance and no heart rate stays off both lists. No stored match and no Intervals file leaves the matched list empty. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening Dashboard, Weekly, Session, Progress, or Activity reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. Refresh on Activity reads every activity for this athlete. A matched Tuesday or Thursday quality day with no stored mark is judged from that activity's WORK elapsed times. The mark and those times are stored with the session, and adapt() changes only later weeks. Those times fill the quality-day boxes and stay editable. A day that already has a mark is left as stored. Recovery days, long runs, extra activities, and empty rep times do not call adapt(). A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved on that account with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Profile shows the current 800 time, the start date, the goal 800 time, and the goal date already stored from Start. Saving a goal time keeps it for this account in this browser and leaves the season as stored. Past seasons lists each season this account has already stored. A row shows the start date, the goal date, and the goal time from that plan key. Choosing a row opens that season from those four inputs. The page does not build a season. Session shows one day of that plan. A matched activity shows its rep times, completed WORK distance, and average heart rate beside the template. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. Opening Session reads recent activities through the read-only adapter and does not write back to Intervals. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. About states the eight phases, the 10% rule, that classification is rules, not AI, and that a hard-day mark adapts later weeks. About does not call a model. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. The first screen is Log in. Create account is its own screen. A successful create or log in opens Start. Marks and actuals are saved on that account under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores that account's marks and actuals. Dashboard reads that plan: a track for the next session, with distance, pace, rest, and reps, plus the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity lists one row per matched Intervals workout: the date, the template or label, completed work meters, and average heart rate. The line is weekly completed WORK distance. Warm-up, cool-down, and template meters stay out. A dot marks each matched workout that has an average heart rate, labeled with the date. An unmatched activity stays off that matched list. A matched activity with no work meters and no heart rate stays off it. A second table lists every activity: the date, the activity name, the activity distance, and average heart rate. An unmatched row is labeled extra. An activity with no distance and no heart rate stays off both lists. No stored match and no Intervals file leaves the matched list empty. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening Dashboard, Weekly, Session, Progress, or Activity reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. Refresh on Activity reads every activity for this athlete. A matched Tuesday or Thursday quality day with no stored mark is judged from that activity's WORK elapsed times. The mark and those times are stored with the session, and adapt() changes only later weeks. Those times fill the quality-day boxes and stay editable. A day that already has a mark is left as stored. Recovery days, long runs, extra activities, and empty rep times do not call adapt(). A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved on that account with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Profile shows the current 800 time, the start date, the goal 800 time, and the goal date already stored from Start. Saving a goal time keeps it for this account in this browser and leaves the season as stored. Past seasons lists each season this account has already stored. A row shows the start date, the goal date, and the goal time from that plan key. Choosing a row opens that season from those four inputs. The page does not build a season. Session shows one day of that plan. A matched activity shows its rep times, completed WORK distance, and average heart rate beside the template. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. Opening Session reads recent activities through the read-only adapter and does not write back to Intervals. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. About states the eight phases, the 10% rule, that classification is rules, not AI, and that a hard-day mark adapts later weeks. About does not call a model. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -720,7 +720,11 @@ _ACCOUNT_SESSION = (
     "profile_goal_time",
     "rio-log-out",
     "rio_adapt_pending",
+    "rio_auth_screen",
+    "rio_create_email",
+    "rio_create_password",
     "rio_login_email",
+    "rio_login_error",
     "rio_login_password",
     "rio_profile",
     "rio_store_loaded",
@@ -927,19 +931,8 @@ def _pull_for(page_name: str) -> None:
 
 
 def _route_after_login() -> None:
-    """Start when this account has no plan. Home when it already saved one."""
+    """A successful create or log in opens Start."""
     st.session_state.pop("rio_enter", None)
-    who = _account_identity()
-    found = None
-    if who is not None:
-        key = last_key(accounts_path(), who[0], who[1])
-        if isinstance(key, str) and key:
-            found = inputs_from_key(key)
-    if found is not None:
-        home = _nav_page("Home")
-        if home is not None:
-            st.switch_page(home, query_params=query_values(found))
-            return
     if _start_page is not None:
         st.switch_page(_start_page)
 
@@ -2083,6 +2076,29 @@ h2.rio-week-title {
   background: #e25a32 !important;
   border-color: #e25a32 !important;
   color: #000000 !important;
+}
+[class*="st-key-rio-auth-switch"] button,
+[class*="st-key-rio-auth-switch"] [data-testid="stBaseButton-secondary"] {
+  background: transparent !important;
+  border: 1px solid #3a2820 !important;
+  border-radius: 8px !important;
+  color: #d4d4d4 !important;
+  min-height: 2.45rem !important;
+  margin-top: 0.15rem !important;
+  padding: 0.4rem 0.9rem !important;
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+}
+[class*="st-key-rio-auth-switch"] button p,
+[class*="st-key-rio-auth-switch"] button span {
+  color: inherit !important;
+}
+[class*="st-key-rio-auth-switch"] button:hover,
+[class*="st-key-rio-auth-switch"] [data-testid="stBaseButton-secondary"]:hover {
+  background: transparent !important;
+  border-color: #e25a32 !important;
+  color: #ffb089 !important;
 }
 
 [data-testid="stSelectbox"] [role="group"] {
@@ -5551,50 +5567,104 @@ def page_past_seasons() -> None:
             _open_past(inputs, first=index == 0)
 
 
+def _auth_screen() -> str:
+    """Log in is the first screen. Create account is the other one."""
+    if st.session_state.get("rio_auth_screen") == "create":
+        return "create"
+    return "login"
+
+
+def _open_auth(screen: str) -> None:
+    """Show Log in or Create account. A notice stays on the screen that wrote it."""
+    st.session_state["rio_auth_screen"] = screen
+    st.session_state.pop("rio_login_error", None)
+    st.rerun()
+
+
+def _enter_account(signed: tuple[str, str]) -> None:
+    """Keep this account for the session and open Start."""
+    st.session_state.pop("rio_auth_screen", None)
+    st.session_state.pop("rio_login_error", None)
+    st.session_state["rio_enter"] = True
+    st.session_state["rio_account"] = signed[0]
+    st.session_state["rio_account_secret"] = signed[1]
+    st.rerun()
+
+
+def _auth_notice() -> None:
+    notice = st.session_state.pop("rio_login_error", None)
+    if isinstance(notice, str) and notice.strip():
+        st.markdown(
+            f'<p class="rio-error">{_esc(notice.strip())}</p>',
+            unsafe_allow_html=True,
+        )
+
+
+def _render_create_account() -> None:
+    """Email and password for a new account. Back returns to Log in."""
+    st.markdown(_css(), unsafe_allow_html=True)
+    st.markdown(
+        _page_hero("Create account", "RIO"),
+        unsafe_allow_html=True,
+    )
+    with st.container(key="rio-start"):
+        _auth_notice()
+        with st.form("rio-create", border=False):
+            email = st.text_input("Email", key="rio_create_email")
+            password = st.text_input("Password", type="password", key="rio_create_password")
+            create = st.form_submit_button("Create account", type="primary", width="stretch")
+        with st.container(key="rio-auth-switch"):
+            back = st.button("Back to log in", key="rio-back-login", width="stretch")
+        st.markdown(
+            '<p class="rio-settings-note">At least 8 characters. Saved on this machine.</p>',
+            unsafe_allow_html=True,
+        )
+    if back:
+        _open_auth("login")
+    if not create:
+        return
+    try:
+        signed = create_account(accounts_path(), email, password)
+    except AccountError as exc:
+        st.session_state["rio_login_error"] = str(exc)
+        st.rerun()
+    _enter_account(signed)
+
+
 def _render_login() -> None:
-    """Email and password. Create an account or sign in. The season stays behind this."""
+    """Email and password. Create account opens its own screen."""
+    if _auth_screen() == "create":
+        _render_create_account()
+        return
     st.markdown(_css(), unsafe_allow_html=True)
     st.markdown(
         _page_hero(
             "Log in",
             "RIO",
-            "Use your email and password, or create an account.",
+            "Use your email and password.",
         ),
         unsafe_allow_html=True,
     )
-    notice = st.session_state.pop("rio_login_error", None)
     with st.container(key="rio-start"):
-        if isinstance(notice, str) and notice.strip():
-            st.markdown(
-                f'<p class="rio-error">{_esc(notice.strip())}</p>',
-                unsafe_allow_html=True,
-            )
-        with st.form("rio-account", border=False):
+        _auth_notice()
+        with st.form("rio-login", border=False):
             email = st.text_input("Email", key="rio_login_email")
             password = st.text_input("Password", type="password", key="rio_login_password")
             log_in = st.form_submit_button("Log in", type="primary", width="stretch")
-            create = st.form_submit_button("Create account", width="stretch")
-        st.markdown(
-            '<p class="rio-settings-note">At least 8 characters. Saved on this machine.</p>',
-            unsafe_allow_html=True,
-        )
-    if not log_in and not create:
+        with st.container(key="rio-auth-switch"):
+            create = st.button("Create account", key="rio-open-create", width="stretch")
+    if create:
+        _open_auth("create")
+    if not log_in:
         return
     try:
-        if create:
-            signed = create_account(accounts_path(), email, password)
-        else:
-            signed = authenticate(accounts_path(), email, password)
-            if signed is None:
-                raise AccountError("Email or password does not match.")
+        signed = authenticate(accounts_path(), email, password)
+        if signed is None:
+            raise AccountError("Email or password does not match.")
     except AccountError as exc:
         st.session_state["rio_login_error"] = str(exc)
         st.rerun()
-    st.session_state["rio_reset_session"] = True
-    st.session_state["rio_enter"] = True
-    st.session_state["rio_account"] = signed[0]
-    st.session_state["rio_account_secret"] = signed[1]
-    st.rerun()
+    _enter_account(signed)
 
 
 st.set_page_config(page_title="rio", layout="centered")

@@ -181,6 +181,24 @@ def test_accounts_stay_local_and_spend_stays_capped() -> None:
         raise AssertionError("login is not the first screen")
     if "create_account(" not in app or "authenticate(" not in app or "Log out" not in app:
         raise AssertionError("login is not wired")
+    enter = app[app.index("def _enter_account(") : app.index("def _render_create_account(")]
+    create = app[app.index("def _render_create_account(") : app.index("def _render_login(")]
+    login = app[app.index("def _render_login(") : app.index("\nst.set_page_config(")]
+    route = app[app.index("def _route_after_login(") : app.index("def _with_plan(")]
+    if "rio_reset_session" in enter or "rio_reset_session" in create or "rio_reset_session" in login:
+        raise AssertionError("login sets rio_reset_session")
+    if '["rio_account"]' not in enter or '["rio_account_secret"]' not in enter or '["rio_enter"]' not in enter:
+        raise AssertionError("login does not set the account")
+    if "_render_create_account()" not in login or "Log in" not in login or "Create account" not in login:
+        raise AssertionError("create account is not its own screen")
+    if "Back to log in" not in create or "Create account" not in create or "create_account(" not in create:
+        raise AssertionError("create account is missing its screen")
+    if "authenticate(" not in login:
+        raise AssertionError("log in is missing its screen")
+    if "st.switch_page(_start_page)" not in route or "Home" in route:
+        raise AssertionError("login does not open Start")
+    if "probability" in (enter + create + login).lower() or "readiness" in (enter + create + login).lower():
+        raise AssertionError("a score was added")
     if "https://intervals.icu" in app or "SPEND_CAP" in app:
         raise AssertionError("login started a pull or spend")
     for path in (ROOT / "engines").glob("*.py"):
