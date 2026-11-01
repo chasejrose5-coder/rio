@@ -3,12 +3,15 @@
 """A row is a plan key already in this browser.
 
 The key is the four inputs. Start date, goal date, and goal time are shown
-from those inputs. Nothing here builds a season.
+from those inputs. A plan is active while its goal date is today or later.
+Nothing here builds a season.
 
 No model. No spend.
 """
 
 from __future__ import annotations
+
+from datetime import date
 
 from ui.plan_store import inputs_ok, storage_key
 
@@ -46,6 +49,20 @@ def season_entries(keys: object) -> list[tuple[str, str, str, str]]:
     rows = list(found)
     rows.sort(key=lambda item: (item[1], item[3], item[2], item[0]))
     return rows
+
+
+def has_active_plan(keys: object, today: date) -> bool:
+    """True when a stored plan's goal date is today or later.
+
+    No plan is not active. A goal date before today is finished. A profile
+    record and any other key stay out.
+    """
+    if type(today) is not date:
+        return False
+    for inputs in season_entries(keys):
+        if date.fromisoformat(inputs[3]) >= today:
+            return True
+    return False
 
 
 def entry_fields(inputs: tuple[str, str, str, str]) -> list[tuple[str, str]]:

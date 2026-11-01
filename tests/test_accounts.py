@@ -6,6 +6,7 @@ import json
 import shutil
 import sys
 import tempfile
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -24,7 +25,9 @@ from ui.accounts import (
     record_keys,
     write_record,
 )
+from ui.past_seasons import has_active_plan
 from ui.plan_store import dump_record, load_record, storage_key
+from ui.profile import profile_key
 
 INPUTS = ("2:02.9", "2026-04-19", "1:55.0", "2027-03-19")
 OTHER = ("2:02.9", "2026-04-19", "1:55.0", "2027-03-20")
@@ -154,6 +157,27 @@ def test_each_account_keeps_its_own_plan() -> None:
         shutil.rmtree(directory, ignore_errors=True)
 
 
+def test_an_active_plan_is_a_goal_still_ahead() -> None:
+    """Today or later is active. No plan, or a past goal, is not."""
+    today = date(2026, 11, 1)
+    current = ("2:02.9", "2026-04-19", "1:55.0", "2026-11-01")
+    later = ("2:02.9", "2026-04-19", "1:55.0", "2027-03-19")
+    finished = ("2:10.0", "2025-01-04", "2:00.0", "2026-10-31")
+    if not has_active_plan([storage_key(current)], today):
+        raise AssertionError("a goal today was finished")
+    if not has_active_plan([storage_key(later)], today):
+        raise AssertionError("a later goal was finished")
+    if not has_active_plan([storage_key(finished), storage_key(later)], today):
+        raise AssertionError("a later goal was ignored")
+    if has_active_plan([storage_key(finished)], today):
+        raise AssertionError("a past goal was active")
+    if has_active_plan([], today) or has_active_plan(None, today) or has_active_plan("", today):
+        raise AssertionError("a missing plan was active")
+    if has_active_plan([profile_key(later)], today):
+        raise AssertionError("a profile record was a season")
+    _no_score(has_active_plan([storage_key(later)], today))
+
+
 def test_accounts_stay_local_and_spend_stays_capped() -> None:
     """No engine, no model, no external auth. Prose spend stays at $25."""
     if SPEND_CAP_MICRO_USD != 25_000_000:
@@ -195,9 +219,23 @@ def test_accounts_stay_local_and_spend_stays_capped() -> None:
         raise AssertionError("create account is missing its screen")
     if "authenticate(" not in login:
         raise AssertionError("log in is missing its screen")
-    if "st.switch_page(_start_page)" not in route or "Home" in route:
-        raise AssertionError("login does not open Start")
-    if "probability" in (enter + create + login).lower() or "readiness" in (enter + create + login).lower():
+    if "has_active_plan(" not in route or '_nav_page("Home")' not in route or "_start_page" not in route:
+        raise AssertionError("login does not choose Home or Start")
+    if "st.switch_page(" not in route:
+        raise AssertionError("login does not open a page")
+    for token in (
+        "sequence(",
+        "write_record(",
+        "_store_plan(",
+        "_ensure_linked_plan(",
+        "_restore_last_plan(",
+        "read_record(",
+    ):
+        if token in route:
+            raise AssertionError("login changed how a plan is stored or loaded")
+    if "probability" in (enter + create + login + route).lower() or "readiness" in (
+        enter + create + login + route
+    ).lower():
         raise AssertionError("a score was added")
     if "https://intervals.icu" in app or "SPEND_CAP" in app:
         raise AssertionError("login started a pull or spend")
@@ -211,6 +249,7 @@ def main() -> None:
     test_email_and_password_rules()
     test_create_login_and_a_wrong_password()
     test_each_account_keeps_its_own_plan()
+    test_an_active_plan_is_a_goal_still_ahead()
     test_accounts_stay_local_and_spend_stays_capped()
     print("accounts ok")
 
