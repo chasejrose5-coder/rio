@@ -1247,6 +1247,8 @@ _HOME_PAGE: st.Page | None = None
 _SESSION_PAGE: st.Page | None = None
 _NAV_PAGES: list[tuple[str, st.Page]] = []
 _MORE_PAGES: list[tuple[str, st.Page]] = []
+# Still routed. Left off the main nav and the More menu.
+_KEPT_PAGES: list[tuple[str, st.Page]] = []
 _EMBEDDING = False
 _MARK_PREFIX = "season"
 
@@ -3120,6 +3122,7 @@ def _render_nav(active: str) -> None:
     if home is None:
         return
     more_labels = {label for label, _page in _MORE_PAGES}
+    more_labels.update(label for label, _page in _KEPT_PAGES)
     shown = "More" if active in more_labels else active
     with st.container(
         key="rio-nav",
@@ -6049,11 +6052,6 @@ def page_plan() -> None:
 
 
 _MORE_BLURB = (
-    ("Last Session", "A fixture or a local file, labeled by the rules."),
-    ("Next", "The next one to three days from the ledger."),
-    ("Decisions", "The accepted planned row."),
-    ("Ledger", "Deposits, and what is emerging or decaying."),
-    ("Goal", "The four fields as written."),
     ("Past seasons", "Seasons this browser already stored."),
     ("Profile", "The four Start values. The goal time can be saved here."),
     ("Settings", "Name, units, and this account."),
@@ -6062,7 +6060,7 @@ _MORE_BLURB = (
 
 
 def page_more() -> None:
-    """Ledger, goal, decisions, and the rest. Links stay in this tab."""
+    """Past seasons, profile, settings, and about. Links stay in this tab."""
     st.markdown(_css(), unsafe_allow_html=True)
     _render_nav("More")
     st.markdown(
@@ -6350,15 +6348,17 @@ _NAV_PAGES[:] = [
     ("More", st.Page(_with_plan(page_more), title="More", url_path="more")),
 ]
 _MORE_PAGES[:] = [
+    ("Past seasons", st.Page(_with_plan(page_past_seasons), title="Past seasons", url_path="past-seasons")),
+    ("Profile", st.Page(_with_plan(page_profile), title="Profile", url_path="profile")),
+    ("Settings", st.Page(_with_plan(page_settings), title="Settings", url_path="settings")),
+    ("About", st.Page(_with_plan(page_about), title="About", url_path="about")),
+]
+_KEPT_PAGES[:] = [
     ("Last Session", st.Page(_with_plan(page_last_session), title="Last Session", url_path="last-session")),
     ("Next", st.Page(_with_plan(page_next), title="Next", url_path="next")),
     ("Decisions", st.Page(_with_plan(page_decisions), title="Decisions", url_path="decisions")),
     ("Ledger", st.Page(_with_plan(page_ledger), title="Ledger", url_path="ledger")),
     ("Goal", st.Page(_with_plan(page_goal), title="Goal", url_path="goal")),
-    ("Past seasons", st.Page(_with_plan(page_past_seasons), title="Past seasons", url_path="past-seasons")),
-    ("Profile", st.Page(_with_plan(page_profile), title="Profile", url_path="profile")),
-    ("Settings", st.Page(_with_plan(page_settings), title="Settings", url_path="settings")),
-    ("About", st.Page(_with_plan(page_about), title="About", url_path="about")),
 ]
 if _account_identity() is None:
     _render_login()
@@ -6369,6 +6369,7 @@ st.navigation(
         _session_page,
         *(page for _, page in _NAV_PAGES),
         *(page for _, page in _MORE_PAGES),
+        *(page for _, page in _KEPT_PAGES),
     ],
     position="hidden",
 ).run()
