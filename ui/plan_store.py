@@ -1,13 +1,13 @@
-# plan_store.py — the four inputs in the URL, marks and actuals in the browser.
+# plan_store.py — the four inputs in the URL. The account keeps marks and actuals.
 
-"""Share a plan by its four inputs. Marks, actuals, and activity matches stay on this browser.
+"""Share a plan by its four inputs. Marks, actuals, and activity matches are one record.
 
 The URL carries current_time, start_date, goal_time, and goal_date. The
-browser record is keyed by those same four strings. Another browser opening
-the URL rebuilds the plan and finds no record of its own. A pulled activity
-is stored with that record, so a reload keeps the match.
+record is keyed by those same four strings. This file only shapes that
+record. The app stores it on the signed-in account. A pulled activity is
+stored with that record, so a reload keeps the match.
 
-No file. No account. No model. No spend. No scores.
+No file. No model. No spend. No scores.
 An actual may keep the Intervals filename or activity id that filled it.
 """
 

@@ -1,6 +1,6 @@
 # streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Activity, Next, Decisions, Ledger, Goal, Progress, Season, Past seasons, Weekly, Profile, Settings, About, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. Marks and actuals are saved in this browser's localStorage under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores marks and actuals from localStorage when this browser has them. Dashboard reads that plan: a track for the next session, with distance, pace, rest, and reps, plus the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity lists one row per matched Intervals workout: the date, the template or label, completed work meters, and average heart rate. The line is weekly completed WORK distance. Warm-up, cool-down, and template meters stay out. A dot marks each matched workout that has an average heart rate, labeled with the date. An unmatched activity stays off that matched list. A matched activity with no work meters and no heart rate stays off it. A second table lists every activity: the date, the activity name, the activity distance, and average heart rate. An unmatched row is labeled extra. An activity with no distance and no heart rate stays off both lists. No stored match and no Intervals file leaves the matched list empty. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening Dashboard, Weekly, Session, Progress, or Activity reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. Refresh on Activity reads every activity for this athlete. A matched Tuesday or Thursday quality day with no stored mark is judged from that activity's WORK elapsed times. The mark and those times are stored with the session, and adapt() changes only later weeks. Those times fill the quality-day boxes and stay editable. A day that already has a mark is left as stored. Recovery days, long runs, extra activities, and empty rep times do not call adapt(). A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved in this browser with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Profile shows the current 800 time, the start date, the goal 800 time, and the goal date already stored from Start. Saving a goal time keeps it in this browser and leaves the season as stored. Past seasons lists each season this browser has already stored. A row shows the start date, the goal date, and the goal time from that plan key. Choosing a row opens that season from those four inputs. The page does not build a season. Session shows one day of that plan. A matched activity shows its rep times, completed WORK distance, and average heart rate beside the template. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. Opening Session reads recent activities through the read-only adapter and does not write back to Intervals. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. About states the eight phases, the 10% rule, that classification is rules, not AI, and that a hard-day mark adapts later weeks. About does not call a model. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. The first screen asks for an email and a password, or creates an account. Marks and actuals are saved on that account under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores that account's marks and actuals. Dashboard reads that plan: a track for the next session, with distance, pace, rest, and reps, plus the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity lists one row per matched Intervals workout: the date, the template or label, completed work meters, and average heart rate. The line is weekly completed WORK distance. Warm-up, cool-down, and template meters stay out. A dot marks each matched workout that has an average heart rate, labeled with the date. An unmatched activity stays off that matched list. A matched activity with no work meters and no heart rate stays off it. A second table lists every activity: the date, the activity name, the activity distance, and average heart rate. An unmatched row is labeled extra. An activity with no distance and no heart rate stays off both lists. No stored match and no Intervals file leaves the matched list empty. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening Dashboard, Weekly, Session, Progress, or Activity reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. Refresh on Activity reads every activity for this athlete. A matched Tuesday or Thursday quality day with no stored mark is judged from that activity's WORK elapsed times. The mark and those times are stored with the session, and adapt() changes only later weeks. Those times fill the quality-day boxes and stay editable. A day that already has a mark is left as stored. Recovery days, long runs, extra activities, and empty rep times do not call adapt(). A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved on that account with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Settings stores display preferences for this session. Profile shows the current 800 time, the start date, the goal 800 time, and the goal date already stored from Start. Saving a goal time keeps it for this account in this browser and leaves the season as stored. Past seasons lists each season this account has already stored. A row shows the start date, the goal date, and the goal time from that plan key. Choosing a row opens that season from those four inputs. The page does not build a season. Session shows one day of that plan. A matched activity shows its rep times, completed WORK distance, and average heart rate beside the template. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. Opening Session reads recent activities through the read-only adapter and does not write back to Intervals. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. About states the eight phases, the 10% rule, that classification is rules, not AI, and that a hard-day mark adapts later weeks. About does not call a model. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -67,6 +67,16 @@ from ui.settings import (
     format_date,
     normalize as normalize_prefs,
 )
+from ui.accounts import (
+    AccountError,
+    accounts_path,
+    authenticate,
+    create_account,
+    last_key,
+    read_record,
+    record_keys,
+    write_record,
+)
 from ui.plan_store import (
     dump_record,
     inputs_ok,
@@ -75,7 +85,7 @@ from ui.plan_store import (
     query_values,
     storage_key,
 )
-from ui.past_seasons import KEY_PREFIX, entry_fields, season_entries
+from ui.past_seasons import KEY_PREFIX, entry_fields, inputs_from_key, season_entries
 from ui.profile import (
     clean_goal,
     dump_goal,
@@ -545,7 +555,8 @@ def _session_on(plan: dict, day: str | None) -> dict | None:
     return None
 
 
-# Reads and writes this browser's marks and actuals. The four inputs stay in the URL.
+# Browser bridge for a plan key. Pages read and write the signed-in account.
+# The four inputs stay in the URL.
 _PLAN_STORE_JS = """
 export default function (component) {
   var data = component.data;
@@ -700,17 +711,76 @@ def _ensure_linked_plan(inputs: tuple[str, str, str, str]) -> None:
     _store_plan(inputs, built, loaded=False)
 
 
+# Cleared when the signed-in account changes, before the next screen draws widgets.
+_ACCOUNT_SESSION = (
+    "activities_loaded",
+    "activities_notice",
+    "activities_trigger",
+    "profile_goal_apply",
+    "profile_goal_time",
+    "rio-log-out",
+    "rio_adapt_pending",
+    "rio_login_email",
+    "rio_login_password",
+    "rio_profile",
+    "rio_store_loaded",
+    "season_activities",
+    "season_actuals",
+    "season_generation",
+    "season_inputs",
+    "season_link_attempt",
+    "season_link_error",
+    "season_marks",
+    "season_plan",
+    "season_quality_base",
+    "start_current_time",
+    "start_goal_date",
+    "start_goal_time",
+    "start_start_date",
+)
+
+
+def _account_identity() -> tuple[str, str] | None:
+    """The signed-in email and the seal key for this session."""
+    email = st.session_state.get("rio_account")
+    secret = st.session_state.get("rio_account_secret")
+    if not isinstance(email, str) or not email:
+        return None
+    if not isinstance(secret, str) or not secret:
+        return None
+    return email, secret
+
+
+def _apply_session_reset() -> None:
+    """Drop the previous account's plan before the next screen is drawn."""
+    if st.session_state.get("rio_reset_session") is not True:
+        return
+    for key in _ACCOUNT_SESSION:
+        st.session_state.pop(key, None)
+    st.session_state.pop("rio_reset_session", None)
+
+
+def _sign_out() -> None:
+    """End this session. The account file stays on this machine."""
+    st.session_state["rio_reset_session"] = True
+    st.session_state.pop("rio_account", None)
+    st.session_state.pop("rio_account_secret", None)
+    st.query_params.clear()
+    st.rerun()
+
+
 def _restore_record(key: str) -> None:
-    """Read this browser's marks and actuals once, before an empty plan is drawn."""
-    result = _mount_store({"key": key, "mode": "read"})
-    record = getattr(result, "record", None)
-    if (
-        not isinstance(record, dict)
-        or record.get("key") != key
-        or not isinstance(record.get("body"), str)
-    ):
+    """Read this account's marks and actuals once, before an empty plan is drawn."""
+    who = _account_identity()
+    body = None if who is None else read_record(accounts_path(), who[0], who[1], key)
+    if not isinstance(body, str):
+        st.markdown(_css(), unsafe_allow_html=True)
+        st.markdown(
+            '<p class="rio-error">This account could not be opened.</p>',
+            unsafe_allow_html=True,
+        )
         st.stop()
-    marks, actuals, activities = load_record(record["body"])
+    marks, actuals, activities = load_record(body)
     st.session_state["season_marks"] = marks
     st.session_state["season_actuals"] = actuals
     st.session_state["season_activities"] = activities
@@ -718,33 +788,42 @@ def _restore_record(key: str) -> None:
 
 
 def _sync_browser_store() -> None:
-    """Save marks and actuals under the four inputs. Each browser has its own."""
+    """Save marks and actuals on this account, under the four inputs."""
     inputs = st.session_state.get("season_inputs")
     plan = st.session_state.get("season_plan")
     if not inputs_ok(inputs) or not isinstance(plan, dict):
+        return
+    who = _account_identity()
+    if who is None:
         return
     key = storage_key(inputs)
     if not st.session_state.get("rio_store_loaded"):
         _restore_record(key)
         return
-    _mount_store(
-        {
-            "key": key,
-            "mode": "write",
-            "payload": dump_record(
+    try:
+        write_record(
+            accounts_path(),
+            who[0],
+            who[1],
+            key,
+            dump_record(
                 st.session_state.get("season_marks"),
                 st.session_state.get("season_actuals"),
                 st.session_state.get("season_activities"),
             ),
-        },
-        widget_key="rio-plan-store-write",
-    )
+        )
+    except AccountError:
+        st.markdown(_css(), unsafe_allow_html=True)
+        st.markdown(
+            '<p class="rio-error">This account could not be saved.</p>',
+            unsafe_allow_html=True,
+        )
 
 
 def _load_shared_plan() -> None:
     """URL inputs rebuild the plan. A visit that already has it keeps that plan.
 
-    The browser record is restored here. The write happens after a pull so a
+    This account's record is restored here. The write happens after a pull so a
     match from this run is what gets saved.
     """
     found = plan_inputs(st.query_params)
@@ -752,13 +831,31 @@ def _load_shared_plan() -> None:
         inputs = st.session_state.get("season_inputs")
         if inputs_ok(inputs) and isinstance(st.session_state.get("season_plan"), dict):
             _publish_inputs(inputs)
+        else:
+            _restore_last_plan()
     else:
         _ensure_linked_plan(found)
     _restore_if_needed()
 
 
+def _restore_last_plan() -> None:
+    """Open the plan this account saved last, when the URL does not name one."""
+    who = _account_identity()
+    if who is None:
+        return
+    if isinstance(st.session_state.get("season_plan"), dict) and st.session_state.get("rio_store_loaded"):
+        return
+    key = last_key(accounts_path(), who[0], who[1])
+    if not isinstance(key, str) or not key:
+        return
+    inputs = inputs_from_key(key)
+    if inputs is None:
+        return
+    _ensure_linked_plan(inputs)
+
+
 def _restore_if_needed() -> None:
-    """Read this browser's record once, before a pull replaces the window."""
+    """Read this account's record once, before a pull replaces the window."""
     inputs = st.session_state.get("season_inputs")
     plan = st.session_state.get("season_plan")
     if not inputs_ok(inputs) or not isinstance(plan, dict):
@@ -829,6 +926,24 @@ def _pull_for(page_name: str) -> None:
     st.session_state["activities_loaded"] = True
 
 
+def _route_after_login() -> None:
+    """Start when this account has no plan. Home when it already saved one."""
+    st.session_state.pop("rio_enter", None)
+    who = _account_identity()
+    found = None
+    if who is not None:
+        key = last_key(accounts_path(), who[0], who[1])
+        if isinstance(key, str) and key:
+            found = inputs_from_key(key)
+    if found is not None:
+        home = _nav_page("Home")
+        if home is not None:
+            st.switch_page(home, query_params=query_values(found))
+            return
+    if _start_page is not None:
+        st.switch_page(_start_page)
+
+
 def _with_plan(page):
     """Draw the page after the shared plan is in the session.
 
@@ -839,6 +954,8 @@ def _with_plan(page):
     """
 
     def wrapped() -> None:
+        if st.session_state.get("rio_enter") is True:
+            _route_after_login()
         _load_shared_plan()
         _pull_for(page.__name__)
         _sync_browser_store()
@@ -1148,6 +1265,36 @@ footer {
 button:focus-visible {
   outline: 1px solid #ff7a45;
   outline-offset: 3px;
+}
+[class*="st-key-rio-logout"] {
+  flex: 0 0 auto !important;
+  width: auto !important;
+}
+[class*="st-key-rio-logout"] button {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  color: #8f8f8f !important;
+  min-height: 0 !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0.15rem 0 0.28rem !important;
+  font-size: 0.84rem !important;
+  font-weight: 400 !important;
+  line-height: 1.3 !important;
+  box-shadow: none !important;
+}
+[class*="st-key-rio-logout"] button p,
+[class*="st-key-rio-logout"] button span {
+  color: inherit !important;
+  font-size: 0.84rem !important;
+  font-weight: 400 !important;
+}
+[class*="st-key-rio-logout"] button:hover,
+[class*="st-key-rio-logout"] button:hover p {
+  background: transparent !important;
+  border: none !important;
+  color: #f4f4f4 !important;
 }
 
 .rio-hero { padding: 3.1rem 0 2.1rem; }
@@ -2708,6 +2855,9 @@ def _render_nav(active: str) -> None:
                         query_params=_link_params(),
                         width="content",
                     )
+            with st.container(key="rio-logout", width="content"):
+                if st.button("Log out", key="rio-log-out"):
+                    _sign_out()
     if active == "More" or active in more_labels:
         _render_subnav(active)
 
@@ -4961,9 +5111,16 @@ def _mount_profile(data: dict, *, widget_key: str = "rio-profile-store"):
     )
 
 
+def _profile_storage_key(inputs: tuple[str, str, str, str]) -> str:
+    """This account's goal, in this browser. Another account has another key."""
+    who = st.session_state.get("rio_account")
+    email = who if isinstance(who, str) else ""
+    return email + "\n" + profile_key(inputs)
+
+
 def _profile_slot(inputs: tuple[str, str, str, str]) -> dict:
-    """This browser's saved goal, read once. A miss stays empty."""
-    key = profile_key(inputs)
+    """This account's saved goal, read once. A miss stays empty."""
+    key = _profile_storage_key(inputs)
     slot = st.session_state.get("rio_profile")
     if isinstance(slot, dict) and slot.get("key") == key and slot.get("loaded") is True:
         return slot
@@ -4982,9 +5139,9 @@ def _profile_slot(inputs: tuple[str, str, str, str]) -> dict:
 
 
 def _write_profile(inputs: tuple[str, str, str, str]) -> None:
-    """Save the goal time on this browser. The URL and the season stay put."""
+    """Save the goal time for this account. The URL and the season stay put."""
     slot = st.session_state.get("rio_profile")
-    key = profile_key(inputs)
+    key = _profile_storage_key(inputs)
     if not isinstance(slot, dict) or slot.get("key") != key or slot.get("dirty") is not True:
         return
     goal = clean_goal(slot.get("goal_time"))
@@ -5068,7 +5225,7 @@ def page_profile() -> None:
                 )
             else:
                 st.session_state["rio_profile"] = {
-                    "key": profile_key(inputs),
+                    "key": _profile_storage_key(inputs),
                     "loaded": True,
                     "goal_time": cleaned,
                     "dirty": True,
@@ -5077,7 +5234,7 @@ def page_profile() -> None:
                 st.rerun()
         if isinstance(slot.get("goal_time"), str) and slot.get("goal_time"):
             st.markdown(
-                '<p class="rio-settings-note">Saved in this browser.</p>',
+                '<p class="rio-settings-note">Saved for this account.</p>',
                 unsafe_allow_html=True,
             )
     _write_profile(inputs)
@@ -5321,16 +5478,14 @@ def _mount_past(data: dict):
 
 
 def _stored_season_keys() -> list:
-    """Plan keys in this browser. A miss waits for the bridge."""
-    result = _mount_past({"prefix": KEY_PREFIX})
-    record = getattr(result, "record", None)
-    if (
-        not isinstance(record, dict)
-        or record.get("prefix") != KEY_PREFIX
-        or not isinstance(record.get("keys"), list)
-    ):
+    """Plan keys on this account. A miss stops before an empty list is drawn."""
+    who = _account_identity()
+    if who is None:
+        return []
+    found = record_keys(accounts_path(), who[0], who[1], KEY_PREFIX)
+    if not isinstance(found, list):
         st.stop()
-    return record["keys"]
+    return found
 
 
 def _past_token(inputs: tuple[str, str, str, str]) -> str:
@@ -5374,12 +5529,12 @@ def _open_past(inputs: tuple[str, str, str, str], *, first: bool) -> None:
 
 
 def page_past_seasons() -> None:
-    """Seasons this browser already stored.
+    """Seasons this account already stored.
 
     Each row is a start date, a goal date, and a goal time from a plan key
-    already in this browser. Choosing a row opens that season from those
-    four inputs. Nothing here builds a season. No prose, so this page does
-    not spend.
+    on this account. Choosing a row opens that season from those four
+    inputs. Nothing here builds a season. No prose, so this page does not
+    spend.
     """
     rows = season_entries(_stored_season_keys())
     hero, _controls = _open("Past seasons")
@@ -5387,7 +5542,7 @@ def page_past_seasons() -> None:
         st.markdown(_page_hero("Past seasons", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
     if not rows:
         st.markdown(
-            '<p class="rio-empty">No seasons in this browser.</p>',
+            '<p class="rio-empty">No seasons on this account.</p>',
             unsafe_allow_html=True,
         )
         return
@@ -5396,7 +5551,54 @@ def page_past_seasons() -> None:
             _open_past(inputs, first=index == 0)
 
 
+def _render_login() -> None:
+    """Email and password. Create an account or sign in. The season stays behind this."""
+    st.markdown(_css(), unsafe_allow_html=True)
+    st.markdown(
+        _page_hero(
+            "Log in",
+            "RIO",
+            "Use your email and password, or create an account.",
+        ),
+        unsafe_allow_html=True,
+    )
+    notice = st.session_state.pop("rio_login_error", None)
+    with st.container(key="rio-start"):
+        if isinstance(notice, str) and notice.strip():
+            st.markdown(
+                f'<p class="rio-error">{_esc(notice.strip())}</p>',
+                unsafe_allow_html=True,
+            )
+        with st.form("rio-account", border=False):
+            email = st.text_input("Email", key="rio_login_email")
+            password = st.text_input("Password", type="password", key="rio_login_password")
+            log_in = st.form_submit_button("Log in", type="primary", width="stretch")
+            create = st.form_submit_button("Create account", width="stretch")
+        st.markdown(
+            '<p class="rio-settings-note">At least 8 characters. Saved on this machine.</p>',
+            unsafe_allow_html=True,
+        )
+    if not log_in and not create:
+        return
+    try:
+        if create:
+            signed = create_account(accounts_path(), email, password)
+        else:
+            signed = authenticate(accounts_path(), email, password)
+            if signed is None:
+                raise AccountError("Email or password does not match.")
+    except AccountError as exc:
+        st.session_state["rio_login_error"] = str(exc)
+        st.rerun()
+    st.session_state["rio_reset_session"] = True
+    st.session_state["rio_enter"] = True
+    st.session_state["rio_account"] = signed[0]
+    st.session_state["rio_account_secret"] = signed[1]
+    st.rerun()
+
+
 st.set_page_config(page_title="rio", layout="centered")
+_apply_session_reset()
 _start_page = st.Page(_with_plan(page_start), title="Start", default=True)
 _session_page = st.Page(_with_plan(page_session), title="Session", url_path="session")
 _HOME_PAGE = _start_page
@@ -5419,6 +5621,9 @@ _MORE_PAGES[:] = [
     ("Settings", st.Page(_with_plan(page_settings), title="Settings", url_path="settings")),
     ("About", st.Page(_with_plan(page_about), title="About", url_path="about")),
 ]
+if _account_identity() is None:
+    _render_login()
+    st.stop()
 st.navigation(
     [
         _start_page,

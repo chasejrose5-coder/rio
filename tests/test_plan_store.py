@@ -339,13 +339,19 @@ def test_pulled_activities_round_trip() -> None:
 
 
 def test_store_does_not_leave_the_browser() -> None:
-    """No engine, no model, no file. The app writes the record to localStorage."""
+    """The record shape stays here. The signed-in account keeps the saved copy."""
     source = Path(ROOT / "ui" / "plan_store.py").read_text(encoding="utf-8")
     if "engines" in source or "explain(" in source or "open(" in source or "Path(" in source:
         raise AssertionError("the record reached a file or an engine")
     app = Path(ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
     if "localStorage" not in app or "plan_inputs(" not in app or "dump_record(" not in app:
-        raise AssertionError("the app does not keep the browser record")
+        raise AssertionError("the app does not keep the plan record")
+    restore = app[app.index("def _restore_record(") : app.index("\ndef _sync_browser_store(")]
+    store = app[app.index("def _sync_browser_store(") : app.index("\ndef _load_shared_plan(")]
+    if "read_record(" not in restore or "season_activities" not in restore:
+        raise AssertionError("a reload does not read this account")
+    if "write_record(" not in store or "season_activities" not in store:
+        raise AssertionError("a save does not write this account")
     if "SPEND_CAP" in app:
         raise AssertionError("plan persistence started spending")
 
