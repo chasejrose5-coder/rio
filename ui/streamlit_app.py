@@ -2192,7 +2192,7 @@ h2.rio-section,
   display: block;
   width: 100%;
   height: auto;
-  color: #f2513a;
+  color: #ff5e3a;
 }
 .rio-track-facts {
   display: flex;
@@ -3740,97 +3740,76 @@ def _mark_text(mark: dict | None) -> str:
     return f"Week {week} · {name}"
 
 
-def _stadium(cx: float, cy: float, half: float, radius: float) -> str:
-    """One closed oval. The straight is 2 * half. The ends are semicircles."""
-    left = cx - half
-    right = cx + half
-    top = cy - radius
-    bottom = cy + radius
+def _semi_right(cx: float, cy: float, radius: float) -> str:
+    """12 o'clock to 6 o'clock through the right side."""
     return (
-        f"M {left:.2f} {top:.2f} "
-        f"H {right:.2f} "
-        f"A {radius:.2f} {radius:.2f} 0 0 1 {right:.2f} {bottom:.2f} "
-        f"H {left:.2f} "
-        f"A {radius:.2f} {radius:.2f} 0 0 1 {left:.2f} {top:.2f} Z"
+        f"A {radius:.2f} {radius:.2f} 0 0 1 {cx + radius:.2f} {cy:.2f} "
+        f"A {radius:.2f} {radius:.2f} 0 0 1 {cx:.2f} {cy + radius:.2f} "
     )
 
 
-def _track_label(x: float, y: float, text: str) -> str:
-    """A small mark on the track. Display only."""
+def _bend_up(cx: float, cy: float, radius: float, sweep: str) -> str:
+    """6 o'clock to 12 o'clock. sweep 0 leaves through the right, 1 through the left."""
+    side = 1.0 if sweep == "0" else -1.0
     return (
-        f'<text x="{x:.1f}" y="{y:.1f}" fill="#f4f4f4" font-size="13" '
-        'font-family="Segoe UI, Helvetica, Arial, sans-serif" '
-        f'text-anchor="middle">{text}</text>'
+        f"A {radius:.2f} {radius:.2f} 0 0 {sweep} {cx + side * radius:.2f} {cy:.2f} "
+        f"A {radius:.2f} {radius:.2f} 0 0 {sweep} {cx:.2f} {cy - radius:.2f} "
+    )
+
+
+def _bend_down(cx: float, cy: float, radius: float, sweep: str) -> str:
+    """12 o'clock to 6 o'clock. sweep 1 leaves through the right, 0 through the left."""
+    side = 1.0 if sweep == "1" else -1.0
+    return (
+        f"A {radius:.2f} {radius:.2f} 0 0 {sweep} {cx + side * radius:.2f} {cy:.2f} "
+        f"A {radius:.2f} {radius:.2f} 0 0 {sweep} {cx:.2f} {cy + radius:.2f} "
     )
 
 
 def _track_svg() -> str:
-    """Eight coral lanes, and the straight that runs past both ends.
+    """Eight lanes in the reference oval. The home straight runs out to the left.
 
-    The straight sits on the home straight and continues past the curves.
-    A finish line crosses that straight and runs past its rails.
+    The viewBox is unchanged, so the cards under the track stay put.
     """
     lanes = 8
-    lane = 13.0
-    inner = 62.0
-    outer = inner + lanes * lane
-    cx, cy, half = 410.0, 188.0, 124.0
-    extend_left, extend_right = 62.0, 40.0
-    bar_top = cy + inner - 3.0
-    bar_bot = cy + outer
-    bar_left = cx - half - outer - extend_left
-    bar_right = cx + half + outer + extend_right
-    pad = 22.0
-    vb_x = bar_left - pad
-    vb_y = cy - outer - 28.0
-    vb_w = (bar_right - bar_left) + pad * 2
-    vb_h = (bar_bot + 28.0) - vb_y
-    radii = [inner + lane * index for index in range(lanes + 1)]
-    band = (
-        '<path fill="currentColor" fill-rule="evenodd" d="'
-        f"{_stadium(cx, cy, half, outer)} {_stadium(cx, cy, half, inner)}"
-        '"/>'
+    outer = 168.0
+    inner = outer * (47.4 / 95.5)
+    lane = (outer - inner) / lanes
+    straight = outer * (117.6 / 95.5)
+    vb_x, vb_y, vb_w, vb_h = 36.0, -6.0, 726.0, 388.0
+    cy = 18.0 + outer
+    mid = vb_x + vb_w / 2.0
+    lx = mid - straight / 2.0
+    rx = lx + straight
+    left_end = lx - outer
+    infield = (
+        f"M {lx:.2f} {cy - inner:.2f} H {rx:.2f} "
+        f"{_semi_right(rx, cy, inner)}"
+        f"H {lx:.2f} {_bend_up(lx, cy, inner, '1')} Z"
     )
-    bar = (
-        f'<rect x="{bar_left:.2f}" y="{bar_top:.2f}" '
-        f'width="{(bar_right - bar_left):.2f}" height="{(bar_bot - bar_top):.2f}" '
-        'fill="currentColor"/>'
+    shell = (
+        f"M {lx:.2f} {cy - outer:.2f} H {rx:.2f} "
+        f"{_semi_right(rx, cy, outer)}"
+        f"H {left_end:.2f} V {cy:.2f} "
+        f"A {outer:.2f} {outer:.2f} 0 0 1 {lx:.2f} {cy - outer:.2f} Z"
+    )
+    band = (
+        f'<path fill="#000" d="{infield}"/>'
+        f'<path fill="currentColor" fill-rule="evenodd" d="{shell} {infield}"/>'
     )
     lines = []
     for index in range(lanes + 1):
-        y = cy + inner + lane * index
+        radius = inner + lane * index
         lines.append(
-            '<path fill="none" stroke="#fff" stroke-opacity="0.78" stroke-width="1.6" '
-            f'd="M {bar_left:.2f} {y:.2f} H {bar_right:.2f}"/>'
+            '<path fill="none" stroke="#fff" stroke-opacity="0.9" stroke-width="1.35" '
+            f'd="M {left_end:.2f} {cy + radius:.2f} H {rx:.2f} '
+            f"{_bend_up(rx, cy, radius, '0')}"
+            f"H {lx:.2f} {_bend_down(lx, cy, radius, '0')}\"/>"
         )
-    lines.append(
-        '<path fill="none" stroke="#fff" stroke-opacity="0.9" stroke-width="1.8" '
-        f'd="M {bar_left:.2f} {bar_top:.2f} V {bar_bot:.2f} '
-        f"M {bar_right:.2f} {bar_top:.2f} V {bar_bot:.2f}\"/>"
-    )
-    for radius in radii:
-        lines.append(
-            '<path fill="none" stroke="#fff" stroke-opacity="0.82" stroke-width="1.6" '
-            f'd="{_stadium(cx, cy, half, radius)}"/>'
-        )
-    finish_x = cx + 36.0
-    finish = (
-        f'<path fill="none" stroke="#fff" stroke-width="2.6" '
-        f'd="M {finish_x:.2f} {bar_top - 16:.2f} V {bar_bot + 16:.2f}"/>'
-    )
-    labels = "".join(
-        (
-            _track_label(cx - 78.0, cy - outer - 10.0, "100m"),
-            _track_label(cx + 70.0, cy - outer - 10.0, "200m"),
-            _track_label(cx - 92.0, cy + inner * 0.42, "100m"),
-            _track_label(finish_x - 58.0, cy + inner * 0.42, "Start"),
-            _track_label(finish_x, bar_bot + 22.0, "Finish"),
-        )
-    )
     return (
         f'<svg class="rio-track-svg" viewBox="{vb_x:.1f} {vb_y:.1f} {vb_w:.1f} {vb_h:.1f}" '
         'aria-hidden="true">'
-        f"{bar}{band}{''.join(lines)}{finish}{labels}</svg>"
+        f"{band}{''.join(lines)}</svg>"
     )
 
 
