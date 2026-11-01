@@ -446,6 +446,77 @@ def test_quality_session_prefills_from_the_file() -> None:
         raise AssertionError("the file reader started its own prose spend")
 
 
+def test_session_shows_fixed_prep_notes() -> None:
+    """The session page shows the fixed notes after the workout. They are not stored."""
+    app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
+    notes = _function(app, "_prep_lines")
+    page = _function(app, "page_session")
+    phrases = (
+        "Pre-warm-up",
+        "1 × 800 m easy",
+        "Warm-up",
+        "Active drills (20–30 m each):",
+        "Arm swings forward and reverse",
+        "Walking quad stretch",
+        "Hamstring sweeps",
+        "Lateral leg swings",
+        "Alternating knee drops",
+        "Rocking adductor stretch",
+        "Dynamic drills (20–30 m each):",
+        "A-skips",
+        "B-skips",
+        "Knee buffs",
+        "Straight-leg bounds",
+        "Lateral skips",
+        "Then:",
+        "4 × 100 m strides with walk-back",
+        "Cool-down",
+        "1 easy lap, then seated stretches for the full lower body:",
+        "Seated forward fold",
+        "Seated figure-four each side",
+        "Seated straddle",
+        "Seated hip-flexor each side",
+        "Seated calf stretch each side",
+        "Seated hamstring each side",
+        "Lying spinal twist each side",
+        "Core",
+        "3 rounds of:",
+        "Plank",
+        "Side plank each side",
+        "Dead bug each side",
+        "Bird-dog each side",
+        "Glute bridge",
+        "Bicycle crunch each side",
+        "Reverse crunch",
+        "Split-lunge jumps (low volume)",
+    )
+    cursor = 0
+    for phrase in phrases:
+        found = notes.find(phrase, cursor)
+        if found < 0:
+            raise AssertionError(phrase)
+        cursor = found + len(phrase)
+    if "_quality_day" in notes or "session[" in notes or "template_id" in notes:
+        raise AssertionError("the notes read the session")
+    if "_copy(" in notes or "display_distance(" in notes:
+        raise AssertionError("the notes follow the units toggle")
+    if "probability" in notes or "readiness" in notes:
+        raise AssertionError("a score was added")
+    if "Do a warm-up." in notes or "Do a cool-down." in notes or "Do core." in notes:
+        raise AssertionError("the placeholder lines are still there")
+    workout = page.find('_subject("Workout"')
+    shown = page.find("_prep_lines(session)")
+    if workout < 0 or shown < 0 or workout > shown:
+        raise AssertionError("the notes are not after the workout")
+    if "_render_result(" not in page or "_quality_day(session)" not in page:
+        raise AssertionError("quality days lost the result boxes")
+    if "explain(" in page or "SPEND_CAP" in page:
+        raise AssertionError("the session page started spending")
+    season = (ROOT / "engines" / "season.py").read_text(encoding="utf-8")
+    if "A-skips" in season or "Pre-warm-up" in season:
+        raise AssertionError("the season engine was changed")
+
+
 def test_page_keeps_the_fixture_dropdown_and_stays_offline() -> None:
     app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
     page = _function(app, "page_last_session")
@@ -533,5 +604,6 @@ if __name__ == "__main__":
     test_loaded_distances_read_the_stored_file()
     test_session_shows_average_heart_rate()
     test_quality_session_prefills_from_the_file()
+    test_session_shows_fixed_prep_notes()
     test_page_keeps_the_fixture_dropdown_and_stays_offline()
     print("last session ok")
