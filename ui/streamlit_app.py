@@ -3117,6 +3117,12 @@ def _codes(codes: list) -> str:
     return ", ".join(str(code) for code in codes) if codes else "—"
 
 
+def _demo_label(banner: object) -> bool:
+    """True when a caption is a synthetic or demo badge. The data stays."""
+    text = str(banner or "").lower()
+    return "synthetic" in text or "demo" in text
+
+
 def _fixture_banner(source: object) -> str | None:
     if str(source or "").strip().lower() == "fixture":
         return "FIXTURE"
@@ -3130,7 +3136,7 @@ def _page_hero(title: str, banner: str | None = None, subtitle: str | None = Non
             parts.append(f'<p class="rio-range rio-section-sub">{_esc(subtitle)}</p>')
         return "".join(parts)
     parts = ['<header class="rio-hero">']
-    if banner:
+    if banner and not _demo_label(banner):
         parts.append(f'<p class="rio-synthetic">{_esc(banner)}</p>')
     parts.append(f"<h1>{_esc(title)}</h1>")
     if subtitle:
@@ -3346,7 +3352,7 @@ def _status_label(codes: list) -> str:
 def _hero_html(start: date | None, goal: date | None, plan: dict | None, error: str | None) -> str:
     if _EMBEDDING:
         return '<h2 class="rio-section">Full season</h2>'
-    synthetic = '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
+    synthetic = ""
     if error or plan is None or start is None or goal is None:
         detail = f'<p class="rio-error">{_esc(error)}</p>' if error else ""
         return (
@@ -3466,7 +3472,7 @@ def _session_link(session: dict, kind: str, *, first: bool = False) -> None:
         html = _mini_day(session)
     else:
         html = _day_html(session, first=first)
-    if page is None:
+    if page is None or not str(session.get("template_id") or "").strip():
         st.markdown(html, unsafe_allow_html=True)
         return
     label = f"{session['day_of_week']} {day}. {_workout_text(session['template_id'])}"
@@ -3532,11 +3538,28 @@ def _stored_activities() -> list:
 
 
 def _activities_notice() -> None:
+    """A plain notice when activity could not be read. The raw text stays off the page."""
     message = st.session_state.get("activities_notice")
     if not isinstance(message, str) or not message.strip():
         return
+    lowered = message.lower()
+    missing = "is not set" in lowered or "not configured" in lowered
+    if missing:
+        title = "Not connected to Intervals.icu"
+        body = "Your activity will show here once your account is linked."
+        st.markdown(
+            '<div class="rio-card rio-card-tight">'
+            f'<p class="rio-mark-label">{title}</p>'
+            f'<p class="rio-note">{body}</p>'
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        return
     st.markdown(
-        f'<p class="rio-error">{_esc(message.strip())}</p>',
+        '<div class="rio-card rio-card-tight">'
+        "<p class=\"rio-note\">Couldn't load activity from Intervals.icu right now. "
+        "Try Refresh in a moment.</p>"
+        "</div>",
         unsafe_allow_html=True,
     )
 
@@ -4586,9 +4609,23 @@ def _track_hero(workout: dict) -> None:
         )
 
 
+_WEEKDAYS = (
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+)
+
+
 def _upcoming_days(sessions: list, today: date, count: int = 3) -> list:
-    """The next sessions on or after today. Display only. The plan is unchanged."""
-    rows = []
+    """The three calendar days after today. Today is not in this list.
+
+    A day with no session still takes a card. The plan is unchanged.
+    """
+    by_date: dict[date, dict] = {}
     for session in sessions or []:
         if not isinstance(session, dict):
             continue
@@ -4599,10 +4636,24 @@ def _upcoming_days(sessions: list, today: date, count: int = 3) -> list:
             day = date.fromisoformat(text)
         except ValueError:
             continue
-        if day >= today:
-            rows.append(session)
-    rows.sort(key=lambda item: str(item.get("date")))
-    return rows[:count]
+        if day <= today or day in by_date:
+            continue
+        by_date[day] = session
+    rows = []
+    for offset in range(1, count + 1):
+        day = today + timedelta(days=offset)
+        found = by_date.get(day)
+        if found is not None:
+            rows.append(found)
+            continue
+        rows.append(
+            {
+                "date": day.isoformat(),
+                "day_of_week": _WEEKDAYS[day.weekday()],
+                "template_id": "",
+            }
+        )
+    return rows
 
 
 def _phase_timeline(start: date, length: int, sessions: list) -> str:
@@ -4751,7 +4802,7 @@ def page_dashboard() -> None:
                 greet = f'<p class="rio-hello">{_esc(hello)}</p>' if hello else ""
                 st.markdown(
                     '<header class="rio-hero">'
-                    '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
+                    ''
                     "<h1>Home</h1>"
                     f"{greet}"
                     f'<p class="rio-error">{_esc(error)}</p></header>',
@@ -4801,7 +4852,7 @@ def page_dashboard() -> None:
     with hero:
         st.markdown(
             '<header class="rio-hero rio-home-hero">'
-            '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
+            ''
             '<div class="rio-home-grid"><div class="rio-home-copy">'
             f'<h1 class="rio-display">{headline}</h1>'
             f"{greet}"
@@ -4896,7 +4947,7 @@ def page_calendar() -> None:
             if error:
                 st.markdown(
                     '<header class="rio-hero">'
-                    '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
+                    ''
                     "<h1>Calendar</h1>"
                     f'<p class="rio-error">{_esc(error)}</p></header>',
                     unsafe_allow_html=True,
@@ -5071,7 +5122,7 @@ def page_progress() -> None:
             if error:
                 st.markdown(
                     '<header class="rio-hero">'
-                    '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
+                    ''
                     "<h1>Progress</h1>"
                     f'<p class="rio-error">{_esc(error)}</p></header>',
                     unsafe_allow_html=True,
@@ -5177,7 +5228,7 @@ def page_weekly() -> None:
             if error:
                 st.markdown(
                     '<header class="rio-hero">'
-                    '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
+                    ''
                     "<h1>Weekly</h1>"
                     f'<p class="rio-error">{_esc(error)}</p></header>',
                     unsafe_allow_html=True,
@@ -5655,7 +5706,7 @@ def page_activity() -> None:
             if error:
                 st.markdown(
                     '<header class="rio-hero">'
-                    '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
+                    ''
                     "<h1>Activity</h1>"
                     f'<p class="rio-error">{_esc(error)}</p></header>',
                     unsafe_allow_html=True,
@@ -6008,7 +6059,7 @@ def page_profile() -> None:
             if error:
                 st.markdown(
                     '<header class="rio-hero">'
-                    '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
+                    ''
                     "<h1>Profile</h1>"
                     f'<p class="rio-error">{_esc(error)}</p></header>',
                     unsafe_allow_html=True,
@@ -6350,7 +6401,7 @@ def page_plan() -> None:
         if error:
             st.markdown(
                 '<header class="rio-hero">'
-                '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
+                ''
                 "<h1>Plan</h1>"
                 f'<p class="rio-error">{_esc(error)}</p></header>',
                 unsafe_allow_html=True,
