@@ -173,9 +173,10 @@ html, body, .stApp {{
   max-width: none !important;
   margin-left: -5vw !important;
   margin-right: -5vw !important;
-  padding: 0 5vw !important;
-  min-height: 4.25rem !important;
+  padding: 1rem 5vw 0.9rem !important;
+  min-height: 4.75rem !important;
   align-items: center !important;
+  overflow: visible !important;
 }}
 [class*="st-key-rio-auth-card"],
 [class*="st-key-rio-goal-card"] {{
@@ -195,6 +196,14 @@ html, body, .stApp {{
 }}
 [class*="st-key-rio-auth-card"] {{
   max-width: 28rem;
+  margin-top: max(4.75rem, calc(50vh - 18rem)) !important;
+  margin-bottom: 2.75rem !important;
+}}
+[data-testid="stMainBlockContainer"]:has([class*="st-key-rio-auth-card"]),
+.block-container:has([class*="st-key-rio-auth-card"]) {{
+  min-height: 100vh !important;
+  padding-top: 1.5rem !important;
+  padding-bottom: 2.5rem !important;
 }}
 [class*="st-key-rio-goal-card"] {{
   max-width: 44rem;
@@ -521,11 +530,11 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
 [class*="st-key-rio-nav"] {{
   background: {HERO} !important;
   background-color: {HERO} !important;
-  min-height: 4.25rem !important;
+  min-height: 4.75rem !important;
   height: auto !important;
   display: flex !important;
   align-items: center !important;
-  padding: 0 5vw !important;
+  padding: 1rem 5vw 0.9rem !important;
   margin: 0 -5vw !important;
   width: calc(100% + 10vw) !important;
   max-width: none !important;
@@ -534,6 +543,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
   position: sticky !important;
   top: 0 !important;
   z-index: 40 !important;
+  overflow: visible !important;
 }}
 [class*="st-key-rio-links"] {{
   align-items: center !important;
@@ -573,9 +583,13 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
   background-color: {ACCENT} !important;
   border-radius: 999px !important;
   padding: 0.62rem 1.05rem !important;
-  margin: 0 !important;
+  margin: 0.35rem 0 0.15rem !important;
   min-height: 0 !important;
+  align-self: center !important;
   align-items: center !important;
+  overflow: visible !important;
+  position: relative !important;
+  top: auto !important;
 }}
 [class*="st-key-rio-start-session"] [data-testid="stPageLink-NavLink"] span,
 [class*="st-key-rio-start-session"] [data-testid="stPageLink-NavLink"] p,
@@ -682,10 +696,13 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
   display: grid !important;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0 !important;
-  margin: 0 -5vw !important;
+  margin: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
   padding: 0 !important;
   border-top: 1px solid {HAIRLINE};
   border-bottom: 1px solid {HAIRLINE};
+  box-sizing: border-box !important;
 }}
 .rio-stat-tile {{
   background: transparent !important;
@@ -693,10 +710,14 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
   border-right: 1px solid {HAIRLINE} !important;
   border-radius: 0 !important;
   box-shadow: none !important;
-  padding: 1.7rem 1.4rem 1.85rem !important;
+  padding: 1.7rem 1.35rem 1.85rem !important;
   min-height: 0 !important;
 }}
-.rio-stat-tile:last-child {{ border-right: none !important; }}
+.rio-stat-tile:first-child {{ padding-left: 0 !important; }}
+.rio-stat-tile:last-child {{
+  border-right: none !important;
+  padding-right: 0 !important;
+}}
 .rio-stat-tile .rio-stat-value {{
   font-family: {DISPLAY} !important;
   font-weight: 800 !important;
@@ -835,11 +856,23 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
   text-transform: uppercase !important;
   font-weight: 600 !important;
 }}
+[class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"],
+[class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] span,
+[class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] p {{
+  color: {INVERSE} !important;
+  -webkit-text-fill-color: {INVERSE} !important;
+  opacity: 1 !important;
+}}
 @media (max-width: 800px) {{
   .rio-home-grid, .rio-stat-row, .rio-track-facts {{
     grid-template-columns: 1fr !important;
   }}
-  .rio-stat-tile {{ border-right: none !important; border-bottom: 1px solid {HAIRLINE} !important; }}
+  .rio-stat-tile {{
+    border-right: none !important;
+    border-bottom: 1px solid {HAIRLINE} !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }}
   .rio-hero h1, .rio-display, .rio-about-title h1 {{
     font-size: clamp(48px, 14vw, 72px) !important;
   }}
@@ -1009,11 +1042,18 @@ html {{ color-scheme: light; }}
 }}
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"],
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] span,
-[class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] p,
+[class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] p {{
+  color: {INVERSE} !important;
+  -webkit-text-fill-color: {INVERSE} !important;
+  opacity: 1 !important;
+  border-bottom-color: transparent !important;
+}}
 [class*="st-key-rio-sub-"][class*="-is-active"] [data-testid="stPageLink-NavLink"],
 [class*="st-key-rio-sub-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] span,
 [class*="st-key-rio-sub-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] p {{
   color: {TEXT} !important;
+  -webkit-text-fill-color: {TEXT} !important;
+  opacity: 1 !important;
   border-bottom-color: transparent !important;
 }}
 [class*="st-key-rio-brand"] [data-testid="stPageLink-NavLink"],
