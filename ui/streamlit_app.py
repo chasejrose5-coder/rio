@@ -1282,8 +1282,8 @@ footer {
 }
 [data-testid="stMainBlockContainer"],
 .block-container {
-  max-width: 960px !important;
-  padding: 0.4rem 1.7rem 5.5rem !important;
+  max-width: 100% !important;
+  padding: 0 5vw 5.5rem !important;
 }
 [data-testid="stVerticalBlock"],
 [data-testid="stHorizontalBlock"],
@@ -4390,7 +4390,7 @@ def _track_stage(workout: dict | None) -> str:
         )
     )
     return (
-        '<div class="rio-track-stage">'
+        '<div class="rio-track-stage rio-next-band">'
         f'<div class="rio-track-frame">{_track_svg()}</div>'
         f'<div class="rio-track-facts">{details}{ident}</div>'
         "</div>"
@@ -4454,6 +4454,29 @@ def _phase_timeline(start: date, length: int, sessions: list) -> str:
     return f'<div class="rio-phases">{"".join(cells)}</div>'
 
 
+def _activity_figures(meters: list, points: list, units: str) -> str:
+    """Two big totals above the activity charts. The charts keep the detail."""
+    total = 0
+    for value in meters or []:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            continue
+        total += int(value)
+    shown = display_distance(f"{total:,} m", units) or f"{total:,} m"
+    bpm = "—"
+    if points:
+        last = points[-1]
+        number = last.get("bpm") if isinstance(last, dict) else None
+        if isinstance(number, (int, float)) and not isinstance(number, bool):
+            text = str(int(number)) if float(number).is_integer() else f"{number:.1f}"
+            bpm = f"{text} bpm"
+    return (
+        '<div class="rio-stat-row">'
+        + _stat_tile("Completed work", shown)
+        + _stat_tile("Latest heart rate", bpm)
+        + "</div>"
+    )
+
+
 def _stat_tile(label: str, value: object) -> str:
     """One home figure. The same glass tile for every stat."""
     return (
@@ -4483,6 +4506,28 @@ def _track_meta(view: dict) -> str:
     )
 
 
+def _season_goal_text() -> str:
+    """The goal 800 already stored with this season. Display only."""
+    inputs = st.session_state.get("season_inputs")
+    if isinstance(inputs, (list, tuple)) and len(inputs) > 2:
+        text = str(inputs[2] or "").strip()
+        if text:
+            return text
+    return ""
+
+
+def _home_headline(days: object, goal: str) -> str:
+    """Giant line such as 151 days to 1:55, from values already on the page."""
+    mark = goal or "goal"
+    if isinstance(days, int) and not isinstance(days, bool):
+        unit = "day" if days == 1 else "days"
+        return (
+            f'<span class="rio-display-num">{days}</span>'
+            f'<span class="rio-display-rest"> {unit} to {_esc(mark)}</span>'
+        )
+    return _esc("—")
+
+
 def _quick_links() -> None:
     items = (
         ("Plan", _nav_page("Plan")),
@@ -4493,7 +4538,7 @@ def _quick_links() -> None:
     links = [(label, page) for label, page in items if page is not None]
     if not links:
         return
-    st.markdown('<p class="rio-mark-label">Open</p>', unsafe_allow_html=True)
+    st.markdown('<p class="rio-index rio-index-pad">04  /  Open</p>', unsafe_allow_html=True)
     with st.container(key="rio-quick", horizontal=True, gap="small"):
         for label, page in links:
             with st.container(key=f"rio-quick-{label.lower()}", width="content"):
@@ -4576,18 +4621,29 @@ def page_dashboard() -> None:
         today=date.today(),
     )
     workout = view.get("next")
+    headline = _home_headline(view.get("days_remaining"), _season_goal_text())
+    greet = ""
+    if hello:
+        greet += f'<p class="rio-hello">{_esc(hello)}</p>'
+    if title:
+        greet += f'<p class="rio-hello-plan">{_esc(title)}</p>'
     with hero:
         st.markdown(
-            '<p class="rio-synthetic rio-track-kicker">SYNTHETIC / DEMO</p>',
+            '<header class="rio-hero rio-home-hero">'
+            '<p class="rio-synthetic">SYNTHETIC / DEMO</p>'
+            '<div class="rio-home-grid"><div class="rio-home-copy">'
+            f'<h1 class="rio-display">{headline}</h1>'
+            f"{greet}"
+            "</div>"
+            f'<div class="rio-hero-art">{_track_svg()}</div>'
+            "</div></header>",
             unsafe_allow_html=True,
         )
-        greet = []
-        if hello:
-            greet.append(f'<p class="rio-hello">{_esc(hello)}</p>')
-        if title:
-            greet.append(f'<p class="rio-hello-plan">{_esc(title)}</p>')
-        if greet:
-            st.markdown("".join(greet), unsafe_allow_html=True)
+        st.markdown(_track_meta(view), unsafe_allow_html=True)
+        st.markdown(
+            '<p class="rio-index rio-index-pad">02  /  Next workout</p>',
+            unsafe_allow_html=True,
+        )
         if isinstance(workout, dict):
             _track_hero(workout)
         else:
@@ -4596,10 +4652,12 @@ def page_dashboard() -> None:
                 '<p class="rio-empty">No workout left in this plan.</p>',
                 unsafe_allow_html=True,
             )
-        st.markdown(_track_meta(view), unsafe_allow_html=True)
     upcoming = _upcoming_days(sessions, date.today(), 3)
     if upcoming:
-        st.markdown('<p class="rio-mark-label">Next 3 days</p>', unsafe_allow_html=True)
+        st.markdown(
+            '<p class="rio-index rio-index-pad">03  /  Next 3 days</p>',
+            unsafe_allow_html=True,
+        )
         with st.container(key="rio-next3", horizontal=True, gap="small"):
             for session in upcoming:
                 _session_link(session, "mini")
@@ -5475,6 +5533,10 @@ def page_activity() -> None:
             ),
             unsafe_allow_html=True,
         )
+    units = _prefs()["units"]
+    meters = weekly_completed_meters(rows, start=start, length=length) if rows else []
+    points = heart_rate_points(rows) if rows else []
+    st.markdown(_activity_figures(meters, points, units), unsafe_allow_html=True)
     with st.container(key="rio-activity-refresh"):
         st.button("Refresh", key="activity-refresh")
     _activities_notice()
@@ -5486,8 +5548,6 @@ def page_activity() -> None:
             unsafe_allow_html=True,
         )
     else:
-        units = _prefs()["units"]
-        meters = weekly_completed_meters(rows, start=start, length=length)
         if meters:
             captions = [display_distance(f"{value:,} m", units) for value in meters]
             chart = volume_chart(
@@ -5500,7 +5560,7 @@ def page_activity() -> None:
                 st.markdown(chart, unsafe_allow_html=True)
                 volume_shown = True
         heart = heart_rate_chart(
-            heart_rate_points(rows),
+            points,
             start=start,
             weeks=length,
             captions=_activity_date_captions(rows),
@@ -5848,12 +5908,20 @@ def page_about() -> None:
     week, or call a model. Recorded prose spend stays at $25.
     """
     hero, _controls = _open("About")
+    photo = theme.asset_uri(theme.ABOUT_PHOTO)
+    image = f"url('{photo}')" if photo else "none"
     with hero:
         st.markdown(
-            theme.banner_html(theme.asset_uri(theme.ABOUT_PHOTO), theme.ABOUT_CREDIT),
+            f'<header class="rio-about-banner" style="background-image:{image}">'
+            '<div class="rio-about-shade" aria-hidden="true"></div>'
+            '<div class="rio-about-title">'
+            '<p class="rio-index rio-index-light">About</p>'
+            "<h1>About</h1>"
+            "</div>"
+            f"{theme.credit_html(theme.ABOUT_CREDIT)}"
+            "</header>",
             unsafe_allow_html=True,
         )
-        st.markdown(_page_hero("About"), unsafe_allow_html=True)
     for section in about_sections():
         parts = [_label(section["title"])]
         for index, paragraph in enumerate(section["paragraphs"]):
@@ -5940,7 +6008,9 @@ def page_settings() -> None:
                 unsafe_allow_html=True,
             )
             st.markdown(
-                '<p class="rio-mark-label">Theme</p><p class="rio-note">Dark</p>',
+                '<p class="rio-mark-label">Stored preference</p>'
+                '<p class="rio-note">Dark</p>'
+                '<p class="rio-settings-note">The stored preference value is Dark. This page uses the light editorial canvas.</p>',
                 unsafe_allow_html=True,
             )
             show_ids = st.toggle("Show template ids", key="settings-ids")
