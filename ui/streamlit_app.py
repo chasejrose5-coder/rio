@@ -74,6 +74,7 @@ from ui.settings import (
 )
 from ui.start_form import start_form_defaults
 from ui.startup import acknowledge_startup, render_startup, startup_pending
+from ui import theme
 from ui.accounts import (
     AccountError,
     accounts_path,
@@ -3021,7 +3022,7 @@ def _css() -> str:
     css = _APP_CSS
     if _prefs()["compact"]:
         css += _COMPACT_CSS
-    return css
+    return css + theme.surface_css()
 
 
 def _date_text(value: object) -> str:
@@ -4096,51 +4097,61 @@ def page_start() -> None:
     until they are typed. A value already edited on this form stays.
     """
     st.markdown(_css(), unsafe_allow_html=True)
+    st.markdown(theme.fullscreen_css(theme.asset_uri(theme.START_PHOTO)), unsafe_allow_html=True)
+    st.markdown(theme.shade_html(), unsafe_allow_html=True)
     _render_nav("")
-    st.markdown(
-        _page_hero("Start", "SYNTHETIC / DEMO", "Current 800, the start, the goal, the date."),
-        unsafe_allow_html=True,
-    )
     current_default, start_default, goal_default, goal_day_default = start_form_defaults(date.today())
     start_default = start_on(start_default, _prefs()["start_date"])
-    with st.container(key="rio-start"):
-        current_time = st.text_input(
-            "Current 800",
-            key="start_current_time",
-            **_fresh_value("start_current_time", current_default),
+    with st.container(key="rio-goal-card"):
+        st.markdown(
+            _page_hero("Start", "SYNTHETIC / DEMO", "Current 800, the start, the goal, the date."),
+            unsafe_allow_html=True,
         )
-        start_date = st.date_input(
-            "Start date",
-            key="start_start_date",
-            **_fresh_value("start_start_date", start_default),
-        )
-        goal_time = st.text_input(
-            "Goal 800",
-            key="start_goal_time",
-            **_fresh_value("start_goal_time", goal_default),
-        )
-        goal_date = st.date_input(
-            "Goal date",
-            key="start_goal_date",
-            **_fresh_value("start_goal_date", goal_day_default),
-        )
-        if not st.button("Generate", type="primary", width="stretch"):
-            return
-        try:
-            _generate_season(current_time, start_date, goal_time, goal_date)
-        except ValueError as exc:
-            st.markdown(
-                f'<p class="rio-error">{_esc(exc)}</p>',
-                unsafe_allow_html=True,
+        left, right = st.columns(2, gap="medium")
+        with left:
+            current_time = st.text_input(
+                "Current 800",
+                key="start_current_time",
+                **_fresh_value("start_current_time", current_default),
             )
-            return
-        home = _nav_page("Home")
-        if home is None:
-            return
-        st.switch_page(
-            home,
-            query_params=query_values(st.session_state["season_inputs"]),
+        with right:
+            start_date = st.date_input(
+                "Start date",
+                key="start_start_date",
+                **_fresh_value("start_start_date", start_default),
+            )
+        left, right = st.columns(2, gap="medium")
+        with left:
+            goal_time = st.text_input(
+                "Goal 800",
+                key="start_goal_time",
+                **_fresh_value("start_goal_time", goal_default),
+            )
+        with right:
+            goal_date = st.date_input(
+                "Goal date",
+                key="start_goal_date",
+                **_fresh_value("start_goal_date", goal_day_default),
+            )
+        generate = st.button("Generate", type="primary", width="stretch")
+    st.markdown(theme.credit_html(theme.START_CREDIT), unsafe_allow_html=True)
+    if not generate:
+        return
+    try:
+        _generate_season(current_time, start_date, goal_time, goal_date)
+    except ValueError as exc:
+        st.markdown(
+            f'<p class="rio-error">{_esc(exc)}</p>',
+            unsafe_allow_html=True,
         )
+        return
+    home = _nav_page("Home")
+    if home is None:
+        return
+    st.switch_page(
+        home,
+        query_params=query_values(st.session_state["season_inputs"]),
+    )
 
 
 def _session_activity(session: dict, generation: int) -> dict | None:
@@ -4319,7 +4330,7 @@ def _track_stage(workout: dict | None) -> str:
     )
     return (
         '<div class="rio-track-stage">'
-        f"{_track_svg()}"
+        f'<div class="rio-track-frame">{_track_svg()}</div>'
         f'<div class="rio-track-facts">{details}{ident}</div>'
         "</div>"
     )
@@ -4382,25 +4393,32 @@ def _phase_timeline(start: date, length: int, sessions: list) -> str:
     return f'<div class="rio-phases">{"".join(cells)}</div>'
 
 
+def _stat_tile(label: str, value: object) -> str:
+    """One home figure. The same glass tile for every stat."""
+    return (
+        '<div class="rio-stat-tile">'
+        f"{_label(label)}"
+        f'<p class="rio-stat-value">{_esc(_plain(value))}</p>'
+        "</div>"
+    )
+
+
 def _track_meta(view: dict) -> str:
-    """Days and phase under the track. Smaller than the session facts."""
+    """Days, phase, last mark, and this week, as four matching tiles."""
     remaining = view.get("days_remaining")
     number = (
         str(remaining)
         if isinstance(remaining, int) and not isinstance(remaining, bool)
         else "—"
     )
+    mark = view.get("mark")
     return (
-        '<div class="rio-track-meta">'
-        "<div>"
-        f"{_label('Days to goal')}"
-        f'<p class="rio-track-meta-value">{_esc(number)}</p>'
-        "</div>"
-        "<div>"
-        f"{_label('Current phase')}"
-        f'<p class="rio-track-meta-value">{_esc(_phase_text(view.get("phase")))}</p>'
-        "</div>"
-        "</div>"
+        '<div class="rio-stat-row">'
+        + _stat_tile("Days to goal", number)
+        + _stat_tile("Current phase", _phase_text(view.get("phase")))
+        + _stat_tile("Last mark", _mark_text(mark if isinstance(mark, dict) else None))
+        + _stat_tile("This week", view.get("focus"))
+        + "</div>"
     )
 
 
@@ -4518,19 +4536,6 @@ def page_dashboard() -> None:
                 unsafe_allow_html=True,
             )
         st.markdown(_track_meta(view), unsafe_allow_html=True)
-    st.markdown(
-        '<div class="rio-grid">'
-        '<div class="rio-card">'
-        + _label("Last mark")
-        + f'<p class="rio-stat-value">{_esc(_mark_text(view["mark"]))}</p>'
-        + "</div>"
-        '<div class="rio-card">'
-        + _label("This week")
-        + f'<p class="rio-stat-value">{_esc(view["focus"])}</p>'
-        + "</div>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
     upcoming = _upcoming_days(sessions, date.today(), 3)
     if upcoming:
         st.markdown('<p class="rio-mark-label">Next 3 days</p>', unsafe_allow_html=True)
@@ -4666,13 +4671,16 @@ def _library_html(rows: list[dict]) -> str:
         ident = (
             f'<div class="rio-lib-id">{_esc(row["id"])}</div>' if show_ids else ""
         )
+        family = str(row.get("family") or "")
+        token = "".join(ch for ch in family.lower() if ch.isalnum() or ch == "_")
+        cap_class = f"rio-lib-cap rio-cap rio-cap-{token}" if token else "rio-lib-cap rio-cap"
         parts.append(
             '<div class="rio-lib-row">'
             '<div class="rio-lib-main">'
             f'<div class="rio-lib-name">{_esc(_copy(row["description"]))}</div>'
             f"{ident}"
             "</div>"
-            f'<div class="rio-lib-cap">{_esc(row["capacity"])}</div>'
+            f'<div class="{cap_class}">{_esc(row["capacity"])}</div>'
             "</div>"
         )
     return f'<div class="rio-lib">{"".join(parts)}</div>'
@@ -4823,20 +4831,22 @@ def page_progress() -> None:
             ),
             unsafe_allow_html=True,
         )
-    chart = volume_chart(
-        [row["meters"] for row in rows],
-        _prefs()["units"],
-        [display_distance(str(row.get("volume") or ""), _prefs()["units"]) for row in rows],
-    )
-    if chart:
-        st.markdown(chart, unsafe_allow_html=True)
-    heart = heart_rate_chart(
-        matched_heart_rates(_stored_activities()),
-        start=start,
-        weeks=length,
-    )
-    if heart:
-        st.markdown(heart, unsafe_allow_html=True)
+    if not _EMBEDDING or not st.session_state.get("_rio_volume_shown"):
+        chart = volume_chart(
+            [row["meters"] for row in rows],
+            _prefs()["units"],
+            [display_distance(str(row.get("volume") or ""), _prefs()["units"]) for row in rows],
+        )
+        if chart:
+            st.markdown(chart, unsafe_allow_html=True)
+    if not _EMBEDDING or not st.session_state.get("_rio_heart_shown"):
+        heart = heart_rate_chart(
+            matched_heart_rates(_stored_activities()),
+            start=start,
+            weeks=length,
+        )
+        if heart:
+            st.markdown(heart, unsafe_allow_html=True)
     st.markdown(
         f'<div class="rio-progress-list">{"".join(_progress_html(row) for row in rows)}</div>',
         unsafe_allow_html=True,
@@ -5402,6 +5412,8 @@ def page_activity() -> None:
     with st.container(key="rio-activity-refresh"):
         st.button("Refresh", key="activity-refresh")
     _activities_notice()
+    volume_shown = False
+    heart_shown = False
     if not rows:
         st.markdown(
             '<p class="rio-empty">No matched activities.</p>',
@@ -5415,6 +5427,7 @@ def page_activity() -> None:
             chart = volume_chart(meters, units, captions)
             if chart:
                 st.markdown(chart, unsafe_allow_html=True)
+                volume_shown = True
         heart = heart_rate_chart(
             heart_rate_points(rows),
             start=start,
@@ -5423,7 +5436,10 @@ def page_activity() -> None:
         )
         if heart:
             st.markdown(heart, unsafe_allow_html=True)
+            heart_shown = True
         _card(_label("Sessions"), _activity_table(rows))
+    st.session_state["_rio_volume_shown"] = volume_shown
+    st.session_state["_rio_heart_shown"] = heart_shown
     if all_rows:
         _card(_label("All activities"), _all_activities_table(all_rows))
     _nest(page_progress)
@@ -5762,6 +5778,10 @@ def page_about() -> None:
     """
     hero, _controls = _open("About")
     with hero:
+        st.markdown(
+            theme.banner_html(theme.asset_uri(theme.ABOUT_PHOTO), theme.ABOUT_CREDIT),
+            unsafe_allow_html=True,
+        )
         st.markdown(_page_hero("About"), unsafe_allow_html=True)
     for section in about_sections():
         parts = [_label(section["title"])]
@@ -5803,168 +5823,186 @@ def page_settings() -> None:
         zones.insert(0, picked)
 
     with st.container(key="rio-settings-profile"):
-        st.markdown(_label("Profile"), unsafe_allow_html=True)
-        name = st.text_input("Name", key="settings-name")
-        preferred = st.text_input("Preferred name / nickname", key="settings-preferred")
-        st.text_input("Email", key="settings-email", disabled=True)
-        timezone = st.selectbox("Time zone", zones, key="settings-timezone")
-        st.markdown(
-            '<p class="rio-settings-note">First name is enough. Saved on this machine.</p>',
-            unsafe_allow_html=True,
-        )
-        with st.form("rio-password", border=False, clear_on_submit=True):
-            current_pw = st.text_input("Current password", type="password")
-            new_pw = st.text_input("New password", type="password")
-            change_pw = st.form_submit_button("Change password", type="primary")
-        if change_pw and who is not None:
-            try:
-                secret = change_password(accounts_path(), who[0], who[1], current_pw, new_pw)
-            except AccountError as exc:
-                st.session_state["rio_settings_error"] = str(exc)
+        with st.expander("Profile", expanded=True):
+            st.markdown(_label("Profile"), unsafe_allow_html=True)
+            name = st.text_input("Name", key="settings-name")
+            preferred = st.text_input("Preferred name / nickname", key="settings-preferred")
+            st.text_input("Email", key="settings-email", disabled=True)
+            timezone = st.selectbox("Time zone", zones, key="settings-timezone")
+            st.markdown(
+                '<p class="rio-settings-note">First name is enough. Saved on this machine.</p>',
+                unsafe_allow_html=True,
+            )
+            with st.form("rio-password", border=False, clear_on_submit=True):
+                current_pw = st.text_input("Current password", type="password")
+                new_pw = st.text_input("New password", type="password")
+                change_pw = st.form_submit_button("Change password", type="primary")
+            if change_pw and who is not None:
+                try:
+                    secret = change_password(accounts_path(), who[0], who[1], current_pw, new_pw)
+                except AccountError as exc:
+                    st.session_state["rio_settings_error"] = str(exc)
+                    st.rerun()
+                _refresh_session(who[0], secret)
+                st.session_state["rio_settings_note"] = "Password updated."
                 st.rerun()
-            _refresh_session(who[0], secret)
-            st.session_state["rio_settings_note"] = "Password updated."
-            st.rerun()
 
     with st.container(key="rio-settings-prefs"):
-        st.markdown(_label("Preferences"), unsafe_allow_html=True)
-        units = st.radio(
+        with st.expander("Preferences", expanded=True):
+            st.markdown(_label("Preferences"), unsafe_allow_html=True)
+            units = st.radio(
             "Units",
             ["km", "miles"],
             format_func=lambda item: "Metric" if item == "km" else "Imperial",
             horizontal=True,
             key="settings-units",
-        )
-        start_date = st.radio(
-            "Default start date",
-            ["today", "sunday"],
-            format_func=lambda item: "Today" if item == "today" else "Next Sunday",
-            horizontal=True,
-            key="settings-start",
-        )
-        st.markdown(
-            '<p class="rio-settings-note">Next Sunday starts the training week.</p>',
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            '<p class="rio-mark-label">Theme</p><p class="rio-note">Dark</p>',
-            unsafe_allow_html=True,
-        )
-        show_ids = st.toggle("Show template ids", key="settings-ids")
-        compact = st.toggle("Compact mode", key="settings-compact")
-        date_format = st.radio(
-            "Date format",
-            ["iso", "short"],
-            format_func=lambda item: "ISO" if item == "iso" else "Short",
-            horizontal=True,
-            key="settings-dates",
-        )
-        confirm = st.toggle("Confirm before a mark changes later weeks", key="settings-confirm")
-
-    with st.container(key="rio-settings-notes"):
-        st.markdown(_label("Notifications"), unsafe_allow_html=True)
-        reminders = st.toggle("Workout reminders", key="settings-reminders")
-        recap = st.toggle("Weekly recap", key="settings-recap")
-        st.markdown(
-            '<p class="rio-settings-note">Placeholder. Nothing is sent.</p>',
-            unsafe_allow_html=True,
-        )
-
-    with st.container(key="rio-settings-data"):
-        st.markdown(_label("Data"), unsafe_allow_html=True)
-        plan = st.session_state.get("season_plan")
-        inputs = st.session_state.get("season_inputs")
-        if isinstance(plan, dict) and inputs_ok(inputs):
-            try:
-                body = export_season(
-                    inputs,
-                    plan,
-                    st.session_state.get("season_marks"),
-                    st.session_state.get("season_actuals"),
-                )
-            except ValueError:
-                body = ""
-            if body:
-                st.download_button(
-                    "Export season as JSON",
-                    data=body,
-                    file_name="rio-season.json",
-                    mime="application/json",
-                    key="settings-export",
-                )
-        else:
+            )
+            start_date = st.radio(
+                "Default start date",
+                ["today", "sunday"],
+                format_func=lambda item: "Today" if item == "today" else "Next Sunday",
+                horizontal=True,
+                key="settings-start",
+            )
             st.markdown(
-                '<p class="rio-settings-note">Generate a season on Start.</p>',
+                '<p class="rio-settings-note">Next Sunday starts the training week.</p>',
                 unsafe_allow_html=True,
             )
-        st.checkbox("Confirm clear", key="settings-clear-marks-ok")
-        if st.button("Clear all marks / actuals", key="settings-clear-marks"):
-            if st.session_state.get("settings-clear-marks-ok") is not True:
-                st.session_state["rio_settings_error"] = "Confirm to clear marks and actuals."
-                st.rerun()
-            _clear_season_marks()
-        st.checkbox("Confirm reset", key="settings-reset-ok")
-        if st.button("Reset plan", key="settings-reset"):
-            if st.session_state.get("settings-reset-ok") is not True:
-                st.session_state["rio_settings_error"] = "Confirm to reset the plan."
-                st.rerun()
-            _reset_saved_plan()
-        st.markdown(
-            '<p class="rio-settings-note">Reset removes stored seasons. The account stays.</p>',
-            unsafe_allow_html=True,
-        )
+            st.markdown(
+                '<p class="rio-mark-label">Theme</p><p class="rio-note">Dark</p>',
+                unsafe_allow_html=True,
+            )
+            show_ids = st.toggle("Show template ids", key="settings-ids")
+            compact = st.toggle("Compact mode", key="settings-compact")
+            date_format = st.radio(
+                "Date format",
+                ["iso", "short"],
+                format_func=lambda item: "ISO" if item == "iso" else "Short",
+                horizontal=True,
+                key="settings-dates",
+            )
+            confirm = st.toggle("Confirm before a mark changes later weeks", key="settings-confirm")
+
+    with st.container(key="rio-settings-notes"):
+        with st.expander("Notifications", expanded=True):
+            st.markdown(_label("Notifications"), unsafe_allow_html=True)
+            reminders = st.toggle("Workout reminders", key="settings-reminders")
+            recap = st.toggle("Weekly recap", key="settings-recap")
+            st.markdown(
+                '<p class="rio-settings-note">Placeholder. Nothing is sent.</p>',
+                unsafe_allow_html=True,
+            )
+
+    with st.container(key="rio-settings-data"):
+        with st.expander("Data", expanded=True):
+            st.markdown(_label("Data"), unsafe_allow_html=True)
+            plan = st.session_state.get("season_plan")
+            inputs = st.session_state.get("season_inputs")
+            if isinstance(plan, dict) and inputs_ok(inputs):
+                try:
+                    body = export_season(
+                        inputs,
+                        plan,
+                        st.session_state.get("season_marks"),
+                        st.session_state.get("season_actuals"),
+                    )
+                except ValueError:
+                    body = ""
+                if body:
+                    st.download_button(
+                        "Export season as JSON",
+                        data=body,
+                        file_name="rio-season.json",
+                        mime="application/json",
+                        key="settings-export",
+                    )
+            else:
+                st.markdown(
+                    '<p class="rio-settings-note">Generate a season on Start.</p>',
+                    unsafe_allow_html=True,
+                )
 
     with st.container(key="rio-settings-account"):
-        st.markdown(_label("Account"), unsafe_allow_html=True)
-        with st.form("rio-email", border=False, clear_on_submit=True):
-            new_email = st.text_input("New email")
-            email_pw = st.text_input("Password", type="password")
-            change_mail = st.form_submit_button("Change email", type="primary")
-        if change_mail and who is not None:
-            try:
-                updated = change_email(accounts_path(), who[0], who[1], email_pw, new_email)
-            except AccountError as exc:
-                st.session_state["rio_settings_error"] = str(exc)
+        with st.expander("Account", expanded=True):
+            st.markdown(_label("Account"), unsafe_allow_html=True)
+            with st.form("rio-email", border=False, clear_on_submit=True):
+                new_email = st.text_input("New email")
+                email_pw = st.text_input("Password", type="password")
+                change_mail = st.form_submit_button("Change email", type="primary")
+            if change_mail and who is not None:
+                try:
+                    updated = change_email(accounts_path(), who[0], who[1], email_pw, new_email)
+                except AccountError as exc:
+                    st.session_state["rio_settings_error"] = str(exc)
+                    st.rerun()
+                _refresh_session(updated, who[1])
+                st.session_state["rio_settings_note"] = "Email updated."
                 st.rerun()
-            _refresh_session(updated, who[1])
-            st.session_state["rio_settings_note"] = "Email updated."
-            st.rerun()
-        st.checkbox("I want to delete this account", key="settings-delete-ok")
-        st.text_input("Type your email to confirm", key="settings-delete-email")
-        delete_pw = st.text_input("Password", type="password", key="settings-delete-password")
-        if st.button("Delete account", key="settings-delete"):
-            typed = st.session_state.get("settings-delete-email")
-            typed_email = typed.strip().casefold() if isinstance(typed, str) else ""
-            if st.session_state.get("settings-delete-ok") is not True or typed_email != email:
-                st.session_state["rio_settings_error"] = "Confirm with your email to delete this account."
-                st.rerun()
-            try:
-                delete_account(accounts_path(), email, who[1] if who is not None else "", delete_pw)
-            except AccountError as exc:
-                st.session_state["rio_settings_error"] = str(exc)
-                st.rerun()
-            _sign_out()
 
     with st.container(key="rio-settings-privacy"):
-        st.markdown(_label("Privacy"), unsafe_allow_html=True)
-        st.checkbox("Clear data stored in this browser", key="settings-clear-ok")
-        if st.button("Clear local data", key="settings-clear"):
-            if st.session_state.get("settings-clear-ok") is not True:
-                st.session_state["rio_settings_error"] = "Confirm to clear local data."
-                st.rerun()
-            st.session_state["rio_clear_browser"] = True
-            _sign_out()
-        st.markdown(
-            '<p class="rio-settings-note">Clears this browser. The account stays on this machine.</p>',
-            unsafe_allow_html=True,
-        )
+        with st.expander("Privacy", expanded=True):
+            st.markdown(_label("Privacy"), unsafe_allow_html=True)
+            st.markdown(
+                '<p class="rio-settings-note">Clears this browser. The account stays on this machine.</p>',
+                unsafe_allow_html=True,
+            )
 
     with st.container(key="rio-settings-about"):
-        st.markdown(_label("About"), unsafe_allow_html=True)
-        st.markdown(
-            f'<p class="rio-settings-note">RIO {_esc(APP_VERSION)}</p>',
-            unsafe_allow_html=True,
-        )
+        with st.expander("About", expanded=True):
+            st.markdown(_label("About"), unsafe_allow_html=True)
+            st.markdown(
+                f'<p class="rio-settings-note">RIO {_esc(APP_VERSION)}</p>',
+                unsafe_allow_html=True,
+            )
+
+    with st.container(key="rio-settings-danger"):
+        st.markdown('<p class="rio-danger-kicker">Danger zone</p>', unsafe_allow_html=True)
+        with st.expander("Danger zone", expanded=True):
+            st.markdown(_label("Data"), unsafe_allow_html=True)
+            st.checkbox("Confirm clear", key="settings-clear-marks-ok")
+            if st.button("Clear all marks / actuals", key="settings-clear-marks"):
+                if st.session_state.get("settings-clear-marks-ok") is not True:
+                    st.session_state["rio_settings_error"] = "Confirm to clear marks and actuals."
+                    st.rerun()
+                _clear_season_marks()
+            st.checkbox("Confirm reset", key="settings-reset-ok")
+            if st.button("Reset plan", key="settings-reset"):
+                if st.session_state.get("settings-reset-ok") is not True:
+                    st.session_state["rio_settings_error"] = "Confirm to reset the plan."
+                    st.rerun()
+                _reset_saved_plan()
+            st.markdown(
+                '<p class="rio-settings-note">Reset removes stored seasons. The account stays.</p>',
+                unsafe_allow_html=True,
+            )
+            st.markdown(_label("Account"), unsafe_allow_html=True)
+            st.checkbox("I want to delete this account", key="settings-delete-ok")
+            st.text_input("Type your email to confirm", key="settings-delete-email")
+            delete_pw = st.text_input("Password", type="password", key="settings-delete-password")
+            if st.button("Delete account", key="settings-delete"):
+                typed = st.session_state.get("settings-delete-email")
+                typed_email = typed.strip().casefold() if isinstance(typed, str) else ""
+                if st.session_state.get("settings-delete-ok") is not True or typed_email != email:
+                    st.session_state["rio_settings_error"] = "Confirm with your email to delete this account."
+                    st.rerun()
+                try:
+                    delete_account(accounts_path(), email, who[1] if who is not None else "", delete_pw)
+                except AccountError as exc:
+                    st.session_state["rio_settings_error"] = str(exc)
+                    st.rerun()
+                _sign_out()
+            st.markdown(_label("Privacy"), unsafe_allow_html=True)
+            st.checkbox("Clear data stored in this browser", key="settings-clear-ok")
+            if st.button("Clear local data", key="settings-clear"):
+                if st.session_state.get("settings-clear-ok") is not True:
+                    st.session_state["rio_settings_error"] = "Confirm to clear local data."
+                    st.rerun()
+                st.session_state["rio_clear_browser"] = True
+                _sign_out()
+            st.markdown(
+                '<p class="rio-settings-note">Clears this browser. The account stays on this machine.</p>',
+                unsafe_allow_html=True,
+            )
 
     stored = normalize_prefs(
         {
@@ -6041,13 +6079,17 @@ def page_plan() -> None:
         + "</div>",
         unsafe_allow_html=True,
     )
+    calendar_tab, week_tab, season_tab = st.tabs(["Calendar", "This week", "Full season"])
     saved = _MARK_PREFIX
     try:
         _MARK_PREFIX = "plan-week"
-        _nest(page_calendar)
-        _nest(page_weekly)
+        with calendar_tab:
+            _nest(page_calendar)
+        with week_tab:
+            _nest(page_weekly)
         _MARK_PREFIX = "plan-season"
-        _nest(page_season)
+        with season_tab:
+            _nest(page_season)
     finally:
         _MARK_PREFIX = saved
 
@@ -6264,14 +6306,21 @@ def _auth_notice() -> None:
         )
 
 
+def _auth_backdrop() -> None:
+    """Floodlights behind Log in and Create account. The form sits on the shade."""
+    st.markdown(_css(), unsafe_allow_html=True)
+    st.markdown(theme.fullscreen_css(theme.asset_uri(theme.LOGIN_PHOTO)), unsafe_allow_html=True)
+    st.markdown(theme.shade_html(), unsafe_allow_html=True)
+
+
 def _render_create_account() -> None:
     """Name, email, and password for a new account. Back returns to Log in."""
-    st.markdown(_css(), unsafe_allow_html=True)
-    st.markdown(
-        _page_hero("Create account", "RIO"),
-        unsafe_allow_html=True,
-    )
-    with st.container(key="rio-start"):
+    _auth_backdrop()
+    with st.container(key="rio-auth-card"):
+        st.markdown(
+            _page_hero("Create account", "RIO"),
+            unsafe_allow_html=True,
+        )
         _auth_notice()
         with st.form("rio-create", border=False):
             name = st.text_input("Name", key="rio_create_name")
@@ -6284,6 +6333,7 @@ def _render_create_account() -> None:
             '<p class="rio-settings-note">First name is enough. At least 8 characters. Saved on this machine.</p>',
             unsafe_allow_html=True,
         )
+    st.markdown(theme.credit_html(theme.LOGIN_CREDIT), unsafe_allow_html=True)
     if back:
         _open_auth("login")
     if not create:
@@ -6301,16 +6351,16 @@ def _render_login() -> None:
     if _auth_screen() == "create":
         _render_create_account()
         return
-    st.markdown(_css(), unsafe_allow_html=True)
-    st.markdown(
-        _page_hero(
-            "Log in",
-            "RIO",
-            "Use your email and password.",
-        ),
-        unsafe_allow_html=True,
-    )
-    with st.container(key="rio-start"):
+    _auth_backdrop()
+    with st.container(key="rio-auth-card"):
+        st.markdown(
+            _page_hero(
+                "Log in",
+                "RIO",
+                "Use your email and password.",
+            ),
+            unsafe_allow_html=True,
+        )
         _auth_notice()
         with st.form("rio-login", border=False):
             email = st.text_input("Email", key="rio_login_email")
@@ -6318,6 +6368,7 @@ def _render_login() -> None:
             log_in = st.form_submit_button("Log in", type="primary", width="stretch")
         with st.container(key="rio-auth-switch"):
             create = st.button("Create account", key="rio-open-create", width="stretch")
+    st.markdown(theme.credit_html(theme.LOGIN_CREDIT), unsafe_allow_html=True)
     if create:
         _open_auth("create")
     if not log_in:
