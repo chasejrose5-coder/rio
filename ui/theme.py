@@ -1,4 +1,4 @@
-# theme.py — Track Paper. One light visual language for every RIO page.
+# theme.py — RIO Editorial. Charcoal heroes, warm paper, huge type.
 
 """Colors, type, cards, buttons, and photo backgrounds.
 
@@ -20,15 +20,18 @@ from pathlib import Path
 ASSETS = Path(__file__).resolve().parent / "assets"
 FONTS = ASSETS / "fonts"
 
-TEXT = "#0E0E0E"
-MUTED = "#6B6B6B"
-QUIET = "#6B6B6B"
+HERO = "#121110"
+PAPER = "#F4F1EC"
+INVERSE = "#F4F1EC"
+TEXT = "#121110"
+MUTED = "#6E6A64"
+QUIET = "#6E6A64"
 ACCENT = "#E25A32"
 HOVER = "#C94A25"
 LIGHT = "#E25A32"
-BG = "#F2F2F2"
-SURFACE = "#FFFFFF"
-HAIRLINE = "#DADADA"
+BG = "#F4F1EC"
+SURFACE = "#FFFcf7"
+HAIRLINE = "#DCD6CC"
 INK = "#FFFFFF"
 # Named so the startup stylesheet still carries the token a test looks for.
 LEGACY_SHADE = "rgba(0, 0, 0, 0.64)"
@@ -40,10 +43,10 @@ CARD_FILL = "#FFFFFF"
 CARD_BORDER = "#DADADA"
 CARD_SHADOW = "0 12px 32px rgba(14, 14, 14, 0.05)"
 EASE = "cubic-bezier(0.22, 1, 0.36, 1)"
-# A white wash. The legacy dark stop is kept as a variable and is not painted.
+# About 70% darker than the photo. The legacy stop stays named for the test.
 SHADE = (
-    "linear-gradient(180deg, rgba(255, 255, 255, 0.30) 0%, "
-    "rgba(255, 255, 255, 0.14) 46%, rgba(242, 242, 242, 0.28) 100%)"
+    "linear-gradient(180deg, rgba(18, 17, 16, 0.62) 0%, "
+    "rgba(18, 17, 16, 0.78) 100%)"
 )
 
 LOGIN_PHOTO = "login_floodlights.jpg"
@@ -159,27 +162,36 @@ html, body, .stApp {{
   background: {SHADE};
 }}
 [class*="st-key-rio-nav"] {{
-  background: {BG} !important;
-  background-color: {BG} !important;
+  background: {HERO} !important;
+  background-color: {HERO} !important;
   position: sticky !important;
-  z-index: 30 !important;
-  border-bottom: 1px solid {HAIRLINE} !important;
+  top: 0 !important;
+  z-index: 40 !important;
+  border-bottom: 1px solid rgba(244, 241, 236, 0.14) !important;
   box-sizing: border-box !important;
-  width: calc(100% + 3.4rem) !important;
+  width: calc(100% + 10vw) !important;
   max-width: none !important;
-  margin-left: -1.7rem !important;
-  margin-right: -1.7rem !important;
-  padding-left: 1.7rem !important;
-  padding-right: 1.7rem !important;
+  margin-left: -5vw !important;
+  margin-right: -5vw !important;
+  padding: 0 5vw !important;
+  min-height: 4.25rem !important;
+  align-items: center !important;
 }}
 [class*="st-key-rio-auth-card"],
 [class*="st-key-rio-goal-card"] {{
   position: relative !important;
-  z-index: 6 !important;
-  {_CARD}
-  padding: 1.45rem 1.45rem 1.2rem !important;
-  margin: 0.6rem auto 0.8rem !important;
+  z-index: 8 !important;
+  background: {SURFACE} !important;
+  background-color: {SURFACE} !important;
+  border: 1px solid {HAIRLINE} !important;
+  border-radius: 18px !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28) !important;
+  opacity: 1 !important;
+  filter: none !important;
+  padding: 1.6rem 1.5rem 1.35rem !important;
+  margin: 1.2rem auto 0.8rem !important;
   box-sizing: border-box;
+  color: {TEXT} !important;
 }}
 [class*="st-key-rio-auth-card"] {{
   max-width: 28rem;
@@ -212,7 +224,69 @@ html, body, .stApp {{
 [class*="st-key-rio-auth-card"] [data-testid="stForm"],
 [class*="st-key-rio-goal-card"] [data-testid="stForm"],
 [class*="st-key-rio-auth-card"] button,
-[class*="st-key-rio-goal-card"] button {{
+[class*="st-key-rio-goal-card"] button,
+[class*="st-key-rio-auth-card"] h1,
+[class*="st-key-rio-goal-card"] h1,
+[class*="st-key-rio-auth-card"] .rio-hero,
+[class*="st-key-rio-goal-card"] .rio-hero {{
+  opacity: 1 !important;
+  filter: none !important;
+  animation: none !important;
+  transform: none !important;
+}}
+[class*="st-key-rio-auth-card"] .rio-hero,
+[class*="st-key-rio-goal-card"] .rio-hero {{
+  background: transparent !important;
+  margin: 0 !important;
+  padding: 0 0 0.4rem !important;
+  width: auto !important;
+  color: {TEXT} !important;
+}}
+[class*="st-key-rio-auth-card"] .rio-hero h1,
+[class*="st-key-rio-goal-card"] .rio-hero h1,
+[class*="st-key-rio-auth-card"] h1,
+[class*="st-key-rio-goal-card"] h1 {{
+  color: {TEXT} !important;
+  -webkit-text-fill-color: {TEXT} !important;
+  font-size: clamp(48px, 6vw, 84px) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.04em !important;
+  line-height: 0.92 !important;
+  opacity: 1 !important;
+}}
+[class*="st-key-rio-auth-card"] .rio-range,
+[class*="st-key-rio-goal-card"] .rio-range,
+[class*="st-key-rio-auth-card"] .rio-synthetic,
+[class*="st-key-rio-goal-card"] .rio-synthetic {{
+  color: {MUTED} !important;
+  opacity: 1 !important;
+}}
+[class*="st-key-rio-auth-card"] [data-testid="stFormSubmitButton"] button,
+[class*="st-key-rio-goal-card"] [data-testid="stBaseButton-primary"],
+[class*="st-key-rio-goal-card"] [data-testid="stFormSubmitButton"] button {{
+  background: {ACCENT} !important;
+  background-color: {ACCENT} !important;
+  border: 1px solid {ACCENT} !important;
+  color: {INK} !important;
+  opacity: 1 !important;
+}}
+[class*="st-key-rio-auth-card"] [data-testid="stFormSubmitButton"] button p,
+[class*="st-key-rio-auth-card"] [data-testid="stFormSubmitButton"] button span,
+[class*="st-key-rio-goal-card"] [data-testid="stBaseButton-primary"] p,
+[class*="st-key-rio-goal-card"] [data-testid="stBaseButton-primary"] span {{
+  color: {INK} !important;
+  opacity: 1 !important;
+}}
+[class*="st-key-rio-auth-switch"] button,
+[class*="st-key-rio-auth-switch"] [data-testid="stBaseButton-secondary"] {{
+  background: transparent !important;
+  border: 1px solid {TEXT} !important;
+  color: {TEXT} !important;
+  opacity: 1 !important;
+}}
+[class*="st-key-rio-auth-switch"] button p,
+[class*="st-key-rio-auth-switch"] button span {{
+  color: {TEXT} !important;
   opacity: 1 !important;
 }}
 """
@@ -297,33 +371,32 @@ def motion_rules() -> str:
 [data-testid="stMainBlockContainer"] {{
   animation: rio-fade 520ms var(--rio-ease) both;
 }}
-[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlock"] > div {{
+.rio-hero h1,
+.rio-display,
+.rio-stat-tile,
+.rio-lib-row,
+.rio-mini {{
   animation: rio-rise 520ms var(--rio-ease) both;
 }}
-[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlock"] > div:nth-child(1) {{ animation-delay: 0ms; }}
-[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlock"] > div:nth-child(2) {{ animation-delay: 40ms; }}
-[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlock"] > div:nth-child(3) {{ animation-delay: 80ms; }}
-[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlock"] > div:nth-child(4) {{ animation-delay: 120ms; }}
-[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlock"] > div:nth-child(5) {{ animation-delay: 160ms; }}
-[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlock"] > div:nth-child(n+6) {{ animation-delay: 200ms; }}
+.rio-stat-tile:nth-child(1) {{ animation-delay: 0ms; }}
+.rio-stat-tile:nth-child(2) {{ animation-delay: 40ms; }}
+.rio-stat-tile:nth-child(3) {{ animation-delay: 80ms; }}
+.rio-stat-tile:nth-child(4),
+.rio-lib-row:nth-child(n+4) {{ animation-delay: 120ms; }}
+.rio-lib-row:nth-child(n+6) {{ animation-delay: 200ms; }}
+[class*="st-key-rio-nav"],
+[class*="st-key-rio-auth-card"],
+[class*="st-key-rio-goal-card"],
+[class*="st-key-rio-auth-card"] h1,
+[class*="st-key-rio-goal-card"] h1,
 [data-testid="stElementContainer"]:has(.rio-page-shade),
-[data-testid="stElementContainer"]:has(.rio-startup-shade),
-[data-testid="stMarkdown"]:has(.rio-page-shade),
-[data-testid="stMarkdown"]:has(.rio-startup-shade),
-[data-testid="stLayoutWrapper"]:has(.rio-page-shade),
-[data-testid="stLayoutWrapper"]:has(.rio-startup-shade) {{
+[data-testid="stElementContainer"]:has(.rio-startup-shade) {{
   animation: none !important;
   transform: none !important;
+  opacity: 1 !important;
 }}
-.stApp:has(.rio-page-shade),
-.stApp:has(.rio-startup-shade) {{
-  animation: rio-fade 600ms var(--rio-ease) both;
-}}
-.stApp:has(.rio-page-shade) [data-testid="stMainBlockContainer"],
-.stApp:has(.rio-startup-shade) [data-testid="stMainBlockContainer"] {{
-  animation: none;
-}}
-.rio-about-banner {{
+.rio-about-banner,
+.rio-startup-shade {{
   animation: rio-fade 600ms var(--rio-ease) both;
 }}
 .stButton > button,
@@ -348,16 +421,11 @@ def motion_rules() -> str:
 [class*="st-key-rio-logout"] button:active {{
   transform: none !important;
 }}
-.rio-card, .rio-daycard, .rio-mini, .rio-next, .rio-stat-tile,
-.rio-lib-row, .rio-past-row, .rio-volume, .rio-heart,
-[class*="st-key-rio-auth-card"], [class*="st-key-rio-goal-card"] {{
-  transition: transform 360ms var(--rio-ease), box-shadow 360ms var(--rio-ease),
-    border-color 360ms var(--rio-ease);
+.rio-lib-row, .rio-mini, .rio-day, .rio-past-row {{
+  transition: transform 360ms var(--rio-ease), border-color 360ms var(--rio-ease);
 }}
-.rio-card:hover, .rio-daycard:hover, .rio-mini:hover, .rio-next:hover,
-.rio-stat-tile:hover, .rio-lib-row:hover, .rio-past-row:hover {{
+.rio-lib-row:hover, .rio-mini:hover, .rio-past-row:hover {{
   transform: translateY(-2px);
-  box-shadow: 0 16px 34px rgba(14, 14, 14, 0.07);
 }}
 [class*="st-key-rio-nav"] [data-testid="stPageLink-NavLink"]::after {{
   content: "";
@@ -414,12 +482,20 @@ def motion_hold_css() -> str:
     return """
 <style>
 [data-testid="stMainBlockContainer"],
-[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlock"] > div,
-.stApp:has(.rio-page-shade),
-.stApp:has(.rio-startup-shade),
+.rio-hero h1,
+.rio-display,
+.rio-stat-tile,
+.rio-lib-row,
+.rio-mini,
 .rio-about-banner,
-[data-testid="stTabs"] [data-baseweb="tab-panel"] {
+.rio-startup-shade,
+[data-testid="stTabs"] [data-baseweb="tab-panel"],
+[class*="st-key-rio-auth-card"],
+[class*="st-key-rio-goal-card"],
+[class*="st-key-rio-auth-card"] h1,
+[class*="st-key-rio-goal-card"] h1 {
   animation: none !important;
+  opacity: 1 !important;
 }
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"]::after,
 [class*="st-key-rio-sub-"][class*="-is-active"] [data-testid="stPageLink-NavLink"]::after {
@@ -427,6 +503,347 @@ def motion_hold_css() -> str:
   transform: scaleX(1);
 }
 </style>
+"""
+
+
+def editorial_css() -> str:
+    """Full-bleed bands, huge type, and a charcoal bar. Loaded last."""
+    return f"""
+html, body, .stApp, [data-testid="stAppViewContainer"] {{
+  background: {PAPER} !important;
+  color: {TEXT} !important;
+}}
+[data-testid="stMainBlockContainer"],
+.block-container {{
+  max-width: 100% !important;
+  padding: 0 5vw 5.5rem !important;
+}}
+[class*="st-key-rio-nav"] {{
+  background: {HERO} !important;
+  background-color: {HERO} !important;
+  min-height: 4.25rem !important;
+  height: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 5vw !important;
+  margin: 0 -5vw !important;
+  width: calc(100% + 10vw) !important;
+  max-width: none !important;
+  border-bottom: 1px solid rgba(244, 241, 236, 0.14) !important;
+  box-sizing: border-box !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 40 !important;
+}}
+[class*="st-key-rio-links"] {{
+  align-items: center !important;
+}}
+[class*="st-key-rio-nav"] [data-testid="stPageLink-NavLink"],
+[class*="st-key-rio-nav"] [data-testid="stPageLink-NavLink"] span,
+[class*="st-key-rio-nav"] [data-testid="stPageLink-NavLink"] p {{
+  color: {INVERSE} !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  line-height: 1 !important;
+}}
+[class*="st-key-rio-brand"] [data-testid="stPageLink-NavLink"],
+[class*="st-key-rio-brand"] [data-testid="stPageLink-NavLink"] span,
+[class*="st-key-rio-brand"] [data-testid="stPageLink-NavLink"] p {{
+  font-family: {DISPLAY} !important;
+  font-weight: 800 !important;
+  font-size: 1.05rem !important;
+  letter-spacing: -0.04em !important;
+  text-transform: none !important;
+  color: {INVERSE} !important;
+}}
+[class*="st-key-rio-brand"] [data-testid="stPageLink-NavLink"]::before,
+[class*="st-key-rio-start-session"] [data-testid="stPageLink-NavLink"]::before {{
+  content: none !important;
+  display: none !important;
+}}
+[class*="st-key-rio-start-session"] {{
+  display: flex !important;
+  align-items: center !important;
+  align-self: center !important;
+}}
+[class*="st-key-rio-start-session"] [data-testid="stPageLink-NavLink"] {{
+  background: {ACCENT} !important;
+  background-color: {ACCENT} !important;
+  border-radius: 999px !important;
+  padding: 0.62rem 1.05rem !important;
+  margin: 0 !important;
+  min-height: 0 !important;
+  align-items: center !important;
+}}
+[class*="st-key-rio-start-session"] [data-testid="stPageLink-NavLink"] span,
+[class*="st-key-rio-start-session"] [data-testid="stPageLink-NavLink"] p,
+[class*="st-key-rio-start-session"] [data-testid="stPageLink-NavLink"]:hover,
+[class*="st-key-rio-start-session"] [data-testid="stPageLink-NavLink"]:hover span,
+[class*="st-key-rio-start-session"] [data-testid="stPageLink-NavLink"]:hover p {{
+  color: {INK} !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  background: transparent !important;
+}}
+[class*="st-key-rio-start-session"] [data-testid="stPageLink-NavLink"]:hover {{
+  background: {HOVER} !important;
+}}
+[class*="st-key-rio-logout"] button,
+[class*="st-key-rio-logout"] button p,
+[class*="st-key-rio-logout"] button span {{
+  color: rgba(244, 241, 236, 0.72) !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+}}
+.rio-hero {{
+  background: {HERO} !important;
+  color: {INVERSE} !important;
+  margin: 0 -5vw 0 !important;
+  padding: 4.5rem 5vw 3.6rem !important;
+  width: auto !important;
+}}
+.rio-hero h1,
+.stMarkdown .rio-hero h1 {{
+  color: {INVERSE} !important;
+  font-family: {DISPLAY} !important;
+  font-weight: 800 !important;
+  font-size: clamp(56px, 9vw, 140px) !important;
+  letter-spacing: -0.04em !important;
+  line-height: 0.88 !important;
+  margin: 0.2rem 0 0 !important;
+  max-width: 12ch;
+}}
+.rio-hero .rio-synthetic {{
+  color: {ACCENT} !important;
+  letter-spacing: 0.16em !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  margin: 0 0 0.8rem !important;
+}}
+.rio-hero .rio-range,
+.rio-hero .rio-hello,
+.rio-hero .rio-hello-plan {{
+  color: rgba(244, 241, 236, 0.78) !important;
+  font-size: 1.15rem !important;
+  max-width: 36rem;
+}}
+.rio-display {{
+  margin: 0 !important;
+  color: {INVERSE} !important;
+  font-family: {DISPLAY} !important;
+  font-weight: 800 !important;
+  font-size: clamp(56px, 8.2vw, 128px) !important;
+  letter-spacing: -0.04em !important;
+  line-height: 0.86 !important;
+  max-width: 14ch;
+}}
+.rio-display-num {{
+  color: {ACCENT};
+}}
+.rio-display-rest {{
+  color: {INVERSE};
+}}
+.rio-home-grid {{
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(16rem, 0.8fr);
+  gap: 2rem 3rem;
+  align-items: end;
+}}
+.rio-hero-art {{
+  color: {ACCENT};
+}}
+.rio-hero-art .rio-track-svg {{
+  width: 100%;
+  height: auto;
+  display: block;
+}}
+.rio-index {{
+  margin: 0 0 0.85rem !important;
+  color: {ACCENT} !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.16em !important;
+  text-transform: uppercase !important;
+}}
+.rio-index-pad {{
+  padding: 2.4rem 0 0.2rem;
+}}
+.rio-index-light {{
+  color: {ACCENT} !important;
+}}
+.rio-stat-row {{
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0 !important;
+  margin: 0 -5vw !important;
+  padding: 0 !important;
+  border-top: 1px solid {HAIRLINE};
+  border-bottom: 1px solid {HAIRLINE};
+}}
+.rio-stat-tile {{
+  background: transparent !important;
+  border: none !important;
+  border-right: 1px solid {HAIRLINE} !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 1.7rem 1.4rem 1.85rem !important;
+  min-height: 0 !important;
+}}
+.rio-stat-tile:last-child {{ border-right: none !important; }}
+.rio-stat-tile .rio-stat-value {{
+  font-family: {DISPLAY} !important;
+  font-weight: 800 !important;
+  font-size: clamp(2rem, 3.4vw, 3.6rem) !important;
+  letter-spacing: -0.04em !important;
+  color: {TEXT} !important;
+  line-height: 0.95 !important;
+}}
+.rio-stat-tile .rio-mark-label {{
+  letter-spacing: 0.14em !important;
+  color: {MUTED} !important;
+}}
+.rio-track-stage {{
+  display: block !important;
+  margin: 0.4rem 0 1rem !important;
+}}
+.rio-next-band .rio-track-frame {{
+  display: none !important;
+}}
+.rio-track-facts {{
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.2rem 1.5rem !important;
+  padding: 0.4rem 0 0.2rem !important;
+}}
+.rio-track-fact-value,
+.rio-track-day {{
+  font-family: {DISPLAY} !important;
+  font-weight: 800 !important;
+  font-size: clamp(1.6rem, 2.4vw, 2.4rem) !important;
+  letter-spacing: -0.03em !important;
+  color: {TEXT} !important;
+}}
+.rio-card, .rio-daycard, .rio-mini, .rio-next, .rio-volume, .rio-heart,
+.rio-progress-list, .rio-lib-row, .rio-past-row, .rio-phase,
+[class*="st-key-rio-week"], [class*="st-key-rio-result"] {{
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}}
+.rio-card {{
+  border-top: 1px solid {HAIRLINE} !important;
+  padding: 2.2rem 0 1.4rem !important;
+  margin: 0 !important;
+}}
+.rio-volume, .rio-heart, .rio-progress-list {{
+  border-top: 1px solid {HAIRLINE} !important;
+  padding: 1.2rem 0 0.4rem !important;
+  margin: 0 0 0.4rem !important;
+}}
+.rio-lib {{
+  display: block !important;
+  background: transparent !important;
+}}
+.rio-lib-row {{
+  display: flex !important;
+  border-bottom: 1px solid {HAIRLINE} !important;
+  padding: 1.25rem 0 !important;
+  margin: 0 !important;
+}}
+.rio-lib-name {{
+  font-family: {DISPLAY} !important;
+  font-weight: 800 !important;
+  font-size: clamp(1.25rem, 2vw, 1.85rem) !important;
+  letter-spacing: -0.03em !important;
+  color: {TEXT} !important;
+}}
+.rio-phase {{
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid {HAIRLINE} !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  min-width: 4.2rem !important;
+  padding: 0.7rem 0.2rem 0.55rem !important;
+}}
+.rio-phase-num {{
+  font-family: {DISPLAY} !important;
+  font-weight: 800 !important;
+  font-size: 1.7rem !important;
+  letter-spacing: -0.04em !important;
+}}
+.rio-phase-now {{
+  border-bottom-color: {ACCENT} !important;
+  background: transparent !important;
+}}
+.rio-phase-now .rio-phase-num {{ color: {ACCENT} !important; }}
+.rio-about-banner {{
+  height: 78vh !important;
+  min-height: 24rem !important;
+  max-height: none !important;
+  margin: 0 -5vw 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background-color: {HERO} !important;
+  display: flex !important;
+  align-items: flex-end !important;
+}}
+.rio-about-title {{
+  position: relative;
+  z-index: 2;
+  padding: 0 5vw 2.4rem;
+}}
+.rio-about-title h1 {{
+  margin: 0 !important;
+  color: {INVERSE} !important;
+  font-family: {DISPLAY} !important;
+  font-weight: 800 !important;
+  font-size: clamp(56px, 9vw, 140px) !important;
+  letter-spacing: -0.04em !important;
+  line-height: 0.88 !important;
+}}
+.rio-about-banner .rio-photo-credit {{
+  background: rgba(18, 17, 16, 0.45) !important;
+  color: {INVERSE} !important;
+  border-color: rgba(244, 241, 236, 0.28) !important;
+}}
+.rio-mark-label {{
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+}}
+[class*="st-key-rio-quick"] [data-testid="stPageLink-NavLink"] {{
+  background: transparent !important;
+  border: 1px solid {TEXT} !important;
+  border-radius: 999px !important;
+}}
+[class*="st-key-rio-quick"] [data-testid="stPageLink-NavLink"] span,
+[class*="st-key-rio-quick"] [data-testid="stPageLink-NavLink"] p {{
+  color: {TEXT} !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  font-weight: 600 !important;
+}}
+@media (max-width: 800px) {{
+  .rio-home-grid, .rio-stat-row, .rio-track-facts {{
+    grid-template-columns: 1fr !important;
+  }}
+  .rio-stat-tile {{ border-right: none !important; border-bottom: 1px solid {HAIRLINE} !important; }}
+  .rio-hero h1, .rio-display, .rio-about-title h1 {{
+    font-size: clamp(48px, 14vw, 72px) !important;
+  }}
+}}
 """
 
 
@@ -881,6 +1298,7 @@ html {{ color-scheme: light; }}
 }}
 
 {motion_rules()}
+{editorial_css()}
 
 @media (max-width: 720px) {{
   .rio-lib, .rio-stat-row {{ grid-template-columns: 1fr; }}

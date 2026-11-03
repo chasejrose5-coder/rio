@@ -77,14 +77,15 @@ header {{
 }}
 [data-testid="stMainBlockContainer"],
 .block-container {{
-  max-width: 40rem !important;
+  max-width: 100% !important;
   min-height: 100vh !important;
-  margin: 0 auto !important;
-  padding: 4.5rem 1.4rem 5.5rem !important;
+  margin: 0 !important;
+  padding: 14vh 6vw 5rem !important;
   box-sizing: border-box !important;
   display: flex !important;
   flex-direction: column !important;
-  justify-content: center !important;
+  justify-content: flex-start !important;
+  overflow: visible !important;
 }}
 [data-testid="stMainBlockContainer"] > div,
 [data-testid="stMainBlockContainer"] [data-testid="stVerticalBlock"] {{
@@ -102,24 +103,27 @@ header {{
 .rio-startup-copy {{
   position: relative;
   z-index: 5;
-  margin: 0 auto;
-  max-width: 36rem;
-  padding: 1.7rem 1.55rem 1.45rem;
+  margin: 0;
+  max-width: 100%;
+  padding: 0;
   text-align: left;
-  color: {TEXT};
-  background: {CARD_FILL};
-  border: 1px solid {CARD_BORDER};
-  border-radius: {RADIUS};
-  box-shadow: {CARD_SHADOW};
+  color: #F4F1EC;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }}
 .rio-startup-headline {{
-  margin: 0 0 1.15rem !important;
-  color: {TEXT} !important;
+  margin: 0 0 1.1rem !important;
+  color: #F4F1EC !important;
   font-family: {DISPLAY} !important;
-  font-size: clamp(2.4rem, 5vw, 3.6rem) !important;
+  max-width: 100%;
+  font-size: clamp(40px, 7vw, 96px) !important;
   font-weight: 800 !important;
-  letter-spacing: -0.045em !important;
-  line-height: 1.02 !important;
+  letter-spacing: -0.04em !important;
+  line-height: 0.9 !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
 }}
 .rio-startup-statement {{
   margin: 0;
@@ -142,14 +146,14 @@ header {{
 }}
 .rio-startup-statement-label {{
   margin: 0 0 0.4rem !important;
-  color: {TEXT} !important;
+  color: #F4F1EC !important;
   font-size: 1rem !important;
   font-weight: 600 !important;
   line-height: 1.35 !important;
 }}
 .rio-startup-statement-body {{
   margin: 0 !important;
-  color: {MUTED} !important;
+  color: rgba(244, 241, 236, 0.82) !important;
   font-size: 1.05rem !important;
   font-weight: 400 !important;
   line-height: 1.5 !important;
@@ -164,9 +168,9 @@ header {{
   margin: 0 auto !important;
   padding: 0.22rem 0.75rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid {CARD_BORDER};
-  color: {MUTED} !important;
+  background: rgba(18, 17, 16, 0.45);
+  border: 1px solid rgba(244, 241, 236, 0.35);
+  color: #F4F1EC !important;
   font-size: 0.78rem !important;
   font-weight: 400 !important;
   letter-spacing: 0.01em !important;
@@ -179,7 +183,7 @@ header {{
   z-index: 6 !important;
   display: flex !important;
   flex-direction: column !important;
-  align-items: center !important;
+  align-items: flex-start !important;
   width: 100% !important;
   background: transparent !important;
   margin-top: 1.35rem !important;
