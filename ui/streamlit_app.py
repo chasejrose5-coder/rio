@@ -1256,20 +1256,20 @@ _MARK_PREFIX = "season"
 
 _APP_CSS = """
 <style>
-::selection { background: #4a2c22; color: #f4f4f4; }
+::selection { background: #F6E7E1; color: #0E0E0E; }
 html, body, .stApp, [data-testid="stAppViewContainer"],
 [data-testid="stMain"], [data-testid="stMainBlockContainer"],
 [data-testid="stBottom"], [data-testid="stBottomBlockContainer"] {
-  background: #000000 !important;
-  color: #f4f4f4 !important;
+  background: #F2F2F2 !important;
+  color: #0E0E0E !important;
 }
-html { color-scheme: dark; }
+html { color-scheme: light; }
 .stApp, .stApp button, .stApp input, .stApp label, .stApp summary, .stApp p,
 .stMarkdown, .stMarkdown h1, .stMarkdown h2, .stMarkdown a, .stMarkdown p, .stMarkdown div,
 [class*="st-key-rio-nav"], [class*="st-key-rio-nav"] a, .rio-hero, .rio-hero h1, .rio-week-title, .rio-day, .rio-day div,
 .rio-card, .rio-card h2, .rio-table, .rio-table th, .rio-table td,
 .rio-progress, .rio-progress div {
-  font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-family: Inter, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
 }
 [data-testid="stHeader"],
 [data-testid="stToolbar"],
@@ -1312,11 +1312,11 @@ footer {
   justify-content: space-between !important;
   gap: 1.5rem !important;
   padding: 1.35rem 0 1rem !important;
-  border-bottom: 1px solid #1a1a1a !important;
+  border-bottom: 1px solid #DADADA !important;
   position: sticky;
   top: 0;
   z-index: 30;
-  background: #000000 !important;
+  background: #F2F2F2 !important;
   width: 100% !important;
   overflow: visible !important;
   flex-wrap: wrap !important;
@@ -1372,14 +1372,14 @@ footer {
   margin: 0 !important;
   gap: 0 !important;
   border-bottom: 2px solid transparent !important;
-  color: #8f8f8f !important;
+  color: #6B6B6B !important;
   text-decoration: none !important;
   line-height: 1.3 !important;
   box-shadow: none !important;
 }
 [class*="st-key-rio-nav"] [data-testid="stPageLink-NavLink"] span,
 [class*="st-key-rio-nav"] [data-testid="stPageLink-NavLink"] p {
-  color: #8f8f8f !important;
+  color: #6B6B6B !important;
   font-size: 0.84rem !important;
   font-weight: 400 !important;
   letter-spacing: 0 !important;
@@ -1396,7 +1396,7 @@ footer {
 [class*="st-key-rio-nav"] [data-testid="stPageLink-NavLink"]:hover,
 [class*="st-key-rio-nav"] [data-testid="stPageLink-NavLink"]:hover span,
 [class*="st-key-rio-nav"] [data-testid="stPageLink-NavLink"]:hover p {
-  color: #f4f4f4 !important;
+  color: #0E0E0E !important;
   background: transparent !important;
 }
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] {
@@ -1405,7 +1405,7 @@ footer {
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"],
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] span,
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] p {
-  color: #f4f4f4 !important;
+  color: #0E0E0E !important;
 }
 [class*="st-key-rio-brand"] [data-testid="stPageLink-NavLink"] {
   border-bottom-color: transparent !important;
@@ -1417,7 +1417,7 @@ footer {
 [class*="st-key-rio-brand"] [data-testid="stPageLink-NavLink"]:hover,
 [class*="st-key-rio-brand"] [data-testid="stPageLink-NavLink"]:hover span,
 [class*="st-key-rio-brand"] [data-testid="stPageLink-NavLink"]:hover p {
-  color: #f4f4f4 !important;
+  color: #0E0E0E !important;
   font-weight: 600 !important;
   letter-spacing: 0.2em !important;
   font-size: 0.92rem !important;
@@ -1425,7 +1425,7 @@ footer {
 }
 [class*="st-key-rio-nav"] [data-testid="stPageLink-NavLink"]:focus-visible,
 button:focus-visible {
-  outline: 1px solid #ff7a45;
+  outline: 1px solid #C94A25;
   outline-offset: 3px;
 }
 [class*="st-key-rio-logout"] {
@@ -1436,7 +1436,7 @@ button:focus-visible {
   background: transparent !important;
   border: none !important;
   border-radius: 0 !important;
-  color: #8f8f8f !important;
+  color: #6B6B6B !important;
   min-height: 0 !important;
   height: auto !important;
   margin: 0 !important;
@@ -1456,13 +1456,13 @@ button:focus-visible {
 [class*="st-key-rio-logout"] button:hover p {
   background: transparent !important;
   border: none !important;
-  color: #f4f4f4 !important;
+  color: #0E0E0E !important;
 }
 
-.rio-hero { padding: 3.1rem 0 2.1rem; }
+.rio-hero { padding: 3.4rem 0 2.2rem; }
 .rio-synthetic {
   margin: 0 !important;
-  color: #8f8f8f !important;
+  color: #6B6B6B !important;
   font-size: 0.68rem !important;
   line-height: 1.3 !important;
   letter-spacing: 0.16em;
@@ -1472,11 +1472,12 @@ button:focus-visible {
 .stMarkdown .rio-hero h1 {
   margin: 0.7rem 0 0 !important;
   padding: 0 !important;
-  color: #f4f4f4 !important;
-  font-size: 3.35rem !important;
-  font-weight: 500 !important;
-  letter-spacing: -0.04em !important;
-  line-height: 1.02 !important;
+  color: #0E0E0E !important;
+  font-family: Manrope, Inter, "Segoe UI", sans-serif !important;
+  font-size: clamp(3rem, 7vw, 4.75rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.045em !important;
+  line-height: 0.98 !important;
 }
 .rio-hero h1:first-child,
 .stMarkdown .rio-hero h1:first-child {
@@ -1485,18 +1486,18 @@ button:focus-visible {
 
 .rio-hero h1.rio-key,
 .stMarkdown .rio-hero h1.rio-key {
-  color: #ff7a45 !important;
+  color: #C94A25 !important;
 }
 .rio-range {
   margin: 0.9rem 0 0 !important;
-  color: #d4d4d4 !important;
+  color: #6B6B6B !important;
   font-size: 1.05rem !important;
   line-height: 1.4 !important;
   font-variant-numeric: tabular-nums;
 }
 .rio-hello {
   margin: 0.85rem 0 0 !important;
-  color: #f4f4f4 !important;
+  color: #0E0E0E !important;
   font-size: 1.65rem !important;
   font-weight: 500 !important;
   letter-spacing: -0.03em !important;
@@ -1504,61 +1505,61 @@ button:focus-visible {
 }
 .rio-hello-plan {
   margin: 0.35rem 0 0.85rem !important;
-  color: #d4d4d4 !important;
+  color: #6B6B6B !important;
   font-size: 0.95rem !important;
   line-height: 1.4 !important;
 }
 .rio-error {
   margin: 0.85rem 0 0;
-  color: #f4f4f4;
+  color: #0E0E0E;
   font-size: 0.95rem;
 }
 
 [class*="st-key-rio-controls"] { margin: 0 0 2.6rem; }
 [data-testid="stWidgetLabel"],
 [data-testid="stWidgetLabel"] p {
-  color: #d4d4d4 !important;
+  color: #6B6B6B !important;
   font-size: 0.75rem !important;
   font-weight: 400 !important;
 }
 [data-testid="stTextInputRootElement"],
 [data-testid="stDateInputField"] {
-  background: #1c1410 !important;
-  border: 1px solid #3a2820 !important;
+  background: #FFFFFF !important;
+  border: 1px solid #DADADA !important;
   border-radius: 8px !important;
-  color: #f4f4f4 !important;
+  color: #0E0E0E !important;
 }
 [data-testid="stTextInputField"] {
-  color: #f4f4f4 !important;
-  -webkit-text-fill-color: #f4f4f4 !important;
+  color: #0E0E0E !important;
+  -webkit-text-fill-color: #0E0E0E !important;
   background: transparent !important;
-  caret-color: #f4f4f4 !important;
+  caret-color: #0E0E0E !important;
 }
 [data-testid="stTextInputField"]::placeholder {
-  color: #8f8f8f !important;
-  -webkit-text-fill-color: #8f8f8f !important;
+  color: #6B6B6B !important;
+  -webkit-text-fill-color: #6B6B6B !important;
   opacity: 1 !important;
 }
 [data-testid="stDateInputField"] [role="spinbutton"],
 [data-testid="stDateInputField"] span {
-  color: #f4f4f4 !important;
+  color: #0E0E0E !important;
 }
 [data-testid="stTextInputRootElement"]:focus-within,
 [data-testid="stDateInputField"]:focus-within {
-  border-color: #ff7a45 !important;
+  border-color: #C94A25 !important;
   box-shadow: none !important;
 }
-[data-testid="stDateInput"] svg { fill: #d4d4d4 !important; }
+[data-testid="stDateInput"] svg { fill: #6B6B6B !important; }
 [data-testid="stDateInputField"] button {
   background: transparent !important;
-  color: #d4d4d4 !important;
+  color: #6B6B6B !important;
   border: none !important;
 }
 
 [class*="st-key-rio-week"] {
-  background: #1c1410 !important;
-  border: 1px solid #3a2820;
-  border-radius: 16px;
+  background: #FFFFFF !important;
+  border: 1px solid #DADADA;
+  border-radius: 18px;
   padding: 1.45rem 1.55rem 1.15rem !important;
   margin: 0 0 1.65rem !important;
 }
@@ -1573,7 +1574,7 @@ button:focus-visible {
 h2.rio-week-title {
   margin: 0 !important;
   padding: 0 !important;
-  color: #f4f4f4 !important;
+  color: #0E0E0E !important;
   font-size: 1.28rem !important;
   font-weight: 500 !important;
   letter-spacing: -0.02em !important;
@@ -1588,20 +1589,20 @@ h2.rio-week-title {
   font-size: 1.42rem !important;
 }
 .rio-week-sep {
-  color: #d4d4d4 !important;
+  color: #6B6B6B !important;
   font-weight: 400 !important;
   margin-left: 0.7rem !important;
   margin-right: 0.7rem !important;
 }
 .rio-week-phase {
-  color: #d4d4d4 !important;
+  color: #6B6B6B !important;
   font-size: 1.08rem !important;
   font-weight: 500 !important;
   letter-spacing: -0.01em !important;
 }
 .rio-week-meta, .rio-applied {
   margin: 0 !important;
-  color: #d4d4d4 !important;
+  color: #6B6B6B !important;
   font-size: 0.78rem !important;
   line-height: 1.3 !important;
   letter-spacing: 0.06em;
@@ -1615,20 +1616,20 @@ h2.rio-week-title {
   padding: 0.95rem 0;
 }
 .rio-day + .rio-day,
-.rio-day-next { border-top: 1px solid #3a2820; }
+.rio-day-next { border-top: 1px solid #DADADA; }
 .rio-dow {
-  color: #f4f4f4;
+  color: #0E0E0E;
   font-size: 0.98rem;
   font-weight: 500;
 }
 .rio-date {
   margin-top: 0.22rem;
-  color: #d4d4d4;
+  color: #6B6B6B;
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
 }
 .rio-name {
-  color: #f4f4f4;
+  color: #0E0E0E;
   font-size: 0.95rem;
   font-weight: 500;
   line-height: 1.4;
@@ -1636,7 +1637,7 @@ h2.rio-week-title {
 }
 .rio-target {
   margin-top: 0.28rem;
-  color: #d4d4d4;
+  color: #6B6B6B;
   font-size: 0.84rem;
   line-height: 1.45;
 }
@@ -1646,9 +1647,9 @@ h2.rio-week-title {
   margin: 0 0 1.85rem !important;
 }
 .rio-daycard {
-  background: #1c1410;
-  border: 1px solid #3a2820;
-  border-radius: 16px;
+  background: #FFFFFF;
+  border: 1px solid #DADADA;
+  border-radius: 18px;
   padding: 1.7rem 1.75rem 1.5rem;
   margin: 0 0 0.95rem;
 }
@@ -1659,7 +1660,7 @@ h2.rio-week-title {
   margin: 0;
 }
 .rio-daycard-dow {
-  color: #f4f4f4;
+  color: #0E0E0E;
   font-size: 1.5rem;
   font-weight: 500;
   letter-spacing: -0.03em;
@@ -1667,13 +1668,13 @@ h2.rio-week-title {
 }
 .rio-daycard-date {
   margin-top: 0.4rem;
-  color: #d4d4d4;
+  color: #6B6B6B;
   font-size: 0.92rem;
   font-variant-numeric: tabular-nums;
 }
 .rio-daycard-work {
   margin-top: 1.35rem;
-  color: #f4f4f4;
+  color: #0E0E0E;
   font-size: 1.22rem;
   font-weight: 500;
   line-height: 1.4;
@@ -1682,14 +1683,14 @@ h2.rio-week-title {
 .rio-daycard-target {
   margin-top: 0.95rem;
   padding-top: 0.9rem;
-  border-top: 1px solid #3a2820;
-  color: #d4d4d4;
+  border-top: 1px solid #DADADA;
+  color: #6B6B6B;
   font-size: 0.95rem;
   line-height: 1.5;
 }
 .rio-daycard-actual {
   margin-top: 0.75rem;
-  color: #f4f4f4;
+  color: #0E0E0E;
   font-size: 0.92rem;
   font-variant-numeric: tabular-nums;
   line-height: 1.45;
@@ -1701,7 +1702,7 @@ h2.rio-week-title {
 .rio-next-work {
   margin: 1.45rem 0 0 !important;
   max-width: 38rem;
-  color: #f4f4f4 !important;
+  color: #0E0E0E !important;
   font-size: 1.48rem !important;
   font-weight: 500 !important;
   line-height: 1.4 !important;
@@ -1729,7 +1730,7 @@ h2.rio-week-title {
   flex: 1 1 0 !important;
 }
 .rio-cal-dow {
-  color: #8f8f8f;
+  color: #6B6B6B;
   font-size: 0.68rem;
   line-height: 1.2;
   letter-spacing: 0.08em;
@@ -1746,8 +1747,8 @@ h2.rio-week-title {
   padding: 0.42rem 0.4rem 0.45rem;
 }
 .rio-cal-session {
-  background: #1c1410;
-  border-color: #3a2820;
+  background: #FFFFFF;
+  border-color: #DADADA;
 }
 .rio-cal-today {
   border-color: #e25a32;
@@ -1757,18 +1758,18 @@ h2.rio-week-title {
   margin: 0;
 }
 .rio-cal-num {
-  color: #f4f4f4;
+  color: #0E0E0E;
   font-size: 0.92rem;
   font-weight: 500;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }
 .rio-cal-quiet .rio-cal-num {
-  color: #8f8f8f;
+  color: #6B6B6B;
 }
 .rio-cal-label {
   margin-top: 0.32rem;
-  color: #d4d4d4;
+  color: #6B6B6B;
   font-size: 0.72rem;
   line-height: 1.25;
   overflow-wrap: break-word;
@@ -1811,10 +1812,10 @@ h2.rio-week-title {
   outline: none !important;
 }
 [class*="st-key-rio-hit-row-"]:hover .rio-day {
-  background: #2a1c16;
+  background: #F7F7F7;
 }
 [class*="st-key-rio-hit-card-"]:hover .rio-daycard {
-  border-color: #4a2c22;
+  border-color: #F6E7E1;
 }
 [class*="st-key-rio-hit-"]:focus-within .rio-day,
 [class*="st-key-rio-hit-"]:focus-within .rio-daycard,
@@ -1823,21 +1824,21 @@ h2.rio-week-title {
 [class*="st-key-rio-hit-dash"]:focus-within .rio-next,
 [class*="st-key-rio-hit-dash"]:focus-within .rio-hero,
 [class*="st-key-rio-hit-dash"]:focus-within .rio-track-stage {
-  outline: 1px solid #ff7a45;
+  outline: 1px solid #C94A25;
   outline-offset: 2px;
 }
 [class*="st-key-rio-hit-cal-"]:hover .rio-cal-session {
-  border-color: #4a2c22;
+  border-color: #F6E7E1;
 }
 [class*="st-key-rio-hit-dash"]:hover .rio-next-work {
-  color: #ffb089 !important;
+  color: #C94A25 !important;
 }
 [class*="st-key-rio-hit-dash"]:hover .rio-track-svg {
-  color: #ff6a3c !important;
+  color: #C94A25 !important;
 }
 .rio-status {
   text-align: right;
-  color: #8f8f8f;
+  color: #6B6B6B;
   font-size: 0.62rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1845,9 +1846,9 @@ h2.rio-week-title {
 }
 .rio-volume,
 .rio-heart {
-  background: #1c1410;
-  border: 1px solid #3a2820;
-  border-radius: 16px;
+  background: #FFFFFF;
+  border: 1px solid #DADADA;
+  border-radius: 18px;
   padding: 0.95rem 1.15rem 0.55rem;
   margin: 0 0 1.15rem;
 }
@@ -1866,22 +1867,22 @@ h2.rio-week-title {
   padding-bottom: 0.9rem;
 }
 .rio-heart-label {
-  fill: #f4f4f4 !important;
+  fill: #0E0E0E !important;
 }
 .rio-heart-dot {
-  fill: #ff7a45 !important;
+  fill: #E25A32 !important;
 }
 .rio-progress-list {
-  background: #1c1410;
-  border: 1px solid #3a2820;
-  border-radius: 16px;
+  background: #FFFFFF;
+  border: 1px solid #DADADA;
+  border-radius: 18px;
   padding: 0.2rem 1.35rem;
   margin: 0 0 1.15rem;
 }
 .rio-lib {
-  background: #1c1410;
-  border: 1px solid #3a2820;
-  border-radius: 16px;
+  background: #FFFFFF;
+  border: 1px solid #DADADA;
+  border-radius: 18px;
   padding: 0.15rem 1.35rem;
   margin: 0.35rem 0 1.15rem;
 }
@@ -1892,9 +1893,9 @@ h2.rio-week-title {
   align-items: start;
   padding: 0.92rem 0;
 }
-.rio-lib-row + .rio-lib-row { border-top: 1px solid #3a2820; }
+.rio-lib-row + .rio-lib-row { border-top: 1px solid #DADADA; }
 .rio-lib-name {
-  color: #f4f4f4;
+  color: #0E0E0E;
   font-size: 0.98rem;
   font-weight: 500;
   line-height: 1.4;
@@ -1902,13 +1903,13 @@ h2.rio-week-title {
 }
 .rio-lib-id {
   margin-top: 0.22rem;
-  color: #8f8f8f;
+  color: #6B6B6B;
   font-size: 0.75rem;
   line-height: 1.3;
   font-variant-numeric: tabular-nums;
 }
 .rio-lib-cap {
-  color: #d4d4d4;
+  color: #6B6B6B;
   font-size: 0.84rem;
   line-height: 1.4;
   text-align: right;
@@ -1931,11 +1932,11 @@ h2.rio-week-title {
   align-items: baseline;
   padding: 0.82rem 0;
 }
-.rio-progress + .rio-progress { border-top: 1px solid #3a2820; }
+.rio-progress + .rio-progress { border-top: 1px solid #DADADA; }
 .rio-progress-tick {
   width: 0.55rem;
   height: 0.55rem;
-  border: 1px solid #8f8f8f;
+  border: 1px solid #6B6B6B;
   border-radius: 99px;
   background: transparent;
   align-self: center;
@@ -1945,60 +1946,60 @@ h2.rio-week-title {
   border-color: #e25a32;
 }
 .rio-progress-current .rio-progress-tick {
-  background: #ff7a45;
-  border-color: #ff7a45;
+  background: #C94A25;
+  border-color: #C94A25;
 }
 .rio-progress-week {
-  color: #f4f4f4;
+  color: #0E0E0E;
   font-size: 0.98rem;
   font-weight: 500;
   letter-spacing: -0.02em;
 }
 .rio-progress-phase {
-  color: #d4d4d4;
+  color: #6B6B6B;
   font-size: 0.92rem;
 }
 .rio-progress-volume {
   margin-top: 0.16rem;
-  color: #d4d4d4;
+  color: #6B6B6B;
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
 }
 .rio-progress-upcoming .rio-progress-volume,
-.rio-progress-open .rio-progress-volume { color: #8f8f8f; }
+.rio-progress-open .rio-progress-volume { color: #6B6B6B; }
 .rio-progress-status {
-  color: #d4d4d4;
+  color: #6B6B6B;
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-align: right;
 }
 .rio-progress-days {
-  color: #d4d4d4;
+  color: #6B6B6B;
   font-size: 0.84rem;
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
 }
-.rio-progress-current .rio-progress-days { color: #f4f4f4; }
+.rio-progress-current .rio-progress-days { color: #0E0E0E; }
 .rio-progress-done .rio-progress-days,
-.rio-progress-open .rio-progress-days { color: #8f8f8f; }
+.rio-progress-open .rio-progress-days { color: #6B6B6B; }
 .rio-progress-current .rio-progress-week,
-.rio-progress-current .rio-progress-status { color: #f4f4f4; }
-.rio-progress-done .rio-progress-week { color: #d4d4d4; }
+.rio-progress-current .rio-progress-status { color: #0E0E0E; }
+.rio-progress-done .rio-progress-week { color: #6B6B6B; }
 .rio-progress-upcoming .rio-progress-week,
 .rio-progress-upcoming .rio-progress-phase,
 .rio-progress-open .rio-progress-week,
-.rio-progress-open .rio-progress-phase { color: #8f8f8f; }
+.rio-progress-open .rio-progress-phase { color: #6B6B6B; }
 .rio-empty {
   margin: 0.9rem 0 0.2rem;
-  color: #d4d4d4;
+  color: #6B6B6B;
 }
 .rio-mark-label {
   margin: 0 !important;
   padding: 0.95rem 0 0.55rem !important;
-  color: #8f8f8f !important;
+  color: #6B6B6B !important;
   font-size: 0.68rem !important;
   line-height: 1.2 !important;
   letter-spacing: 0.12em;
@@ -2006,12 +2007,12 @@ h2.rio-week-title {
 }
 .rio-reason {
   margin: 0.22rem 0 !important;
-  color: #8f8f8f !important;
+  color: #6B6B6B !important;
   font-size: 0.78rem !important;
   line-height: 1.45 !important;
 }
 .rio-reason span {
-  color: #d4d4d4;
+  color: #6B6B6B;
   margin-right: 0.55rem;
 }
 
@@ -2026,46 +2027,47 @@ h2.rio-week-title {
 }
 [class*="st-key-rio-week"] [data-testid="stExpander"] summary {
   background: transparent !important;
-  color: #8f8f8f !important;
+  color: #6B6B6B !important;
   font-size: 0.8rem !important;
   padding: 0.35rem 0 !important;
   border-radius: 0 !important;
 }
 [class*="st-key-rio-week"] [data-testid="stExpander"] summary:hover {
   background: transparent !important;
-  color: #f4f4f4 !important;
+  color: #0E0E0E !important;
 }
 [class*="st-key-rio-week"] [data-testid="stExpander"] svg {
-  fill: #8f8f8f !important;
+  fill: #6B6B6B !important;
 }
 [class*="st-key-rio-week"] button {
   background: transparent !important;
-  border: 1px solid #3a2820 !important;
-  border-radius: 8px !important;
-  color: #f4f4f4 !important;
-  min-height: 2.15rem !important;
-  padding: 0.35rem 0.7rem !important;
-  font-size: 0.8rem !important;
-  font-weight: 500 !important;
+  border: 1px solid #0E0E0E !important;
+  border-radius: 999px !important;
+  color: #0E0E0E !important;
+  min-height: 2.4rem !important;
+  padding: 0.4rem 0.9rem !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
   box-shadow: none !important;
 }
 [class*="st-key-rio-week"] button p { color: inherit !important; }
 [class*="st-key-rio-week"] button[kind="primary"],
 [class*="st-key-rio-week"] [data-testid="stBaseButton-primary"] {
-  border-color: #e25a32 !important;
-  color: #ffb089 !important;
-  background: transparent !important;
+  background: #E25A32 !important;
+  border-color: #E25A32 !important;
+  color: #FFFFFF !important;
 }
 [class*="st-key-rio-week"] button[kind="secondary"]:hover,
 [class*="st-key-rio-week"] [data-testid="stBaseButton-secondary"]:hover {
-  border-color: #e25a32 !important;
-  color: #f4f4f4 !important;
-  background: transparent !important;
+  border-color: #0E0E0E !important;
+  color: #0E0E0E !important;
+  background: #F2F2F2 !important;
 }
 [class*="st-key-rio-week"] button[kind="primary"]:hover,
 [class*="st-key-rio-week"] [data-testid="stBaseButton-primary"]:hover {
-  background: #e25a32 !important;
-  color: #000000 !important;
+  background: #C94A25 !important;
+  border-color: #C94A25 !important;
+  color: #FFFFFF !important;
 }
 [class*="st-key-rio-week"] [data-testid="stHorizontalBlock"] {
   gap: 0.55rem !important;
@@ -2075,9 +2077,9 @@ h2.rio-week-title {
 }
 
 .rio-card {
-  background: #1c1410;
-  border: 1px solid #3a2820;
-  border-radius: 16px;
+  background: #FFFFFF;
+  border: 1px solid #DADADA;
+  border-radius: 18px;
   padding: 1.35rem 1.55rem 1.15rem;
   margin: 0 0 1.15rem;
 }
@@ -2104,7 +2106,7 @@ h2.rio-week-title {
 .rio-fields { margin-top: 0.1rem; }
 .rio-card .rio-note + .rio-fields > .rio-field:first-child,
 .rio-card .rio-prose + .rio-fields > .rio-field:first-child {
-  border-top: 1px solid #3a2820;
+  border-top: 1px solid #DADADA;
   margin-top: 0.85rem;
   padding-top: 0.85rem;
 }
@@ -2116,14 +2118,14 @@ h2.rio-week-title {
   padding: 0.78rem 0;
 }
 .rio-field + .rio-field,
-.rio-fields + .rio-fields > .rio-field:first-child { border-top: 1px solid #3a2820; }
+.rio-fields + .rio-fields > .rio-field:first-child { border-top: 1px solid #DADADA; }
 .rio-k {
-  color: #d4d4d4;
+  color: #6B6B6B;
   font-size: 0.78rem;
   line-height: 1.35;
 }
 .rio-v {
-  color: #f4f4f4;
+  color: #0E0E0E;
   font-size: 0.95rem;
   font-weight: 500;
   line-height: 1.45;
@@ -2131,31 +2133,31 @@ h2.rio-week-title {
 }
 .rio-v .rio-missing,
 .rio-table td .rio-missing {
-  color: #d4d4d4;
+  color: #6B6B6B;
   font-weight: 400;
 }
 .rio-prose {
   margin: 0.35rem 0 0.15rem !important;
   padding-top: 0.95rem;
-  border-top: 1px solid #3a2820;
-  color: #f4f4f4 !important;
+  border-top: 1px solid #DADADA;
+  color: #0E0E0E !important;
   font-size: 1.02rem !important;
   line-height: 1.6 !important;
 }
 .rio-note {
   margin: 0 0 0.15rem !important;
-  color: #f4f4f4 !important;
+  color: #0E0E0E !important;
   font-size: 1.02rem !important;
   line-height: 1.6 !important;
 }
 .rio-prep {
   margin: 0.85rem 0 0.15rem !important;
   padding-top: 0.15rem;
-  border-top: 1px solid #3a2820;
+  border-top: 1px solid #DADADA;
 }
 .rio-prep-block + .rio-prep-block {
   margin-top: 0.2rem;
-  border-top: 1px solid #3a2820;
+  border-top: 1px solid #DADADA;
 }
 .rio-prep .rio-mark-label {
   padding: 0.9rem 0 0.4rem !important;
@@ -2163,7 +2165,7 @@ h2.rio-week-title {
 .rio-prep-line,
 .rio-prep-lead {
   margin: 0 !important;
-  color: #f4f4f4 !important;
+  color: #0E0E0E !important;
   font-size: 0.95rem !important;
   line-height: 1.5 !important;
 }
@@ -2178,16 +2180,16 @@ h2.rio-week-title {
 .rio-prep-list li {
   margin: 0.16rem 0 !important;
   padding: 0 !important;
-  color: #f4f4f4 !important;
+  color: #0E0E0E !important;
   font-size: 0.95rem !important;
   line-height: 1.45 !important;
 }
 .rio-prep-list li::marker {
-  color: #8f8f8f;
+  color: #6B6B6B;
 }
 .rio-card .rio-reason {
   margin: 0.28rem 0 !important;
-  color: #f4f4f4 !important;
+  color: #0E0E0E !important;
   font-size: 0.95rem !important;
   line-height: 1.45 !important;
 }
@@ -2199,20 +2201,20 @@ h2.rio-week-title {
 }
 .rio-table th {
   text-align: left;
-  color: #8f8f8f;
+  color: #6B6B6B;
   font-size: 0.72rem;
   font-weight: 500;
   letter-spacing: 0.01em;
   padding: 0.15rem 0.7rem 0.55rem 0;
-  border-bottom: 1px solid #3a2820;
+  border-bottom: 1px solid #DADADA;
   white-space: nowrap;
 }
 .rio-table td {
-  color: #f4f4f4;
+  color: #0E0E0E;
   font-size: 0.9rem;
   line-height: 1.4;
   padding: 0.72rem 0.7rem 0.72rem 0;
-  border-bottom: 1px solid #3a2820;
+  border-bottom: 1px solid #DADADA;
   font-variant-numeric: tabular-nums;
   vertical-align: top;
   white-space: nowrap;
@@ -2226,19 +2228,20 @@ h2.rio-week-title {
 }
 [class*="st-key-rio-activity-refresh"] button {
   background: transparent !important;
-  border: 1px solid #3a2820 !important;
-  border-radius: 8px !important;
-  color: #f4f4f4 !important;
-  min-height: 2.15rem !important;
-  padding: 0.35rem 0.85rem !important;
-  font-size: 0.8rem !important;
-  font-weight: 500 !important;
+  border: 1px solid #0E0E0E !important;
+  border-radius: 999px !important;
+  color: #0E0E0E !important;
+  min-height: 2.4rem !important;
+  padding: 0.4rem 0.95rem !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
   box-shadow: none !important;
 }
 [class*="st-key-rio-activity-refresh"] button p { color: inherit !important; }
 [class*="st-key-rio-activity-refresh"] button:hover {
-  border-color: #e25a32 !important;
-  color: #ffb089 !important;
+  border-color: #0E0E0E !important;
+  color: #0E0E0E !important;
+  background: #F2F2F2 !important;
 }
 
 [class*="st-key-rio-start"],
@@ -2257,15 +2260,15 @@ h2.rio-week-title {
 [class*="st-key-rio-start"] [data-testid="stBaseButton-primary"],
 [class*="st-key-rio-profile-edit"] button,
 [class*="st-key-rio-profile-edit"] [data-testid="stBaseButton-primary"] {
-  background: transparent !important;
-  border: 1px solid #e25a32 !important;
-  border-radius: 8px !important;
-  color: #ffb089 !important;
-  min-height: 2.45rem !important;
+  background: #E25A32 !important;
+  border: 1px solid #E25A32 !important;
+  border-radius: 999px !important;
+  color: #FFFFFF !important;
+  min-height: 2.75rem !important;
   margin-top: 0.75rem !important;
-  padding: 0.4rem 0.9rem !important;
-  font-size: 0.9rem !important;
-  font-weight: 500 !important;
+  padding: 0.45rem 1.1rem !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
   box-shadow: none !important;
 }
 [class*="st-key-rio-start"] button p,
@@ -2278,21 +2281,21 @@ h2.rio-week-title {
 [class*="st-key-rio-start"] [data-testid="stBaseButton-primary"]:hover,
 [class*="st-key-rio-profile-edit"] button:hover,
 [class*="st-key-rio-profile-edit"] [data-testid="stBaseButton-primary"]:hover {
-  background: #e25a32 !important;
-  border-color: #e25a32 !important;
-  color: #000000 !important;
+  background: #C94A25 !important;
+  border-color: #C94A25 !important;
+  color: #FFFFFF !important;
 }
 [class*="st-key-rio-auth-switch"] button,
 [class*="st-key-rio-auth-switch"] [data-testid="stBaseButton-secondary"] {
-  background: transparent !important;
-  border: 1px solid #3a2820 !important;
-  border-radius: 8px !important;
-  color: #d4d4d4 !important;
-  min-height: 2.45rem !important;
+  background: #FFFFFF !important;
+  border: 1px solid #0E0E0E !important;
+  border-radius: 999px !important;
+  color: #0E0E0E !important;
+  min-height: 2.75rem !important;
   margin-top: 0.15rem !important;
-  padding: 0.4rem 0.9rem !important;
-  font-size: 0.9rem !important;
-  font-weight: 500 !important;
+  padding: 0.45rem 0.9rem !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
   box-shadow: none !important;
 }
 [class*="st-key-rio-auth-switch"] button p,
@@ -2301,27 +2304,27 @@ h2.rio-week-title {
 }
 [class*="st-key-rio-auth-switch"] button:hover,
 [class*="st-key-rio-auth-switch"] [data-testid="stBaseButton-secondary"]:hover {
-  background: transparent !important;
-  border-color: #e25a32 !important;
-  color: #ffb089 !important;
+  background: #F2F2F2 !important;
+  border-color: #0E0E0E !important;
+  color: #0E0E0E !important;
 }
 
 [data-testid="stSelectbox"] [role="group"] {
-  background: #1c1410 !important;
-  border: 1px solid #3a2820 !important;
+  background: #FFFFFF !important;
+  border: 1px solid #DADADA !important;
   border-radius: 8px !important;
 }
 [data-testid="stSelectbox"] [role="group"]:focus-within {
-  border-color: #ff7a45 !important;
+  border-color: #C94A25 !important;
   box-shadow: none !important;
 }
 [data-testid="stSelectbox"] input {
   background: transparent !important;
-  color: #f4f4f4 !important;
-  -webkit-text-fill-color: #f4f4f4 !important;
+  color: #0E0E0E !important;
+  -webkit-text-fill-color: #0E0E0E !important;
   border: none !important;
   box-shadow: none !important;
-  caret-color: #f4f4f4 !important;
+  caret-color: #0E0E0E !important;
 }
 [data-testid="stSelectbox"] input:focus {
   border: none !important;
@@ -2330,32 +2333,32 @@ h2.rio-week-title {
 }
 [data-testid="stSelectbox"] button {
   background: transparent !important;
-  color: #d4d4d4 !important;
+  color: #6B6B6B !important;
   border: none !important;
   box-shadow: none !important;
 }
-[data-testid="stSelectbox"] svg { fill: #d4d4d4 !important; }
+[data-testid="stSelectbox"] svg { fill: #6B6B6B !important; }
 [data-testid="stSelectboxVirtualDropdown"] {
-  background: #2a1c16 !important;
-  color: #f4f4f4 !important;
-  border: 1px solid #3a2820 !important;
+  background: #F7F7F7 !important;
+  color: #0E0E0E !important;
+  border: 1px solid #DADADA !important;
   border-radius: 8px !important;
   box-shadow: none !important;
 }
 [data-testid="stSelectboxVirtualDropdown"] [role="option"] {
-  color: #f4f4f4 !important;
+  color: #0E0E0E !important;
   background: transparent !important;
 }
 [data-testid="stSelectboxVirtualDropdown"] [role="option"][aria-selected="true"],
 [data-testid="stSelectboxVirtualDropdown"] [role="option"]:hover {
-  background: #4a2c22 !important;
-  color: #ffb089 !important;
+  background: #F6E7E1 !important;
+  color: #C94A25 !important;
 }
 
 [class*="st-key-rio-result"] {
-  background: #1c1410;
-  border: 1px solid #3a2820;
-  border-radius: 16px;
+  background: #FFFFFF;
+  border: 1px solid #DADADA;
+  border-radius: 18px;
   padding: 1.15rem 1.55rem 1.2rem;
   margin: 0 0 1.15rem;
 }
@@ -2365,7 +2368,7 @@ h2.rio-week-title {
 [class*="st-key-rio-result"] .rio-rep-note {
   margin: 0 0 0.9rem !important;
   padding: 0 !important;
-  color: #d4d4d4 !important;
+  color: #6B6B6B !important;
   font-size: 0.84rem !important;
   line-height: 1.45 !important;
 }
@@ -2389,19 +2392,19 @@ h2.rio-week-title {
   margin-bottom: 0.28rem !important;
 }
 [class*="st-key-rio-result"] [data-testid="stNumberInputContainer"] {
-  background: #2a1c16 !important;
-  border: 1px solid #3a2820 !important;
+  background: #F7F7F7 !important;
+  border: 1px solid #DADADA !important;
   border-radius: 8px !important;
 }
 [class*="st-key-rio-result"] [data-testid="stNumberInputContainer"]:focus-within {
-  border-color: #ff7a45 !important;
+  border-color: #C94A25 !important;
   box-shadow: none !important;
 }
 [class*="st-key-rio-result"] [data-testid="stNumberInputField"] {
-  color: #f4f4f4 !important;
-  -webkit-text-fill-color: #f4f4f4 !important;
+  color: #0E0E0E !important;
+  -webkit-text-fill-color: #0E0E0E !important;
   background: transparent !important;
-  caret-color: #f4f4f4 !important;
+  caret-color: #0E0E0E !important;
 }
 [class*="st-key-rio-result"] [data-testid="stNumberInputStepUp"],
 [class*="st-key-rio-result"] [data-testid="stNumberInputStepDown"] {
@@ -2417,7 +2420,7 @@ h2.rio-week-title {
   margin: 0;
 }
 [class*="st-key-rio-result"] [data-testid="stNumberInputClearButton"] {
-  color: #d4d4d4 !important;
+  color: #6B6B6B !important;
 }
 [class*="st-key-rio-result"] .rio-week-meta {
   margin-top: 0.15rem !important;
@@ -2425,7 +2428,7 @@ h2.rio-week-title {
 
 .rio-template-id {
   margin-top: 0.28rem;
-  color: #8f8f8f;
+  color: #6B6B6B;
   font-size: 0.75rem;
   line-height: 1.3;
   font-variant-numeric: tabular-nums;
@@ -2441,7 +2444,7 @@ h2.rio-week-title {
   padding: 0 0 0.4rem !important;
 }
 .rio-supplied {
-  border-left: 1px solid #3a2820;
+  border-left: 1px solid #DADADA;
   padding: 0 0 0.1rem 1.35rem;
 }
 .rio-supplied .rio-field {
@@ -2456,21 +2459,21 @@ h2.rio-week-title {
 .rio-next-id { margin-top: 0.45rem; }
 .rio-settings-note {
   margin: 0.15rem 0 0.2rem !important;
-  color: #8f8f8f !important;
+  color: #6B6B6B !important;
   font-size: 0.8rem !important;
   line-height: 1.4 !important;
 }
 [class*="st-key-rio-settings"] {
-  background: #1c1410;
-  border: 1px solid #3a2820;
-  border-radius: 16px;
+  background: #FFFFFF;
+  border: 1px solid #DADADA;
+  border-radius: 18px;
   padding: 0.85rem 1.35rem 0.45rem;
   margin: 0 0 1.15rem !important;
 }
 [class*="st-key-rio-settings"] [data-testid="stWidgetLabel"] p,
 [class*="st-key-rio-settings"] label,
 [class*="st-key-rio-settings"] [data-testid="stMarkdownContainer"] p {
-  color: #f4f4f4 !important;
+  color: #0E0E0E !important;
 }
 [class*="st-key-rio-settings"] [role="radiogroup"] {
   gap: 1.1rem;
@@ -2479,8 +2482,8 @@ h2.rio-week-title {
   accent-color: #e25a32;
 }
 [class*="st-key-rio-settings"] [data-testid="stCheckbox"] label > div:first-of-type {
-  background: #2a1c16 !important;
-  border: 1px solid #3a2820 !important;
+  background: #F7F7F7 !important;
+  border: 1px solid #DADADA !important;
 }
 [class*="st-key-rio-settings"] [data-testid="stCheckbox"]:has(input:checked) label > div:first-of-type {
   background: #e25a32 !important;
@@ -2500,9 +2503,9 @@ h2.rio-week-title {
   border: 0 !important;
 }
 [class*="st-key-rio-past-list"] {
-  background: #1c1410;
-  border: 1px solid #3a2820;
-  border-radius: 16px;
+  background: #FFFFFF;
+  border: 1px solid #DADADA;
+  border-radius: 18px;
   padding: 0.2rem 0.35rem;
   margin: 0.35rem 0 1.15rem !important;
 }
@@ -2513,9 +2516,9 @@ h2.rio-week-title {
   align-items: end;
   padding: 0.85rem 0.9rem;
 }
-.rio-past-rule { border-top: 1px solid #3a2820; }
+.rio-past-rule { border-top: 1px solid #DADADA; }
 .rio-past-k {
-  color: #8f8f8f;
+  color: #6B6B6B;
   font-size: 0.68rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -2523,21 +2526,21 @@ h2.rio-week-title {
 }
 .rio-past-v {
   margin-top: 0.28rem;
-  color: #f4f4f4;
+  color: #0E0E0E;
   font-size: 1rem;
   font-variant-numeric: tabular-nums;
   line-height: 1.3;
 }
 .rio-past-time { text-align: right; }
 [class*="st-key-rio-hit-past-"]:hover .rio-past-row {
-  background: #2a1c16;
+  background: #F7F7F7;
 }
 
 h2.rio-section,
 .stMarkdown h2.rio-section {
   margin: 2.4rem 0 0.85rem !important;
   padding: 0 !important;
-  color: #f4f4f4 !important;
+  color: #0E0E0E !important;
   font-size: 1.35rem !important;
   font-weight: 500 !important;
   letter-spacing: -0.03em !important;
@@ -2560,16 +2563,16 @@ h2.rio-section,
   display: block;
   width: 100%;
   height: auto;
-  color: #ff5e3a;
+  color: #E25A32;
 }
 .rio-track-facts {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
   min-width: 0;
-  background: #1c1410;
-  border: 1px solid #3a2820;
-  border-radius: 16px;
+  background: #FFFFFF;
+  border: 1px solid #DADADA;
+  border-radius: 18px;
   padding: 0.95rem 1rem 1rem;
 }
 .rio-track-fact .rio-mark-label,
@@ -2579,7 +2582,7 @@ h2.rio-section,
 }
 .rio-track-day {
   margin: 0;
-  color: #f4f4f4;
+  color: #0E0E0E;
   font-size: 1.02rem;
   font-weight: 500;
   letter-spacing: -0.02em;
@@ -2588,7 +2591,7 @@ h2.rio-section,
 .rio-track-sub {
   display: block;
   margin-top: 0.18rem;
-  color: #8f8f8f;
+  color: #6B6B6B;
   font-size: 0.78rem;
   font-weight: 400;
   letter-spacing: 0;
@@ -2596,7 +2599,7 @@ h2.rio-section,
 }
 .rio-track-fact-value {
   margin: 0;
-  color: #f4f4f4;
+  color: #0E0E0E;
   font-size: 1.55rem;
   font-weight: 500;
   letter-spacing: -0.03em;
@@ -2611,11 +2614,11 @@ h2.rio-section,
   gap: 0.85rem 2rem;
   margin: 0.15rem 0 1.35rem;
   padding-top: 0.85rem;
-  border-top: 1px solid #1a1a1a;
+  border-top: 1px solid #DADADA;
 }
 .rio-track-meta-value {
   margin: 0;
-  color: #d4d4d4;
+  color: #6B6B6B;
   font-size: 1.02rem;
   font-weight: 500;
   letter-spacing: -0.02em;
@@ -2635,7 +2638,7 @@ h2.rio-section,
 }
 .rio-stat-value {
   margin: 0.15rem 0 0 !important;
-  color: #f4f4f4 !important;
+  color: #0E0E0E !important;
   font-size: 1.65rem !important;
   font-weight: 500 !important;
   letter-spacing: -0.03em !important;
@@ -2652,9 +2655,9 @@ h2.rio-section,
   min-height: 7.5rem;
 }
 .rio-next {
-  background: #1c1410;
-  border: 1px solid #3a2820;
-  border-radius: 16px;
+  background: #FFFFFF;
+  border: 1px solid #DADADA;
+  border-radius: 18px;
   padding: 1.35rem 1.5rem 1.25rem;
   margin: 0 0 0.95rem;
 }
@@ -2664,7 +2667,7 @@ h2.rio-section,
 }
 .rio-next-day {
   margin-top: 0.55rem;
-  color: #f4f4f4;
+  color: #0E0E0E;
   font-size: 1.85rem;
   font-weight: 500;
   letter-spacing: -0.03em;
@@ -2673,28 +2676,28 @@ h2.rio-section,
 .rio-next .rio-range { margin-top: 0.35rem !important; }
 .rio-next .rio-next-work { margin-top: 0.95rem !important; font-size: 1.15rem !important; }
 .rio-mini {
-  background: #1c1410;
-  border: 1px solid #3a2820;
-  border-radius: 14px;
+  background: #FFFFFF;
+  border: 1px solid #DADADA;
+  border-radius: 18px;
   padding: 0.95rem 1rem 0.9rem;
   min-height: 7.2rem;
   height: 100%;
   box-sizing: border-box;
 }
 .rio-mini-dow {
-  color: #f4f4f4;
+  color: #0E0E0E;
   font-size: 0.98rem;
   font-weight: 500;
 }
 .rio-mini-date {
   margin-top: 0.2rem;
-  color: #d4d4d4;
+  color: #6B6B6B;
   font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
 }
 .rio-mini-work {
   margin-top: 0.75rem;
-  color: #f4f4f4;
+  color: #0E0E0E;
   font-size: 0.88rem;
   line-height: 1.4;
 }
@@ -2707,8 +2710,8 @@ h2.rio-section,
 .rio-phase {
   flex: 1 0 3.1rem;
   min-width: 3.1rem;
-  background: #1c1410;
-  border: 1px solid #3a2820;
+  background: #FFFFFF;
+  border: 1px solid #DADADA;
   border-radius: 10px;
   padding: 0.45rem 0.35rem 0.5rem;
   text-align: center;
@@ -2717,13 +2720,13 @@ h2.rio-section,
   border-color: #e25a32;
 }
 .rio-phase-week {
-  color: #8f8f8f;
+  color: #6B6B6B;
   font-size: 0.62rem;
   letter-spacing: 0.06em;
 }
 .rio-phase-num {
   margin-top: 0.2rem;
-  color: #f4f4f4;
+  color: #0E0E0E;
   font-size: 0.95rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
@@ -2740,17 +2743,17 @@ h2.rio-section,
   background: transparent !important;
   border-bottom: 1px solid transparent !important;
   padding: 0.1rem 0 0.2rem !important;
-  color: #8f8f8f !important;
+  color: #6B6B6B !important;
 }
 [class*="st-key-rio-subnav"] [data-testid="stPageLink-NavLink"] span,
 [class*="st-key-rio-subnav"] [data-testid="stPageLink-NavLink"] p {
-  color: #8f8f8f !important;
+  color: #6B6B6B !important;
   font-size: 0.78rem !important;
 }
 [class*="st-key-rio-sub-"][class*="-is-active"] [data-testid="stPageLink-NavLink"],
 [class*="st-key-rio-sub-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] span,
 [class*="st-key-rio-sub-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] p {
-  color: #f4f4f4 !important;
+  color: #0E0E0E !important;
   border-bottom-color: #e25a32 !important;
 }
 [class*="st-key-rio-quick"] {
@@ -2760,14 +2763,14 @@ h2.rio-section,
   margin: 0.2rem 0 1.4rem !important;
 }
 [class*="st-key-rio-quick"] [data-testid="stPageLink-NavLink"] {
-  background: #1c1410 !important;
-  border: 1px solid #3a2820 !important;
+  background: #FFFFFF !important;
+  border: 1px solid #DADADA !important;
   border-radius: 999px !important;
   padding: 0.38rem 0.85rem !important;
 }
 [class*="st-key-rio-quick"] [data-testid="stPageLink-NavLink"] span,
 [class*="st-key-rio-quick"] [data-testid="stPageLink-NavLink"] p {
-  color: #f4f4f4 !important;
+  color: #0E0E0E !important;
   font-size: 0.82rem !important;
 }
 [class*="st-key-rio-next3"] {
@@ -2782,7 +2785,7 @@ h2.rio-section,
   min-width: 0 !important;
 }
 [class*="st-key-rio-hit-mini-"]:hover .rio-mini {
-  border-color: #4a2c22;
+  border-color: #F6E7E1;
 }
 [class*="st-key-rio-start"] { max-width: 26rem; }
 
@@ -2791,50 +2794,50 @@ h2.rio-section,
 [class*="st-key-rio-confirm"] [data-testid="stBaseButton-primary"],
 [class*="st-key-rio-confirm"] [data-testid="stBaseButton-secondary"] {
   background: transparent !important;
-  border: 1px solid #3a2820 !important;
-  border-radius: 8px !important;
-  color: #f4f4f4 !important;
-  min-height: 2.15rem !important;
-  padding: 0.35rem 0.7rem !important;
-  font-size: 0.8rem !important;
-  font-weight: 500 !important;
+  border: 1px solid #0E0E0E !important;
+  border-radius: 999px !important;
+  color: #0E0E0E !important;
+  min-height: 2.4rem !important;
+  padding: 0.4rem 0.9rem !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
   box-shadow: none !important;
 }
 [class*="st-key-rio-confirm"] button p { color: inherit !important; }
 [class*="st-key-rio-confirm"] button[kind="primary"],
 [class*="st-key-rio-confirm"] [data-testid="stBaseButton-primary"] {
-  border-color: #e25a32 !important;
-  color: #ffb089 !important;
-  background: transparent !important;
+  background: #E25A32 !important;
+  border-color: #E25A32 !important;
+  color: #FFFFFF !important;
 }
 [class*="st-key-rio-confirm"] button[kind="secondary"]:hover,
 [class*="st-key-rio-confirm"] [data-testid="stBaseButton-secondary"]:hover {
-  border-color: #e25a32 !important;
-  color: #f4f4f4 !important;
-  background: transparent !important;
+  border-color: #0E0E0E !important;
+  color: #0E0E0E !important;
+  background: #F2F2F2 !important;
 }
 [class*="st-key-rio-confirm"] button[kind="primary"]:hover,
 [class*="st-key-rio-confirm"] [data-testid="stBaseButton-primary"]:hover {
-  background: #e25a32 !important;
-  border-color: #e25a32 !important;
-  color: #000000 !important;
+  background: #C94A25 !important;
+  border-color: #C94A25 !important;
+  color: #FFFFFF !important;
 }
 [class*="st-key-rio-settings"] [data-testid="stCheckbox"]:has(input:checked) svg {
-  fill: #000000 !important;
+  fill: #FFFFFF !important;
 }
 [class*="st-key-rio-settings"] button,
 [class*="st-key-rio-settings"] [data-testid="stBaseButton-primary"],
 [class*="st-key-rio-settings"] [data-testid="stBaseButton-secondary"],
 [class*="st-key-rio-settings"] [data-testid="stDownloadButton"] button {
   background: transparent !important;
-  border: 1px solid #3a2820 !important;
-  border-radius: 8px !important;
-  color: #f4f4f4 !important;
-  min-height: 2.15rem !important;
+  border: 1px solid #0E0E0E !important;
+  border-radius: 999px !important;
+  color: #0E0E0E !important;
+  min-height: 2.4rem !important;
   margin-top: 0.35rem !important;
-  padding: 0.35rem 0.85rem !important;
-  font-size: 0.85rem !important;
-  font-weight: 500 !important;
+  padding: 0.4rem 0.95rem !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
   box-shadow: none !important;
 }
 [class*="st-key-rio-settings"] button p,
@@ -2843,22 +2846,23 @@ h2.rio-section,
 }
 [class*="st-key-rio-settings"] button:hover,
 [class*="st-key-rio-settings"] [data-testid="stDownloadButton"] button:hover {
-  border-color: #e25a32 !important;
-  color: #ffb089 !important;
-  background: transparent !important;
+  border-color: #0E0E0E !important;
+  color: #0E0E0E !important;
+  background: #F2F2F2 !important;
 }
 [class*="st-key-rio-settings"] [data-testid="stBaseButton-primary"] {
-  border-color: #e25a32 !important;
-  color: #ffb089 !important;
+  background: #E25A32 !important;
+  border-color: #E25A32 !important;
+  color: #FFFFFF !important;
 }
 [class*="st-key-rio-settings"] [data-testid="stBaseButton-primary"]:hover {
-  background: #e25a32 !important;
-  border-color: #e25a32 !important;
-  color: #000000 !important;
+  background: #C94A25 !important;
+  border-color: #C94A25 !important;
+  color: #FFFFFF !important;
 }
 [class*="st-key-rio-settings"] input:disabled {
-  color: #d4d4d4 !important;
-  -webkit-text-fill-color: #d4d4d4 !important;
+  color: #6B6B6B !important;
+  -webkit-text-fill-color: #6B6B6B !important;
 }
 
 @media (max-width: 720px) {
@@ -2900,7 +2904,7 @@ h2.rio-section,
   .rio-session-split { grid-template-columns: 1fr; row-gap: 1.05rem; }
   .rio-supplied {
     border-left: none;
-    border-top: 1px solid #3a2820;
+    border-top: 1px solid #DADADA;
     padding: 0.95rem 0 0;
   }
   .rio-supplied .rio-field {
@@ -3018,11 +3022,33 @@ def _refresh_session(email: str, secret: str) -> None:
     st.session_state.pop("settings-email", None)
 
 
-def _css() -> str:
+_MOTION_PAGE = ""
+_MOTION_LOCKED = False
+_MOTION_PLAY = True
+
+
+def _arm_motion(page: str) -> None:
+    """Name the page before the first stylesheet so a rerun can skip the entrance."""
+    global _MOTION_PAGE
+    if not _MOTION_LOCKED:
+        _MOTION_PAGE = page
+
+
+def _css(page: str | None = None) -> str:
+    global _MOTION_LOCKED, _MOTION_PLAY
+    if page:
+        _arm_motion(page)
     css = _APP_CSS
     if _prefs()["compact"]:
         css += _COMPACT_CSS
-    return css + theme.surface_css()
+    if not _MOTION_LOCKED:
+        name = _MOTION_PAGE or "app"
+        previous = st.session_state.get("rio_motion_page")
+        _MOTION_PLAY = previous != name
+        st.session_state["rio_motion_page"] = name
+        _MOTION_LOCKED = True
+    hold = "" if _MOTION_PLAY else theme.motion_hold_css()
+    return css + theme.surface_css() + hold
 
 
 def _date_text(value: object) -> str:
@@ -3114,6 +3140,31 @@ def _render_subnav(active: str) -> None:
                 )
 
 
+def _next_session_day() -> str | None:
+    """The next planned day, or the latest one when the season is finished."""
+    plan = st.session_state.get("season_plan")
+    if not isinstance(plan, dict):
+        return None
+    sessions = plan.get("sessions")
+    if not isinstance(sessions, list):
+        return None
+    days = []
+    for session in sessions:
+        if not isinstance(session, dict):
+            continue
+        day = session.get("date")
+        if isinstance(day, str) and day.strip():
+            days.append(day.strip())
+    if not days:
+        return None
+    days.sort()
+    today = date.today().isoformat()
+    for day in days:
+        if day >= today:
+            return day
+    return days[-1]
+
+
 def _render_nav(active: str) -> None:
     """Page links follow Streamlit routing and stay in this tab."""
     if _EMBEDDING:
@@ -3159,6 +3210,16 @@ def _render_nav(active: str) -> None:
                         query_params=_link_params(),
                         width="content",
                     )
+            if _SESSION_PAGE is not None:
+                day = _next_session_day()
+                with st.container(key="rio-start-session", width="content"):
+                    st.page_link(
+                        _SESSION_PAGE,
+                        label="Start session",
+                        icon="",
+                        query_params=_link_params({"date": day} if day else None),
+                        width="content",
+                    )
             with st.container(key="rio-logout", width="content"):
                 if st.button("Log out", key="rio-log-out"):
                     _sign_out()
@@ -3167,7 +3228,7 @@ def _render_nav(active: str) -> None:
 
 
 def _open(page: str, *, controls: bool = False):
-    st.markdown(_css(), unsafe_allow_html=True)
+    st.markdown(_css(page), unsafe_allow_html=True)
     _render_nav(page)
     hero = st.container(gap=None)
     box = st.container(key="rio-controls", gap="small") if controls else None
@@ -4096,7 +4157,7 @@ def page_start() -> None:
     Start is today. The goal date is five months later. Both times stay blank
     until they are typed. A value already edited on this form stays.
     """
-    st.markdown(_css(), unsafe_allow_html=True)
+    st.markdown(_css("Start"), unsafe_allow_html=True)
     st.markdown(theme.fullscreen_css(theme.asset_uri(theme.START_PHOTO)), unsafe_allow_html=True)
     st.markdown(theme.shade_html(), unsafe_allow_html=True)
     _render_nav("")
@@ -4461,7 +4522,7 @@ def page_dashboard() -> None:
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
     with chrome:
-        st.markdown(_css(), unsafe_allow_html=True)
+        st.markdown(_css("Home"), unsafe_allow_html=True)
         _render_nav("Home")
     named = _display_name()
     hello = hey(named)
@@ -4597,7 +4658,7 @@ def page_calendar() -> None:
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
     with chrome:
-        st.markdown(_css(), unsafe_allow_html=True)
+        st.markdown(_css("Calendar"), unsafe_allow_html=True)
         _render_nav("Calendar")
 
     plan, start, goal, error = _stored_season()
@@ -4693,7 +4754,7 @@ def page_library() -> None:
     each narrow the same list. The phase list is the one the season already
     uses. No prose, so this page does not spend. No scores.
     """
-    st.markdown(_css(), unsafe_allow_html=True)
+    st.markdown(_css("Library"), unsafe_allow_html=True)
     _render_nav("Library")
     st.markdown(_page_hero("Library", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
     try:
@@ -4772,7 +4833,7 @@ def page_progress() -> None:
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
     with chrome:
-        st.markdown(_css(), unsafe_allow_html=True)
+        st.markdown(_css("Progress"), unsafe_allow_html=True)
         _render_nav("Progress")
 
     plan, start, goal, error = _stored_season()
@@ -4832,10 +4893,15 @@ def page_progress() -> None:
             unsafe_allow_html=True,
         )
     if not _EMBEDDING or not st.session_state.get("_rio_volume_shown"):
+        current = next(
+            (index for index, row in enumerate(rows) if row.get("status") == "current"),
+            None,
+        )
         chart = volume_chart(
             [row["meters"] for row in rows],
             _prefs()["units"],
             [display_distance(str(row.get("volume") or ""), _prefs()["units"]) for row in rows],
+            current,
         )
         if chart:
             st.markdown(chart, unsafe_allow_html=True)
@@ -4873,7 +4939,7 @@ def page_weekly() -> None:
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
     with chrome:
-        st.markdown(_css(), unsafe_allow_html=True)
+        st.markdown(_css("Weekly"), unsafe_allow_html=True)
         _render_nav("Weekly")
 
     plan, start, goal, error = _stored_season()
@@ -4981,7 +5047,7 @@ def page_season() -> None:
     hero = st.container(gap=None)
 
     with chrome:
-        st.markdown(_css(), unsafe_allow_html=True)
+        st.markdown(_css("Season"), unsafe_allow_html=True)
         _render_nav("Season")
 
     plan, start, goal, error = _stored_season()
@@ -5129,7 +5195,7 @@ def page_session() -> None:
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
     with chrome:
-        st.markdown(_css(), unsafe_allow_html=True)
+        st.markdown(_css("Session"), unsafe_allow_html=True)
         _render_nav("")
 
     plan, start, goal, error = _stored_season()
@@ -5350,7 +5416,7 @@ def page_activity() -> None:
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
     with chrome:
-        st.markdown(_css(), unsafe_allow_html=True)
+        st.markdown(_css("Activity"), unsafe_allow_html=True)
         _render_nav("Activity")
 
     plan, start, goal, error = _stored_season()
@@ -5424,7 +5490,12 @@ def page_activity() -> None:
         meters = weekly_completed_meters(rows, start=start, length=length)
         if meters:
             captions = [display_distance(f"{value:,} m", units) for value in meters]
-            chart = volume_chart(meters, units, captions)
+            chart = volume_chart(
+                meters,
+                units,
+                captions,
+                _week_containing(start, length, date.today()) - 1,
+            )
             if chart:
                 st.markdown(chart, unsafe_allow_html=True)
                 volume_shown = True
@@ -5801,7 +5872,7 @@ def page_settings() -> None:
     Reminders and the weekly recap are stored and are not sent. Nothing
     here is written onto the plan.
     """
-    st.markdown(_css(), unsafe_allow_html=True)
+    st.markdown(_css("Settings"), unsafe_allow_html=True)
     _render_nav("Settings")
     st.markdown(_page_hero("Settings", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
     notice = st.session_state.pop("rio_settings_error", None)
@@ -6030,7 +6101,7 @@ def page_plan() -> None:
     session. This page does not build a plan.
     """
     global _MARK_PREFIX
-    st.markdown(_css(), unsafe_allow_html=True)
+    st.markdown(_css("Plan"), unsafe_allow_html=True)
     _render_nav("Plan")
     plan, start, goal, error = _stored_season()
     if plan is None or start is None or goal is None:
@@ -6104,7 +6175,7 @@ _MORE_BLURB = (
 
 def page_more() -> None:
     """Past seasons, profile, settings, and about. Links stay in this tab."""
-    st.markdown(_css(), unsafe_allow_html=True)
+    st.markdown(_css("More"), unsafe_allow_html=True)
     _render_nav("More")
     st.markdown(
         _page_hero("More", "SYNTHETIC / DEMO", "The rest of the season, still in this tab."),
@@ -6307,8 +6378,9 @@ def _auth_notice() -> None:
 
 
 def _auth_backdrop() -> None:
-    """Floodlights behind Log in and Create account. The form sits on the shade."""
-    st.markdown(_css(), unsafe_allow_html=True)
+    """Floodlights behind Log in and Create account. The form sits on a white card."""
+    screen = "Create account" if _auth_screen() == "create" else "Log in"
+    st.markdown(_css(screen), unsafe_allow_html=True)
     st.markdown(theme.fullscreen_css(theme.asset_uri(theme.LOGIN_PHOTO)), unsafe_allow_html=True)
     st.markdown(theme.shade_html(), unsafe_allow_html=True)
 
