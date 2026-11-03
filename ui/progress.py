@@ -244,7 +244,12 @@ _CHART_BOTTOM = 24
 _M_TO_MI = 1 / 1609.344
 
 
-def volume_chart(meters: list, units: str = "km", captions: list | None = None) -> str:
+def volume_chart(
+    meters: list,
+    units: str = "km",
+    captions: list | None = None,
+    highlight: int | None = None,
+) -> str:
     """A line of weekly completed distance. A week with no file is a point at 0.
 
     units is the settings choice, km or miles. A metric week of at least
@@ -264,11 +269,11 @@ def volume_chart(meters: list, units: str = "km", captions: list | None = None) 
             f'<svg class="rio-volume-line" viewBox="0 0 {_CHART_W} {_CHART_H}" '
             'role="img" aria-label="Weekly completed distance" '
             'xmlns="http://www.w3.org/2000/svg" '
-            "style=\"font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif\">"
+            "style=\"font-family: Inter, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif\">"
         ),
         "<title>Weekly completed distance</title>",
         _baseline(points),
-        _series(points),
+        _series(points, highlight),
         *_y_labels(values, unit, points),
         *_x_labels(len(values), points),
         *_hover(values, points, unit, labels),
@@ -337,26 +342,40 @@ def _format_amount(meters: float, unit: str) -> str:
 
 
 def _baseline(points: list[tuple[float, float]]) -> str:
+    """Soft horizontal guides. The bottom one is the zero line."""
     floor = max(point[1] for point in points)
+    top = min(point[1] for point in points)
     x1 = _CHART_LEFT
     x2 = _CHART_W - _CHART_RIGHT
-    return (
-        f'<line x1="{x1:.1f}" y1="{floor:.1f}" x2="{x2:.1f}" y2="{floor:.1f}" '
-        'stroke="#2a2a2a" stroke-width="1" vector-effect="non-scaling-stroke" />'
-    )
+    ys = [floor]
+    if abs(top - floor) > 1:
+        ys.extend(((top + floor) / 2, top))
+    lines = []
+    for y in ys:
+        lines.append(
+            f'<line x1="{x1:.1f}" y1="{y:.1f}" x2="{x2:.1f}" y2="{y:.1f}" '
+            'stroke="#DADADA" stroke-width="1" '
+            'vector-effect="non-scaling-stroke" />'
+        )
+    return "".join(lines)
 
 
-def _series(points: list[tuple[float, float]]) -> str:
+def _series(points: list[tuple[float, float]], highlight: int | None = None) -> str:
+    """Grey line. The current week, when one is named, is the orange point."""
     drawn = " ".join(f"{x:.1f},{y:.1f}" for x, y in points)
     if len(points) == 1:
         x, y = points[0]
-        return (
-            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2.4" fill="#f4f4f4" />'
-        )
+        return f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2.6" fill="#e25a32" />'
+    mark = ""
+    if isinstance(highlight, int) and not isinstance(highlight, bool):
+        if 0 <= highlight < len(points):
+            x, y = points[highlight]
+            mark = f'<circle cx="{x:.1f}" cy="{y:.1f}" r="3.6" fill="#e25a32" />'
     return (
-        f'<polyline points="{drawn}" fill="none" stroke="#f4f4f4" '
-        'stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" '
+        f'<polyline points="{drawn}" fill="none" stroke="#B5B5B5" '
+        'stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round" '
         'vector-effect="non-scaling-stroke" />'
+        + mark
     )
 
 
@@ -375,7 +394,7 @@ def _y_labels(values: list[int], unit: str, points: list[tuple[float, float]]) -
         text = _esc(_format_amount(amount, unit))
         labels.append(
             f'<text x="{_CHART_LEFT - 8:.1f}" y="{y:.1f}" text-anchor="end" '
-            'dominant-baseline="middle" fill="#8f8f8f" font-size="10">'
+            'dominant-baseline="middle" fill="#6B6B6B" font-size="10">'
             f"{text}</text>"
         )
     return labels
@@ -406,7 +425,7 @@ def _x_labels(count: int, points: list[tuple[float, float]]) -> list[str]:
             anchor = "middle"
         labels.append(
             f'<text x="{x:.1f}" y="{y:.1f}" text-anchor="{anchor}" '
-            'fill="#8f8f8f" font-size="10">'
+            'fill="#6B6B6B" font-size="10">'
             f"{index + 1}</text>"
         )
     return labels
@@ -501,9 +520,10 @@ def heart_rate_chart(
             f'<svg class="rio-heart-line" viewBox="0 0 {_HR_W} {height}" '
             'role="img" aria-label="Average heart rate" '
             'xmlns="http://www.w3.org/2000/svg" '
-            "style=\"font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-variant-numeric: tabular-nums\">"
+            "style=\"font-family: Inter, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-variant-numeric: tabular-nums\">"
         ),
         "<title>Average heart rate</title>",
+        *_heart_grid(dots),
         *_heart_marks(dots),
         "</svg></div>",
     ]
@@ -609,6 +629,27 @@ def _heart_caption(
 def _heart_label(day: date, bpm: float, with_month: bool) -> str:
     when = f"{day.month}/{day.day}" if with_month else str(day.day)
     return f"{_SHORT_DAYS[day.weekday()]} {when} · {_bpm_text(bpm)}"
+
+
+def _heart_grid(dots: list[dict]) -> list[str]:
+    """Soft horizontal guides behind the dots. Not a polyline."""
+    if not dots:
+        return []
+    ys = [float(dot["y"]) for dot in dots]
+    low = min(ys)
+    high = max(ys)
+    if high - low < 12:
+        low -= 28
+        high += 8
+    x1 = float(_HR_PAD_X)
+    x2 = float(_HR_W - _HR_PAD_X)
+    lines = []
+    for y in (high, (low + high) / 2, low):
+        lines.append(
+            f'<path fill="none" stroke="#DADADA" stroke-width="1" '
+            f'd="M {x1:.1f} {y:.1f} H {x2:.1f}" />'
+        )
+    return lines
 
 
 def _heart_marks(dots: list[dict]) -> list[str]:

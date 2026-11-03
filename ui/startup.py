@@ -12,12 +12,28 @@ https://www.pexels.com/photo/aerial-view-of-empty-athletic-track-and-field-35678
 
 from __future__ import annotations
 
-import base64
 from functools import lru_cache
 from html import escape
 from pathlib import Path
 
 import streamlit as st
+
+from ui.theme import (
+    ACCENT,
+    CARD_BORDER,
+    CARD_FILL,
+    CARD_SHADOW,
+    DISPLAY,
+    FONT,
+    MUTED,
+    RADIUS,
+    TEXT,
+    data_uri,
+    font_css,
+    fullscreen_rules,
+    motion_rules,
+    primary_button_css,
+)
 
 # Placeholder copy. Replace these two lines when the real words are ready.
 HEADLINE = "RIO headline goes here"
@@ -43,21 +59,10 @@ _HTML = """
 </section>
 """
 
-# The photo is the page background. The shade sits over it so the type stays readable.
-_CSS = """
-<style>
-html, body, .stApp {
-  min-height: 100vh !important;
-  height: 100% !important;
-}
-.stApp {
-  background-color: #050505 !important;
-  background-image: PHOTO_URI !important;
-  background-size: cover !important;
-  background-position: center center !important;
-  background-repeat: no-repeat !important;
-  background-attachment: fixed !important;
-}
+
+def _layout_css() -> str:
+    """Startup type and the paper statement. The photo comes from the theme."""
+    return f"""
 [data-testid="stHeader"],
 [data-testid="stToolbar"],
 [data-testid="stDecoration"],
@@ -66,163 +71,127 @@ html, body, .stApp {
 [data-testid="stSidebar"],
 #MainMenu,
 footer,
-header {
+header {{
   display: none !important;
   height: 0 !important;
-}
-[data-testid="stAppViewContainer"],
-[data-testid="stMain"],
-[data-testid="stBottom"],
-[data-testid="stBottomBlockContainer"],
+}}
 [data-testid="stMainBlockContainer"],
-.block-container,
-[data-testid="stVerticalBlock"],
-[data-testid="stHorizontalBlock"],
-[data-testid="stElementContainer"],
-[data-testid="stMarkdownContainer"],
-[data-testid="stLayoutWrapper"] {
-  background: transparent !important;
-  background-color: transparent !important;
-}
-[data-testid="stMainBlockContainer"],
-.block-container {
-  max-width: 40rem !important;
+.block-container {{
+  max-width: 100% !important;
   min-height: 100vh !important;
-  margin: 0 auto !important;
-  padding: 4.5rem 1.4rem 5.5rem !important;
+  margin: 0 !important;
+  padding: 14vh 6vw 5rem !important;
   box-sizing: border-box !important;
   display: flex !important;
   flex-direction: column !important;
-  justify-content: center !important;
-  position: relative !important;
-  z-index: 2 !important;
-}
+  justify-content: flex-start !important;
+  overflow: visible !important;
+}}
 [data-testid="stMainBlockContainer"] > div,
-[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlock"] {
+[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlock"] {{
   flex: 0 0 auto !important;
   gap: 0.2rem !important;
-}
-.rio-startup-shade {
-  position: fixed;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0.52) 0%,
-    rgba(0, 0, 0, 0.64) 46%,
-    rgba(0, 0, 0, 0.74) 100%
-  );
-}
+}}
 .rio-startup-copy,
 .rio-startup-copy h1,
 .rio-startup-copy p,
 [class*="st-key-rio-startup-continue"] button,
 [class*="st-key-rio-startup-continue"] button p,
-[class*="st-key-rio-startup-continue"] button span {
-  font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
-}
-.rio-startup-copy {
+[class*="st-key-rio-startup-continue"] button span {{
+  font-family: {FONT} !important;
+}}
+.rio-startup-copy {{
   position: relative;
-  z-index: 2;
-  text-align: center;
-  color: #f4f4f4;
-}
-.rio-startup-headline {
-  margin: 0 0 1.35rem !important;
-  color: #f4f4f4 !important;
-  font-size: clamp(2.15rem, 5vw, 3.35rem) !important;
-  font-weight: 560 !important;
-  letter-spacing: -0.03em !important;
-  line-height: 1.12 !important;
-  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55);
-}
-.rio-startup-statement {
-  margin: 0 auto;
-  max-width: 34rem;
-  padding: 1.05rem 1.2rem 1.15rem;
+  z-index: 5;
+  margin: 0;
+  max-width: 100%;
+  padding: 0;
   text-align: left;
-  border: 1px dashed rgba(244, 244, 244, 0.72);
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.38);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
-}
-.rio-startup-kicker {
+  color: #F4F1EC;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}}
+.rio-startup-headline {{
+  margin: 0 0 1.1rem !important;
+  color: #F4F1EC !important;
+  font-family: {DISPLAY} !important;
+  max-width: 100%;
+  font-size: clamp(40px, 7vw, 96px) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.04em !important;
+  line-height: 0.9 !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}}
+.rio-startup-statement {{
+  margin: 0;
+  max-width: none;
+  padding: 0;
+  text-align: left;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}}
+.rio-startup-kicker {{
   margin: 0 0 0.35rem !important;
-  color: #ffb089 !important;
+  color: {ACCENT} !important;
   font-size: 0.72rem !important;
-  font-weight: 650 !important;
+  font-weight: 700 !important;
   letter-spacing: 0.16em !important;
   line-height: 1.3 !important;
   text-transform: uppercase;
-}
-.rio-startup-statement-label {
+}}
+.rio-startup-statement-label {{
   margin: 0 0 0.4rem !important;
-  color: #f4f4f4 !important;
+  color: #F4F1EC !important;
   font-size: 1rem !important;
   font-weight: 600 !important;
   line-height: 1.35 !important;
-}
-.rio-startup-statement-body {
+}}
+.rio-startup-statement-body {{
   margin: 0 !important;
-  color: #f4f4f4 !important;
+  color: rgba(244, 241, 236, 0.82) !important;
   font-size: 1.05rem !important;
   font-weight: 400 !important;
   line-height: 1.5 !important;
-}
-.rio-startup-credit {
+}}
+.rio-startup-credit {{
   position: fixed;
-  z-index: 3;
+  z-index: 4;
   left: 0;
   right: 0;
   bottom: 1rem;
-  margin: 0 !important;
-  color: rgba(244, 244, 244, 0.82) !important;
+  width: fit-content;
+  margin: 0 auto !important;
+  padding: 0.22rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(18, 17, 16, 0.45);
+  border: 1px solid rgba(244, 241, 236, 0.35);
+  color: #F4F1EC !important;
   font-size: 0.78rem !important;
   font-weight: 400 !important;
   letter-spacing: 0.01em !important;
   line-height: 1.4 !important;
   text-align: center;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
   pointer-events: none;
-}
-[class*="st-key-rio-startup-continue"] {
+}}
+[class*="st-key-rio-startup-continue"] {{
   position: relative !important;
-  z-index: 2 !important;
+  z-index: 6 !important;
   display: flex !important;
   flex-direction: column !important;
-  align-items: center !important;
+  align-items: flex-start !important;
   width: 100% !important;
   background: transparent !important;
   margin-top: 1.35rem !important;
-}
+}}
 [class*="st-key-rio-startup-continue"] button,
-[class*="st-key-rio-startup-continue"] [data-testid="stBaseButton-primary"] {
-  background: #e25a32 !important;
-  border: 1px solid #e25a32 !important;
-  border-radius: 8px !important;
-  color: #140c09 !important;
-  min-height: 2.8rem !important;
+[class*="st-key-rio-startup-continue"] [data-testid="stBaseButton-primary"] {{
   min-width: 11.5rem !important;
-  padding: 0.45rem 1.5rem !important;
-  font-size: 1rem !important;
-  font-weight: 650 !important;
-  letter-spacing: 0.03em !important;
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35) !important;
-}
-[class*="st-key-rio-startup-continue"] button p,
-[class*="st-key-rio-startup-continue"] button span {
-  color: #140c09 !important;
-  font-size: 1rem !important;
-  font-weight: 650 !important;
-}
-[class*="st-key-rio-startup-continue"] button:hover,
-[class*="st-key-rio-startup-continue"] [data-testid="stBaseButton-primary"]:hover {
-  background: #ff7a45 !important;
-  border-color: #ff7a45 !important;
-  color: #140c09 !important;
-}
-</style>
+}}
 """
 
 
@@ -242,10 +211,7 @@ def acknowledge_startup(state: object) -> None:
 @lru_cache(maxsize=1)
 def _photo_uri() -> str:
     """The track photo as a data URI, or empty when the file is missing."""
-    if not PHOTO_PATH.is_file():
-        return ""
-    encoded = base64.b64encode(PHOTO_PATH.read_bytes()).decode("ascii")
-    return "data:image/jpeg;base64," + encoded
+    return data_uri(str(PHOTO_PATH))
 
 
 def startup_html() -> str:
@@ -261,7 +227,15 @@ def startup_css(photo_uri: str | None = None) -> str:
     """Full-screen photo, dark shade, and the Continue control."""
     uri = _photo_uri() if photo_uri is None else photo_uri
     image = f'url("{uri}")' if uri else "none"
-    return _CSS.replace("PHOTO_URI", image)
+    return (
+        "<style>"
+        + font_css()
+        + fullscreen_rules(image)
+        + _layout_css()
+        + primary_button_css('[class*="st-key-rio-startup-continue"]')
+        + motion_rules()
+        + "</style>"
+    )
 
 
 def render_startup() -> bool:
