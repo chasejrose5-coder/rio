@@ -18,7 +18,6 @@ from pathlib import Path
 
 import streamlit as st
 
-from ui.hero_config import enabled_frames
 from ui.theme import (
     ACCENT,
     CARD_BORDER,
@@ -244,134 +243,13 @@ def _photo_uri() -> str:
     return data_uri(str(PHOTO_PATH))
 
 
-def _frames() -> list[dict]:
-    """Enabled startup frames. A missing config leaves the original photo."""
-    try:
-        return enabled_frames()
-    except OSError:
-        return []
-
-
-def _rotator_html(frames: list[dict]) -> str:
-    """Crossfading photos and a credit for each one. Empty when none are on."""
-    if not frames:
-        return ""
-    photos = []
-    credits = []
-    for index, frame in enumerate(frames):
-        photos.append(f'<div class="rio-hero-frame rio-hero-frame-{index}"></div>')
-        credits.append(
-            f'<p class="rio-hero-credit-item rio-hero-credit-{index}">'
-            f"{escape(str(frame.get('credit') or ''))}</p>"
-        )
-    return (
-        '<div class="rio-hero-rotator" aria-hidden="true">'
-        + "".join(photos)
-        + "</div>"
-        + '<div class="rio-hero-credits">'
-        + "".join(credits)
-        + "</div>"
-    )
-
-
-def _rotator_css(frames: list[dict]) -> str:
-    """Slow crossfade. One photo stays put when motion is reduced."""
-    if not frames:
-        return ""
-    count = len(frames)
-    rules = []
-    for index, frame in enumerate(frames):
-        uri = data_uri(str(frame.get("file") or ""))
-        image = f'url("{uri}")' if uri else "none"
-        rules.append(
-            f".rio-hero-frame-{index}{{background-image:{image};}}"
-        )
-    if count == 1:
-        motion = """
-.rio-hero-frame-0,
-.rio-hero-credit-0 { opacity: 1 !important; }
-"""
-    else:
-        hold = 8.0
-        total = hold * count
-        shown = 0.78 * hold / total * 100
-        gone = min(hold / total * 100 + 2.0, 96.0)
-        delays = []
-        for index in range(count):
-            delays.append(
-                f".rio-hero-frame-{index},.rio-hero-credit-{index}"
-                f"{{animation-delay:{index * hold:.1f}s;}}"
-            )
-        motion = f"""
-@keyframes rio-hero-cross {{
-  0% {{ opacity: 1; }}
-  {shown:.2f}% {{ opacity: 1; }}
-  {gone:.2f}% {{ opacity: 0; }}
-  100% {{ opacity: 0; }}
-}}
-.rio-hero-frame,
-.rio-hero-credit-item {{
-  animation: rio-hero-cross {total:.1f}s cubic-bezier(0.22, 1, 0.36, 1) infinite;
-}}
-{"".join(delays)}
-"""
-    return f"""
-.rio-hero-rotator {{
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}}
-.rio-hero-frame {{
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
-  opacity: 0;
-}}
-.rio-hero-credit-item {{
-  position: fixed;
-  z-index: 6;
-  left: 50%;
-  bottom: 2.8rem;
-  transform: translateX(-50%);
-  margin: 0 !important;
-  padding: 0.22rem 0.75rem;
-  border-radius: 999px;
-  background: rgba(18, 17, 16, 0.55);
-  border: 1px solid rgba(244, 241, 236, 0.35);
-  color: #F4F1EC !important;
-  font-size: 0.78rem !important;
-  line-height: 1.4 !important;
-  opacity: 0;
-  white-space: nowrap;
-  pointer-events: none;
-}}
-{motion}
-@media (prefers-reduced-motion: reduce) {{
-  .rio-hero-frame,
-  .rio-hero-credit-item {{
-    animation: none !important;
-    opacity: 0 !important;
-  }}
-  .rio-hero-frame-0,
-  .rio-hero-credit-0 {{
-    opacity: 1 !important;
-  }}
-}}
-{"".join(rules)}
-"""
-
-
 def startup_html() -> str:
     """The headline, the marked placeholder, and the photo credit."""
-    page = (
+    return (
         _HTML.replace("HEADLINE_TEXT", escape(HEADLINE))
         .replace("STATEMENT_TEXT", escape(CREATOR_STATEMENT))
         .replace("CREDIT_TEXT", escape(PHOTO_CREDIT))
     )
-    return _rotator_html(_frames()) + page
 
 
 def startup_css(photo_uri: str | None = None) -> str:
@@ -383,29 +261,10 @@ def startup_css(photo_uri: str | None = None) -> str:
         + font_css()
         + fullscreen_rules(image)
         + _layout_css()
-        + _rotator_css(_frames())
         + primary_button_css('[class*="st-key-rio-startup-continue"]')
         + motion_rules()
-        + _still_hero_css()
         + "</style>"
     )
-
-
-def _still_hero_css() -> str:
-    """After the shared motion rules, so a reduced-motion visit stays on frame one."""
-    return """
-@media (prefers-reduced-motion: reduce) {
-  .rio-hero-frame,
-  .rio-hero-credit-item {
-    animation: none !important;
-    opacity: 0 !important;
-  }
-  .rio-hero-frame-0,
-  .rio-hero-credit-0 {
-    opacity: 1 !important;
-  }
-}
-"""
 
 
 def render_startup() -> bool:

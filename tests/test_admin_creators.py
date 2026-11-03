@@ -147,32 +147,32 @@ def test_photo_order_credit_and_enabled_round_trip(tmp_path: Path | None = None)
 
 
 def test_startup_frames_and_creators_stay_in_place() -> None:
-    """The three photos crossfade on startup. Creators is placeholder copy."""
+    """Startup uses the track photo only. The stored photo list stays editable."""
     frames = enabled_frames()
     if len(frames) != 3:
         raise AssertionError(frames)
     html = startup_html()
     css = startup_css()
-    if PHOTO_CREDIT not in html:
-        raise AssertionError("the original credit left the startup page")
+    if html.count(PHOTO_CREDIT) != 1:
+        raise AssertionError("the startup credit is not the track photo alone")
     for credit in (
         "Photo by RUN 4 FFWPU on Pexels",
         "Photo by Writchid Snipes on Pexels",
         "Photo by Ansey Photography on Pexels",
     ):
-        if credit not in html:
+        if credit in html or credit in css:
             raise AssertionError(credit)
+    if "rio-hero-frame" in html or "rio-hero-frame" in css:
+        raise AssertionError("the startup page still rotates")
     for piece in (
-        "rio-hero-frame-0",
-        "prefers-reduced-motion",
         "data:image/jpeg;base64,",
         "background-size: cover",
         "rgba(0, 0, 0, 0.64)",
+        "RIO",
+        "Your Race, Your Plan, Your Result",
     ):
-        if piece not in css:
+        if piece not in html and piece not in css:
             raise AssertionError(piece)
-    if "opacity: 1 !important" not in css.split("prefers-reduced-motion")[-1]:
-        raise AssertionError("reduced motion does not keep the first photo")
     for frame in frames:
         image = Image.open(frame["file"])
         width, _height = image.size
