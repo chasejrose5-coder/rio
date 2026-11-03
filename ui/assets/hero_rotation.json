@@ -1,0 +1,25 @@
+{
+  "photos": [
+    {
+      "id": "run-4-ffwpu",
+      "file": "hero_run.jpg",
+      "credit": "Photo by RUN 4 FFWPU on Pexels",
+      "source": "https://www.pexels.com/photo/athlete-winning-competition-11329597/",
+      "enabled": true
+    },
+    {
+      "id": "writchid-snipes",
+      "file": "hero_blocks.jpg",
+      "credit": "Photo by Writchid Snipes on Pexels",
+      "source": "https://www.pexels.com/photo/athletics-starting-blocks-on-blue-track-37695154/",
+      "enabled": true
+    },
+    {
+      "id": "ansey-photography",
+      "file": "hero_race.jpg",
+      "credit": "Photo by Ansey Photography on Pexels",
+      "source": "https://www.pexels.com/photo/athletes-competing-in-outdoor-track-race-30144519/",
+      "enabled": true
+    }
+  ]
+}

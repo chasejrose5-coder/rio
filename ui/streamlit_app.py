@@ -22,6 +22,7 @@ from engines.classify import classify
 from engines.explain import explain, explain_decision, explain_prescription
 from engines.ledger import Ledger
 from engines.normalize import normalize
+from engines.pace import PaceLog, project_800, workout_times
 from engines.prescribe import PARAMETER_KEYS, load_menu, prescribe
 from engines.season import adapt, sequence
 from ui.about import about_sections
@@ -59,7 +60,9 @@ from ui.last_session import (
     open_intervals,
     quality_fill,
 )
+from ui.creators import CREATORS
 from ui.dashboard import dashboard_view, session_facts
+from ui.hero_config import load_rotation, save_rotation
 from ui.recap import recap_view
 from ui.settings import (
     APP_VERSION,
@@ -75,8 +78,10 @@ from ui.settings import (
 from ui.start_form import start_form_defaults
 from ui.startup import acknowledge_startup, render_startup, startup_pending
 from ui import theme
+from ui.access import viewer_is_admin
 from ui.accounts import (
     AccountError,
+    account_rows,
     accounts_path,
     authenticate,
     change_email,
@@ -2927,8 +2932,36 @@ h2.rio-section,
   }
   .rio-track-facts > .rio-track-fact:first-child { grid-column: 1 / -1; }
   .rio-track-fact-value { font-size: 1.28rem; }
+  .rio-pace-line { font-size: 0.92rem !important; }
   .rio-next-day { font-size: 1.45rem; }
+  [class*="st-key-rio-next3"],
+  [class*="st-key-rio-next3"] [data-testid="stHorizontalBlock"] {
+    flex-wrap: wrap !important;
+  }
+  [class*="st-key-rio-next3"] > div,
+  [class*="st-key-rio-next3"] [data-testid="stHorizontalBlock"] > div {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+  }
 }
+.rio-pace { margin-top: 0.45rem; }
+.rio-pace-line {
+  margin: 0.12rem 0 0 !important;
+  color: #121110 !important;
+  font-size: 0.98rem !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+  font-variant-numeric: tabular-nums;
+}
+.rio-pace-range,
+.rio-pace-block {
+  margin: 0.1rem 0 0 !important;
+  color: #6E6A64 !important;
+  font-size: 0.86rem !important;
+  line-height: 1.35 !important;
+  font-variant-numeric: tabular-nums;
+}
+.rio-mini .rio-pace-line { font-size: 0.84rem !important; font-weight: 500 !important; }
 </style>
 """
 
@@ -3350,6 +3383,7 @@ def _day_html(session: dict, *, first: bool = False) -> str:
         '<div class="rio-work">'
         f'<div class="rio-name">{_esc(_workout_text(session["template_id"]))}</div>'
         f'{_id_html(session["template_id"])}'
+        f'{_split_html(session.get("template_id"), session.get("date"))}'
         f'<div class="rio-target">{_esc(_copy(session["target_outcome"]))}</div>'
         "</div>"
         f"{status_html}"
@@ -3403,6 +3437,7 @@ def _week_day_card(session: dict) -> str:
         f'<div class="rio-daycard-date">{_esc(_date_text(session["date"]))}</div>'
         f'<div class="rio-daycard-work">{_esc(_workout_text(session["template_id"]))}</div>'
         f'{_id_html(session["template_id"], "rio-daycard-id")}'
+        f'{_split_html(session.get("template_id"), session.get("date"))}'
         f'<div class="rio-daycard-target">{_esc(_copy(session["target_outcome"]))}</div>'
         f"{actual}"
         "</div>"
@@ -3416,6 +3451,7 @@ def _mini_day(session: dict) -> str:
         f'<div class="rio-mini-dow">{_esc(session["day_of_week"])}</div>'
         f'<div class="rio-mini-date">{_esc(_date_text(session["date"]))}</div>'
         f'<div class="rio-mini-work">{_esc(_workout_text(session["template_id"]))}</div>'
+        f'{_split_html(session.get("template_id"), session.get("date"))}'
         "</div>"
     )
 
@@ -4343,6 +4379,136 @@ def _track_svg() -> str:
     )
 
 
+def _pace_marks() -> tuple[str, date, str, date] | None:
+    """Current 800, start, goal 800, and goal date already stored with the season."""
+    inputs = st.session_state.get("season_inputs")
+    if not inputs_ok(inputs):
+        return None
+    try:
+        start = date.fromisoformat(inputs[1])
+        goal_day = date.fromisoformat(inputs[3])
+    except ValueError:
+        return None
+    return str(inputs[0]), start, str(inputs[2]), goal_day
+
+
+def _positive_numbers(values: object) -> list[float]:
+    if not isinstance(values, (list, tuple)):
+        return []
+    found = []
+    for value in values:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            continue
+        number = float(value)
+        if number > 0:
+            found.append(number)
+    return found
+
+
+def _pace_logs(sessions: list) -> list[PaceLog]:
+    """Logged race and workout times. A stored result wins over a matched file."""
+    actuals = _actuals()
+    activities = _stored_activities()
+    logs = []
+    for session in sessions or []:
+        if not isinstance(session, dict):
+            continue
+        text = session.get("date")
+        template = str(session.get("template_id") or "").strip()
+        if not isinstance(text, str) or not template:
+            continue
+        try:
+            day = date.fromisoformat(text)
+        except ValueError:
+            continue
+        numbers: list[float] = []
+        saved = actuals.get(text) if isinstance(actuals, dict) else None
+        if isinstance(saved, dict) and saved.get("template_id") == template:
+            numbers = _positive_numbers(saved.get("numbers"))
+            if not numbers:
+                numbers = _positive_numbers(saved.get("slots"))
+        if not numbers:
+            match = matched_on(activities, text)
+            if isinstance(match, dict):
+                numbers = _positive_numbers(match.get("reps"))
+        if not numbers:
+            continue
+        logs.append(PaceLog(day, sum(numbers) / len(numbers), template))
+    return logs
+
+
+def _pace_bundle(template_id: object, day: object) -> dict | None:
+    """Target line, tolerance, block, and status for one prescribed day."""
+    marks = _pace_marks()
+    if marks is None or not isinstance(day, str):
+        return None
+    try:
+        on = date.fromisoformat(day)
+    except ValueError:
+        return None
+    plan = st.session_state.get("season_plan")
+    sessions = plan.get("sessions") if isinstance(plan, dict) else []
+    if not isinstance(sessions, list):
+        sessions = []
+    current, start, goal_mark, goal_day = marks
+    try:
+        return workout_times(
+            template_id,
+            current_mark=current,
+            goal_mark=goal_mark,
+            start=start,
+            goal_date=goal_day,
+            on=on,
+            logs=_pace_logs(sessions),
+        )
+    except ValueError:
+        return None
+
+
+def _pace_status_label() -> str:
+    """On track, Ahead, or Behind for today. On track when the season is missing."""
+    marks = _pace_marks()
+    if marks is None:
+        return "On track"
+    plan = st.session_state.get("season_plan")
+    sessions = plan.get("sessions") if isinstance(plan, dict) else []
+    if not isinstance(sessions, list):
+        sessions = []
+    current, start, goal_mark, goal_day = marks
+    try:
+        found = project_800(
+            current_mark=current,
+            goal_mark=goal_mark,
+            start=start,
+            goal_date=goal_day,
+            on=date.today(),
+            logs=_pace_logs(sessions),
+        )
+    except ValueError:
+        return "On track"
+    text = str(found.get("status") or "on track")
+    return text[:1].upper() + text[1:]
+
+
+def _split_html(template_id: object, day: object) -> str:
+    """Per-rep target, tolerance, and block time. Blank when the id has none."""
+    found = _pace_bundle(template_id, day)
+    if not isinstance(found, dict):
+        return ""
+    line = str(found.get("line") or "").strip()
+    tolerance = str(found.get("tolerance") or "").strip()
+    block = str(found.get("block") or "").strip()
+    if not line:
+        return ""
+    return (
+        '<div class="rio-pace">'
+        f'<p class="rio-pace-line">{_esc(line)}</p>'
+        f'<p class="rio-pace-range">Tolerance {_esc(tolerance)}</p>'
+        f'<p class="rio-pace-block">Block {_esc(block)}</p>'
+        "</div>"
+    )
+
+
 def _track_fact(label: str, value: str) -> str:
     return (
         '<div class="rio-track-fact">'
@@ -4371,8 +4537,10 @@ def _track_stage(workout: dict | None) -> str:
         pace = str(facts["pace"])
         rest = str(facts["rest"])
         reps = str(facts["reps"])
+        split = _split_html(template, workout.get("date"))
     else:
         distance = pace = rest = reps = "—"
+        split = ""
         ident = ""
         caption = (
             '<div class="rio-track-fact">'
@@ -4392,7 +4560,7 @@ def _track_stage(workout: dict | None) -> str:
     return (
         '<div class="rio-track-stage rio-next-band">'
         f'<div class="rio-track-frame">{_track_svg()}</div>'
-        f'<div class="rio-track-facts">{details}{ident}</div>'
+        f'<div class="rio-track-facts">{details}{ident}{split}</div>'
         "</div>"
     )
 
@@ -4487,8 +4655,8 @@ def _stat_tile(label: str, value: object) -> str:
     )
 
 
-def _track_meta(view: dict) -> str:
-    """Days, phase, last mark, and this week, as four matching tiles."""
+def _track_meta(view: dict, pace_status: str = "") -> str:
+    """Days, phase, last mark, this week, and the pace status."""
     remaining = view.get("days_remaining")
     number = (
         str(remaining)
@@ -4496,14 +4664,17 @@ def _track_meta(view: dict) -> str:
         else "—"
     )
     mark = view.get("mark")
-    return (
-        '<div class="rio-stat-row">'
-        + _stat_tile("Days to goal", number)
+    tiles = (
+        _stat_tile("Days to goal", number)
         + _stat_tile("Current phase", _phase_text(view.get("phase")))
         + _stat_tile("Last mark", _mark_text(mark if isinstance(mark, dict) else None))
         + _stat_tile("This week", view.get("focus"))
-        + "</div>"
     )
+    kind = "rio-stat-row"
+    if pace_status:
+        tiles += _stat_tile("Pace status", pace_status)
+        kind = "rio-stat-row rio-stat-five"
+    return f'<div class="{kind}">{tiles}</div>'
 
 
 def _season_goal_text() -> str:
@@ -4639,7 +4810,7 @@ def page_dashboard() -> None:
             "</div></header>",
             unsafe_allow_html=True,
         )
-        st.markdown(_track_meta(view), unsafe_allow_html=True)
+        st.markdown(_track_meta(view, _pace_status_label()), unsafe_allow_html=True)
         st.markdown(
             '<p class="rio-index rio-index-pad">02  /  Next workout</p>',
             unsafe_allow_html=True,
@@ -5321,6 +5492,7 @@ def page_session() -> None:
         workout = f'<div class="rio-session-split">{workout}{supplied}</div>'
     parts = [
         workout,
+        _split_html(session.get("template_id"), session.get("date")),
         _label("Structure"),
         _note(_structure_text(session["template_id"])),
         _label("Target outcome"),
@@ -6206,6 +6378,10 @@ def page_plan() -> None:
         ),
         unsafe_allow_html=True,
     )
+    st.markdown(
+        f'<p class="rio-note">Pace status {_esc(_pace_status_label())}.</p>',
+        unsafe_allow_html=True,
+    )
     phase = _phase_number(
         dict(_weeks(sessions)).get(_week_containing(start, length, date.today()), [])
     )
@@ -6240,6 +6416,7 @@ _MORE_BLURB = (
     ("Profile", "The four Start values. The goal time can be saved here."),
     ("Settings", "Name, units, and this account."),
     ("About", "Phases, the 10% rule, and what a mark changes."),
+    ("Creators", "Chase Rose and Jay Rose. Editable placeholder text."),
 )
 
 
@@ -6275,6 +6452,127 @@ def page_more() -> None:
                 query_params=_link_params(),
                 width="stretch",
             )
+
+
+def page_creators() -> None:
+    """Chase Rose and Jay Rose. The bios are editable placeholder text."""
+    hero, _controls = _open("Creators")
+    with hero:
+        st.markdown(
+            _page_hero(
+                "Creators",
+                "SYNTHETIC / DEMO",
+                "Editable placeholder text.",
+            ),
+            unsafe_allow_html=True,
+        )
+    for person in CREATORS:
+        _card(
+            '<p class="rio-index">Placeholder</p>',
+            _label(str(person["role"])),
+            f'<h2 class="rio-week-title">{_esc(person["name"])}</h2>',
+            _note(str(person["bio"])),
+        )
+
+
+def page_admin() -> None:
+    """Accounts and the startup photos. Other logins are sent home."""
+    who = _account_identity()
+    email = who[0] if who is not None else ""
+    if not viewer_is_admin(email):
+        home = _nav_page("Home")
+        if home is not None:
+            params = _link_params()
+            if params:
+                st.switch_page(home, query_params=params)
+            else:
+                st.switch_page(home)
+        st.stop()
+    st.markdown(_css("Admin"), unsafe_allow_html=True)
+    _render_nav("Admin")
+    st.markdown(
+        _page_hero("Admin", "SYNTHETIC / DEMO", "Accounts and the startup photos."),
+        unsafe_allow_html=True,
+    )
+    rows = account_rows(accounts_path())
+    if rows:
+        table = [{"Email": row["email"], "Name": row["name"] or "—"} for row in rows]
+        _card(_label("Accounts"), _table(table), _note("Read only."))
+    else:
+        _card(_label("Accounts"), '<p class="rio-empty">No accounts yet.</p>', _note("Read only."))
+    _render_hero_editor()
+
+
+def _render_hero_editor() -> None:
+    """Enable, reorder, and edit the credit for the startup photos."""
+    photos = load_rotation()
+    known = [photo["id"] for photo in photos]
+    order = st.session_state.get("rio_hero_order")
+    if not isinstance(order, list) or sorted(str(item) for item in order) != sorted(known):
+        order = known
+        st.session_state["rio_hero_order"] = list(order)
+    by_id = {photo["id"]: photo for photo in photos}
+    st.markdown(_label("Startup photos"), unsafe_allow_html=True)
+    st.markdown(
+        '<p class="rio-settings-note">Show, reorder, or edit the credit line.</p>',
+        unsafe_allow_html=True,
+    )
+    notice = st.session_state.pop("rio_hero_notice", None)
+    if isinstance(notice, str) and notice.strip():
+        st.markdown(
+            f'<p class="rio-settings-note">{_esc(notice.strip())}</p>',
+            unsafe_allow_html=True,
+        )
+    problem = st.session_state.pop("rio_hero_error", None)
+    if isinstance(problem, str) and problem.strip():
+        st.markdown(
+            f'<p class="rio-error">{_esc(problem.strip())}</p>',
+            unsafe_allow_html=True,
+        )
+    for index, photo_id in enumerate(list(st.session_state["rio_hero_order"])):
+        photo = by_id.get(photo_id)
+        if photo is None:
+            continue
+        st.checkbox(
+            "Show on the startup page",
+            key=f"hero-on-{photo_id}",
+            **_fresh_value(f"hero-on-{photo_id}", bool(photo["enabled"])),
+        )
+        st.text_input(
+            "Credit line",
+            key=f"hero-credit-{photo_id}",
+            **_fresh_value(f"hero-credit-{photo_id}", str(photo["credit"])),
+        )
+        with st.container(key=f"rio-hero-move-{photo_id}", horizontal=True, gap="small"):
+            up = st.button("Move up", key=f"hero-up-{photo_id}", disabled=index == 0)
+            down = st.button(
+                "Move down",
+                key=f"hero-down-{photo_id}",
+                disabled=index + 1 >= len(st.session_state["rio_hero_order"]),
+            )
+        if up or down:
+            current = list(st.session_state["rio_hero_order"])
+            swap = index - 1 if up else index + 1
+            current[index], current[swap] = current[swap], current[index]
+            st.session_state["rio_hero_order"] = current
+            st.rerun()
+    if st.button("Save photos", type="primary", key="hero-save"):
+        drafted = []
+        for photo_id in st.session_state["rio_hero_order"]:
+            drafted.append(
+                {
+                    "id": photo_id,
+                    "enabled": st.session_state.get(f"hero-on-{photo_id}") is True,
+                    "credit": st.session_state.get(f"hero-credit-{photo_id}"),
+                }
+            )
+        try:
+            save_rotation(drafted)
+        except (ValueError, OSError) as exc:
+            st.session_state["rio_hero_error"] = str(exc)
+            st.rerun()
+        st.session_state["rio_hero_notice"] = "Startup photos saved."
+        st.rerun()
 
 
 # Reads the plan keys already in this browser. It does not write a season.
@@ -6540,18 +6838,24 @@ _start_page = st.Page(_with_plan(page_start), title="Start", default=True)
 _session_page = st.Page(_with_plan(page_session), title="Session", url_path="session")
 _HOME_PAGE = _start_page
 _SESSION_PAGE = _session_page
+_admin_page = st.Page(_with_plan(page_admin), title="Admin", url_path="admin")
+_signed = _account_identity()
+_signed_email = _signed[0] if _signed is not None else ""
 _NAV_PAGES[:] = [
     ("Home", st.Page(_with_plan(page_dashboard), title="Home", url_path="home")),
     ("Plan", st.Page(_with_plan(page_plan), title="Plan", url_path="plan")),
     ("Activity", st.Page(_with_plan(page_activity), title="Activity", url_path="activity")),
     ("Library", st.Page(_with_plan(page_library), title="Library", url_path="library")),
-    ("More", st.Page(_with_plan(page_more), title="More", url_path="more")),
 ]
+if viewer_is_admin(_signed_email):
+    _NAV_PAGES.append(("Admin", _admin_page))
+_NAV_PAGES.append(("More", st.Page(_with_plan(page_more), title="More", url_path="more")))
 _MORE_PAGES[:] = [
     ("Past seasons", st.Page(_with_plan(page_past_seasons), title="Past seasons", url_path="past-seasons")),
     ("Profile", st.Page(_with_plan(page_profile), title="Profile", url_path="profile")),
     ("Settings", st.Page(_with_plan(page_settings), title="Settings", url_path="settings")),
     ("About", st.Page(_with_plan(page_about), title="About", url_path="about")),
+    ("Creators", st.Page(_with_plan(page_creators), title="Creators", url_path="creators")),
 ]
 _KEPT_PAGES[:] = [
     ("Last Session", st.Page(_with_plan(page_last_session), title="Last Session", url_path="last-session")),
@@ -6563,13 +6867,16 @@ _KEPT_PAGES[:] = [
 if _account_identity() is None:
     _render_login()
     st.stop()
+_routed = [
+    _start_page,
+    _session_page,
+    *(page for _, page in _NAV_PAGES),
+    *(page for _, page in _MORE_PAGES),
+    *(page for _, page in _KEPT_PAGES),
+]
+if _admin_page not in _routed:
+    _routed.append(_admin_page)
 st.navigation(
-    [
-        _start_page,
-        _session_page,
-        *(page for _, page in _NAV_PAGES),
-        *(page for _, page in _MORE_PAGES),
-        *(page for _, page in _KEPT_PAGES),
-    ],
+    _routed,
     position="hidden",
 ).run()

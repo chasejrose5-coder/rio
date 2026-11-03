@@ -176,6 +176,28 @@ def authenticate(path: Path, email: object, password: object) -> tuple[str, str]
         return cleaned, seal.hex()
 
 
+def account_rows(path: Path) -> list[dict[str, str]]:
+    """Email and name for every account. Passwords, seals, and records stay out.
+
+    The list is read only. Nothing here removes an account.
+    """
+    with _LOCK:
+        store = _load(path)
+    accounts = store.get("accounts")
+    if not isinstance(accounts, dict):
+        return []
+    rows = []
+    for email, account in accounts.items():
+        if not isinstance(email, str) or not isinstance(account, dict):
+            continue
+        name = account.get("name")
+        if not isinstance(name, str):
+            name = ""
+        rows.append({"email": email, "name": " ".join(name.split())})
+    rows.sort(key=lambda row: row["email"])
+    return rows
+
+
 def read_record(path: Path, email: object, secret: object, key: object) -> str | None:
     """One stored payload, "" when this account has no such key, None when the seal fails."""
     records = _locked_records(path, email, secret)
