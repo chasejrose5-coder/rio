@@ -19,15 +19,19 @@ from pathlib import Path
 import streamlit as st
 
 from ui.theme import (
+    ACCENT,
     CARD_BORDER,
     CARD_FILL,
     CARD_SHADOW,
+    DISPLAY,
     FONT,
-    LIGHT,
+    MUTED,
     RADIUS,
     TEXT,
     data_uri,
+    font_css,
     fullscreen_rules,
+    motion_rules,
     primary_button_css,
 )
 
@@ -57,7 +61,7 @@ _HTML = """
 
 
 def _layout_css() -> str:
-    """Startup type and the glass statement. The photo comes from the theme."""
+    """Startup type and the paper statement. The photo comes from the theme."""
     return f"""
 [data-testid="stHeader"],
 [data-testid="stToolbar"],
@@ -97,35 +101,41 @@ header {{
 }}
 .rio-startup-copy {{
   position: relative;
-  z-index: 2;
-  text-align: center;
-  color: {TEXT};
-}}
-.rio-startup-headline {{
-  margin: 0 0 1.35rem !important;
-  color: {TEXT} !important;
-  font-size: clamp(2.15rem, 5vw, 3.35rem) !important;
-  font-weight: 560 !important;
-  letter-spacing: -0.03em !important;
-  line-height: 1.12 !important;
-  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55);
-}}
-.rio-startup-statement {{
+  z-index: 5;
   margin: 0 auto;
-  max-width: 34rem;
-  padding: 1.05rem 1.2rem 1.15rem;
+  max-width: 36rem;
+  padding: 1.7rem 1.55rem 1.45rem;
   text-align: left;
+  color: {TEXT};
+  background: {CARD_FILL};
   border: 1px solid {CARD_BORDER};
   border-radius: {RADIUS};
-  background: {CARD_FILL};
   box-shadow: {CARD_SHADOW};
-  backdrop-filter: blur(16px);
+}}
+.rio-startup-headline {{
+  margin: 0 0 1.15rem !important;
+  color: {TEXT} !important;
+  font-family: {DISPLAY} !important;
+  font-size: clamp(2.4rem, 5vw, 3.6rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.045em !important;
+  line-height: 1.02 !important;
+}}
+.rio-startup-statement {{
+  margin: 0;
+  max-width: none;
+  padding: 0;
+  text-align: left;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }}
 .rio-startup-kicker {{
   margin: 0 0 0.35rem !important;
-  color: {LIGHT} !important;
+  color: {ACCENT} !important;
   font-size: 0.72rem !important;
-  font-weight: 650 !important;
+  font-weight: 700 !important;
   letter-spacing: 0.16em !important;
   line-height: 1.3 !important;
   text-transform: uppercase;
@@ -139,30 +149,34 @@ header {{
 }}
 .rio-startup-statement-body {{
   margin: 0 !important;
-  color: {TEXT} !important;
+  color: {MUTED} !important;
   font-size: 1.05rem !important;
   font-weight: 400 !important;
   line-height: 1.5 !important;
 }}
 .rio-startup-credit {{
   position: fixed;
-  z-index: 3;
+  z-index: 4;
   left: 0;
   right: 0;
   bottom: 1rem;
-  margin: 0 !important;
-  color: rgba(244, 244, 244, 0.82) !important;
+  width: fit-content;
+  margin: 0 auto !important;
+  padding: 0.22rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid {CARD_BORDER};
+  color: {MUTED} !important;
   font-size: 0.78rem !important;
   font-weight: 400 !important;
   letter-spacing: 0.01em !important;
   line-height: 1.4 !important;
   text-align: center;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
   pointer-events: none;
 }}
 [class*="st-key-rio-startup-continue"] {{
   position: relative !important;
-  z-index: 2 !important;
+  z-index: 6 !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
@@ -211,9 +225,11 @@ def startup_css(photo_uri: str | None = None) -> str:
     image = f'url("{uri}")' if uri else "none"
     return (
         "<style>"
+        + font_css()
         + fullscreen_rules(image)
         + _layout_css()
         + primary_button_css('[class*="st-key-rio-startup-continue"]')
+        + motion_rules()
         + "</style>"
     )
 
