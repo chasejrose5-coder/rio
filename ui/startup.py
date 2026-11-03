@@ -53,7 +53,12 @@ _HTML = """
   <p class="rio-brand-owned">Runner Intelligence Owned</p>
   <h1 class="rio-startup-headline">Your Race, Your Plan, Your Result</h1>
   <p class="rio-brand-line">Understand the work behind your goal</p>
-  <div class="rio-startup-statement" data-placeholder="personal-creator-statement">
+  <p class="rio-reason-line">Every rep has a reason</p>
+  <blockquote class="rio-founder-quote">
+    <p class="rio-founder-words">“Most plans tell you what to run. RIO shows you why, and adjusts when the season doesn't go to script.”</p>
+    <p class="rio-founder-by">— Founder and CEO Chase Rose</p>
+  </blockquote>
+  <div class="rio-startup-statement rio-startup-kept" data-placeholder="personal-creator-statement">
     <p class="rio-startup-kicker">Placeholder</p>
     <p class="rio-startup-statement-label">Personal creator statement</p>
     <p class="rio-startup-statement-body">HEADLINE_TEXT</p>
@@ -153,6 +158,48 @@ header {{
   font-size: 1.05rem !important;
   font-weight: 400 !important;
   line-height: 1.45 !important;
+}}
+.rio-reason-line {{
+  margin: 0.35rem 0 0.7rem !important;
+  color: #F4F1EC !important;
+  font-family: {DISPLAY} !important;
+  font-size: clamp(1.2rem, 2.1vw, 1.55rem) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.25 !important;
+}}
+.rio-founder-quote {{
+  margin: 0 !important;
+  max-width: 38rem;
+  padding: 0 !important;
+  border: 0 !important;
+  border-left: 0 !important;
+}}
+.rio-founder-words {{
+  margin: 0 !important;
+  color: rgba(244, 241, 236, 0.9) !important;
+  font-size: 1.08rem !important;
+  font-weight: 400 !important;
+  line-height: 1.5 !important;
+}}
+.rio-founder-by {{
+  margin: 0.45rem 0 0 !important;
+  color: rgba(244, 241, 236, 0.58) !important;
+  font-size: 0.84rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.01em !important;
+  line-height: 1.4 !important;
+}}
+.rio-startup-kept {{
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }}
 .rio-startup-statement {{
   margin: 0;
