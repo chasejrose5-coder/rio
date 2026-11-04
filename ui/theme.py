@@ -748,7 +748,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
   box-shadow: none !important;
   border-radius: 0 !important;
   display: grid !important;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 1.2rem 1.5rem !important;
   padding: 0.4rem 0 0.2rem !important;
 }}
@@ -851,8 +851,8 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"],
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] span,
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] p {{
-  color: {INVERSE} !important;
-  -webkit-text-fill-color: {INVERSE} !important;
+  color: {ACCENT} !important;
+  -webkit-text-fill-color: {ACCENT} !important;
   opacity: 1 !important;
 }}
 .rio-stat-row.rio-stat-five {{
@@ -1081,16 +1081,16 @@ html {{ color-scheme: light; }}
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"],
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] span,
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] p {{
-  color: {INVERSE} !important;
-  -webkit-text-fill-color: {INVERSE} !important;
+  color: {ACCENT} !important;
+  -webkit-text-fill-color: {ACCENT} !important;
   opacity: 1 !important;
   border-bottom-color: transparent !important;
 }}
 [class*="st-key-rio-sub-"][class*="-is-active"] [data-testid="stPageLink-NavLink"],
 [class*="st-key-rio-sub-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] span,
 [class*="st-key-rio-sub-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] p {{
-  color: {TEXT} !important;
-  -webkit-text-fill-color: {TEXT} !important;
+  color: {ACCENT} !important;
+  -webkit-text-fill-color: {ACCENT} !important;
   opacity: 1 !important;
   border-bottom-color: transparent !important;
 }}

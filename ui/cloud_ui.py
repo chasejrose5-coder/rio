@@ -306,6 +306,19 @@ def _apply_bundle(bundle: dict) -> None:
         if "intro_seen" in profile:
             st.session_state["rio_intro_seen"] = profile.get("intro_seen") is True
     plans = bundle.get("plans") or []
+    remembered = []
+    for item in plans:
+        if not isinstance(item, dict):
+            continue
+        remembered.append(
+            (
+                str(item.get("current_time") or ""),
+                str(item.get("start_date") or ""),
+                str(item.get("goal_time") or ""),
+                str(item.get("goal_date") or ""),
+            )
+        )
+    st.session_state["rio_cloud_season_inputs"] = remembered
     if not plans:
         _remember_digest()
         return
