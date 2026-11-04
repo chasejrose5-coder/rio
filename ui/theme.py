@@ -126,7 +126,7 @@ html, body, .stApp {{
   min-height: 100vh !important;
 }}
 .stApp {{
-  background-color: {BG} !important;
+  background-color: #2A1B1B !important;
   background-image: {image} !important;
   background-size: cover !important;
   background-position: center center !important;
@@ -260,8 +260,23 @@ html, body, .stApp {{
   font-size: clamp(48px, 6vw, 84px) !important;
   font-weight: 800 !important;
   letter-spacing: -0.04em !important;
-  line-height: 0.92 !important;
+  line-height: 1.02 !important;
+  padding-bottom: 0.08em !important;
   opacity: 1 !important;
+}}
+[class*="st-key-rio-auth-card"] .rio-range {{
+  margin-top: 0.35rem !important;
+}}
+[class*="st-key-rio-auth-card"] [data-testid="stVerticalBlock"] {{
+  gap: 0.6rem !important;
+}}
+[class*="st-key-rio-auth-card"] button,
+[class*="st-key-rio-auth-card"] a[data-testid^="stBaseLinkButton"] {{
+  min-height: 44px !important;
+  border-radius: 999px !important;
+}}
+[class*="st-key-rio-auth-card"] [data-testid="stTextInputRootElement"] {{
+  min-height: 44px !important;
 }}
 [class*="st-key-rio-auth-card"] .rio-range,
 [class*="st-key-rio-goal-card"] .rio-range,

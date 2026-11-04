@@ -64,9 +64,33 @@ def test_home_plan_library_and_creators_copy() -> None:
         raise AssertionError("the refresh control was renamed")
 
 
+def test_audit_medium_and_low_items() -> None:
+    app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
+    cloud = (ROOT / "ui" / "cloud_ui.py").read_text(encoding="utf-8")
+    theme = (ROOT / "ui" / "theme.py").read_text(encoding="utf-8")
+    if 'autocomplete="current-password"' not in app or 'autocomplete="email"' not in app:
+        raise AssertionError("local login is missing autocomplete")
+    if 'autocomplete="current-password"' not in cloud or 'autocomplete="name"' not in cloud:
+        raise AssertionError("cloud login is missing autocomplete")
+    if "line-height: 1.02" not in theme or "min-height: 44px" not in theme:
+        raise AssertionError("the auth heading or touch size was not updated")
+    if "background-color: #2A1B1B" not in theme:
+        raise AssertionError("the photo pages have no dark fallback")
+    if 'page_title="RIO · Runner Intelligence Owned"' not in app or 'page_icon="🏃"' not in app:
+        raise AssertionError("the tab title was not set")
+    if 'st.query_params.get("skip") != "1"' not in app or 'st.query_params["skip"] = "1"' not in app:
+        raise AssertionError("a reload does not skip the splash")
+    if "min-width: 44px" not in app:
+        raise AssertionError("the password eye is still a small target")
+    startup = (ROOT / "ui" / "startup.py").read_text(encoding="utf-8")
+    if "data-placeholder" not in startup or 'aria-hidden="true"' not in startup:
+        raise AssertionError("the startup placeholder block was removed")
+
+
 def main() -> None:
     test_cloud_seasons_do_not_need_the_local_seal()
     test_home_plan_library_and_creators_copy()
+    test_audit_medium_and_low_items()
     print("signed in polish ok")
 
 

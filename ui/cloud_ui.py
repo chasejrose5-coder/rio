@@ -392,11 +392,16 @@ def _render_sign_in(backdrop, notice, hero) -> None:
         )
         notice()
         with st.form("rio-cloud-login", border=False):
-            email = st.text_input("Email", key="rio_cloud_email")
-            password = st.text_input("Password", type="password", key="rio_cloud_password")
+            email = st.text_input("Email", key="rio_cloud_email", autocomplete="email")
+            password = st.text_input(
+                "Password",
+                type="password",
+                key="rio_cloud_password",
+                autocomplete="current-password",
+            )
             submitted = st.form_submit_button("Log in", type="primary", width="stretch")
         _google_button("rio-google")
-        forgot = st.button("Forgot password", key="rio-forgot", width="stretch")
+        forgot = st.button("Forgot password?", key="rio-forgot", type="tertiary")
         create = st.button("Create account", key="rio-open-create", width="stretch")
     if forgot:
         st.session_state["rio_auth_screen"] = "forgot"
@@ -424,9 +429,14 @@ def _render_sign_up(backdrop, notice, hero) -> None:
         st.markdown(hero("Create account", "RIO"), unsafe_allow_html=True)
         notice()
         with st.form("rio-cloud-create", border=False):
-            name = st.text_input("Name", key="rio_cloud_name_input")
-            email = st.text_input("Email", key="rio_cloud_create_email")
-            password = st.text_input("Password", type="password", key="rio_cloud_create_password")
+            name = st.text_input("Name", key="rio_cloud_name_input", autocomplete="name")
+            email = st.text_input("Email", key="rio_cloud_create_email", autocomplete="email")
+            password = st.text_input(
+                "Password",
+                type="password",
+                key="rio_cloud_create_password",
+                autocomplete="new-password",
+            )
             submitted = st.form_submit_button("Create account", type="primary", width="stretch")
         _google_button("rio-google-create")
         back = st.button("Back to log in", key="rio-back-login", width="stretch")
@@ -458,7 +468,7 @@ def _render_forgot(backdrop, notice, hero) -> None:
         )
         notice()
         with st.form("rio-cloud-forgot", border=False):
-            email = st.text_input("Email", key="rio_cloud_forgot_email")
+            email = st.text_input("Email", key="rio_cloud_forgot_email", autocomplete="email")
             submitted = st.form_submit_button("Send reset email", type="primary", width="stretch")
         back = st.button("Back to log in", key="rio-forgot-back", width="stretch")
     if back:
@@ -485,7 +495,12 @@ def _render_reset(backdrop, notice, hero) -> None:
         st.markdown(hero("New password", "RIO"), unsafe_allow_html=True)
         notice()
         with st.form("rio-cloud-reset", border=False):
-            password = st.text_input("New password", type="password", key="rio_cloud_new_password")
+            password = st.text_input(
+                "New password",
+                type="password",
+                key="rio_cloud_new_password",
+                autocomplete="new-password",
+            )
             submitted = st.form_submit_button("Save password", type="primary", width="stretch")
     if not submitted:
         return

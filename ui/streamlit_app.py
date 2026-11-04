@@ -3187,9 +3187,10 @@ h2.rio-section,
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  min-height: 0 !important;
-  width: 2.1rem !important;
-  height: 2.1rem !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  width: 44px !important;
+  height: 44px !important;
   margin: 0 !important;
   padding: 0 !important;
   border-radius: 999px !important;
@@ -6775,8 +6776,12 @@ def page_settings() -> None:
             st.text_input("Email", key="settings-email", disabled=True)
             timezone = st.selectbox("Time zone", zones, key="settings-timezone")
             with st.form("rio-password", border=False, clear_on_submit=True):
-                current_pw = st.text_input("Current password", type="password")
-                new_pw = st.text_input("New password", type="password")
+                current_pw = st.text_input(
+                    "Current password", type="password", autocomplete="current-password"
+                )
+                new_pw = st.text_input(
+                    "New password", type="password", autocomplete="new-password"
+                )
                 change_pw = st.form_submit_button("Change password", type="primary")
             if change_pw and who is not None:
                 try:
@@ -7492,9 +7497,14 @@ def _render_create_account() -> None:
         )
         _auth_notice()
         with st.form("rio-create", border=False):
-            name = st.text_input("Name", key="rio_create_name")
-            email = st.text_input("Email", key="rio_create_email")
-            password = st.text_input("Password", type="password", key="rio_create_password")
+            name = st.text_input("Name", key="rio_create_name", autocomplete="name")
+            email = st.text_input("Email", key="rio_create_email", autocomplete="email")
+            password = st.text_input(
+                "Password",
+                type="password",
+                key="rio_create_password",
+                autocomplete="new-password",
+            )
             create = st.form_submit_button("Create account", type="primary", width="stretch")
         with st.container(key="rio-auth-switch"):
             back = st.button("Back to log in", key="rio-back-login", width="stretch")
@@ -7539,8 +7549,13 @@ def _render_login() -> None:
         if not cloud_configured():
             setup_notice_html()
         with st.form("rio-login", border=False):
-            email = st.text_input("Email", key="rio_login_email")
-            password = st.text_input("Password", type="password", key="rio_login_password")
+            email = st.text_input("Email", key="rio_login_email", autocomplete="email")
+            password = st.text_input(
+                "Password",
+                type="password",
+                key="rio_login_password",
+                autocomplete="current-password",
+            )
             log_in = st.form_submit_button("Log in", type="primary", width="stretch")
         with st.container(key="rio-auth-switch"):
             create = st.button("Create account", key="rio-open-create", width="stretch")
@@ -7559,15 +7574,24 @@ def _render_login() -> None:
     _enter_account(signed)
 
 
-st.set_page_config(page_title="rio", layout="centered")
+st.set_page_config(
+    page_title="RIO · Runner Intelligence Owned",
+    page_icon="🏃",
+    layout="centered",
+)
 load_local_env()
 _apply_session_reset()
 _session_was_open = _account_identity() is not None
 _boot_bridge()
 # Once per session. A saved season with sessions opens Home instead.
-if startup_pending(st.session_state) and not _has_current_season():
+if (
+    startup_pending(st.session_state)
+    and not _has_current_season()
+    and st.query_params.get("skip") != "1"
+):
     if render_startup():
         acknowledge_startup(st.session_state)
+        st.query_params["skip"] = "1"
         st.rerun()
     st.stop()
 _restore_session()
