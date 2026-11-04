@@ -2,13 +2,16 @@
 
 """A local account file. The password is hashed. Plan records are sealed with it.
 
-The name is stored with the account. The file lives on this machine. No
-external auth service. No model. No spend. No scores. A signed token holds
-the email and the seal key for one day. The seal key is not written to the file.
+The file seal is Fernet. Older HMAC-CTR seals still open. The hosted site
+does not use this file. A signed token holds the email and the seal key for
+one day so this machine can open the file again. The seal key is not written
+to the account file. The name is stored with the account. No external auth
+service. No model. No spend. No scores.
 """
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import json
@@ -719,14 +722,37 @@ def _open_bundle(token: object, key: bytes) -> tuple[dict[str, str], str] | None
 
 
 def _seal(plaintext: bytes, key: bytes) -> str:
-    """HMAC-SHA256 in counter mode, then a tag. The token is ASCII."""
+    """Fernet authenticated encryption. The token is ASCII."""
+    from cryptography.fernet import Fernet
+
+    token = Fernet(_fernet_key(key)).encrypt(plaintext)
+    return "f2." + token.decode("ascii")
+
+
+def _open_seal(token: str, key: bytes) -> bytes | None:
+    if isinstance(token, str) and token.startswith("f2."):
+        from cryptography.fernet import Fernet, InvalidToken
+
+        try:
+            return Fernet(_fernet_key(key)).decrypt(token[3:].encode("ascii"))
+        except (InvalidToken, ValueError, TypeError):
+            return None
+    return _open_legacy_seal(token, key)
+
+
+def _fernet_key(key: bytes) -> bytes:
+    return base64.urlsafe_b64encode(key)
+
+
+def _legacy_seal(plaintext: bytes, key: bytes) -> str:
+    """Old HMAC-CTR seal. New writes do not use this. Old files still open."""
     nonce = secrets.token_bytes(16)
     cipher = _xor(plaintext, _keystream(key, nonce, len(plaintext)))
     tag = hmac.new(_mac_key(key), nonce + cipher, hashlib.sha256).digest()
     return (b"\x01" + nonce + tag + cipher).hex()
 
 
-def _open_seal(token: str, key: bytes) -> bytes | None:
+def _open_legacy_seal(token: str, key: bytes) -> bytes | None:
     try:
         raw = bytes.fromhex(token)
     except ValueError:
@@ -739,7 +765,10 @@ def _open_seal(token: str, key: bytes) -> bytes | None:
     expected = hmac.new(_mac_key(key), nonce + cipher, hashlib.sha256).digest()
     if not hmac.compare_digest(tag, expected):
         return None
-    return _xor(cipher, _keystream(key, nonce, len(cipher)))
+    try:
+        return _xor(cipher, _keystream(key, nonce, len(cipher)))
+    except ValueError:
+        return None
 
 
 def _keystream(key: bytes, nonce: bytes, length: int) -> bytes:
@@ -758,7 +787,7 @@ def _mac_key(key: bytes) -> bytes:
 
 
 def _xor(left: bytes, right: bytes) -> bytes:
-    return bytes(a ^ b for a, b in zip(left, right))
+    return bytes(a ^ b for a, b in zip(left, right, strict=True))
 
 
 def _unix_time(value: object) -> int | None:
