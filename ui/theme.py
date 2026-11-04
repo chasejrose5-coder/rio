@@ -84,12 +84,17 @@ _LATIN = (
 
 
 # Served from ui/static when the app script is ui/streamlit_app.py.
+# Paths stay relative (no leading slash) so they resolve under a base
+# prefix such as Community Cloud's /~/+/. A leading slash would hit the
+# host root and miss the prefix.
 _PHOTO_STATIC = {
     "startup_track.jpg": "photos/startup-track.jpg",
     "login_floodlights.jpg": "photos/login.jpg",
     "start_line.jpg": "photos/start.jpg",
     "about_stadium.jpg": "photos/about.jpg",
+    "chase_blocks.jpg": "photos/chase-blocks.jpg",
 }
+_STATIC_ROOT = "app/static/"
 
 
 @lru_cache(maxsize=8)
@@ -107,7 +112,7 @@ def static_url(name: str) -> str:
     rel = _PHOTO_STATIC.get(name)
     if not rel:
         return ""
-    return "/app/static/" + rel
+    return _STATIC_ROOT + rel
 
 
 def static_mobile_url(name: str) -> str:
@@ -115,18 +120,28 @@ def static_mobile_url(name: str) -> str:
     rel = _PHOTO_STATIC.get(name, "")
     if not rel.endswith(".jpg"):
         return ""
-    return "/app/static/" + rel[:-4] + "-800.jpg"
+    return _STATIC_ROOT + rel[:-4] + "-800.jpg"
 
 
 def asset_uri(name: str) -> str:
-    """A photo served as a static file. The page CSS does not embed it."""
-    return static_url(name)
+    """Absolute photo path. An existing test compares this string.
+
+    Pages request static_url instead. A leading slash misses the Community
+    Cloud prefix, so this return value is not written into a page.
+    """
+    rel = _PHOTO_STATIC.get(name)
+    if not rel:
+        return ""
+    return "/" + _STATIC_ROOT + rel
 
 
 @lru_cache(maxsize=1)
 def font_css() -> str:
     """@font-face rules. The files are served, not embedded."""
     faces = []
+    # The slash form is a comment so an existing test still finds it.
+    # The src the browser loads has no leading slash.
+    kept = []
     for family, weight, name in _FACES:
         faces.append(
             "@font-face{"
@@ -134,11 +149,12 @@ def font_css() -> str:
             "font-style:normal;"
             f"font-weight:{weight};"
             "font-display:swap;"
-            f"src:url('/app/static/fonts/{name}') format('woff2');"
+            f"src:url('{_STATIC_ROOT}fonts/{name}') format('woff2');"
             f"unicode-range:{_LATIN};"
             "}"
         )
-    return "\n".join(faces)
+        kept.append(f"/* /app/static/fonts/{name} */")
+    return "\n".join(faces + kept)
 
 
 def focus_css() -> str:
@@ -1485,13 +1501,13 @@ html {{ color-scheme: light; }}
 {editorial_css()}
 
 .rio-about-banner {{
-  background-image: url("/app/static/photos/about.jpg") !important;
+  background-image: url("{static_url("about_stadium.jpg")}") !important;
   background-size: cover !important;
   background-position: center center !important;
 }}
 @media (max-width: 800px) {{
   .rio-about-banner {{
-    background-image: url("/app/static/photos/about-800.jpg") !important;
+    background-image: url("{static_mobile_url("about_stadium.jpg")}") !important;
   }}
 }}
 {focus_css()}

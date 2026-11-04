@@ -4653,7 +4653,7 @@ def page_start() -> None:
     until they are typed. A value already edited on this form stays.
     """
     st.markdown(_css("Start"), unsafe_allow_html=True)
-    st.markdown(theme.fullscreen_css(theme.asset_uri(theme.START_PHOTO)), unsafe_allow_html=True)
+    st.markdown(theme.fullscreen_css(theme.static_url(theme.START_PHOTO)), unsafe_allow_html=True)
     st.markdown(theme.shade_html(), unsafe_allow_html=True)
     _render_nav("")
     current_default, start_default, goal_default, goal_day_default = start_form_defaults(date.today())
@@ -7233,7 +7233,7 @@ def page_creators() -> None:
             header.replace('class="rio-hero"', 'class="rio-hero rio-creator-hero"', 1),
             unsafe_allow_html=True,
         )
-    photo = theme.asset_uri(theme.CHASE_PHOTO)
+    photo = theme.static_url(theme.CHASE_PHOTO)
     if photo:
         st.markdown(
             '<figure class="rio-creator-photo">'
@@ -7599,7 +7599,7 @@ def _auth_backdrop() -> None:
     """Floodlights behind Log in and Create account. The form sits on a white card."""
     screen = "Create account" if _auth_screen() == "create" else "Log in"
     st.markdown(_css(screen), unsafe_allow_html=True)
-    st.markdown(theme.fullscreen_css(theme.asset_uri(theme.LOGIN_PHOTO)), unsafe_allow_html=True)
+    st.markdown(theme.fullscreen_css(theme.static_url(theme.LOGIN_PHOTO)), unsafe_allow_html=True)
     st.markdown(theme.shade_html(), unsafe_allow_html=True)
 
 
