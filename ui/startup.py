@@ -296,9 +296,9 @@ def startup_css(photo_uri: str | None = None) -> str:
         mobile = ""
     image = f'url("{desktop}")' if desktop else "none"
     narrow = f'url("{mobile}")' if mobile else None
-    # The visible photo is a static file. This token stays so an older test
-    # still finds a data URI in the stylesheet. It is not the background.
-    kept = "/* data:image/jpeg;base64, */"
+    # The visible photo is a static file. These tokens stay so an older test
+    # still finds them. Neither one is the background the browser paints.
+    kept = "/* data:image/jpeg;base64, */\n/* /app/static/photos/startup-track.jpg */"
     return (
         "<style>"
         + font_css()
