@@ -24,6 +24,22 @@ class CloudAuthError(ValueError):
     """A sign-in or save failed. The message is safe to show."""
 
 
+SIGNUP_CONFIRM = "Check your email to confirm your account, then log in."
+SIGNUP_EXISTS = "An account with that email already exists."
+SIGNUP_RATE = "Too many sign-up attempts. Wait a few minutes and try again."
+SIGNUP_PASSWORD = "Use at least 8 characters."
+SIGNUP_EMAIL = "Enter an email address."
+SIGNUP_NAME = "Enter a name."
+SIGNUP_FAILED = "The account could not be created."
+SIGNUP_PROFILE = (
+    "Your account was created, but the profile could not be saved. Log in and try again."
+)
+SIGNUP_DISABLED = "New accounts are turned off right now."
+SIGNIN_RATE = "Too many sign-in attempts. Wait a few minutes and try again."
+SIGNIN_MISMATCH = "Email or password does not match."
+ACCOUNTS_UNAVAILABLE = "Accounts aren't set up yet. Try again in a minute."
+
+
 class MemoryDirectory:
     """Accounts and rows kept in this process. Tests use this directory."""
 
@@ -152,6 +168,16 @@ class MemoryDirectory:
         user_id = self.user_id(access_token)
         if not self._keep_pace(user_id, unit):
             raise CloudAuthError("Pace units could not be saved.")
+
+    def save_intro_seen(self, access_token: object, seen: object) -> None:
+        """Remember that this athlete dismissed the intro, or asked to see it again."""
+        user_id = self.user_id(access_token)
+        if not isinstance(seen, bool):
+            raise CloudAuthError("The intro guide could not be saved.")
+        user = self.users.get(user_id)
+        if user is None:
+            raise CloudAuthError("The intro guide could not be saved.")
+        user["intro_seen"] = seen
 
     def _keep_pace(self, user_id: str, unit: object) -> bool:
         if unit not in ("mi", "km"):
@@ -329,34 +355,53 @@ class SupabaseDirectory:
 
     def sign_up(self, email: object, password: object, name: object) -> dict:
         cleaned = normalize_email(email)
+        if cleaned is None:
+            raise CloudAuthError(SIGNUP_EMAIL)
         stored_name = normalize_name(name)
-        if cleaned is None or stored_name is None or not isinstance(password, str):
-            raise CloudAuthError("Enter an email address.")
+        if stored_name is None:
+            raise CloudAuthError(SIGNUP_NAME)
+        if not password_ok(password) or not isinstance(password, str):
+            raise CloudAuthError(SIGNUP_PASSWORD)
+        from ui.cloud_config import auth_redirect_base
+
         try:
             response = self._client(self.anon_key).auth.sign_up(
                 {
                     "email": cleaned,
                     "password": password,
-                    "options": {"data": {"display_name": stored_name}},
+                    "options": {
+                        "data": {"display_name": stored_name},
+                        "email_redirect_to": auth_redirect_base() + "/",
+                    },
                 }
             )
+        except CloudAuthError:
+            raise
         except Exception as exc:
-            raise CloudAuthError("The account could not be created.") from exc
-        session = _session_dict(response, stored_name)
+            raise CloudAuthError(signup_error_message(exc)) from exc
+        session = signup_outcome(response, stored_name)
         self._ensure_profile(session, stored_name)
         return session
 
     def sign_in(self, email: object, password: object) -> dict:
         cleaned = normalize_email(email)
-        if cleaned is None or not isinstance(password, str):
-            raise CloudAuthError("Email or password does not match.")
+        if cleaned is None or not isinstance(password, str) or not password:
+            raise CloudAuthError(SIGNIN_MISMATCH)
         try:
             response = self._client(self.anon_key).auth.sign_in_with_password(
                 {"email": cleaned, "password": password}
             )
+        except CloudAuthError:
+            raise
         except Exception as exc:
-            raise CloudAuthError("Email or password does not match.") from exc
-        return _session_dict(response, "")
+            raise CloudAuthError(signin_error_message(exc)) from exc
+        session = _session_dict(response, "")
+        signed_user = _response_parts(response)[1]
+        meta_name = _attr(_attr(signed_user, "user_metadata"), "display_name")
+        if isinstance(meta_name, str) and meta_name.strip():
+            session["display_name"] = meta_name.strip()
+        self._ensure_profile(session, session.get("display_name") or "")
+        return session
 
     def sign_out(self, access_token: object) -> None:
         try:
@@ -419,12 +464,12 @@ class SupabaseDirectory:
         cleaned = normalize_email(email)
         if cleaned is None:
             raise CloudAuthError("Enter an email address.")
-        from ui.cloud_config import app_url
+        from ui.cloud_config import auth_redirect_base
 
         try:
             self._client(self.anon_key).auth.reset_password_for_email(
                 cleaned,
-                {"redirect_to": app_url() + "/?reset=password"},
+                {"redirect_to": auth_redirect_base() + "/?reset=password"},
             )
         except Exception as exc:
             raise CloudAuthError("The reset email could not be sent.") from exc
@@ -450,14 +495,15 @@ class SupabaseDirectory:
         plans = _rows(client.table("plans").select("*").eq("user_id", user_id).execute())
         results = _rows(client.table("results").select("*").eq("user_id", user_id).execute())
         profile = profile or {}
-        pace = None
-        try:
-            pace = _pace_from_metadata(self._auth_user(access_token))
-        except Exception:
-            pace = None
-        if pace and isinstance(profile, dict):
+        auth_user = self._auth_user(access_token)
+        pace = _pace_from_metadata(auth_user)
+        intro = intro_seen_value(auth_user)
+        if isinstance(profile, dict) and (pace or intro is not None):
             profile = dict(profile)
-            profile["pace_units"] = pace
+            if pace:
+                profile["pace_units"] = pace
+            if intro is not None:
+                profile["intro_seen"] = intro
         return {
             "profile": profile,
             "goal": goal or _blank_goal(),
@@ -477,6 +523,19 @@ class SupabaseDirectory:
             raise
         except Exception:
             raise CloudAuthError("Pace units could not be saved.") from None
+
+    def save_intro_seen(self, access_token: object, seen: object) -> None:
+        """Store the intro flag on the auth user, next to pace units."""
+        if not isinstance(seen, bool):
+            raise CloudAuthError("The intro guide could not be saved.")
+        if not isinstance(access_token, str) or not access_token:
+            raise CloudAuthError("Sign in again.")
+        try:
+            self._auth_user_update(access_token, {"intro_seen": seen})
+        except CloudAuthError:
+            raise
+        except Exception:
+            raise CloudAuthError("The intro guide could not be saved.") from None
 
     def save_bundle(self, access_token: object, bundle: object) -> None:
         if not isinstance(bundle, dict):
@@ -677,14 +736,34 @@ class SupabaseDirectory:
         return str(user_id)
 
     def _ensure_profile(self, session: dict, name: str) -> None:
+        """Insert this athlete's profile, or update the name and email only.
+
+        Role is not written. A later update is limited to the columns an
+        athlete is allowed to change.
+        """
         client = self._user_client(session["access_token"])
-        client.table("profiles").upsert(
-            {
-                "id": session["user_id"],
-                "email": session["email"],
-                "display_name": name or session.get("display_name") or "",
-            }
-        ).execute()
+        table = client.table("profiles")
+        user_id = str(session["user_id"])
+        email = str(session.get("email") or "")
+        display = (name or str(session.get("display_name") or "")).strip()
+        try:
+            if _has_profile(table, user_id):
+                _touch_profile(table, user_id, email, display)
+                return
+            table.insert(
+                {"id": user_id, "email": email, "display_name": display}
+            ).execute()
+        except CloudAuthError:
+            raise
+        except Exception:
+            try:
+                _touch_profile(table, user_id, email, display)
+                if not _has_profile(table, user_id):
+                    raise CloudAuthError(SIGNUP_PROFILE)
+            except CloudAuthError:
+                raise
+            except Exception as exc:
+                raise CloudAuthError(SIGNUP_PROFILE) from exc
 
     def _auth_user(self, access_token: object) -> dict | None:
         """The signed-in auth user, or None. The token is not returned."""
@@ -776,11 +855,13 @@ def _public_user(user: dict) -> dict:
     pace = user.get("pace_units")
     if pace in ("mi", "km"):
         row["pace_units"] = pace
+    if isinstance(user.get("intro_seen"), bool):
+        row["intro_seen"] = user["intro_seen"]
     return row
 
 
-def _pace_from_metadata(user: object) -> str | None:
-    """pace_units on the auth user, when it is per mile or per km."""
+def _metadata_dict(user: object) -> dict | None:
+    """user_metadata from an auth user. Missing metadata is None."""
     meta = None
     if isinstance(user, dict):
         meta = user.get("user_metadata")
@@ -790,12 +871,137 @@ def _pace_from_metadata(user: object) -> str | None:
                 meta = nested.get("user_metadata")
     else:
         meta = getattr(user, "user_metadata", None)
-    if not isinstance(meta, dict):
+    if isinstance(meta, dict):
+        return meta
+    return None
+
+
+def _pace_from_metadata(user: object) -> str | None:
+    """pace_units on the auth user, when it is per mile or per km."""
+    meta = _metadata_dict(user)
+    if meta is None:
         return None
     pace = meta.get("pace_units")
     if pace in ("mi", "km"):
         return pace
     return None
+
+
+def intro_seen_value(user: object) -> bool | None:
+    """True or False when the intro flag is stored. None when it is absent."""
+    meta = _metadata_dict(user)
+    if meta is None or "intro_seen" not in meta:
+        return None
+    return meta.get("intro_seen") is True
+
+
+def _exc_text(exc: BaseException) -> str:
+    parts = [type(exc).__name__, str(exc)]
+    for attr in ("message", "code", "error_code", "error", "error_description"):
+        value = getattr(exc, attr, None)
+        if isinstance(value, str):
+            parts.append(value)
+    status = getattr(exc, "status", None)
+    if status is not None:
+        parts.append(str(status))
+    return " ".join(parts).casefold()
+
+
+def signup_error_message(exc: BaseException) -> str:
+    """A human message for a sign-up failure. The raw response is not shown."""
+    text = _exc_text(exc)
+    status = getattr(exc, "status", None)
+    if (
+        status == 429
+        or "429" in text
+        or "rate limit" in text
+        or "too many" in text
+        or "over_email_send_rate_limit" in text
+        or "over_request_rate_limit" in text
+    ):
+        return SIGNUP_RATE
+    if any(
+        token in text
+        for token in (
+            "already registered",
+            "already been registered",
+            "already exists",
+            "user already",
+            "email_exists",
+            "duplicate",
+        )
+    ):
+        return SIGNUP_EXISTS
+    if "password" in text and any(
+        token in text for token in ("short", "least", "weak", "length", "characters", "6")
+    ):
+        return SIGNUP_PASSWORD
+    if any(
+        token in text
+        for token in (
+            "signups not allowed",
+            "signup is disabled",
+            "signups disabled",
+            "sign up is disabled",
+        )
+    ):
+        return SIGNUP_DISABLED
+    if "invalid" in text and "email" in text:
+        return SIGNUP_EMAIL
+    return SIGNUP_FAILED
+
+
+def signin_error_message(exc: BaseException) -> str:
+    """A human message for a sign-in failure. A wrong password stays generic."""
+    text = _exc_text(exc)
+    if (
+        "not confirmed" in text
+        or "email_not_confirmed" in text
+        or "confirm your" in text
+    ):
+        return SIGNUP_CONFIRM
+    status = getattr(exc, "status", None)
+    if status == 429 or "rate limit" in text or "too many" in text:
+        return SIGNIN_RATE
+    return SIGNIN_MISMATCH
+
+
+def _response_parts(response: object) -> tuple[object, object]:
+    if isinstance(response, dict):
+        return response.get("session"), response.get("user")
+    return getattr(response, "session", None), getattr(response, "user", None)
+
+
+def signup_outcome(response: object, name: str) -> dict:
+    """A session, or a clear error when the project returns no session.
+
+    Confirm email returns a user and no session. An address that already
+    exists comes back with an empty identities list and no session.
+    """
+    session, user = _response_parts(response)
+    access = _attr(session, "access_token")
+    user_id = _attr(user, "id")
+    if access and user_id:
+        return _session_dict(response, name)
+    if user_id:
+        identities = _attr(user, "identities")
+        if isinstance(identities, list) and len(identities) == 0:
+            raise CloudAuthError(SIGNUP_EXISTS)
+        raise CloudAuthError(SIGNUP_CONFIRM)
+    raise CloudAuthError(SIGNUP_FAILED)
+
+
+def _has_profile(table: object, user_id: str) -> bool:
+    found = table.select("id").eq("id", user_id).execute()
+    data = getattr(found, "data", None)
+    return isinstance(data, list) and len(data) > 0
+
+
+def _touch_profile(table: object, user_id: str, email: str, display: str) -> None:
+    patch = {"email": email}
+    if display:
+        patch["display_name"] = display
+    table.update(patch).eq("id", user_id).execute()
 
 
 def _session_dict(response: object, name: str) -> dict:

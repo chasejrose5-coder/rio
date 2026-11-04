@@ -78,6 +78,7 @@ from ui.settings import (
     APP_VERSION,
     TIME_ZONES,
     display_distance,
+    display_training,
     distance_heading,
     distance_number,
     format_date,
@@ -799,6 +800,8 @@ _ACCOUNT_SESSION = (
     "rio_create_email",
     "rio_create_name",
     "rio_create_password",
+    "rio_intro_force",
+    "rio_intro_seen",
     "rio_local",
     "rio_local_email",
     "rio_settings",
@@ -1332,6 +1335,8 @@ def _with_plan(page):
                 st.switch_page(admin)
         _load_local()
         _load_shared_plan()
+        if _intro_gate():
+            return
         _pull_for(page.__name__)
         _sync_browser_store()
         page()
@@ -1658,7 +1663,7 @@ button:focus-visible {
   color: #0E0E0E !important;
 }
 
-.rio-hero { padding: 3.4rem 0 2.2rem; }
+.rio-hero { padding: 1.05rem 0 0.75rem; }
 .rio-synthetic {
   margin: 0 !important;
   color: #6B6B6B !important;
@@ -1669,11 +1674,11 @@ button:focus-visible {
 }
 .rio-hero h1,
 .stMarkdown .rio-hero h1 {
-  margin: 0.7rem 0 0 !important;
+  margin: 0.2rem 0 0 !important;
   padding: 0 !important;
   color: #0E0E0E !important;
   font-family: Manrope, Inter, "Segoe UI", sans-serif !important;
-  font-size: clamp(3rem, 7vw, 4.75rem) !important;
+  font-size: clamp(1.7rem, 3.1vw, 2.35rem) !important;
   font-weight: 800 !important;
   letter-spacing: -0.045em !important;
   line-height: 0.98 !important;
@@ -1688,16 +1693,16 @@ button:focus-visible {
   color: #C94A25 !important;
 }
 .rio-range {
-  margin: 0.9rem 0 0 !important;
+  margin: 0.35rem 0 0 !important;
   color: #6B6B6B !important;
   font-size: 1.05rem !important;
   line-height: 1.4 !important;
   font-variant-numeric: tabular-nums;
 }
 .rio-hello {
-  margin: 0.85rem 0 0 !important;
+  margin: 0.35rem 0 0 !important;
   color: #0E0E0E !important;
-  font-size: 1.65rem !important;
+  font-size: 1.15rem !important;
   font-weight: 500 !important;
   letter-spacing: -0.03em !important;
   line-height: 1.15 !important;
@@ -3221,6 +3226,80 @@ def _prefs() -> dict:
     return prefs
 
 
+def _intro_due() -> bool:
+    """True for a new account, or when Settings asked to show the guide again."""
+    if st.session_state.get("rio_test_preview"):
+        return False
+    if st.session_state.get("rio_intro_force") is True:
+        return True
+    seen = st.session_state.get("rio_intro_seen")
+    if seen is True:
+        return False
+    if seen is False:
+        return True
+    if _has_current_season():
+        st.session_state["rio_intro_seen"] = True
+        return False
+    return True
+
+
+def _intro_gate() -> bool:
+    """Draw the first-run guide and stop the page until Skip or Done."""
+    if not _intro_due():
+        return False
+    st.markdown(_css("Intro"), unsafe_allow_html=True)
+    _render_nav("Home")
+    from ui.intro import render_intro
+
+    choice = render_intro()
+    if choice in ("skip", "done"):
+        st.session_state["rio_intro_force"] = False
+        _store_intro(True)
+        st.rerun()
+    return True
+
+
+def _store_intro(seen: bool) -> None:
+    """Keep the intro flag on this account. A cloud account uses user metadata."""
+    st.session_state["rio_intro_seen"] = bool(seen)
+    if st.session_state.get("rio_account_secret") == "cloud":
+        token = st.session_state.get("rio_cloud_access")
+        if not isinstance(token, str) or not token:
+            return
+        from ui.cloud_store import current_directory
+
+        directory = current_directory()
+        if directory is None or not hasattr(directory, "save_intro_seen"):
+            return
+        try:
+            directory.save_intro_seen(token, bool(seen))
+        except Exception:
+            st.session_state["rio_settings_error"] = (
+                "The intro guide could not be saved. It will show again next time."
+            )
+        return
+    who = _account_identity()
+    local = st.session_state.get("rio_local")
+    if who is None or not isinstance(local, dict):
+        return
+    settings = dict(local.get("settings") or {})
+    settings["intro_seen"] = bool(seen)
+    try:
+        saved = write_local(
+            accounts_path(),
+            who[0],
+            who[1],
+            local.get("name") or "",
+            local.get("preferred") or "",
+            local.get("timezone") or "",
+            settings,
+        )
+    except AccountError:
+        return
+    st.session_state["rio_local"] = saved
+    st.session_state["rio_local_email"] = who[0]
+
+
 def _load_local() -> None:
     """Read this account's name and preferences once. The plan is not opened."""
     who = _account_identity()
@@ -3236,8 +3315,11 @@ def _load_local() -> None:
         return
     st.session_state["rio_local"] = local
     st.session_state["rio_local_email"] = who[0]
+    settings = local.get("settings") if isinstance(local.get("settings"), dict) else {}
     if "rio_settings" not in st.session_state:
-        st.session_state["rio_settings"] = dict(local.get("settings") or {})
+        st.session_state["rio_settings"] = dict(settings)
+    if "intro_seen" in settings and "rio_intro_seen" not in st.session_state:
+        st.session_state["rio_intro_seen"] = settings.get("intro_seen") is True
 
 
 def _display_name() -> str:
@@ -3297,8 +3379,8 @@ def _date_text(value: object) -> str:
 
 
 def _copy(text: object) -> str:
-    """Distance words for the chosen units. The plan text is not rewritten."""
-    return display_distance(text, _prefs()["units"])
+    """Distance words for the chosen units. Reps stay in meters."""
+    return display_training(text, _prefs()["units"])
 
 
 def _id_html(template_id: object, extra: str = "") -> str:
@@ -4855,7 +4937,9 @@ def _track_stage(workout: dict | None) -> str:
         day = str(workout.get("day_of_week") or "—")
         when = _date_text(workout.get("date") or "—")
         facts = session_facts(template, _WORKOUT_TEXT.get(template, ""))
-        distance = _copy(facts["distance"])
+        distance = str(facts["distance"])
+        if recipe_continuous(template, workout.get("date")):
+            distance = _copy(distance)
         ident = _id_html(template, "rio-track-id")
         caption = (
             '<div class="rio-track-fact">'
@@ -6645,9 +6729,13 @@ def page_settings() -> None:
                 key="settings-pace",
             )
             st.markdown(
-                '<p class="rio-settings-note">Distances and paces on Activity, Home, and Plan use this.</p>',
+                '<p class="rio-settings-note">Distances and paces on Activity, Home, and Plan use this. Reps stay in meters.</p>',
                 unsafe_allow_html=True,
             )
+            if st.button("Show intro guide", key="rio-show-intro"):
+                st.session_state["rio_intro_force"] = True
+                _store_intro(False)
+                st.rerun()
             st.markdown(
                 '<div hidden>'
                 '<span>Metric</span><span>Imperial</span>'

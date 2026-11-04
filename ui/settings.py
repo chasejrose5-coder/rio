@@ -189,6 +189,39 @@ def display_distance(text: object, units: str) -> str:
     return _METERS.sub(_long_meters_as_km, text)
 
 
+# "8 × 150 m" and "10 x 60 m". A continuous "5 km" or "31,400 m" is not a rep.
+_REP_CHUNK = re.compile(
+    r"\d+\s*(?:×|x)\s+\d+(?:\.\d+)?(?:(?:\s*[-–—]\s*|,\s+)\d+(?:\.\d+)?)*\s*m\b",
+    re.IGNORECASE,
+)
+# "150, 200, 150 m" or "200-400 m". "31,400 m" has no space after the comma.
+_LADDER_CHUNK = re.compile(
+    r"\d+(?:\.\d+)?(?:(?:\s*[-–—]\s*|,\s+)\d+(?:\.\d+)?)+\s*m\b",
+    re.IGNORECASE,
+)
+
+
+def display_training(text: object, units: str) -> str:
+    """Workout words. Reps and ladders stay in meters.
+
+    An easy, long, or tempo distance still follows miles or kilometers.
+    The stored plan is not rewritten.
+    """
+    if not isinstance(text, str):
+        return ""
+    held: list[str] = []
+
+    def grab(match: re.Match) -> str:
+        held.append(match.group(0))
+        return f"§REP{len(held) - 1}§"
+
+    shielded = _LADDER_CHUNK.sub(grab, _REP_CHUNK.sub(grab, text))
+    shown = display_distance(shielded, units)
+    for index, original in enumerate(held):
+        shown = shown.replace(f"§REP{index}§", original)
+    return shown
+
+
 def distance_heading(units: str, distances: object = None) -> str:
     """Lap column. Miles says mi. A long metric lap says km, a shorter one m."""
     if units == "miles":
