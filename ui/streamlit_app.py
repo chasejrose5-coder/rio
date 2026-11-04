@@ -6457,6 +6457,12 @@ def page_settings() -> None:
                 st.session_state["rio_settings_note"] = "Email updated."
                 st.rerun()
 
+    with st.container(key="rio-settings-team"):
+        with st.expander("Team", expanded=True):
+            from ui.coach_page import render_team_settings
+
+            render_team_settings()
+
     with st.container(key="rio-settings-privacy"):
         with st.expander("Privacy", expanded=True):
             st.markdown(_label("Privacy"), unsafe_allow_html=True)
@@ -6703,6 +6709,13 @@ def page_creators() -> None:
         )
 
 
+def page_coach() -> None:
+    """Athletes on this team. A coach can read the plan and cannot edit it."""
+    from ui.coach_page import render_coach
+
+    render_coach()
+
+
 def page_admin() -> None:
     """Accounts and the startup photos. Other logins are sent home."""
     who = _account_identity()
@@ -6752,6 +6765,10 @@ def page_admin() -> None:
             _card(_label("Accounts"), _table(table), _note("Read only."))
         else:
             _card(_label("Accounts"), '<p class="rio-empty">No accounts yet.</p>', _note("Read only."))
+    if cloud_configured() and isinstance(rows, list):
+        from ui.coach_page import render_role_controls
+
+        render_role_controls(rows)
     _render_hero_editor()
 
 
@@ -7100,6 +7117,7 @@ _session_page = st.Page(_with_plan(page_session), title="Session", url_path="ses
 _HOME_PAGE = _start_page
 _SESSION_PAGE = _session_page
 _admin_page = st.Page(_with_plan(page_admin), title="Admin", url_path="admin")
+_coach_page = st.Page(_with_plan(page_coach), title="Coach", url_path="coach")
 _signed = _account_identity()
 _signed_email = _signed[0] if _signed is not None else ""
 _NAV_PAGES[:] = [
@@ -7108,6 +7126,8 @@ _NAV_PAGES[:] = [
     ("Activity", st.Page(_with_plan(page_activity), title="Activity", url_path="activity")),
     ("Library", st.Page(_with_plan(page_library), title="Library", url_path="library")),
 ]
+if viewer_is_admin(_signed_email) or st.session_state.get("rio_cloud_role") == "coach":
+    _NAV_PAGES.append(("Coach", _coach_page))
 if viewer_is_admin(_signed_email):
     _NAV_PAGES.append(("Admin", _admin_page))
 _NAV_PAGES.append(("More", st.Page(_with_plan(page_more), title="More", url_path="more")))
@@ -7137,6 +7157,8 @@ _routed = [
 ]
 if _admin_page not in _routed:
     _routed.append(_admin_page)
+if _coach_page not in _routed:
+    _routed.append(_coach_page)
 st.navigation(
     _routed,
     position="hidden",

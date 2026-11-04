@@ -172,6 +172,10 @@ def cloud_sign_out() -> None:
         "rio_cookie_max_age",
         "rio_google_url",
         "rio_admin_rows",
+        "rio_coach_roster",
+        "rio_coach_detail",
+        "rio_coach_open",
+        "rio_team_membership",
     ):
         st.session_state.pop(key, None)
 

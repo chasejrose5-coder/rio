@@ -36,6 +36,10 @@ class MemoryDirectory:
         self.goals: dict[str, dict] = {}
         self.plans: dict[str, list] = {}
         self.results: dict[str, list] = {}
+        self.teams: dict[str, dict] = {}
+        self.team_by_coach: dict[str, str] = {}
+        self.team_by_code: dict[str, str] = {}
+        self.members: dict[str, str] = {}
 
     def sign_up(self, email: object, password: object, name: object) -> dict:
         cleaned = normalize_email(email)
@@ -165,6 +169,136 @@ class MemoryDirectory:
         if user is None:
             raise CloudAuthError("This role could not be saved.")
         user["role"] = role
+
+    def ensure_team(self, access_token: object) -> dict:
+        user_id = self.user_id(access_token)
+        user = self.users[user_id]
+        if user["role"] not in ("coach", "admin"):
+            raise CloudAuthError("This page is for coaches.")
+        team_id = self.team_by_coach.get(user_id)
+        if team_id is not None:
+            return dict(self.teams[team_id])
+        return self._make_team(user_id)
+
+    def rotate_code(self, access_token: object) -> dict:
+        team = self.ensure_team(access_token)
+        old = team["code"]
+        self.team_by_code.pop(old, None)
+        code = self._fresh_code()
+        self.teams[team["id"]]["code"] = code
+        self.team_by_code[code] = team["id"]
+        return dict(self.teams[team["id"]])
+
+    def join_team(self, access_token: object, code: object) -> None:
+        from ui.coach import normalize_code
+
+        user_id = self.user_id(access_token)
+        team_id = self.team_by_code.get(normalize_code(code))
+        team = self.teams.get(team_id or "")
+        if team is None:
+            raise CloudAuthError("That code is not a team.")
+        if team["coach_id"] == user_id:
+            raise CloudAuthError("That code is your own team.")
+        if user_id in self.members:
+            raise CloudAuthError("Leave your team before joining another.")
+        self.members[user_id] = team["id"]
+
+    def leave_team(self, access_token: object) -> None:
+        user_id = self.user_id(access_token)
+        self.members.pop(user_id, None)
+
+    def membership(self, access_token: object) -> dict | None:
+        user_id = self.user_id(access_token)
+        team_id = self.members.get(user_id)
+        team = self.teams.get(team_id or "")
+        if team is None:
+            return None
+        coach = self.users.get(team["coach_id"]) or {}
+        return {"coach_name": coach.get("display_name") or "Coach"}
+
+    def roster(self, access_token: object, *, today, service_key: object = None) -> dict:
+        from ui.coach import season_summary
+
+        user_id = self.user_id(access_token)
+        user = self.users[user_id]
+        team_id = self.team_by_coach.get(user_id)
+        team = self.teams.get(team_id or "")
+        admin = isinstance(service_key, str) and bool(service_key.strip())
+        if user["role"] not in ("coach", "admin") and not admin:
+            raise CloudAuthError("This page is for coaches.")
+        if admin:
+            athlete_ids = list(self.members)
+        elif team is not None:
+            athlete_ids = [item for item, owner in self.members.items() if owner == team["id"]]
+        else:
+            athlete_ids = []
+        rows = []
+        for athlete_id in athlete_ids:
+            athlete = self.users.get(athlete_id)
+            if athlete is None:
+                continue
+            latest = self._latest_plan(athlete_id)
+            summary = season_summary(latest, today=today)
+            rows.append(
+                {
+                    "id": athlete_id,
+                    "name": athlete["display_name"],
+                    "goal_time": summary["goal_time"],
+                    "days": summary["days"],
+                    "phase": summary["phase"],
+                    "status": summary["status"],
+                }
+            )
+        rows.sort(key=lambda item: item["name"])
+        return {"code": team["code"] if team else "", "athletes": rows}
+
+    def athlete_record(self, access_token: object, athlete_id: object, service_key: object = None) -> dict | None:
+        user_id = self.user_id(access_token)
+        if not isinstance(athlete_id, str) or not self._can_read_athlete(user_id, athlete_id, service_key):
+            return None
+        athlete = self.users.get(athlete_id)
+        if athlete is None:
+            return None
+        latest = self._latest_plan(athlete_id)
+        return {
+            "id": athlete_id,
+            "name": athlete["display_name"],
+            "plan_row": deepcopy(latest) if isinstance(latest, dict) else None,
+            "results": deepcopy(self.results.get(athlete_id) or []),
+        }
+
+    def _can_read_athlete(self, user_id: str, athlete_id: str, service_key: object) -> bool:
+        if isinstance(service_key, str) and service_key.strip():
+            return True
+        team_id = self.team_by_coach.get(user_id)
+        if team_id is None:
+            return False
+        return self.members.get(athlete_id) == team_id
+
+    def _latest_plan(self, athlete_id: str) -> dict | None:
+        plans = self.plans.get(athlete_id) or []
+        if not plans:
+            return None
+        latest = plans[-1]
+        return latest if isinstance(latest, dict) else None
+
+    def _fresh_code(self) -> str:
+        from ui.coach import new_code
+
+        for _ in range(8):
+            code = new_code()
+            if code not in self.team_by_code:
+                return code
+        raise CloudAuthError("A team code could not be made.")
+
+    def _make_team(self, user_id: str) -> dict:
+        team_id = secrets.token_hex(8)
+        code = self._fresh_code()
+        team = {"id": team_id, "coach_id": user_id, "code": code}
+        self.teams[team_id] = team
+        self.team_by_coach[user_id] = team_id
+        self.team_by_code[code] = team_id
+        return dict(team)
 
     def list_users(self, service_key: object) -> list[dict] | None:
         if not isinstance(service_key, str) or not service_key.strip():
@@ -418,6 +552,117 @@ class SupabaseDirectory:
             self._client(service_key).auth.admin.delete_user(user_id)
         except Exception as exc:
             raise CloudAuthError("This account could not be removed on the server.") from exc
+
+    def ensure_team(self, access_token: object) -> dict:
+        from ui.coach import new_code
+
+        client = self._user_client(access_token)
+        user_id = self._token_user(client)
+        found = _first(client.table("teams").select("*").eq("coach_id", user_id).execute())
+        if found is not None:
+            return found
+        code = new_code()
+        client.table("teams").insert({"coach_id": user_id, "code": code}).execute()
+        made = _first(client.table("teams").select("*").eq("coach_id", user_id).execute())
+        if made is None:
+            raise CloudAuthError("A team code could not be made.")
+        return made
+
+    def rotate_code(self, access_token: object) -> dict:
+        from ui.coach import new_code
+
+        client = self._user_client(access_token)
+        user_id = self._token_user(client)
+        self.ensure_team(access_token)
+        code = new_code()
+        client.table("teams").update({"code": code}).eq("coach_id", user_id).execute()
+        found = _first(client.table("teams").select("*").eq("coach_id", user_id).execute())
+        if found is None:
+            raise CloudAuthError("A team code could not be made.")
+        return found
+
+    def join_team(self, access_token: object, code: object) -> None:
+        from ui.coach import normalize_code
+
+        client = self._user_client(access_token)
+        try:
+            client.rpc("join_team", {"join_code": normalize_code(code)}).execute()
+        except CloudAuthError:
+            raise
+        except Exception as exc:
+            raise CloudAuthError("That code is not a team.") from exc
+
+    def leave_team(self, access_token: object) -> None:
+        client = self._user_client(access_token)
+        user_id = self._token_user(client)
+        client.table("team_members").delete().eq("athlete_id", user_id).execute()
+
+    def membership(self, access_token: object) -> dict | None:
+        client = self._user_client(access_token)
+        user_id = self._token_user(client)
+        member = _first(client.table("team_members").select("team_id").eq("athlete_id", user_id).execute())
+        if member is None:
+            return None
+        team = _first(client.table("teams").select("coach_id").eq("id", member.get("team_id")).execute())
+        if team is None:
+            return None
+        coach = _first(client.table("profiles").select("display_name").eq("id", team.get("coach_id")).execute())
+        name = coach.get("display_name") if isinstance(coach, dict) else ""
+        return {"coach_name": name or "Coach"}
+
+    def roster(self, access_token: object, *, today, service_key: object = None) -> dict:
+        from ui.coach import season_summary
+
+        client = self._user_client(access_token)
+        user_id = self._token_user(client)
+        admin = isinstance(service_key, str) and bool(service_key.strip())
+        reader = self._client(service_key) if admin else client
+        team = _first(client.table("teams").select("*").eq("coach_id", user_id).execute())
+        if admin:
+            members = _rows(reader.table("team_members").select("athlete_id").execute())
+        elif team is not None:
+            members = _rows(client.table("team_members").select("athlete_id").eq("team_id", team.get("id")).execute())
+        else:
+            raise CloudAuthError("This page is for coaches.")
+        rows = []
+        for member in members:
+            athlete_id = member.get("athlete_id")
+            if not isinstance(athlete_id, str):
+                continue
+            profile = _first(reader.table("profiles").select("display_name").eq("id", athlete_id).execute())
+            plans = _rows(reader.table("plans").select("*").eq("user_id", athlete_id).execute())
+            latest = plans[-1] if plans else None
+            summary = season_summary(latest, today=today)
+            rows.append(
+                {
+                    "id": athlete_id,
+                    "name": (profile or {}).get("display_name") or "Athlete",
+                    "goal_time": summary["goal_time"],
+                    "days": summary["days"],
+                    "phase": summary["phase"],
+                    "status": summary["status"],
+                }
+            )
+        rows.sort(key=lambda item: str(item["name"]))
+        return {"code": (team or {}).get("code") or "", "athletes": rows}
+
+    def athlete_record(self, access_token: object, athlete_id: object, service_key: object = None) -> dict | None:
+        if not isinstance(athlete_id, str):
+            return None
+        client = self._user_client(access_token)
+        admin = isinstance(service_key, str) and bool(service_key.strip())
+        reader = self._client(service_key) if admin else client
+        profile = _first(reader.table("profiles").select("display_name").eq("id", athlete_id).execute())
+        if profile is None:
+            return None
+        plans = _rows(reader.table("plans").select("*").eq("user_id", athlete_id).execute())
+        results = _rows(reader.table("results").select("*").eq("user_id", athlete_id).execute())
+        return {
+            "id": athlete_id,
+            "name": profile.get("display_name") or "Athlete",
+            "plan_row": plans[-1] if plans else None,
+            "results": results,
+        }
 
     def _user_client(self, access_token: object):
         if not isinstance(access_token, str) or not access_token:

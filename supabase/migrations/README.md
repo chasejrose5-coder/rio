@@ -6,6 +6,8 @@ The service role bypasses those policies. The app uses it only on the server, an
 
 `002_lock_roles.sql` stops a signed-in person from changing `profiles.role`. New profiles still default to athlete. The service role can still set the role. Run it the same way, in the SQL editor, after `001_accounts.sql`. It is safe to run again.
 
+`003_coach_teams.sql` adds teams and memberships. A coach can read an athlete's rows and cannot write them. Codes are looked up by `join_team`, not by listing the table. Run it after 002. It is safe to run again.
+
 After the SQL:
 
 1. Authentication, URL configuration. Site URL: `https://riotraining.streamlit.app`. Redirect URLs: `https://riotraining.streamlit.app` and `https://riotraining.streamlit.app/**`. For a laptop, also add `http://localhost:8501` and `http://localhost:8501/**`.
