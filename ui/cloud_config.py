@@ -49,6 +49,18 @@ def app_url() -> str:
     return found.rstrip("/") or LOCAL_APP
 
 
+def auth_redirect_base() -> str:
+    """Where a confirmation or reset link should open.
+
+    RIO_APP_URL wins. When it is unset, the link uses the hosted site so a
+    message does not point at this machine.
+    """
+    found = read_setting(APP_URL)
+    if found:
+        return found.rstrip("/")
+    return HOSTED_APP
+
+
 def cloud_settings() -> dict | None:
     """URL and anon key, or None when either is missing.
 

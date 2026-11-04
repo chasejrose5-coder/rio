@@ -13,7 +13,12 @@ import streamlit as st
 
 from ui.cloud_config import app_url, cloud_configured, cloud_settings
 from ui.cloud_session import cookie_max_age, pack_cookie, plan_has_sessions, season_digest, unpack_cookie
-from ui.cloud_store import CloudAuthError, current_directory
+from ui.cloud_store import (
+    ACCOUNTS_UNAVAILABLE,
+    SIGNUP_CONFIRM,
+    CloudAuthError,
+    current_directory,
+)
 
 
 def render_cloud_auth(backdrop, notice, hero) -> None:
@@ -167,6 +172,8 @@ def cloud_sign_out() -> None:
         "rio_cloud_role",
         "rio_cloud_loaded",
         "rio_cloud_saved_hash",
+        "rio_intro_seen",
+        "rio_intro_force",
         "rio_role_synced",
         "rio_cookie_write",
         "rio_cookie_max_age",
@@ -296,6 +303,8 @@ def _apply_bundle(bundle: dict) -> None:
             settings["pace_units"] = pace
             st.session_state["rio_settings"] = settings
             st.session_state["rio_pace_saved"] = pace
+        if "intro_seen" in profile:
+            st.session_state["rio_intro_seen"] = profile.get("intro_seen") is True
     plans = bundle.get("plans") or []
     if not plans:
         _remember_digest()
@@ -384,7 +393,7 @@ def _render_sign_in(backdrop, notice, hero) -> None:
         st.rerun()
     if not submitted:
         return
-    directory = current_directory()
+    directory = _directory_or_notice()
     if directory is None:
         return
     try:
@@ -413,13 +422,15 @@ def _render_sign_up(backdrop, notice, hero) -> None:
         st.rerun()
     if not submitted:
         return
-    directory = current_directory()
+    directory = _directory_or_notice()
     if directory is None:
         return
     try:
         session = directory.sign_up(email, password, name)
     except CloudAuthError as exc:
         st.session_state["rio_login_error"] = str(exc)
+        if str(exc) == SIGNUP_CONFIRM:
+            st.session_state["rio_auth_screen"] = "login"
         st.rerun()
     open_cloud_session(session)
     st.rerun()
@@ -442,7 +453,7 @@ def _render_forgot(backdrop, notice, hero) -> None:
         st.rerun()
     if not submitted:
         return
-    directory = current_directory()
+    directory = _directory_or_notice()
     if directory is None:
         return
     try:
@@ -465,7 +476,7 @@ def _render_reset(backdrop, notice, hero) -> None:
             submitted = st.form_submit_button("Save password", type="primary", width="stretch")
     if not submitted:
         return
-    directory = current_directory()
+    directory = _directory_or_notice()
     token = st.query_params.get("token") or st.query_params.get("code") or ""
     if directory is None:
         return
@@ -479,6 +490,15 @@ def _render_reset(backdrop, notice, hero) -> None:
     st.session_state["rio_login_error"] = "Password updated. Log in with the new one."
     st.query_params.clear()
     st.rerun()
+
+
+def _directory_or_notice():
+    """The account directory, or a visible message when it is missing."""
+    directory = current_directory()
+    if directory is None:
+        st.session_state["rio_login_error"] = ACCOUNTS_UNAVAILABLE
+        st.rerun()
+    return directory
 
 
 def _google_button(key: str) -> None:

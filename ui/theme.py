@@ -530,11 +530,11 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
 [class*="st-key-rio-nav"] {{
   background: {HERO} !important;
   background-color: {HERO} !important;
-  min-height: 4.75rem !important;
+  min-height: 3.15rem !important;
   height: auto !important;
   display: flex !important;
   align-items: center !important;
-  padding: 1rem 5vw 0.9rem !important;
+  padding: 0.45rem 5vw 0.4rem !important;
   margin: 0 -5vw !important;
   width: calc(100% + 10vw) !important;
   max-width: none !important;
@@ -619,7 +619,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
   background: {HERO} !important;
   color: {INVERSE} !important;
   margin: 0 -5vw 0 !important;
-  padding: 4.5rem 5vw 3.6rem !important;
+  padding: 1.05rem 5vw 0.8rem !important;
   width: auto !important;
 }}
 .rio-hero h1,
@@ -627,25 +627,25 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
   color: {INVERSE} !important;
   font-family: {DISPLAY} !important;
   font-weight: 800 !important;
-  font-size: clamp(56px, 9vw, 140px) !important;
+  font-size: clamp(1.7rem, 3.1vw, 2.35rem) !important;
   letter-spacing: -0.04em !important;
-  line-height: 0.88 !important;
-  margin: 0.2rem 0 0 !important;
-  max-width: 12ch;
+  line-height: 0.95 !important;
+  margin: 0 !important;
+  max-width: 20ch;
 }}
 .rio-hero .rio-synthetic {{
   color: {ACCENT} !important;
   letter-spacing: 0.16em !important;
-  font-size: 0.72rem !important;
+  font-size: 0.68rem !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
-  margin: 0 0 0.8rem !important;
+  margin: 0 0 0.28rem !important;
 }}
 .rio-hero .rio-range,
 .rio-hero .rio-hello,
 .rio-hero .rio-hello-plan {{
   color: rgba(244, 241, 236, 0.78) !important;
-  font-size: 1.15rem !important;
+  font-size: 0.95rem !important;
   max-width: 36rem;
 }}
 .rio-display {{
@@ -653,10 +653,10 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
   color: {INVERSE} !important;
   font-family: {DISPLAY} !important;
   font-weight: 800 !important;
-  font-size: clamp(56px, 8.2vw, 128px) !important;
+  font-size: clamp(1.85rem, 3.6vw, 2.7rem) !important;
   letter-spacing: -0.04em !important;
-  line-height: 0.86 !important;
-  max-width: 14ch;
+  line-height: 0.95 !important;
+  max-width: 18ch;
 }}
 .rio-display-num {{
   color: {ACCENT};
@@ -667,16 +667,18 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
 .rio-home-grid {{
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(16rem, 0.8fr);
-  gap: 2rem 3rem;
-  align-items: end;
+  gap: 0.55rem 1.4rem;
+  align-items: center;
 }}
 .rio-hero-art {{
   color: {ACCENT};
 }}
 .rio-hero-art .rio-track-svg {{
-  width: 100%;
+  width: auto;
+  max-height: 6.25rem;
   height: auto;
   display: block;
+  margin-left: auto;
 }}
 .rio-index {{
   margin: 0 0 0.85rem !important;
@@ -687,7 +689,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
   text-transform: uppercase !important;
 }}
 .rio-index-pad {{
-  padding: 2.4rem 0 0.2rem;
+  padding: 0.7rem 0 0.15rem;
 }}
 .rio-index-light {{
   color: {ACCENT} !important;
@@ -811,9 +813,9 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
 }}
 .rio-phase-now .rio-phase-num {{ color: {ACCENT} !important; }}
 .rio-about-banner {{
-  height: 78vh !important;
-  min-height: 24rem !important;
-  max-height: none !important;
+  height: 22vh !important;
+  min-height: 7.5rem !important;
+  max-height: 11rem !important;
   margin: 0 -5vw 0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
@@ -824,16 +826,16 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
 .rio-about-title {{
   position: relative;
   z-index: 2;
-  padding: 0 5vw 2.4rem;
+  padding: 0 5vw 1rem;
 }}
 .rio-about-title h1 {{
   margin: 0 !important;
   color: {INVERSE} !important;
   font-family: {DISPLAY} !important;
   font-weight: 800 !important;
-  font-size: clamp(56px, 9vw, 140px) !important;
+  font-size: clamp(1.7rem, 3.1vw, 2.35rem) !important;
   letter-spacing: -0.04em !important;
-  line-height: 0.88 !important;
+  line-height: 0.95 !important;
 }}
 .rio-about-banner .rio-photo-credit {{
   background: rgba(18, 17, 16, 0.45) !important;
@@ -882,7 +884,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
     padding-right: 0 !important;
   }}
   .rio-hero h1, .rio-display, .rio-about-title h1 {{
-    font-size: clamp(48px, 14vw, 72px) !important;
+    font-size: clamp(1.55rem, 7vw, 2.15rem) !important;
   }}
 }}
 """
