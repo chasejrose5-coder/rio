@@ -22,7 +22,8 @@ create table if not exists public.goals (
 create table if not exists public.plans (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles (id) on delete cascade,
-  current_time text not null default '',
+  -- current_time is reserved in Postgres. The quotes keep that column name.
+  "current_time" text not null default '',
   start_date text not null default '',
   goal_time text not null default '',
   goal_date text not null default '',
