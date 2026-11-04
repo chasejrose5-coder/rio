@@ -58,12 +58,7 @@ _HTML = """
     <p class="rio-founder-words">“Most plans tell you what to run. RIO shows you why, and adjusts when the season doesn't go to script.”</p>
     <p class="rio-founder-by">— Chase Rose, Founder</p>
   </blockquote>
-  <div class="rio-startup-statement rio-startup-kept" data-placeholder="personal-creator-statement" aria-hidden="true">
-    <p class="rio-startup-kicker">Placeholder</p>
-    <p class="rio-startup-statement-label">Personal creator statement</p>
-    <p class="rio-startup-statement-body">HEADLINE_TEXT</p>
-    <p class="rio-startup-statement-body">STATEMENT_TEXT</p>
-  </div>
+  <!-- rio-startup-statement data-placeholder="personal-creator-statement" Placeholder Personal creator statement HEADLINE_TEXT STATEMENT_TEXT -->
   <p class="rio-startup-credit">CREDIT_TEXT</p>
 </section>
 """

@@ -2621,7 +2621,7 @@ def _render_result(plan: dict, session: dict, generation: int) -> None:
         if file_just_opened(st.session_state.get(applied_key), source):
             fitted = fit_slots(times, count)
             if any(slot is not None for slot in fitted):
-                for key, slot in zip(keys, fitted):
+                for key, slot in zip(keys, fitted, strict=True):
                     st.session_state[key] = slot
             st.session_state[applied_key] = source
         initial = _initial_slots(saved, count)
@@ -2649,7 +2649,7 @@ def _render_result(plan: dict, session: dict, generation: int) -> None:
             if token and st.session_state.get(actual_seed) != token:
                 seeded = True
                 st.session_state[actual_seed] = token
-        for key, slot in zip(keys, initial):
+        for key, slot in zip(keys, initial, strict=True):
             if key not in st.session_state or (seeded and st.session_state.get(key) is None):
                 st.session_state[key] = slot
         if seeded or handled_key not in st.session_state:
@@ -2764,7 +2764,7 @@ def _render_mark(plan: dict, week_number: int, generation: int) -> None:
     st.markdown('<p class="rio-mark-label">Mark</p>', unsafe_allow_html=True)
     columns = st.columns(3, gap="small")
     choice = None
-    for column, mark in zip(columns, _MARKS):
+    for column, mark in zip(columns, _MARKS, strict=True):
         with column:
             if st.button(
                 mark_label(mark),
@@ -3761,7 +3761,7 @@ def page_calendar() -> None:
     with st.container(key="rio-cal", gap="small"):
         with st.container(key="rio-cal-head", gap=None):
             heads = st.columns(7, gap="small")
-            for column, name in zip(heads, _CAL_DOW):
+            for column, name in zip(heads, _CAL_DOW, strict=True):
                 with column:
                     st.markdown(
                         f'<div class="rio-cal-dow">{_esc(name)}</div>',
@@ -3770,7 +3770,7 @@ def page_calendar() -> None:
         for index, week in enumerate(weeks):
             with st.container(key=f"rio-cal-week-{index}", gap=None):
                 columns = st.columns(7, gap="small")
-                for column, cell in zip(columns, week):
+                for column, cell in zip(columns, week, strict=True):
                     with column:
                         _cal_cell(cell)
 
@@ -4999,9 +4999,12 @@ def page_profile() -> None:
             draft = st.text_input(
                 "Goal 800 time",
                 key="profile_goal_time",
+                placeholder="1:58.0",
+                help="minutes:seconds.tenths. Saving keeps this time. It does not rebuild the season.",
                 **_fresh_value("profile_goal_time", goal_time),
             )
             submitted = st.form_submit_button("Save", type="primary", width="stretch")
+            st.caption("Saving keeps this time on your account. Logged sessions and the season stay as they are.")
         if submitted:
             cleaned = clean_goal(draft)
             if cleaned is None:
@@ -5280,7 +5283,10 @@ def page_settings() -> None:
             if not st.session_state.get("rio_cloud_user_id"):
                 st.text_input("Type your email to confirm", key="settings-delete-email")
                 delete_pw = st.text_input("Password", type="password", key="settings-delete-password")
-            st.checkbox("Delete my account", key="settings-delete-cloud-ok")
+            st.checkbox(
+                "I understand this permanently deletes my season and runs",
+                key="settings-delete-cloud-ok",
+            )
             if st.button("Delete my account", key="settings-delete-cloud"):
                 if st.session_state.get("settings-delete-cloud-ok") is not True:
                     st.session_state["rio_settings_error"] = "Confirm to delete this account."
@@ -5498,12 +5504,7 @@ def page_creators() -> None:
         f'<p class="rio-creator-bio">{_esc(bio)}</p>'
         '<p class="rio-creator-close">Every rep has a reason.</p>'
         "</article>"
-        '<div class="rio-creator-kept" hidden aria-hidden="true">'
-        "<p>Bio coming soon.</p>"
-        "<p>Jay Rose</p>"
-        "<p>Chase Rose and Jay Rose.</p>"
-        f"{kept}"
-        "</div>",
+        f'<!-- aria-hidden="true" rio-creator-kept Bio coming soon. Jay Rose Chase Rose and Jay Rose. {kept} -->',
         unsafe_allow_html=True,
     )
 

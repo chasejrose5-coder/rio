@@ -346,6 +346,10 @@ html, body, .stApp {{
 [class*="st-key-rio-auth-card"] [data-testid="stVerticalBlock"] {{
   gap: 0.6rem !important;
 }}
+[class*="st-key-rio-auth-card"] [data-testid="stButton"],
+[class*="st-key-rio-auth-card"] [data-testid="stLinkButton"] {{
+  margin-top: 0.35rem !important;
+}}
 [class*="st-key-rio-auth-card"] button,
 [class*="st-key-rio-auth-card"] a[data-testid^="stBaseLinkButton"] {{
   min-height: 44px !important;

@@ -3,7 +3,7 @@
 """Authorization code flow, token refresh, and run parsing.
 
 HTTP is injected so tests never call Strava. Tokens are not printed.
-Only Run, TrackRun, and VirtualRun are imported.
+Only Run, TrailRun, and VirtualRun are imported.
 """
 
 from __future__ import annotations
@@ -60,13 +60,15 @@ def make_state(user_id: str, nonce: str) -> str:
 
     secret = read_setting(CLIENT_SECRET).encode("utf-8")
     digest = hmac.new(secret, f"{user_id}.{nonce}".encode("utf-8"), hashlib.sha256).hexdigest()
-    return f"{user_id}.{nonce}.{digest}"
+    return f"strava:{user_id}.{nonce}.{digest}"
 
 
 def state_matches(state: object, user_id: str, nonce: str = "") -> bool:
     """True when this state was signed for this user. A stored nonce is optional."""
     if not isinstance(state, str) or not user_id or "." not in state:
         return False
+    if state.startswith("strava:"):
+        state = state[len("strava:") :]
     prefix = f"{user_id}."
     if not state.startswith(prefix):
         return False

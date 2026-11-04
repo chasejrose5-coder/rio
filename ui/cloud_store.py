@@ -583,6 +583,15 @@ class SupabaseDirectory:
             raise CloudAuthError("That reset link is no longer valid.") from exc
 
     def load_bundle(self, access_token: object) -> dict:
+        try:
+            return self._load_bundle(access_token)
+        except CloudAuthError:
+            raise
+        except Exception as exc:
+            _log_store("load", exc)
+            raise CloudAuthError("Could not load. Check your connection and try again.") from exc
+
+    def _load_bundle(self, access_token: object) -> dict:
         client = self._user_client(access_token)
         user_id = self._token_user(client, access_token)
         profile = _first(client.table("profiles").select("*").eq("id", user_id).execute())
@@ -635,6 +644,15 @@ class SupabaseDirectory:
     def save_bundle(self, access_token: object, bundle: object) -> None:
         if not isinstance(bundle, dict):
             raise CloudAuthError("This account could not be saved.")
+        try:
+            self._save_bundle(access_token, bundle)
+        except CloudAuthError:
+            raise
+        except Exception as exc:
+            _log_store("save", exc)
+            raise CloudAuthError("Could not save. Check your connection and try again.") from exc
+
+    def _save_bundle(self, access_token: object, bundle: dict) -> None:
         client = self._user_client(access_token)
         user_id = self._token_user(client, access_token)
         goal = bundle.get("goal")
@@ -680,6 +698,15 @@ class SupabaseDirectory:
     def delete_user(self, access_token: object, service_key: object) -> None:
         if not isinstance(service_key, str) or not service_key.strip():
             raise CloudAuthError("This account could not be removed on the server.")
+        try:
+            self._delete_user(access_token, service_key)
+        except CloudAuthError:
+            raise
+        except Exception as exc:
+            _log_store("delete", exc)
+            raise CloudAuthError("This account could not be removed on the server.") from exc
+
+    def _delete_user(self, access_token: object, service_key: object) -> None:
         client = self._user_client(access_token)
         user_id = self._token_user(client, access_token)
         self._drop_hosted_for_user(user_id)
@@ -1074,6 +1101,13 @@ def intro_seen_value(user: object) -> bool | None:
     if meta is None or "intro_seen" not in meta:
         return None
     return meta.get("intro_seen") is True
+
+
+def _log_store(action: str, exc: BaseException) -> None:
+    """Record the failure type. The message can contain a token, so it is not logged."""
+    import logging
+
+    logging.getLogger("rio.cloud").warning("supabase %s failed: %s", action, type(exc).__name__)
 
 
 def _exc_text(exc: BaseException) -> str:

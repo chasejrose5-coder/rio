@@ -423,6 +423,8 @@ def _load_saved_season(token: str) -> None:
 
 def _consume_callback() -> None:
     params = st.query_params
+    if str(params.get("state") or "").startswith("strava:"):
+        return
     code = params.get("code")
     if isinstance(code, str) and code and st.session_state.get("rio_cloud_user_id") is None:
         directory = current_directory()
