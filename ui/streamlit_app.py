@@ -1219,6 +1219,9 @@ def _pull_for(page_name: str) -> None:
         st.session_state.pop("activities_notice", None)
         if opened:
             _apply_activity_marks(plan)
+    from ui.strava_ui import restore_rows
+
+    restore_rows()
     st.session_state["activities_trigger"] = trigger
     st.session_state["activities_loaded"] = True
 
@@ -3691,6 +3694,9 @@ def _activities_notice() -> None:
             "</div>",
             unsafe_allow_html=True,
         )
+        from ui.strava_ui import render_connect_button
+
+        render_connect_button()
         return
     st.markdown(
         '<div class="rio-card rio-card-tight">'
@@ -4999,6 +5005,11 @@ def page_dashboard() -> None:
             unsafe_allow_html=True,
         )
         st.markdown(_track_meta(view, _pace_status_label()), unsafe_allow_html=True)
+        from ui.strava_ui import home_line
+
+        line = home_line()
+        if line:
+            st.markdown(line, unsafe_allow_html=True)
         st.markdown(
             '<p class="rio-index rio-index-pad">02  /  Next workout</p>',
             unsafe_allow_html=True,
@@ -5900,6 +5911,9 @@ def page_activity() -> None:
     with st.container(key="rio-activity-refresh"):
         st.button("Refresh", key="activity-refresh")
     _activities_notice()
+    from ui.strava_ui import activity_block
+
+    activity_block()
     volume_shown = False
     heart_shown = False
     if not rows:
@@ -6472,6 +6486,12 @@ def page_settings() -> None:
                 f'<p class="rio-settings-note">RIO {_esc(APP_VERSION)}</p>',
                 unsafe_allow_html=True,
             )
+
+    with st.container(key="rio-settings-strava"):
+        with st.expander("Strava", expanded=True):
+            from ui.strava_ui import render_settings
+
+            render_settings()
 
     with st.container(key="rio-settings-danger"):
         st.markdown('<p class="rio-danger-kicker">Danger zone</p>', unsafe_allow_html=True)
@@ -7095,6 +7115,9 @@ if startup_pending(st.session_state) and not _has_current_season():
     st.stop()
 _restore_session()
 _open_restored_session(_session_was_open)
+from ui.strava_ui import boot_strava
+
+boot_strava()
 _start_page = st.Page(_with_plan(page_start), title="Start", default=True)
 _session_page = st.Page(_with_plan(page_session), title="Session", url_path="session")
 _HOME_PAGE = _start_page

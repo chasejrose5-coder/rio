@@ -172,6 +172,13 @@ def cloud_sign_out() -> None:
         "rio_cookie_max_age",
         "rio_google_url",
         "rio_admin_rows",
+        "rio_strava_token",
+        "rio_strava_synced",
+        "rio_strava_checked",
+        "rio_strava_runs",
+        "rio_strava_state",
+        "rio_strava_nonce",
+        "rio_strava_notice",
     ):
         st.session_state.pop(key, None)
 
