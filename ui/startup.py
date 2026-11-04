@@ -174,6 +174,12 @@ header {{
   font-size: 1.08rem !important;
   font-weight: 400 !important;
   line-height: 1.5 !important;
+  opacity: 1 !important;
+  animation: none !important;
+}}
+[data-testid="stMainBlockContainer"]:has(.rio-founder-words) {{
+  animation: none !important;
+  opacity: 1 !important;
 }}
 .rio-founder-by {{
   margin: 0.45rem 0 0 !important;

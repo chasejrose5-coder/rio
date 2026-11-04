@@ -108,7 +108,12 @@ def data_uri(path: str) -> str:
 
 
 def static_url(name: str) -> str:
-    """The desktop photo URL, or empty when this name is not served."""
+    """The desktop photo URL, or empty when this name is not served.
+
+    Streamlit's app static handler does not set Cache-Control. Browsers
+    revalidate with ETag. A CDN URL would break the relative app/static path
+    this app needs under /~/+/.
+    """
     rel = _PHOTO_STATIC.get(name)
     if not rel:
         return ""
