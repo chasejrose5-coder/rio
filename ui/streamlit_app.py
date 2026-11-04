@@ -1297,12 +1297,22 @@ def _pull_for(page_name: str) -> None:
 
 
 def _open_restored_session(was_signed_in: bool) -> None:
-    """A page load that just restored a valid token opens Home or Start.
+    """A full load of the root opens Home or Start. A deep link stays put.
 
     The token check already ran. A session that was already open stays on
     its page. No plan, or a goal date before today, opens Start.
+    Reloading Plan, Settings, or a session does not send the athlete home.
     """
     if was_signed_in or _account_identity() is None:
+        return
+    url = ""
+    try:
+        url = st.context.url or ""
+    except Exception:
+        url = ""
+    from ui.cloud_session import load_is_app_root
+
+    if not load_is_app_root(url):
         return
     st.session_state["rio_enter"] = True
 
