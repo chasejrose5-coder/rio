@@ -68,8 +68,13 @@ Logged results
 
     With no logs the factor stays 1, which is on track.
     A factor below 1 is ahead. A factor above 1 is behind.
-    After the goal date the schedule stays on the goal, and logs still
-    correct it under the same weekly cap.
+After the goal date the schedule stays on the goal, and logs still
+correct it under the same weekly cap.
+
+Pace display
+    A continuous easy, aerobic, or long run is shown as pace, never as a
+    total clock time. One mile is 1609.344 meters. The same distance and
+    time always format the same way. Rep workouts keep the per-rep target.
 """
 
 from __future__ import annotations
@@ -84,6 +89,15 @@ WEEKLY_CAP = Decimal("0.01")
 # Half a percent, and never tighter than two tenths on a short rep.
 TOLERANCE_SHARE = Decimal("0.005")
 TOLERANCE_FLOOR = Decimal("0.2")
+
+# Statute mile. Pace conversion uses this exact length.
+METERS_PER_MILE = Decimal("1609.344")
+METERS_PER_KM = Decimal(1000)
+PACE_MILE = "mi"
+PACE_KM = "km"
+# Easy, aerobic, and long runs are one effort. Other families are reps.
+CONTINUOUS_FAMILIES = frozenset({"aer"})
+SPEED_FAMILIES = frozenset({"spd", "mv"})
 
 # Seconds relative to 800 pace. 1 is race pace.
 FAMILY_FRACTION = {
@@ -287,6 +301,292 @@ def project_800(
         "factor": factor,
         "status": status_for(factor),
     }
+
+
+def pace_unit(value: object) -> str:
+    """mi or km. Anything else is per mile."""
+    if isinstance(value, str):
+        text = value.strip().lower().replace("_", " ")
+        if text in ("km", "per km", "kilometer", "kilometre", "/km"):
+            return PACE_KM
+    return PACE_MILE
+
+
+def workout_recipe(template_id: object) -> dict | None:
+    """Distances, rest, and whether this id is one continuous run.
+
+    None when the id is not a frozen rep recipe. The same id always
+    returns the same recipe.
+    """
+    parsed = _parse_id(template_id)
+    if parsed is None:
+        return None
+    family, shape, first, last, rest, reps = parsed
+    distances = _distances(shape, first, last, reps)
+    continuous = family in CONTINUOUS_FAMILIES and shape == "" and reps == 1
+    return {
+        "family": family,
+        "shape": shape,
+        "rest_seconds": rest,
+        "reps": reps,
+        "distances": distances,
+        "continuous": continuous,
+        "speed": family in SPEED_FAMILIES,
+        "template_id": template_id.strip() if isinstance(template_id, str) else "",
+    }
+
+
+def pace_seconds(meters: object, seconds: object, unit: object = PACE_MILE) -> Decimal | None:
+    """Seconds per mile or per kilometer. None when the effort is unusable.
+
+    Per mile multiplies by 1609.344 / meters. The division is exact Decimal.
+    """
+    distance = _decimal(meters)
+    elapsed = _decimal(seconds)
+    if distance is None or elapsed is None or distance <= 0 or elapsed <= 0:
+        return None
+    span = METERS_PER_MILE if pace_unit(unit) == PACE_MILE else METERS_PER_KM
+    return elapsed * span / distance
+
+
+def format_pace(meters: object, seconds: object, unit: object = PACE_MILE) -> str:
+    """A pace such as 6:34 /mi. Blank when the effort is unusable.
+
+    Rounded to the nearest second, half up.
+    """
+    found = pace_seconds(meters, seconds, unit)
+    if found is None:
+        return ""
+    return _pace_clock(found, pace_unit(unit))
+
+
+def effort_pace(run: object, unit: object = PACE_MILE) -> str:
+    """Pace for one logged run. Blank when the run has no distance and time."""
+    if not isinstance(run, dict):
+        return ""
+    meters, seconds = _effort(run)
+    if meters is None or seconds is None:
+        return ""
+    return format_pace(meters, seconds, unit)
+
+
+def format_span(meters: object, unit: object = PACE_MILE) -> str:
+    """A distance in the pace unit, to one tenth. 0 stays 0.0."""
+    amount = _decimal(meters)
+    chosen = pace_unit(unit)
+    if amount is None or amount < 0:
+        amount = Decimal(0)
+    span = METERS_PER_MILE if chosen == PACE_MILE else METERS_PER_KM
+    shown = (amount / span).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+    return f"{shown} {chosen}"
+
+
+def rep_time_text(seconds: object) -> str:
+    """A rep time to a tenth of a second, or a clock when it is a minute or more."""
+    number = _decimal(seconds)
+    if number is None or number <= 0:
+        return ""
+    return _rep_time_text(_tenths(number))
+
+
+def display_workout(bundle: dict | None, run: object, unit: object = PACE_MILE) -> dict:
+    """Planned and actual lines for one run.
+
+    A continuous run is pace in the chosen unit. A rep workout keeps the
+    per-rep target and the rest. Actual rep times come from the laps when
+    those laps are the prescribed reps. The same inputs always match.
+    """
+    chosen = pace_unit(unit)
+    template = ""
+    if isinstance(run, dict):
+        template = str(run.get("template_id") or "")
+    recipe = workout_recipe(template)
+    continuous = bool(recipe and recipe["continuous"])
+    speed = bool(recipe and recipe["speed"])
+    if isinstance(bundle, dict) and bundle.get("reps") and continuous:
+        return _continuous_display(bundle, run if isinstance(run, dict) else {}, chosen)
+    if isinstance(bundle, dict) and bundle.get("reps"):
+        return _rep_display(bundle, run if isinstance(run, dict) else {}, speed)
+    actual = format_pace(*_effort(run if isinstance(run, dict) else {}), chosen)
+    detail = f"Actual {actual}" if actual else "Actual —"
+    return {
+        "planned": "—",
+        "actual": actual or "—",
+        "detail": detail,
+        "laps": [],
+        "continuous": False,
+        "speed": False,
+    }
+
+
+def _continuous_display(bundle: dict, run: dict, unit: str) -> dict:
+    row = bundle["reps"][0]
+    target = format_pace(row["meters"], row["seconds"], unit)
+    meters, seconds = _effort(run)
+    actual = format_pace(meters, seconds, unit) if meters is not None else ""
+    if not target:
+        target = "—"
+    detail = f"Target {target} · Actual {actual or '—'}"
+    return {
+        "planned": target,
+        "actual": actual or "—",
+        "detail": detail,
+        "laps": [],
+        "continuous": True,
+        "speed": False,
+    }
+
+
+def _rep_display(bundle: dict, run: dict, speed: bool) -> dict:
+    reps = bundle["reps"]
+    rest = int(bundle.get("rest_seconds") or 0)
+    distances = [int(row["meters"]) for row in reps]
+    times = _lap_seconds(run, distances)
+    same = len({row["seconds"] for row in reps}) == 1 and len(set(distances)) == 1
+    if same:
+        planned = f"Target {rep_time_text(reps[0]['seconds'])}"
+        if rest > 0:
+            planned = f"{planned} · {rest} s rest"
+    else:
+        planned = str(bundle.get("line") or "—")
+    actuals = [rep_time_text(item) for item in times]
+    actuals = [item for item in actuals if item]
+    actual = ", ".join(actuals) if actuals else "—"
+    detail = planned if not actuals else f"{planned} · Actual {actual}"
+    laps = []
+    if speed and actuals:
+        laps = _speed_laps(reps, times, rest)
+    return {
+        "planned": planned,
+        "actual": actual,
+        "detail": detail,
+        "laps": laps,
+        "continuous": False,
+        "speed": speed,
+    }
+
+
+def _speed_laps(reps: list, times: list, rest: int) -> list[dict]:
+    rows = []
+    count = max(len(reps), len(times))
+    for index in range(count):
+        target = rep_time_text(reps[index]["seconds"]) if index < len(reps) else "—"
+        actual = rep_time_text(times[index]) if index < len(times) else "—"
+        between = index < count - 1 and rest > 0
+        rows.append(
+            {
+                "rep": index + 1,
+                "target": target or "—",
+                "actual": actual or "—",
+                "rest": f"{rest} s" if between else "—",
+            }
+        )
+    return rows
+
+
+def _effort(run: dict) -> tuple[Decimal | None, Decimal | None]:
+    """Total meters and seconds. Laps win. A stored pace fills a missing time."""
+    laps = run.get("laps") if isinstance(run.get("laps"), list) else []
+    meters = Decimal(0)
+    seconds = Decimal(0)
+    used = False
+    for lap in laps:
+        if not isinstance(lap, dict):
+            continue
+        distance = _lap_meters(lap)
+        elapsed = _lap_elapsed(lap)
+        if distance is None or elapsed is None or distance <= 0 or elapsed <= 0:
+            continue
+        meters += distance
+        seconds += elapsed
+        used = True
+    if used:
+        return meters, seconds
+    distance = _decimal(run.get("distance_m"))
+    if distance is None:
+        distance = _decimal(run.get("distance"))
+    elapsed = _decimal(run.get("elapsed_seconds"))
+    if elapsed is None or elapsed <= 0:
+        elapsed = _decimal(run.get("moving_seconds"))
+    pace = _decimal(run.get("pace_s_per_km"))
+    if pace is not None and pace > 0 and distance is not None and distance > 0:
+        elapsed = pace * distance / METERS_PER_KM
+    if distance is None or elapsed is None or distance <= 0 or elapsed <= 0:
+        return None, None
+    return distance, elapsed
+
+
+def _lap_seconds(run: dict, distances: list[int]) -> list[Decimal]:
+    """One time per prescribed rep. A warm-up lap is left out when it does not match."""
+    laps = run.get("laps") if isinstance(run.get("laps"), list) else []
+    parsed: list[tuple[Decimal | None, Decimal]] = []
+    for lap in laps:
+        if not isinstance(lap, dict):
+            continue
+        elapsed = _lap_elapsed(lap)
+        if elapsed is None or elapsed <= 0:
+            continue
+        parsed.append((_lap_meters(lap), elapsed))
+    if not parsed:
+        reps = run.get("reps")
+        if isinstance(reps, list):
+            for item in reps:
+                number = _decimal(item)
+                if number is not None and number > 0:
+                    parsed.append((None, number))
+    if not parsed:
+        return []
+    if len(parsed) == len(distances):
+        return [elapsed for _meters, elapsed in parsed]
+    if len(distances) == 1 and len(parsed) == 1:
+        return [parsed[0][1]]
+    chosen: list[Decimal] = []
+    cursor = 0
+    for target in distances:
+        goal = Decimal(target)
+        matched = None
+        while cursor < len(parsed):
+            distance, elapsed = parsed[cursor]
+            cursor += 1
+            if distance is None or goal <= 0:
+                matched = elapsed
+                break
+            gap = abs(distance - goal) / goal
+            if gap <= Decimal("0.2"):
+                matched = elapsed
+                break
+        if matched is None:
+            break
+        chosen.append(matched)
+    if len(chosen) == len(distances):
+        return chosen
+    if not distances:
+        return [elapsed for _meters, elapsed in parsed]
+    return []
+
+
+def _lap_meters(lap: dict) -> Decimal | None:
+    for key in ("distance_m", "distance"):
+        number = _decimal(lap.get(key))
+        if number is not None:
+            return number
+    return None
+
+
+def _lap_elapsed(lap: dict) -> Decimal | None:
+    for key in ("moving_seconds", "moving_time", "elapsed_seconds", "elapsed_time"):
+        number = _decimal(lap.get(key))
+        if number is not None and number > 0:
+            return number
+    return None
+
+
+def _pace_clock(seconds: Decimal, unit: str) -> str:
+    whole = seconds.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    total = int(whole)
+    if total < 0:
+        total = 0
+    return f"{total // 60}:{total % 60:02d} /{unit}"
 
 
 def _log_target(

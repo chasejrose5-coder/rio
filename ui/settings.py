@@ -66,6 +66,7 @@ TIME_ZONES = (
 
 DEFAULTS = {
     "units": "km",
+    "pace_units": "mi",
     "show_ids": False,
     "compact": False,
     "date_format": "iso",
@@ -82,12 +83,14 @@ def normalize(raw: object) -> dict:
     """A complete preference dict. Unknown or blank values use the defaults."""
     found = raw if isinstance(raw, dict) else {}
     units = found.get("units")
+    pace_units = found.get("pace_units")
     date_format = found.get("date_format")
     start_date = found.get("start_date")
     reminders = found.get("reminders") is True
     recap = found.get("recap") is True
     return {
         "units": units if units in ("km", "miles") else DEFAULTS["units"],
+        "pace_units": pace_units if pace_units in ("mi", "km") else DEFAULTS["pace_units"],
         "show_ids": found.get("show_ids") is True,
         "compact": found.get("compact") is True,
         "date_format": date_format if date_format in ("iso", "short") else DEFAULTS["date_format"],

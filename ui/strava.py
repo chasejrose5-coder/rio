@@ -17,7 +17,7 @@ import urllib.parse
 import urllib.request
 from datetime import date, datetime, timedelta, timezone
 
-from engines.pace import PaceLog, workout_times
+from engines.pace import PaceLog, display_workout, workout_times
 
 CLIENT_ID = "RIO_STRAVA_CLIENT_ID"
 CLIENT_SECRET = "RIO_STRAVA_CLIENT_SECRET"
@@ -421,8 +421,13 @@ def planned_vs_actual(
     goal_day: date,
     on: date,
     logs: list[PaceLog] | tuple[PaceLog, ...] | None = None,
+    unit: str = "mi",
 ) -> dict:
-    """Planned line and status from workout_times, next to this run."""
+    """Planned line and status from workout_times, next to this run.
+
+    Continuous runs are pace in `unit` (per mile unless km is asked).
+    Rep workouts keep the per-rep target. An int distance still counts.
+    """
     template = run.get("template_id") or ""
     collected: list[PaceLog] = []
     if isinstance(logs, (list, tuple)):
@@ -445,21 +450,19 @@ def planned_vs_actual(
         except ValueError:
             found = None
     status = "On track"
-    planned = "—"
     if isinstance(found, dict):
-        planned = str(found.get("line") or "—")
         text = str(found.get("status") or "on track")
         status = text[:1].upper() + text[1:]
-    distance = run.get("distance_m")
-    distance_text = "—"
-    if isinstance(distance, float):
-        distance_text = f"{distance / 1000:.1f} km"
+    shown = display_workout(found if isinstance(found, dict) else None, run, unit)
     return {
         "date": run.get("date") or "",
         "name": run.get("name") or "Run",
-        "planned": planned,
-        "actual": f"{distance_text} · {pace_text(run.get('pace_s_per_km'))}",
+        "planned": shown["planned"],
+        "actual": shown["detail"],
         "status": status,
+        "laps": shown["laps"],
+        "continuous": shown["continuous"],
+        "speed": shown["speed"],
     }
 
 
