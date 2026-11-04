@@ -31,7 +31,8 @@ class MemoryStrava:
         found = self.tokens.get(user_id)
         return deepcopy(found) if isinstance(found, dict) else None
 
-    def put_activities(self, user_id: str, rows: list) -> None:
+    def put_activities(self, user_id: str, rows: list, service_key: str = "") -> None:
+        del service_key
         current = list(self.activities.get(user_id) or [])
         by_id = {}
         for row in current:
@@ -42,7 +43,8 @@ class MemoryStrava:
                 by_id[row["id"]] = deepcopy(row)
         self.activities[user_id] = list(by_id.values())
 
-    def get_activities(self, user_id: str) -> list:
+    def get_activities(self, user_id: str, service_key: str = "") -> list:
+        del service_key
         return deepcopy(self.activities.get(user_id) or [])
 
     def delete_user(self, user_id: str, service_key: str) -> None:
@@ -76,15 +78,35 @@ class SupabaseStrava:
 
     def _service(self):
         from supabase import create_client
+        from ui.cloud_store import _fresh_options
 
-        return create_client(self.url, self.service_key)
+        return create_client(self.url, self.service_key, options=_fresh_options())
 
-    def _user(self):
+    def _owner_client(self):
         from supabase import create_client
+        from ui.cloud_store import _fresh_options
 
-        client = create_client(self.url, self.anon_key)
+        client = create_client(self.url, self.anon_key, options=_fresh_options())
         client.postgrest.auth(self.access_token)
         return client
+
+    def _server_write(self, service_key: str) -> bool:
+        return isinstance(service_key, str) and bool(service_key) and service_key == self.service_key
+
+    def owner_id(self) -> str:
+        """The auth user for this access token. A caller-supplied id is not trusted."""
+        from supabase import create_client
+        from ui.cloud_store import _fresh_options
+
+        client = create_client(self.url, self.anon_key, options=_fresh_options())
+        user = client.auth.get_user(self.access_token)
+        found = getattr(user, "user", user)
+        user_id = getattr(found, "id", None)
+        if not user_id and isinstance(found, dict):
+            user_id = found.get("id")
+        if not user_id:
+            raise PermissionError("activities stay with their owner")
+        return str(user_id)
 
     def put_token(self, user_id: str, record: dict, service_key: str) -> None:
         if not service_key:
@@ -120,12 +142,19 @@ class SupabaseStrava:
             "last_sync_at": row.get("last_sync_at"),
         }
 
-    def put_activities(self, user_id: str, rows: list) -> None:
-        client = self._service()
+    def put_activities(self, user_id: str, rows: list, service_key: str = "") -> None:
+        """Own rows use the signed-in JWT, in batches. Tokens stay on _service().
+
+        The TEST season passes the server key and writes that athlete only.
+        """
+        client = self._service() if self._server_write(service_key) else self._owner_client()
+        if not self._server_write(service_key) and self.owner_id() != user_id:
+            raise PermissionError("activities stay with their owner")
+        payload = []
         for row in rows:
-            if not isinstance(row, dict):
+            if not isinstance(row, dict) or not row.get("id"):
                 continue
-            client.table("strava_activities").upsert(
+            payload.append(
                 {
                     "user_id": user_id,
                     "activity_id": row.get("id"),
@@ -142,15 +171,19 @@ class SupabaseStrava:
                     "template_id": row.get("template_id") or "",
                     "matched": row.get("matched") is True,
                 }
+            )
+        for start in range(0, len(payload), 500):
+            client.table("strava_activities").upsert(
+                payload[start : start + 500],
+                on_conflict="user_id,activity_id",
             ).execute()
 
-    def get_activities(self, user_id: str) -> list:
+    def get_activities(self, user_id: str, service_key: str = "") -> list:
+        client = self._service() if self._server_write(service_key) else self._owner_client()
+        if not self._server_write(service_key) and self.owner_id() != user_id:
+            raise PermissionError("activities stay with their owner")
         response = (
-            self._service()
-            .table("strava_activities")
-            .select("*")
-            .eq("user_id", user_id)
-            .execute()
+            client.table("strava_activities").select("*").eq("user_id", user_id).execute()
         )
         rows = getattr(response, "data", None) or []
         found = []

@@ -88,7 +88,7 @@ def load_test_season(directory, strava, service_key: str, *, caller_id: object =
         built = build_test_season()
         directory.write_owned_season(user_id, service_key, built["goal"], built["plan_row"], TEST_NAME)
         strava.delete_user(user_id, service_key)
-        strava.put_activities(user_id, built["runs"])
+        strava.put_activities(user_id, built["runs"], service_key)
     except TestSeasonError:
         raise
     except CloudAuthError as exc:
@@ -142,7 +142,7 @@ def read_test_bundle(directory, strava, service_key: str) -> dict | None:
         return None
     sessions = plan.get("sessions") if isinstance(plan.get("sessions"), list) else []
     try:
-        runs = match_runs(strava.get_activities(user_id), sessions)
+        runs = match_runs(strava.get_activities(user_id, service_key), sessions)
     except Exception:
         return None
     return {

@@ -55,6 +55,12 @@ def _note(text: str) -> str:
     return f'<p class="rio-note">{_esc(text)}</p>'
 
 
+def connected_as_html(name: object) -> str:
+    """The athlete name is escaped. A Strava display name is not trusted HTML."""
+    label = name if isinstance(name, str) and name.strip() else "Strava athlete"
+    return f'<p class="rio-settings-note">Connected as {_esc(label)}.</p>'
+
+
 def _card(*parts: str) -> None:
     st.markdown(f'<div class="rio-card">{"".join(parts)}</div>', unsafe_allow_html=True)
 
@@ -152,10 +158,7 @@ def render_settings() -> None:
     st.markdown(_note("Strava data is only visible to you."), unsafe_allow_html=True)
     token = _cached_token()
     if isinstance(token, dict) and token.get("athlete_name"):
-        st.markdown(
-            f'<p class="rio-settings-note">Connected as {token["athlete_name"]}.</p>',
-            unsafe_allow_html=True,
-        )
+        st.markdown(connected_as_html(token.get("athlete_name")), unsafe_allow_html=True)
         if st.button("Disconnect", key="rio-strava-disconnect"):
             _disconnect()
         return

@@ -1,19 +1,24 @@
 # cloud_session.py — the hosted session cookie and the saved-season check.
 
-"""A 24-hour cookie holds the access token and the refresh token.
+"""A 24-hour cookie. New sessions store an opaque id.
 
-The service role key is never packed into it. A plan counts as a current
-season when it has at least one session.
+The Supabase tokens stay on the server. pack_cookie still builds the older
+JSON cookie so a browser that already has one can be opened, and so the
+session table can be missing. The service role key is never packed into it.
+A plan counts as a current season when it has at least one session.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import secrets
 import time
 
 SESSION_SECONDS = 24 * 60 * 60
 COOKIE_NAME = "rio_hosted"
+# Opaque browser value. The Supabase tokens stay in app_sessions.
+HOSTED_PREFIX = "rio1."
 
 
 def pack_cookie(
@@ -72,6 +77,21 @@ def unpack_cookie(raw: object, *, now: int | None = None) -> dict | None:
         "display_name": name,
         "issued_at": issued,
     }
+
+
+def new_hosted_sid() -> str:
+    """A cookie value with no Supabase token in it."""
+    return HOSTED_PREFIX + secrets.token_urlsafe(32)
+
+
+def hosted_sid(raw: object) -> bool:
+    """True when this cookie is an opaque session id."""
+    return isinstance(raw, str) and raw.startswith(HOSTED_PREFIX) and 8 < len(raw) < 200
+
+
+def hosted_hash(sid: str) -> str:
+    """The key stored on the server. The raw cookie is not stored."""
+    return hashlib.sha256(sid.encode("utf-8")).hexdigest()
 
 
 def cookie_max_age(issued_at: int, *, now: int | None = None) -> int:

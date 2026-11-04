@@ -12,10 +12,12 @@ from __future__ import annotations
 
 import os
 import secrets
+import time
 from copy import deepcopy
 from datetime import datetime, timezone
 
 from ui.accounts import normalize_email, normalize_name, password_ok
+from ui.cloud_session import SESSION_SECONDS, hosted_hash, hosted_sid, new_hosted_sid
 
 _MEMORY: "MemoryDirectory | None" = None
 
@@ -52,6 +54,7 @@ class MemoryDirectory:
         self.goals: dict[str, dict] = {}
         self.plans: dict[str, list] = {}
         self.results: dict[str, list] = {}
+        self.hosted: dict[str, dict] = {}
 
     def sign_up(self, email: object, password: object, name: object) -> dict:
         cleaned = normalize_email(email)
@@ -72,6 +75,7 @@ class MemoryDirectory:
             "display_name": stored_name,
             "role": "athlete",
             "created_at": datetime.now(timezone.utc).isoformat(),
+            "email_confirmed_at": datetime.now(timezone.utc).isoformat(),
         }
         self.by_email[cleaned] = user_id
         self.goals[user_id] = _blank_goal()
@@ -90,6 +94,13 @@ class MemoryDirectory:
     def sign_out(self, access_token: object) -> None:
         if isinstance(access_token, str):
             self.sessions.pop(access_token, None)
+            dead = [
+                digest
+                for digest, row in self.hosted.items()
+                if row.get("access_token") == access_token
+            ]
+            for digest in dead:
+                self.hosted.pop(digest, None)
 
     def google_url(self, redirect_to: str) -> str:
         code = secrets.token_hex(6)
@@ -222,6 +233,9 @@ class MemoryDirectory:
         self.goals.pop(user_id, None)
         self.plans.pop(user_id, None)
         self.results.pop(user_id, None)
+        dead_hosted = [digest for digest, row in self.hosted.items() if row.get("user_id") == user_id]
+        for digest in dead_hosted:
+            self.hosted.pop(digest, None)
         email = self.users[user_id]["email"]
         self.by_email.pop(email, None)
         self.users.pop(user_id, None)
@@ -260,6 +274,7 @@ class MemoryDirectory:
             "display_name": stored_name,
             "role": "athlete",
             "created_at": datetime.now(timezone.utc).isoformat(),
+            "email_confirmed_at": datetime.now(timezone.utc).isoformat(),
         }
         self.by_email[cleaned] = user_id
         self.goals[user_id] = _blank_goal()
@@ -307,9 +322,68 @@ class MemoryDirectory:
         self.goals.pop(user_id, None)
         self.plans.pop(user_id, None)
         self.results.pop(user_id, None)
+        dead_hosted = [digest for digest, row in self.hosted.items() if row.get("user_id") == user_id]
+        for digest in dead_hosted:
+            self.hosted.pop(digest, None)
         self.by_email.pop(email, None)
         self.users.pop(user_id, None)
         return True
+
+    def verified_user(self, access_token: object) -> dict | None:
+        """The auth user for this token. The profile row is not consulted."""
+        try:
+            user_id = self.user_id(access_token)
+        except CloudAuthError:
+            return None
+        user = self.users.get(user_id)
+        if user is None:
+            return None
+        return {
+            "id": user_id,
+            "email": user["email"],
+            "email_confirmed_at": user.get("email_confirmed_at") or "",
+        }
+
+    def save_hosted_session(self, record: object) -> str:
+        """Store tokens under a hash. The returned cookie holds no token."""
+        if not isinstance(record, dict):
+            raise CloudAuthError("Sign in again.")
+        access = record.get("access_token")
+        user_id = record.get("user_id")
+        if not isinstance(access, str) or not access or not isinstance(user_id, str) or not user_id:
+            raise CloudAuthError("Sign in again.")
+        sid = new_hosted_sid()
+        issued = _issued(record.get("issued_at"))
+        self.hosted[hosted_hash(sid)] = _hosted_record(record, issued)
+        return sid
+
+    def load_hosted_session(self, sid: object) -> dict | None:
+        if not hosted_sid(sid):
+            return None
+        row = self.hosted.get(hosted_hash(str(sid)))
+        if not isinstance(row, dict):
+            return None
+        if _hosted_expired(row):
+            self.hosted.pop(hosted_hash(str(sid)), None)
+            return None
+        return dict(row)
+
+    def update_hosted_session(self, sid: object, record: object) -> None:
+        if not hosted_sid(sid) or not isinstance(record, dict):
+            return
+        digest = hosted_hash(str(sid))
+        current = self.hosted.get(digest)
+        if not isinstance(current, dict):
+            return
+        issued = int(current.get("issued_at") or _issued(None))
+        merged = dict(current)
+        merged.update(_hosted_record(record, issued))
+        merged["issued_at"] = issued
+        self.hosted[digest] = merged
+
+    def drop_hosted_session(self, sid: object) -> None:
+        if hosted_sid(sid):
+            self.hosted.pop(hosted_hash(str(sid)), None)
 
     def _open(self, user_id: str) -> dict:
         token = secrets.token_hex(16)
@@ -327,8 +401,26 @@ class MemoryDirectory:
         }
 
 
-# One anon client per project, so a Google redirect can finish in this process.
-_ANON_CLIENTS: dict[str, object] = {}
+# Code-verifier storage for the Google redirect only. It is not a PostgREST client,
+# and user queries never read it. Each query builds its own client.
+_OAUTH_STORAGE: object | None = None
+
+
+def _fresh_options(*, oauth: bool = False):
+    """No shared session and no automatic refresh. One visitor cannot replace another."""
+    from supabase import ClientOptions
+
+    storage = None
+    if oauth:
+        global _OAUTH_STORAGE
+        if _OAUTH_STORAGE is None:
+            from supabase_auth import SyncMemoryStorage
+
+            _OAUTH_STORAGE = SyncMemoryStorage()
+        storage = _OAUTH_STORAGE
+    if storage is None:
+        return ClientOptions(persist_session=False, auto_refresh_token=False)
+    return ClientOptions(persist_session=False, auto_refresh_token=False, storage=storage)
 
 
 class SupabaseDirectory:
@@ -340,18 +432,20 @@ class SupabaseDirectory:
         self.service_key = service_key
 
     def _client(self, key: str):
+        """A new client. Auth state from another visitor is not reused."""
         try:
             from supabase import create_client
         except ImportError as exc:
             raise CloudAuthError("Accounts could not be reached.") from exc
-        if key == self.anon_key:
-            cached = _ANON_CLIENTS.get(self.url)
-            if cached is not None:
-                return cached
-        client = create_client(self.url, key)
-        if key == self.anon_key:
-            _ANON_CLIENTS[self.url] = client
-        return client
+        return create_client(self.url, key, options=_fresh_options())
+
+    def _oauth_client(self):
+        """The Google round trip keeps its code verifier. This client is not used for rows."""
+        try:
+            from supabase import create_client
+        except ImportError as exc:
+            raise CloudAuthError("Accounts could not be reached.") from exc
+        return create_client(self.url, self.anon_key, options=_fresh_options(oauth=True))
 
     def sign_up(self, email: object, password: object, name: object) -> dict:
         cleaned = normalize_email(email)
@@ -404,16 +498,17 @@ class SupabaseDirectory:
         return session
 
     def sign_out(self, access_token: object) -> None:
+        """Revoke this access token only. Other visitors' sessions stay."""
+        if not isinstance(access_token, str) or not access_token:
+            return
         try:
-            client = self._client(self.anon_key)
-            if isinstance(access_token, str) and access_token:
-                client.auth.sign_out()
+            self._client(self.anon_key).auth.admin.sign_out(access_token, "local")
         except Exception:
             return
 
     def google_url(self, redirect_to: str) -> str:
         try:
-            response = self._client(self.anon_key).auth.sign_in_with_oauth(
+            response = self._oauth_client().auth.sign_in_with_oauth(
                 {
                     "provider": "google",
                     "options": {
@@ -433,7 +528,7 @@ class SupabaseDirectory:
         if not isinstance(code, str) or not code:
             raise CloudAuthError("Sign-in could not be finished. Try again.")
         try:
-            response = self._client(self.anon_key).auth.exchange_code_for_session(
+            response = self._oauth_client().auth.exchange_code_for_session(
                 {"auth_code": code}
             )
         except Exception as exc:
@@ -489,7 +584,7 @@ class SupabaseDirectory:
 
     def load_bundle(self, access_token: object) -> dict:
         client = self._user_client(access_token)
-        user_id = self._token_user(client)
+        user_id = self._token_user(client, access_token)
         profile = _first(client.table("profiles").select("*").eq("id", user_id).execute())
         goal = _first(client.table("goals").select("*").eq("user_id", user_id).execute())
         plans = _rows(client.table("plans").select("*").eq("user_id", user_id).execute())
@@ -541,7 +636,7 @@ class SupabaseDirectory:
         if not isinstance(bundle, dict):
             raise CloudAuthError("This account could not be saved.")
         client = self._user_client(access_token)
-        user_id = self._token_user(client)
+        user_id = self._token_user(client, access_token)
         goal = bundle.get("goal")
         if isinstance(goal, dict):
             row = _clean_goal(goal)
@@ -588,7 +683,8 @@ class SupabaseDirectory:
         if not isinstance(service_key, str) or not service_key.strip():
             raise CloudAuthError("This account could not be removed on the server.")
         client = self._user_client(access_token)
-        user_id = self._token_user(client)
+        user_id = self._token_user(client, access_token)
+        self._drop_hosted_for_user(user_id)
         client.table("results").delete().eq("user_id", user_id).execute()
         client.table("plans").delete().eq("user_id", user_id).execute()
         client.table("goals").delete().eq("user_id", user_id).execute()
@@ -703,6 +799,7 @@ class SupabaseDirectory:
             return False
         try:
             client = self._client(service_key)
+            self._drop_hosted_for_user(user_id)
             client.table("results").delete().eq("user_id", user_id).execute()
             client.table("plans").delete().eq("user_id", user_id).execute()
             client.table("goals").delete().eq("user_id", user_id).execute()
@@ -711,6 +808,90 @@ class SupabaseDirectory:
         except Exception:
             raise CloudAuthError("The test season could not be removed.") from None
         return True
+
+    def verified_user(self, access_token: object) -> dict | None:
+        """Auth identity for this JWT. profiles.email is not read."""
+        raw = self._auth_user(access_token)
+        if not isinstance(raw, dict):
+            return None
+        user_id = raw.get("id")
+        email = raw.get("email")
+        if not user_id or not isinstance(email, str) or not email:
+            return None
+        confirmed = raw.get("email_confirmed_at") or ""
+        return {"id": str(user_id), "email": email, "email_confirmed_at": confirmed}
+
+    def save_hosted_session(self, record: object) -> str:
+        """Write tokens with the service role. The cookie is only the session id."""
+        if not isinstance(record, dict) or not self.service_key:
+            raise CloudAuthError("Sign in again.")
+        access = record.get("access_token")
+        user_id = record.get("user_id")
+        if not isinstance(access, str) or not access or not isinstance(user_id, str) or not user_id:
+            raise CloudAuthError("Sign in again.")
+        sid = new_hosted_sid()
+        issued = _issued(record.get("issued_at"))
+        row = _hosted_record(record, issued)
+        row["sid_hash"] = hosted_hash(sid)
+        try:
+            self._client(self.service_key).table("app_sessions").upsert(row).execute()
+        except Exception as exc:
+            raise CloudAuthError("Sign in again.") from exc
+        return sid
+
+    def load_hosted_session(self, sid: object) -> dict | None:
+        if not hosted_sid(sid) or not self.service_key:
+            return None
+        try:
+            row = _first(
+                self._client(self.service_key)
+                .table("app_sessions")
+                .select("*")
+                .eq("sid_hash", hosted_hash(str(sid)))
+                .limit(1)
+                .execute()
+            )
+        except Exception as exc:
+            raise CloudAuthError("Sign in again.") from exc
+        if not isinstance(row, dict) or _hosted_expired(row):
+            if isinstance(row, dict):
+                self.drop_hosted_session(sid)
+            return None
+        return row
+
+    def update_hosted_session(self, sid: object, record: object) -> None:
+        if not hosted_sid(sid) or not isinstance(record, dict) or not self.service_key:
+            return
+        current = self.load_hosted_session(sid)
+        if not isinstance(current, dict):
+            return
+        issued = int(current.get("issued_at") or _issued(None))
+        row = _hosted_record(record, issued)
+        row["sid_hash"] = hosted_hash(str(sid))
+        row["issued_at"] = issued
+        try:
+            self._client(self.service_key).table("app_sessions").upsert(row).execute()
+        except Exception as exc:
+            raise CloudAuthError("Sign in again.") from exc
+
+    def drop_hosted_session(self, sid: object) -> None:
+        if not hosted_sid(sid) or not self.service_key:
+            return
+        try:
+            self._client(self.service_key).table("app_sessions").delete().eq(
+                "sid_hash", hosted_hash(str(sid))
+            ).execute()
+        except Exception as exc:
+            raise CloudAuthError("Sign in again.") from exc
+
+    def _drop_hosted_for_user(self, user_id: str) -> None:
+        """Best effort. A missing table does not block account deletion."""
+        if not self.service_key or not user_id:
+            return
+        try:
+            self._client(self.service_key).table("app_sessions").delete().eq("user_id", user_id).execute()
+        except Exception:
+            return
 
     def _user_client(self, access_token: object):
         if not isinstance(access_token, str) or not access_token:
@@ -722,9 +903,12 @@ class SupabaseDirectory:
             raise CloudAuthError("Sign in again.") from exc
         return client
 
-    def _token_user(self, client) -> str:
+    def _token_user(self, client, access_token: str) -> str:
+        """Who this token is. The client's saved session is not consulted."""
+        if not isinstance(access_token, str) or not access_token:
+            raise CloudAuthError("Sign in again.")
         try:
-            user = client.auth.get_user()
+            user = client.auth.get_user(access_token)
         except Exception as exc:
             raise CloudAuthError("Sign in again.") from exc
         found = getattr(user, "user", user)
@@ -736,10 +920,10 @@ class SupabaseDirectory:
         return str(user_id)
 
     def _ensure_profile(self, session: dict, name: str) -> None:
-        """Insert this athlete's profile, or update the name and email only.
+        """Insert this athlete's profile, or update the display name only.
 
-        Role is not written. A later update is limited to the columns an
-        athlete is allowed to change.
+        Role and email are not written on update. Email is set once, from
+        the auth user, and the database lock keeps it there.
         """
         client = self._user_client(session["access_token"])
         table = client.table("profiles")
@@ -997,11 +1181,40 @@ def _has_profile(table: object, user_id: str) -> bool:
     return isinstance(data, list) and len(data) > 0
 
 
-def _touch_profile(table: object, user_id: str, email: str, display: str) -> None:
-    patch = {"email": email}
-    if display:
-        patch["display_name"] = display
-    table.update(patch).eq("id", user_id).execute()
+def _touch_profile(table: object, user_id: str, _email: str, display: str) -> None:
+    """Display name only. profiles.email is not an athlete-writable column."""
+    if not display:
+        return
+    table.update({"display_name": display}).eq("id", user_id).execute()
+
+
+def _issued(value: object) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        return int(time.time())
+    return value
+
+
+def _hosted_record(record: dict, issued: int) -> dict:
+    expires = datetime.fromtimestamp(issued + SESSION_SECONDS, timezone.utc).isoformat()
+    return {
+        "user_id": str(record.get("user_id") or ""),
+        "access_token": str(record.get("access_token") or ""),
+        "refresh_token": str(record.get("refresh_token") or ""),
+        "email": str(record.get("email") or ""),
+        "display_name": str(record.get("display_name") or ""),
+        "issued_at": issued,
+        "expires_at": expires,
+    }
+
+
+def _hosted_expired(row: dict, *, now: int | None = None) -> bool:
+    issued = row.get("issued_at")
+    if isinstance(issued, str) and issued.isdigit():
+        issued = int(issued)
+    if isinstance(issued, bool) or not isinstance(issued, int):
+        return True
+    moment = int(time.time()) if now is None else int(now)
+    return moment - issued >= SESSION_SECONDS
 
 
 def _session_dict(response: object, name: str) -> dict:

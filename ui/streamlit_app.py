@@ -867,6 +867,10 @@ def _apply_session_reset() -> None:
 
 
 # This browser keeps a signed token for one day. The account file does not.
+# Streamlit's component bridge cannot set HttpOnly. The hosted cookie is an
+# opaque session id when app_sessions exists (see ui/cloud_ui.py). SameSite=Lax
+# stays so the OAuth return still sends the cookie. Secure and a 24-hour Max-Age
+# are set below.
 _SESSION_STORE_JS = """
 export default function (component) {
   var data = component.data || {};

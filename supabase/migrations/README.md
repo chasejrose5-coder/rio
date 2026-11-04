@@ -8,9 +8,13 @@ The service role bypasses those policies. The app uses it only on the server, an
 
 `003_strava.sql` adds Strava tokens and activities. Tokens are not granted to signed-in users. Activities are. Run it after 002. It is safe to run again.
 
+`005_lock_profile_email.sql` stops a signed-in person from changing `profiles.email`. Admin is decided from the confirmed auth user, not from that column. Run it after 003. It is safe to run again.
+
+`006_app_sessions.sql` stores hosted session tokens on the server. The browser cookie holds only an id. Run it after 005. It is safe to run again. Until it has been run, the app still writes the older cookie so a login is not lost.
+
 After the SQL:
 
 1. Authentication, URL configuration. Site URL: `https://riotraining.streamlit.app`. Redirect URLs: `https://riotraining.streamlit.app` and `https://riotraining.streamlit.app/**`. For a laptop, also add `http://localhost:8501` and `http://localhost:8501/**`.
-2. Authentication, Providers, Email. Turn off "Confirm email".
+2. Authentication, Providers, Email. Keep "Confirm email" ON. Also turn on "Secure email change" if that switch is shown. Do not turn confirmation off.
 3. Authentication, Providers, Google. Turn it on. The Google Cloud OAuth client needs this redirect URI exactly: `https://<project-ref>.supabase.co/auth/v1/callback`. Copy the client id and secret into the Google provider in Supabase.
 4. Put the four settings in Streamlit Cloud secrets, or in `.env` on a laptop. The names are listed in `.env.example`. Do not commit the values.
