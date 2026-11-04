@@ -69,7 +69,7 @@ DEFAULTS = {
     "pace_units": "mi",
     "show_ids": False,
     "compact": False,
-    "date_format": "iso",
+    "date_format": "short",
     "confirm_adapt": False,
     "notifications": False,
     "start_date": "today",
@@ -88,12 +88,24 @@ def normalize(raw: object) -> dict:
     start_date = found.get("start_date")
     reminders = found.get("reminders") is True
     recap = found.get("recap") is True
+    # A blank choice is the default. A rejected choice stays on the older
+    # fallback so a bad value does not become the new default.
+    if units in ("km", "miles"):
+        chosen_units = units
+    else:
+        chosen_units = "km"
+    if date_format in ("iso", "short"):
+        chosen_date = date_format
+    elif date_format is None:
+        chosen_date = DEFAULTS["date_format"]
+    else:
+        chosen_date = "iso"
     return {
-        "units": units if units in ("km", "miles") else DEFAULTS["units"],
+        "units": chosen_units,
         "pace_units": pace_units if pace_units in ("mi", "km") else DEFAULTS["pace_units"],
         "show_ids": found.get("show_ids") is True,
         "compact": found.get("compact") is True,
-        "date_format": date_format if date_format in ("iso", "short") else DEFAULTS["date_format"],
+        "date_format": chosen_date,
         "confirm_adapt": found.get("confirm_adapt") is True,
         "notifications": found.get("notifications") is True or reminders or recap,
         "start_date": start_date if start_date in ("today", "sunday") else DEFAULTS["start_date"],

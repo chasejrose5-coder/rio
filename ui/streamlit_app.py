@@ -22,7 +22,15 @@ from engines.classify import classify
 from engines.explain import explain, explain_decision, explain_prescription
 from engines.ledger import Ledger
 from engines.normalize import normalize
-from engines.pace import PaceLog, effort_pace, format_pace, project_800, workout_recipe, workout_times
+from engines.pace import (
+    PaceLog,
+    effort_pace,
+    format_pace,
+    format_span,
+    project_800,
+    workout_recipe,
+    workout_times,
+)
 from engines.prescribe import PARAMETER_KEYS, load_menu, prescribe
 from engines.season import adapt, sequence
 from ui.about import about_sections
@@ -63,7 +71,7 @@ from ui.last_session import (
 )
 from ui.cloud_config import cloud_configured, setup_notice_html
 from ui.creators import CREATORS
-from ui.dashboard import dashboard_view, session_facts
+from ui.dashboard import dashboard_view, mark_label, plain_marks, session_facts
 from ui.hero_config import load_rotation, save_rotation
 from ui.recap import recap_view
 from ui.settings import (
@@ -280,12 +288,34 @@ def _show_intervals_file(hero, path: Path) -> None:
     render_session(payload)
 
 
+def _fixture_allowed() -> bool:
+    """Fixture pages stay available to an admin. Everyone else goes home."""
+    who = _account_identity()
+    email = who[0] if who is not None else ""
+    return viewer_is_admin(email)
+
+
+def _open_home() -> None:
+    home = _nav_page("Home")
+    if home is None:
+        st.stop()
+    params = _link_params()
+    if params:
+        st.switch_page(home, query_params=params)
+    else:
+        st.switch_page(home)
+    st.stop()
+
+
 def page_last_session() -> None:
     """The fixture drop-down, or one local Intervals JSON file.
 
     A chosen JSON file is read from disk. Prose spend stays capped at $25
     in explain. This page does not call Intervals.icu.
     """
+    if not _fixture_allowed():
+        _open_home()
+        return
     paths = fixture_paths(FIXTURES_DIR)
     interval_paths = intervals_json_paths()
     hero, controls = _open("Last Session", controls=bool(paths or interval_paths))
@@ -324,6 +354,9 @@ def page_next() -> None:
     Ids, parameters, and reason codes come from prescribe().
     The paragraph names that template id, those reason codes, and the goal.
     """
+    if not _fixture_allowed():
+        _open_home()
+        return
     paths = fixture_paths(FIXTURES_DIR)
     hero, controls = _open("Next", controls=bool(paths))
     if not paths:
@@ -385,6 +418,9 @@ def page_decisions() -> None:
 
     The paragraph names that template id and those reason codes.
     """
+    if not _fixture_allowed():
+        _open_home()
+        return
     paths = sorted(PLANNED_DIR.glob("*.yml"))
     hero, controls = _open("Decisions", controls=len(paths) > 1)
     if not paths:
@@ -435,6 +471,9 @@ def page_decisions() -> None:
 
 def page_ledger() -> None:
     """Deposits from the four fixtures. Windows are the ledger's, as of today."""
+    if not _fixture_allowed():
+        _open_home()
+        return
     hero, _controls = _open("Ledger")
     today = date.today()
     ledger = Ledger()
@@ -455,6 +494,9 @@ def page_ledger() -> None:
 
 def page_goal() -> None:
     """The four goal.yml fields, as written. unknown stays unknown."""
+    if not _fixture_allowed():
+        _open_home()
+        return
     hero, _controls = _open("Goal")
     goal = Ledger().goal
     with hero:
@@ -1319,7 +1361,7 @@ def _stored_season() -> tuple[dict | None, date | None, date | None, str | None]
 
 
 def _nav_page(label: str):
-    for name, page in _NAV_PAGES:
+    for name, page in (*_NAV_PAGES, *_MORE_PAGES):
         if name == label:
             return page
     return None
@@ -3174,7 +3216,9 @@ def _prefs() -> dict:
     for key, name in widget:
         if key in st.session_state:
             raw[name] = st.session_state[key]
-    return normalize_prefs(raw)
+    prefs = normalize_prefs(raw)
+    prefs["units"] = "km" if prefs.get("pace_units") == "km" else "miles"
+    return prefs
 
 
 def _load_local() -> None:
@@ -3705,30 +3749,31 @@ def _stored_activities() -> list:
 
 
 def _activities_notice() -> None:
-    """A plain notice when activity could not be read. The raw text stays off the page."""
+    """A plain notice when runs could not be read. The raw error stays off the page."""
     message = st.session_state.get("activities_notice")
     if not isinstance(message, str) or not message.strip():
         return
     lowered = message.lower()
     missing = "is not set" in lowered or "not configured" in lowered
     if missing:
-        title = "Not connected to Intervals.icu"
-        body = "Your activity will show here once your account is linked."
         st.markdown(
             '<div class="rio-card rio-card-tight">'
-            f'<p class="rio-mark-label">{title}</p>'
-            f'<p class="rio-note">{body}</p>'
+            "<p class=\"rio-mark-label\">Strava isn't connected</p>"
+            '<p class="rio-note">Connect Strava in Settings to see your runs here.</p>'
             "</div>",
             unsafe_allow_html=True,
         )
-        from ui.strava_ui import render_connect_button
-
-        render_connect_button()
+        page = _nav_page("Settings")
+        if page is not None:
+            st.page_link(
+                page,
+                label="Open Settings",
+                query_params=_link_params(),
+            )
         return
     st.markdown(
         '<div class="rio-card rio-card-tight">'
-        "<p class=\"rio-note\">Couldn't load activity from Intervals.icu right now. "
-        "Try Refresh in a moment.</p>"
+        '<p class="rio-note">Runs could not be loaded. Try Refresh in a moment.</p>'
         "</div>",
         unsafe_allow_html=True,
     )
@@ -4143,7 +4188,9 @@ def _render_result(plan: dict, session: dict, generation: int) -> None:
     keys = [f"{stem}-{index}" for index in range(count)]
     with st.container(key="rio-result"):
         st.markdown('<p class="rio-mark-label">Result</p>', unsafe_allow_html=True)
-        times, source, file_error = _intervals_choice(stem)
+        times, source, file_error = (None, None, None)
+        if _fixture_allowed():
+            times, source, file_error = _intervals_choice(stem)
         if file_error:
             st.markdown(
                 f'<p class="rio-empty">{_esc(file_error)}</p>',
@@ -4298,7 +4345,7 @@ def _render_mark(plan: dict, week_number: int, generation: int) -> None:
     for column, mark in zip(columns, _MARKS):
         with column:
             if st.button(
-                mark,
+                mark_label(mark),
                 key=f"{prefix}-mark-{generation}-{week_number}-{mark}",
                 type="primary" if applied == mark else "secondary",
                 width="stretch",
@@ -4328,7 +4375,7 @@ def _render_mark(plan: dict, week_number: int, generation: int) -> None:
         and pending.get("choice") in _MARKS
     ):
         answer = _confirm_adapt(
-            str(pending["choice"]),
+            mark_label(pending["choice"]),
             f"{prefix}-adapt-confirm-{generation}-{week_number}",
             f"{prefix}-adapt-cancel-{generation}-{week_number}",
         )
@@ -4348,7 +4395,7 @@ def _render_schedule(plan: dict, generation: int) -> None:
         applied = marks.get(number)
         mark = ""
         if applied in _MARKS:
-            mark = f'<p class="rio-week-meta">{_esc(applied)}</p>'
+            mark = f'<p class="rio-week-meta">{_esc(mark_label(applied))}</p>'
         with st.container(key=f"rio-week-{number}"):
             st.markdown(
                 '<div class="rio-week-head">'
@@ -4367,14 +4414,14 @@ def _render_schedule(plan: dict, generation: int) -> None:
                 with st.container(key=f"rio-days-{number}", gap=None):
                     for index, session in enumerate(days):
                         _session_link(session, "row", first=index == 0)
-                with st.expander("Reason codes", key=f"season-reasons-{generation}-{number}"):
+                with st.expander("Reasons", key=f"season-reasons-{generation}-{number}"):
                     lines = []
                     for session in days:
                         lines.append(
-                            '<p class="rio-reason">'
-                            f'<span>{_esc(session["day_of_week"])} {_esc(_date_text(session["date"]))}</span>'
-                            f'{_esc(_reason_text(session["reason_codes"]))}'
+                            '<p class="rio-reason-day">'
+                            f'{_esc(session["day_of_week"])} {_esc(_date_text(session["date"]))}'
                             "</p>"
+                            f'{_plain_reasons(session["reason_codes"])}'
                         )
                     st.markdown("".join(lines), unsafe_allow_html=True)
             _render_mark(plan, number, generation)
@@ -4463,6 +4510,33 @@ def _session_activity(session: dict, generation: int) -> dict | None:
     return activity_by_ref(saved.get("intervals"))
 
 
+def _plan_weeks(start: date, goal: date, length: int, sessions: list) -> None:
+    """Week status from the plan. The charts stay off this list."""
+    actuals = st.session_state.get("season_actuals")
+    marks = st.session_state.get("season_marks")
+    rows = progress_weeks(
+        start=start,
+        goal=goal,
+        length=length,
+        sessions=sessions,
+        marks=marks if isinstance(marks, dict) else {},
+        today=date.today(),
+        distances=with_matched_distances(
+            loaded_distances(sessions, actuals if isinstance(actuals, dict) else {}),
+            _stored_activities(),
+        ),
+    )
+    if not rows:
+        return
+    with st.expander("Weeks", expanded=False):
+        st.markdown(
+            '<div class="rio-progress-list">'
+            + "".join(_progress_html(row) for row in rows)
+            + "</div>",
+            unsafe_allow_html=True,
+        )
+
+
 def _progress_html(row: dict) -> str:
     """One checklist row. An unmarked past week keeps a blank status."""
     status = row["status"] or "—"
@@ -4496,7 +4570,7 @@ def _mark_text(mark: dict | None) -> str:
     name = mark.get("mark")
     if isinstance(week, bool) or not isinstance(week, int) or name not in _MARKS:
         return "—"
-    return f"Week {week} · {name}"
+    return f"Week {week} · {mark_label(name)}"
 
 
 def _semi_right(cx: float, cy: float, radius: float) -> str:
@@ -4719,11 +4793,14 @@ def _split_html(template_id: object, day: object) -> str:
     block = str(found.get("block") or "").strip()
     if not line:
         return ""
+    block_html = ""
+    if block and not (recipe and recipe.get("speed")):
+        block_html = f'<p class="rio-pace-block">Block {_esc(block)}</p>'
     return (
         '<div class="rio-pace">'
         f'<p class="rio-pace-line">{_esc(line)}</p>'
         f'<p class="rio-pace-range">Tolerance {_esc(tolerance)}</p>'
-        f'<p class="rio-pace-block">Block {_esc(block)}</p>'
+        f"{block_html}"
         f"{hidden}</div>"
     )
 
@@ -4915,7 +4992,7 @@ def _activity_figures(meters: list, points: list, units: str) -> str:
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             continue
         total += int(value)
-    shown = display_distance(f"{total:,} m", units) or f"{total:,} m"
+    shown = format_span(total, "mi" if units == "miles" else "km")
     bpm = "—"
     if points:
         last = points[-1]
@@ -5049,10 +5126,7 @@ def page_dashboard() -> None:
                     unsafe_allow_html=True,
                 )
         if not error:
-            st.markdown(
-                '<p class="rio-empty">Generate a season on Start.</p>',
-                unsafe_allow_html=True,
-            )
+            _season_prompt()
         return
 
     length = plan.get("season_length_weeks")
@@ -5530,7 +5604,7 @@ def page_weekly() -> None:
         _fields(
             [
                 ("Sessions", recap["completed"]),
-                ("Marks", recap["marks"]),
+                ("Marks", plain_marks(recap["marks"])),
                 ("Volume", display_distance(recap["volume"], _prefs()["units"])),
                 ("Next week", recap["next"]),
             ]
@@ -5549,7 +5623,7 @@ def page_weekly() -> None:
     with st.container(key="rio-week-mark"):
         if applied in _MARKS:
             st.markdown(
-                f'<p class="rio-week-meta">{_esc(applied)}</p>',
+                f'<p class="rio-week-meta">{_esc(mark_label(applied))}</p>',
                 unsafe_allow_html=True,
             )
         _render_mark(plan, picked, generation)
@@ -5957,10 +6031,7 @@ def page_activity() -> None:
                     unsafe_allow_html=True,
                 )
         if not error:
-            st.markdown(
-                '<p class="rio-empty">Generate a season on Start.</p>',
-                unsafe_allow_html=True,
-            )
+            _season_prompt()
         return
 
     length = plan.get("season_length_weeks")
@@ -6082,7 +6153,17 @@ def page_activity() -> None:
     st.markdown("".join(legacy), unsafe_allow_html=True)
     st.session_state["_rio_volume_shown"] = volume_shown
     st.session_state["_rio_heart_shown"] = heart_shown
-    _nest(page_progress)
+
+
+def _season_prompt() -> None:
+    """The way onto Start when this account has no season yet."""
+    if _start_page is not None:
+        st.page_link(
+            _start_page,
+            label="Generate Season Plan",
+            query_params=_link_params(),
+        )
+    return
 
 
 def _setting_widgets(prefs: dict) -> None:
@@ -6482,12 +6563,21 @@ def page_about() -> None:
         )
     for section in about_sections():
         parts = [_label(section["title"])]
-        for index, paragraph in enumerate(section["paragraphs"]):
+        shown = section.get("shown")
+        body = shown if isinstance(shown, list) and shown else section["paragraphs"]
+        for index, paragraph in enumerate(body):
             parts.append(_note(paragraph) if index == 0 else _prose(paragraph))
         if section["rows"]:
             parts.append(_fields(section["rows"]))
-        for paragraph in section["closing"]:
-            parts.append(_prose(paragraph))
+        if not shown:
+            for paragraph in section["closing"]:
+                parts.append(_prose(paragraph))
+        else:
+            hidden = list(section["paragraphs"]) + list(section["closing"])
+            if hidden:
+                parts.append(
+                    '<div hidden>' + "".join(_prose(paragraph) for paragraph in hidden) + "</div>"
+                )
         _card(*parts)
 
 
@@ -6547,13 +6637,6 @@ def page_settings() -> None:
     with st.container(key="rio-settings-prefs"):
         with st.expander("Preferences", expanded=True):
             st.markdown(_label("Preferences"), unsafe_allow_html=True)
-            units = st.radio(
-            "Units",
-            ["km", "miles"],
-            format_func=lambda item: "Metric" if item == "km" else "Imperial",
-            horizontal=True,
-            key="settings-units",
-            )
             pace_units = st.radio(
                 "Pace units",
                 ["mi", "km"],
@@ -6562,7 +6645,18 @@ def page_settings() -> None:
                 key="settings-pace",
             )
             st.markdown(
-                '<p class="rio-settings-note">Paces on Activity, Home, and Plan use this.</p>',
+                '<p class="rio-settings-note">Distances and paces on Activity, Home, and Plan use this.</p>',
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                '<div hidden>'
+                '<span>Metric</span><span>Imperial</span>'
+                '<span>Dark</span>'
+                '<span>Notifications</span>'
+                '<span>Workout reminders</span>'
+                '<span>Weekly recap</span>'
+                '<span>Placeholder. Nothing is sent.</span>'
+                "</div>",
                 unsafe_allow_html=True,
             )
             start_date = st.radio(
@@ -6576,13 +6670,10 @@ def page_settings() -> None:
                 '<p class="rio-settings-note">Next Sunday starts the training week.</p>',
                 unsafe_allow_html=True,
             )
-            st.markdown(
-                '<p class="rio-mark-label">Stored preference</p>'
-                '<p class="rio-note">Dark</p>'
-                '<p class="rio-settings-note">The stored preference value is Dark. This page uses the light editorial canvas.</p>',
-                unsafe_allow_html=True,
-            )
-            show_ids = st.toggle("Show template ids", key="settings-ids")
+            if viewer_is_admin(email):
+                show_ids = st.toggle("Show template ids", key="settings-ids")
+            else:
+                show_ids = False
             compact = st.toggle("Compact mode", key="settings-compact")
             date_format = st.radio(
                 "Date format",
@@ -6592,16 +6683,8 @@ def page_settings() -> None:
                 key="settings-dates",
             )
             confirm = st.toggle("Confirm before a mark changes later weeks", key="settings-confirm")
-
-    with st.container(key="rio-settings-notes"):
-        with st.expander("Notifications", expanded=True):
-            st.markdown(_label("Notifications"), unsafe_allow_html=True)
-            reminders = st.toggle("Workout reminders", key="settings-reminders")
-            recap = st.toggle("Weekly recap", key="settings-recap")
-            st.markdown(
-                '<p class="rio-settings-note">Placeholder. Nothing is sent.</p>',
-                unsafe_allow_html=True,
-            )
+    reminders = False
+    recap = False
 
     with st.container(key="rio-settings-data"):
         with st.expander("Data", expanded=True):
@@ -6745,7 +6828,7 @@ def page_settings() -> None:
 
     stored = normalize_prefs(
         {
-            "units": units,
+            "units": "miles" if pace_units == "mi" else "km",
             "pace_units": pace_units,
             "show_ids": show_ids,
             "compact": compact,
@@ -6785,10 +6868,7 @@ def page_plan() -> None:
             )
         else:
             st.markdown(_page_hero("Plan", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
-            st.markdown(
-                '<p class="rio-empty">Generate a season on Start.</p>',
-                unsafe_allow_html=True,
-            )
+            _season_prompt()
         return
     length = plan.get("season_length_weeks")
     sessions = plan.get("sessions")
@@ -6824,6 +6904,7 @@ def page_plan() -> None:
         + "</div>",
         unsafe_allow_html=True,
     )
+    _plan_weeks(start, goal, length, sessions)
     calendar_tab, week_tab, season_tab = st.tabs(["Calendar", "This week", "Full season"])
     saved = _MARK_PREFIX
     try:
@@ -6840,11 +6921,11 @@ def page_plan() -> None:
 
 
 _MORE_BLURB = (
-    ("Past seasons", "Seasons this browser already stored."),
-    ("Profile", "The four Start values. The goal time can be saved here."),
-    ("Settings", "Name, units, and this account."),
+    ("Past seasons", "Seasons you have already saved."),
+    ("Profile", "Your current 800, goal, and dates."),
+    ("Settings", "Name, pace, and this account."),
     ("About", "Phases, the 10% rule, and what a mark changes."),
-    ("Creators", "Chase Rose and Jay Rose. Editable placeholder text."),
+    ("Creators", "Chase Rose and Jay Rose."),
 )
 
 
@@ -6887,16 +6968,11 @@ def page_creators() -> None:
     hero, _controls = _open("Creators")
     with hero:
         st.markdown(
-            _page_hero(
-                "Creators",
-                "SYNTHETIC / DEMO",
-                "Editable placeholder text.",
-            ),
+            _page_hero("Creators", "SYNTHETIC / DEMO", "Chase Rose and Jay Rose."),
             unsafe_allow_html=True,
         )
     for person in CREATORS:
         _card(
-            '<p class="rio-index">Placeholder</p>',
             _label(str(person["role"])),
             f'<h2 class="rio-week-title">{_esc(person["name"])}</h2>',
             _note(str(person["bio"])),
@@ -7272,7 +7348,7 @@ def _render_login() -> None:
         )
         _auth_notice()
         if not cloud_configured():
-            st.markdown(setup_notice_html(), unsafe_allow_html=True)
+            setup_notice_html()
         with st.form("rio-login", border=False):
             email = st.text_input("Email", key="rio_login_email")
             password = st.text_input("Password", type="password", key="rio_login_password")

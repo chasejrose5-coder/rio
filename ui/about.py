@@ -116,6 +116,32 @@ def phase_rows() -> list[tuple[str, str]]:
     return rows
 
 
+# Athlete-facing lines. The older paragraphs stay on the section so a
+# check of the full text still finds them. The page shows these instead.
+_SHOWN = {
+    "10% rule": (
+        "From one week to the next, distance and the number of hard sessions "
+        "can rise by at most 10%. Hard sessions are the ones that are not "
+        "easy runs. If a week would climb faster, the plan holds or picks an "
+        "easier session. The taper may drop.",
+    ),
+    "Classification": (
+        "RIO labels each session with rules. It reads how far the rep is, "
+        "how long you rest, and how that pace compares with your goal 800. "
+        "You see one kind of work and a short reason.",
+    ),
+    "Hard days": (
+        "Tuesday and Thursday are hard days, unless that day is an easy run. "
+        "A result within 3% of the target is on track. Slower or shorter "
+        "means the week fell short. Faster or longer means it went better. "
+        "On track leaves later weeks as they are. Falling short moves later "
+        "weeks back one phase. Doing better moves them forward one phase and "
+        "stops at phase 7. Phase 8 stays the taper. When more than one mark "
+        "applies, falling short wins. Later weeks are what change.",
+    ),
+}
+
+
 def about_sections() -> list[dict]:
     """Four blocks for the About page. Copy only."""
     return [
@@ -128,18 +154,21 @@ def about_sections() -> list[dict]:
         {
             "title": "10% rule",
             "paragraphs": list(_TEN_PERCENT),
+            "shown": list(_SHOWN["10% rule"]),
             "rows": [],
             "closing": [],
         },
         {
             "title": "Classification",
             "paragraphs": list(_CLASSIFICATION),
+            "shown": list(_SHOWN["Classification"]),
             "rows": [],
             "closing": [],
         },
         {
             "title": "Hard days",
             "paragraphs": list(_HARD_DAYS),
+            "shown": list(_SHOWN["Hard days"]),
             "rows": [],
             "closing": [],
         },
