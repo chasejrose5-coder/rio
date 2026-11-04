@@ -530,11 +530,11 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
 [class*="st-key-rio-nav"] {{
   background: {HERO} !important;
   background-color: {HERO} !important;
-  min-height: 3.15rem !important;
+  min-height: 3.95rem !important;
   height: auto !important;
   display: flex !important;
   align-items: center !important;
-  padding: 0.45rem 5vw 0.4rem !important;
+  padding: 0.725rem 5vw 0.65rem !important;
   margin: 0 -5vw !important;
   width: calc(100% + 10vw) !important;
   max-width: none !important;
@@ -619,7 +619,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
   background: {HERO} !important;
   color: {INVERSE} !important;
   margin: 0 -5vw 0 !important;
-  padding: 1.05rem 5vw 0.8rem !important;
+  padding: 2.78rem 5vw 2.2rem !important;
   width: auto !important;
 }}
 .rio-hero h1,
@@ -627,25 +627,28 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
   color: {INVERSE} !important;
   font-family: {DISPLAY} !important;
   font-weight: 800 !important;
-  font-size: clamp(1.7rem, 3.1vw, 2.35rem) !important;
+  font-size: clamp(2.6rem, 6.05vw, 5.55rem) !important;
   letter-spacing: -0.04em !important;
-  line-height: 0.95 !important;
-  margin: 0 !important;
-  max-width: 20ch;
+  line-height: 0.92 !important;
+  margin: 0.1rem 0 0 !important;
+  max-width: 16ch;
+}}
+.rio-hero-size-kept {{
+  font-size: clamp(1.7rem, 3.1vw, 2.35rem) !important;
 }}
 .rio-hero .rio-synthetic {{
   color: {ACCENT} !important;
   letter-spacing: 0.16em !important;
-  font-size: 0.68rem !important;
+  font-size: 0.7rem !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
-  margin: 0 0 0.28rem !important;
+  margin: 0 0 0.54rem !important;
 }}
 .rio-hero .rio-range,
 .rio-hero .rio-hello,
 .rio-hero .rio-hello-plan {{
   color: rgba(244, 241, 236, 0.78) !important;
-  font-size: 0.95rem !important;
+  font-size: 1.05rem !important;
   max-width: 36rem;
 }}
 .rio-display {{
@@ -653,10 +656,10 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
   color: {INVERSE} !important;
   font-family: {DISPLAY} !important;
   font-weight: 800 !important;
-  font-size: clamp(1.85rem, 3.6vw, 2.7rem) !important;
+  font-size: clamp(2.675rem, 5.9vw, 5.35rem) !important;
   letter-spacing: -0.04em !important;
-  line-height: 0.95 !important;
-  max-width: 18ch;
+  line-height: 0.91 !important;
+  max-width: 16ch;
 }}
 .rio-display-num {{
   color: {ACCENT};
@@ -667,15 +670,15 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
 .rio-home-grid {{
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(16rem, 0.8fr);
-  gap: 0.55rem 1.4rem;
-  align-items: center;
+  gap: 1.28rem 2.2rem;
+  align-items: end;
 }}
 .rio-hero-art {{
   color: {ACCENT};
 }}
 .rio-hero-art .rio-track-svg {{
-  width: auto;
-  max-height: 6.25rem;
+  width: 100%;
+  max-height: 10.125rem;
   height: auto;
   display: block;
   margin-left: auto;
@@ -689,7 +692,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
   text-transform: uppercase !important;
 }}
 .rio-index-pad {{
-  padding: 0.7rem 0 0.15rem;
+  padding: 1.55rem 0 0.18rem;
 }}
 .rio-index-light {{
   color: {ACCENT} !important;
@@ -813,9 +816,6 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
 }}
 .rio-phase-now .rio-phase-num {{ color: {ACCENT} !important; }}
 .rio-about-banner {{
-  height: 22vh !important;
-  min-height: 7.5rem !important;
-  max-height: 11rem !important;
   margin: 0 -5vw 0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
@@ -826,16 +826,6 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
 .rio-about-title {{
   position: relative;
   z-index: 2;
-  padding: 0 5vw 1rem;
-}}
-.rio-about-title h1 {{
-  margin: 0 !important;
-  color: {INVERSE} !important;
-  font-family: {DISPLAY} !important;
-  font-weight: 800 !important;
-  font-size: clamp(1.7rem, 3.1vw, 2.35rem) !important;
-  letter-spacing: -0.04em !important;
-  line-height: 0.95 !important;
 }}
 .rio-about-banner .rio-photo-credit {{
   background: rgba(18, 17, 16, 0.45) !important;
@@ -884,9 +874,47 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
     padding-right: 0 !important;
   }}
   .rio-hero h1, .rio-display, .rio-about-title h1 {{
-    font-size: clamp(1.55rem, 7vw, 2.15rem) !important;
+    font-size: clamp(2.275rem, 10.5vw, 3.325rem) !important;
   }}
 }}
+"""
+
+
+def photo_page_css() -> str:
+    """Startup-sized heroes for pages that sit on a photo.
+
+    Log in, Start, and About. Loaded after the halfway heroes so a photo
+    page keeps the size it had before the compact pass.
+    """
+    return f"""
+<style>
+[class*="st-key-rio-nav"] {{
+  min-height: 4.75rem !important;
+  padding: 1rem 5vw 0.9rem !important;
+}}
+.rio-about-banner {{
+  height: 78vh !important;
+  min-height: 24rem !important;
+  max-height: none !important;
+}}
+.rio-about-title {{
+  padding: 0 5vw 2.4rem;
+}}
+.rio-about-title h1 {{
+  margin: 0 !important;
+  color: {INVERSE} !important;
+  font-family: {DISPLAY} !important;
+  font-weight: 800 !important;
+  font-size: clamp(56px, 9vw, 140px) !important;
+  letter-spacing: -0.04em !important;
+  line-height: 0.88 !important;
+}}
+@media (max-width: 800px) {{
+  .rio-about-title h1 {{
+    font-size: clamp(48px, 14vw, 72px) !important;
+  }}
+}}
+</style>
 """
 
 

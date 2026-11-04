@@ -88,7 +88,7 @@ header {{
   max-width: 100% !important;
   min-height: 100vh !important;
   margin: 0 !important;
-  padding: 6vh 6vw 4.5rem !important;
+  padding: 14vh 6vw 5rem !important;
   box-sizing: border-box !important;
   display: flex !important;
   flex-direction: column !important;
@@ -126,12 +126,12 @@ header {{
   color: #F4F1EC !important;
   font-family: {DISPLAY} !important;
   font-weight: 800 !important;
-  font-size: clamp(52px, 8vw, 84px) !important;
+  font-size: clamp(88px, 18vw, 176px) !important;
   letter-spacing: -0.065em !important;
   line-height: 0.78 !important;
 }}
 .rio-brand-owned {{
-  margin: 0 0 0.7rem !important;
+  margin: 0 0 1.35rem !important;
   color: rgba(244, 241, 236, 0.86) !important;
   font-family: {DISPLAY} !important;
   font-weight: 700 !important;
@@ -140,11 +140,11 @@ header {{
   line-height: 1.3 !important;
 }}
 .rio-startup-headline {{
-  margin: 0 0 0.45rem !important;
+  margin: 0 0 0.7rem !important;
   color: #F4F1EC !important;
   font-family: {DISPLAY} !important;
-  max-width: 16ch;
-  font-size: clamp(26px, 3.4vw, 40px) !important;
+  max-width: 14ch;
+  font-size: clamp(36px, 5.4vw, 72px) !important;
   font-weight: 800 !important;
   letter-spacing: -0.045em !important;
   line-height: 0.92 !important;

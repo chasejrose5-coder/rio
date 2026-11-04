@@ -1663,7 +1663,7 @@ button:focus-visible {
   color: #0E0E0E !important;
 }
 
-.rio-hero { padding: 1.05rem 0 0.75rem; }
+.rio-hero { padding: 2.225rem 0 1.475rem; }
 .rio-synthetic {
   margin: 0 !important;
   color: #6B6B6B !important;
@@ -1674,11 +1674,11 @@ button:focus-visible {
 }
 .rio-hero h1,
 .stMarkdown .rio-hero h1 {
-  margin: 0.2rem 0 0 !important;
+  margin: 0.45rem 0 0 !important;
   padding: 0 !important;
   color: #0E0E0E !important;
   font-family: Manrope, Inter, "Segoe UI", sans-serif !important;
-  font-size: clamp(1.7rem, 3.1vw, 2.35rem) !important;
+  font-size: clamp(2.35rem, 5.05vw, 3.55rem) !important;
   font-weight: 800 !important;
   letter-spacing: -0.045em !important;
   line-height: 0.98 !important;
@@ -1693,16 +1693,16 @@ button:focus-visible {
   color: #C94A25 !important;
 }
 .rio-range {
-  margin: 0.35rem 0 0 !important;
+  margin: 0.625rem 0 0 !important;
   color: #6B6B6B !important;
   font-size: 1.05rem !important;
   line-height: 1.4 !important;
   font-variant-numeric: tabular-nums;
 }
 .rio-hello {
-  margin: 0.35rem 0 0 !important;
+  margin: 0.6rem 0 0 !important;
   color: #0E0E0E !important;
-  font-size: 1.15rem !important;
+  font-size: 1.4rem !important;
   font-weight: 500 !important;
   letter-spacing: -0.03em !important;
   line-height: 1.15 !important;
@@ -3371,7 +3371,8 @@ def _css(page: str | None = None) -> str:
         st.session_state["rio_motion_page"] = name
         _MOTION_LOCKED = True
     hold = "" if _MOTION_PLAY else theme.motion_hold_css()
-    return css + theme.surface_css() + hold
+    photo = theme.photo_page_css() if page in ("Start", "About", "Log in", "Create account") else ""
+    return css + theme.surface_css() + hold + photo
 
 
 def _date_text(value: object) -> str:
