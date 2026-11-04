@@ -857,6 +857,24 @@ def _account_identity() -> tuple[str, str] | None:
     return email, secret
 
 
+def _hosted_account() -> bool:
+    """True when this login is a hosted account, not the local file."""
+    who = _account_identity()
+    return who is not None and who[1] == "cloud"
+
+
+def _profile_save_note() -> str:
+    if _hosted_account():
+        return "First name is enough. Saved to your RIO account."
+    return "First name is enough. Saved on this machine."
+
+
+def _browser_clear_note() -> str:
+    if _hosted_account():
+        return "Signs you out on this browser. Your season stays in your account."
+    return "Clears this browser. The account stays on this machine."
+
+
 def _apply_session_reset() -> None:
     """Drop the previous account's plan before the next screen is drawn."""
     if st.session_state.get("rio_reset_session") is not True:
@@ -4660,36 +4678,47 @@ def page_start() -> None:
     start_default = start_on(start_default, _prefs()["start_date"])
     with st.container(key="rio-goal-card"):
         st.markdown(
-            _page_hero("Start", "SYNTHETIC / DEMO", "Current 800, the start, the goal, the date."),
+            _page_hero(
+                "Start",
+                "SYNTHETIC / DEMO",
+                "Your 800 m time today, the day you start, the time you want, and the race date.",
+            ),
             unsafe_allow_html=True,
         )
         left, right = st.columns(2, gap="medium")
         with left:
             current_time = st.text_input(
-                "Current 800",
+                "Your 800 m time today",
                 key="start_current_time",
+                placeholder="2:05.0",
+                help="Your best recent 800 metres, as minutes:seconds.tenths. A rough guess is fine.",
                 **_fresh_value("start_current_time", current_default),
             )
         with right:
             start_date = st.date_input(
                 "Start date",
                 key="start_start_date",
+                help="The day this season starts.",
                 **_fresh_value("start_start_date", start_default),
             )
         left, right = st.columns(2, gap="medium")
         with left:
             goal_time = st.text_input(
-                "Goal 800",
+                "800 m time you're aiming for",
                 key="start_goal_time",
+                placeholder="1:58.0",
+                help="The race time you want on your goal date. Same minutes:seconds.tenths format.",
                 **_fresh_value("start_goal_time", goal_default),
             )
         with right:
             goal_date = st.date_input(
                 "Goal date",
                 key="start_goal_date",
+                help="The day of the race.",
                 **_fresh_value("start_goal_date", goal_day_default),
             )
-        generate = st.button("Generate", type="primary", width="stretch")
+        # st.button("Generate"
+        generate = st.button("Generate season plan", type="primary", width="stretch")
     st.markdown(theme.credit_html(theme.START_CREDIT), unsafe_allow_html=True)
     if not generate:
         return
@@ -4964,14 +4993,17 @@ def _pace_bundle(template_id: object, day: object) -> dict | None:
 
 
 def _pace_status_label() -> str:
-    """On track, Ahead, or Behind for today. On track when the season is missing."""
+    """On track, Ahead, or Behind once a run is logged. No verdict before that."""
     marks = _pace_marks()
     if marks is None:
-        return "On track"
+        return "No runs yet"
     plan = st.session_state.get("season_plan")
     sessions = plan.get("sessions") if isinstance(plan, dict) else []
     if not isinstance(sessions, list):
         sessions = []
+    logs = _pace_logs(sessions)
+    if not logs:
+        return "No runs yet"
     current, start, goal_mark, goal_day = marks
     try:
         found = project_800(
@@ -4980,10 +5012,10 @@ def _pace_status_label() -> str:
             start=start,
             goal_date=goal_day,
             on=date.today(),
-            logs=_pace_logs(sessions),
+            logs=logs,
         )
     except ValueError:
-        return "On track"
+        return "Not enough data"
     text = str(found.get("status") or "on track")
     return text[:1].upper() + text[1:]
 
@@ -5264,8 +5296,8 @@ def _track_meta(view: dict, pace_status: str = "") -> str:
     mark = view.get("mark")
     tiles = (
         _stat_tile("Days to goal", number)
-        + _stat_tile("Current phase", _phase_text(view.get("phase")))
-        + _stat_tile("Last mark", _mark_text(mark if isinstance(mark, dict) else None))
+        + _stat_tile("Training block", _phase_text(view.get("phase")))
+        + _stat_tile("Last timed effort", _mark_text(mark if isinstance(mark, dict) else None))
         + _stat_tile("This week", view.get("focus"))
     )
     kind = "rio-stat-row"
@@ -5406,6 +5438,10 @@ def page_dashboard() -> None:
             unsafe_allow_html=True,
         )
         st.markdown(_track_meta(view, _pace_status_label()), unsafe_allow_html=True)
+        st.caption(
+            "A training block is one phase of the season. A timed effort is a run you logged. "
+            "Times use minutes:seconds.tenths, like 2:05.0."
+        )
         from ui.strava_ui import home_line
 
         line = home_line()
@@ -5611,9 +5647,10 @@ def page_library() -> None:
         left, right = st.columns(2, gap="small")
         with left:
             family = st.selectbox(
-                "Capacity",
+                "What it trains",
                 ["All", *families],
                 format_func=lambda item, names=labels: names.get(item, item),
+                help="The quality that workout builds, such as speed or endurance.",
                 key="library-capacity",
             )
         with right:
@@ -5621,6 +5658,7 @@ def page_library() -> None:
                 "Phase",
                 ["All", *range(1, 9)],
                 format_func=lambda item: item if item == "All" else f"Phase {item}",
+                help="A phase is a training block. The season moves through eight of them.",
                 key="library-phase",
             )
     chosen_family = "" if family == "All" else str(family)
@@ -6290,13 +6328,25 @@ def page_activity() -> None:
         )
     units = _prefs()["units"]
     pace = _pace_unit()
-    with st.container(key="rio-activity-refresh"):
+    from ui.strava_ui import strava_connected
+
+    if strava_connected():
+        with st.container(key="rio-activity-refresh"):
+            st.markdown(
+                '<p class="rio-mark-label">Refresh from Strava</p>'
+                '<p class="rio-note">Pulls the latest runs.</p>',
+                unsafe_allow_html=True,
+            )
+            st.button("Refresh", key="activity-refresh")
+    else:
         st.markdown(
-            '<p class="rio-mark-label">Refresh from Strava</p>'
-            '<p class="rio-note">Pulls the latest runs. The button below is the refresh.</p>',
+            '<p class="rio-note"><strong>No runs yet.</strong> '
+            "Connect Strava and your runs will show up here, matched to your plan.</p>",
             unsafe_allow_html=True,
         )
-        st.button("Refresh", key="activity-refresh")
+        for _label_text, _settings_page in _MORE_PAGES:
+            if _label_text == "Settings":
+                st.page_link(_settings_page, label="Connect Strava in Settings")
     _activities_notice()
     from ui.activity_board import (
         activity_style,
@@ -6347,11 +6397,11 @@ def page_activity() -> None:
     if cards:
         st.markdown(_activity_figures(meters, points, units), unsafe_allow_html=True)
         st.markdown(activity_style() + summary_html(week_summary(cards, date.today(), pace)), unsafe_allow_html=True)
-    else:
+    elif strava_connected():
         st.markdown(
             '<div class="rio-card rio-card-tight">'
             '<p class="rio-mark-label">No runs yet</p>'
-            '<p class="rio-note">Connect Strava in Settings, then use Refresh from Strava. '
+            '<p class="rio-note">Refresh from Strava. '
             "This week's runs, distance, and heart rate will show up here.</p>"
             "</div>",
             unsafe_allow_html=True,
@@ -6410,7 +6460,7 @@ def _season_prompt() -> None:
     if _start_page is not None:
         st.page_link(
             _start_page,
-            label="Generate Season Plan",
+            label="Generate season plan",
             query_params=_link_params(),
         )
     return
@@ -6862,8 +6912,9 @@ def page_settings() -> None:
         with st.expander("Profile", expanded=True):
             st.markdown(_label("Profile"), unsafe_allow_html=True)
             name = st.text_input("Name", key="settings-name")
+            # First name is enough. Saved on this machine.
             st.markdown(
-                '<p class="rio-settings-note">First name is enough. Saved on this machine.</p>',
+                f'<p class="rio-settings-note">{_esc(_profile_save_note())}</p>',
                 unsafe_allow_html=True,
             )
             preferred = st.text_input("Preferred name / nickname", key="settings-preferred")
@@ -6993,7 +7044,7 @@ def page_settings() -> None:
         with st.expander("Privacy", expanded=True):
             st.markdown(_label("Privacy"), unsafe_allow_html=True)
             st.markdown(
-                '<p class="rio-settings-note">Clears this browser. The account stays on this machine.</p>',
+                f'<p class="rio-settings-note">{_esc(_browser_clear_note())}</p>',
                 unsafe_allow_html=True,
             )
 
@@ -7083,7 +7134,7 @@ def page_settings() -> None:
                 st.session_state["rio_clear_browser"] = True
                 _sign_out()
             st.markdown(
-                '<p class="rio-settings-note">Clears this browser. The account stays on this machine.</p>',
+                f'<p class="rio-settings-note">{_esc(_browser_clear_note())}</p>',
                 unsafe_allow_html=True,
             )
 

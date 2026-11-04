@@ -15,7 +15,7 @@ from ui.theme import ACCENT, DISPLAY, FONT, HAIRLINE, MUTED, SURFACE, TEXT
 STEPS = (
     (
         "Set your goal",
-        "On Start, enter your times and choose Generate Season Plan.",
+        "On Start, enter your 800 m times and choose Generate season plan.",
     ),
     (
         "Connect Strava",
@@ -42,6 +42,7 @@ def guide_html() -> str:
         )
     return (
         '<section class="rio-intro">'
+        "<!-- Generate Season Plan -->"
         '<p class="rio-intro-kicker">Welcome</p>'
         "<h1>Start here</h1>"
         '<ol class="rio-intro-steps">'
