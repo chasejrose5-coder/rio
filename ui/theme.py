@@ -863,6 +863,14 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
   -webkit-text-fill-color: {INVERSE} !important;
   opacity: 1 !important;
 }}
+.rio-stat-row.rio-stat-five {{
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}}
+.rio-stat-five .rio-stat-value {{
+  font-size: 1.28rem !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}}
 @media (max-width: 800px) {{
   .rio-home-grid, .rio-stat-row, .rio-track-facts {{
     grid-template-columns: 1fr !important;
