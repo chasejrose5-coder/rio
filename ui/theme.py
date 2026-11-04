@@ -52,6 +52,7 @@ SHADE = (
 LOGIN_PHOTO = "login_floodlights.jpg"
 START_PHOTO = "start_line.jpg"
 ABOUT_PHOTO = "about_stadium.jpg"
+CHASE_PHOTO = "chase_blocks.jpg"
 LOGIN_CREDIT = "Photo by Steve Pancrate on Pexels"
 START_CREDIT = "Photo by Bohdan Hyrovych on Pexels"
 ABOUT_CREDIT = "Photo by Botond Dobozi on Pexels"
