@@ -187,6 +187,88 @@ class MemoryDirectory:
         for token in dead:
             self.sessions.pop(token, None)
 
+    def find_user_by_email(self, email: object, service_key: object) -> str | None:
+        """The user id for this email. The server key is required. No mail is sent."""
+        if not isinstance(service_key, str) or not service_key.strip():
+            raise CloudAuthError("The test season could not be saved.")
+        cleaned = normalize_email(email)
+        if cleaned is None:
+            return None
+        return self.by_email.get(cleaned)
+
+    def create_confirmed_user(self, email: object, name: object, service_key: object) -> str:
+        """Add an athlete that can sign in only with the server key. No mail is sent."""
+        if not isinstance(service_key, str) or not service_key.strip():
+            raise CloudAuthError("The test season could not be saved.")
+        cleaned = normalize_email(email)
+        stored_name = normalize_name(name)
+        if cleaned is None or stored_name is None:
+            raise CloudAuthError("The test season could not be saved.")
+        existing = self.by_email.get(cleaned)
+        if existing:
+            self.users[existing]["display_name"] = stored_name
+            return existing
+        user_id = "rio-test-athlete"
+        if user_id in self.users:
+            user_id = "rio-test-athlete-" + secrets.token_hex(4)
+        self.users[user_id] = {
+            "id": user_id,
+            "email": cleaned,
+            "password": secrets.token_urlsafe(24),
+            "display_name": stored_name,
+            "role": "athlete",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        self.by_email[cleaned] = user_id
+        self.goals[user_id] = _blank_goal()
+        self.plans[user_id] = []
+        self.results[user_id] = []
+        return user_id
+
+    def write_owned_season(self, user_id: object, service_key: object, goal: object, plan_row: object, name: object) -> None:
+        """Replace one athlete's goal and plan. Other athletes stay as stored."""
+        if not isinstance(service_key, str) or not service_key.strip():
+            raise CloudAuthError("The test season could not be saved.")
+        if not isinstance(user_id, str) or user_id not in self.users:
+            raise CloudAuthError("The test season could not be saved.")
+        if not isinstance(goal, dict) or not isinstance(plan_row, dict):
+            raise CloudAuthError("The test season could not be saved.")
+        stored_name = normalize_name(name)
+        if stored_name is not None:
+            self.users[user_id]["display_name"] = stored_name
+        self.goals[user_id] = _clean_goal(goal)
+        self.plans[user_id] = [deepcopy(plan_row)]
+        self.results[user_id] = []
+
+    def read_owned_season(self, user_id: object, service_key: object) -> dict | None:
+        if not isinstance(service_key, str) or not service_key.strip():
+            raise CloudAuthError("The test season could not be saved.")
+        if not isinstance(user_id, str) or user_id not in self.users:
+            return None
+        plans = self.plans.get(user_id) or []
+        plan_row = deepcopy(plans[-1]) if plans else None
+        return {"goal": deepcopy(self.goals.get(user_id) or _blank_goal()), "plan_row": plan_row}
+
+    def delete_user_by_id(self, user_id: object, service_key: object) -> bool:
+        """Remove one athlete by id. The signed-in token is not used."""
+        if not isinstance(service_key, str) or not service_key.strip():
+            raise CloudAuthError("The test season could not be removed.")
+        if not isinstance(user_id, str) or user_id not in self.users:
+            return False
+        email = self.users[user_id]["email"]
+        dead = [token for token, owner in self.sessions.items() if owner == user_id]
+        dead_refresh = [refresh for refresh, access in self.refreshes.items() if access in dead]
+        for token in dead:
+            self.sessions.pop(token, None)
+        for refresh in dead_refresh:
+            self.refreshes.pop(refresh, None)
+        self.goals.pop(user_id, None)
+        self.plans.pop(user_id, None)
+        self.results.pop(user_id, None)
+        self.by_email.pop(email, None)
+        self.users.pop(user_id, None)
+        return True
+
     def _open(self, user_id: str) -> dict:
         token = secrets.token_hex(16)
         refresh = "refresh-" + token
@@ -419,6 +501,120 @@ class SupabaseDirectory:
         except Exception as exc:
             raise CloudAuthError("This account could not be removed on the server.") from exc
 
+    def find_user_by_email(self, email: object, service_key: object) -> str | None:
+        """The profile id for this email, read with the server key."""
+        if not isinstance(service_key, str) or not service_key.strip():
+            raise CloudAuthError("The test season could not be saved.")
+        cleaned = normalize_email(email)
+        if cleaned is None:
+            return None
+        try:
+            row = _first(
+                self._client(service_key).table("profiles").select("id").eq("email", cleaned).limit(1).execute()
+            )
+        except Exception:
+            raise CloudAuthError("The test season could not be saved.") from None
+        if isinstance(row, dict) and row.get("id"):
+            return str(row["id"])
+        return None
+
+    def create_confirmed_user(self, email: object, name: object, service_key: object) -> str:
+        """Create a confirmed athlete with the server key. No mail is sent."""
+        if not isinstance(service_key, str) or not service_key.strip():
+            raise CloudAuthError("The test season could not be saved.")
+        cleaned = normalize_email(email)
+        stored_name = normalize_name(name)
+        if cleaned is None or stored_name is None:
+            raise CloudAuthError("The test season could not be saved.")
+        try:
+            client = self._client(service_key)
+            existing = self.find_user_by_email(cleaned, service_key)
+            if existing:
+                client.table("profiles").update({"display_name": stored_name}).eq("id", existing).execute()
+                return existing
+            password = secrets.token_urlsafe(24)
+            try:
+                response = client.auth.admin.create_user(
+                    {
+                        "email": cleaned,
+                        "password": password,
+                        "email_confirm": True,
+                        "user_metadata": {"display_name": stored_name},
+                    }
+                )
+                user_id = _created_id(response)
+            except Exception:
+                user_id = _auth_user_id(client, cleaned)
+            if not user_id:
+                user_id = _auth_user_id(client, cleaned)
+            if not user_id:
+                raise CloudAuthError("The test season could not be saved.")
+            client.table("profiles").upsert(
+                {
+                    "id": user_id,
+                    "email": cleaned,
+                    "display_name": stored_name,
+                    "role": "athlete",
+                }
+            ).execute()
+        except CloudAuthError:
+            raise
+        except Exception:
+            raise CloudAuthError("The test season could not be saved.") from None
+        return user_id
+
+    def write_owned_season(self, user_id: object, service_key: object, goal: object, plan_row: object, name: object) -> None:
+        """Replace one athlete's goal and plan. The signed-in user is not the target."""
+        if not isinstance(service_key, str) or not service_key.strip():
+            raise CloudAuthError("The test season could not be saved.")
+        if not isinstance(user_id, str) or not isinstance(goal, dict) or not isinstance(plan_row, dict):
+            raise CloudAuthError("The test season could not be saved.")
+        stored_name = normalize_name(name) or ""
+        try:
+            client = self._client(service_key)
+            if stored_name:
+                client.table("profiles").update({"display_name": stored_name}).eq("id", user_id).execute()
+            saved_goal = _clean_goal(goal)
+            saved_goal["user_id"] = user_id
+            client.table("goals").upsert(saved_goal).execute()
+            client.table("results").delete().eq("user_id", user_id).execute()
+            client.table("plans").delete().eq("user_id", user_id).execute()
+            saved_plan = deepcopy(plan_row)
+            saved_plan["user_id"] = user_id
+            client.table("plans").insert(saved_plan).execute()
+        except Exception:
+            raise CloudAuthError("The test season could not be saved.") from None
+
+    def read_owned_season(self, user_id: object, service_key: object) -> dict | None:
+        if not isinstance(service_key, str) or not service_key.strip():
+            raise CloudAuthError("The test season could not be saved.")
+        if not isinstance(user_id, str):
+            return None
+        try:
+            client = self._client(service_key)
+            goal = _first(client.table("goals").select("*").eq("user_id", user_id).execute())
+            plans = _rows(client.table("plans").select("*").eq("user_id", user_id).execute())
+        except Exception:
+            raise CloudAuthError("The test season could not be saved.") from None
+        return {"goal": goal or _blank_goal(), "plan_row": plans[-1] if plans else None}
+
+    def delete_user_by_id(self, user_id: object, service_key: object) -> bool:
+        """Remove one athlete by id with the server key. No other account is touched."""
+        if not isinstance(service_key, str) or not service_key.strip():
+            raise CloudAuthError("The test season could not be removed.")
+        if not isinstance(user_id, str) or not user_id:
+            return False
+        try:
+            client = self._client(service_key)
+            client.table("results").delete().eq("user_id", user_id).execute()
+            client.table("plans").delete().eq("user_id", user_id).execute()
+            client.table("goals").delete().eq("user_id", user_id).execute()
+            client.table("profiles").delete().eq("id", user_id).execute()
+            client.auth.admin.delete_user(user_id)
+        except Exception:
+            raise CloudAuthError("The test season could not be removed.") from None
+        return True
+
     def _user_client(self, access_token: object):
         if not isinstance(access_token, str) or not access_token:
             raise CloudAuthError("Sign in again.")
@@ -548,3 +744,50 @@ def _first(response: object) -> dict | None:
     if rows and isinstance(rows[0], dict):
         return rows[0]
     return None
+
+
+def _created_id(response: object) -> str | None:
+    user = getattr(response, "user", None)
+    if user is None and isinstance(response, dict):
+        user = response.get("user") or response
+    user_id = _attr(user, "id")
+    if user_id:
+        return str(user_id)
+    return None
+
+
+def _auth_user_id(client, email: str) -> str | None:
+    """Find a confirmed user by email. Used when create reports the address is taken."""
+    page = 1
+    while page <= 20:
+        try:
+            batch = client.auth.admin.list_users(page=page, per_page=200)
+        except TypeError:
+            batch = client.auth.admin.list_users()
+            page = 20
+        users = _user_list(batch)
+        if not users:
+            return None
+        for user in users:
+            found = _attr(user, "email")
+            if isinstance(found, str) and found.casefold() == email:
+                user_id = _attr(user, "id")
+                if user_id:
+                    return str(user_id)
+        if len(users) < 200:
+            return None
+        page += 1
+    return None
+
+
+def _user_list(batch: object) -> list:
+    if isinstance(batch, list):
+        return batch
+    users = getattr(batch, "users", None)
+    if isinstance(users, list):
+        return users
+    if isinstance(batch, dict):
+        found = batch.get("users") or batch.get("data")
+        if isinstance(found, list):
+            return found
+    return []

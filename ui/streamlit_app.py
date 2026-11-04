@@ -682,6 +682,8 @@ def _clear_activity_pull() -> None:
 
 def _store_plan(inputs: tuple[str, str, str, str], plan: dict, *, loaded: bool) -> None:
     """A new plan identity. loaded means this browser's record was already applied."""
+    if st.session_state.get("rio_test_preview"):
+        return
     st.session_state["season_inputs"] = inputs
     st.session_state["season_plan"] = plan
     st.session_state["season_marks"] = {}
@@ -1082,6 +1084,8 @@ def _restore_record(key: str) -> None:
 
 def _sync_browser_store() -> None:
     """Save marks and actuals on this account, under the four inputs."""
+    if st.session_state.get("rio_test_preview"):
+        return
     inputs = st.session_state.get("season_inputs")
     plan = st.session_state.get("season_plan")
     if not inputs_ok(inputs) or not isinstance(plan, dict):
@@ -1120,9 +1124,16 @@ def _sync_browser_store() -> None:
 def _load_shared_plan() -> None:
     """URL inputs rebuild the plan. A visit that already has it keeps that plan.
 
+    A test-season preview draws the TEST athlete and does not read this login's plan.
+
     This account's record is restored here. The write happens after a pull so a
     match from this run is what gets saved.
     """
+    from ui.sample_season_ui import apply_preview, previewing
+
+    if previewing():
+        apply_preview()
+        return
     found = plan_inputs(st.query_params)
     if found is None:
         inputs = st.session_state.get("season_inputs")
@@ -1179,6 +1190,8 @@ _PULL_PAGES = (
 def _pull_for(page_name: str) -> None:
     """Those pages match the last 14 days and judge an unmarked quality day.
 
+    A test-season preview does not pull. The TEST runs are already stored.
+
     Opening Dashboard, Weekly, Session, Progress, or Activity reads the
     last 14 days through the existing adapter. Refresh on Activity reads
     every activity. A matched Tuesday or Thursday with no mark is judged from
@@ -1186,6 +1199,8 @@ def _pull_for(page_name: str) -> None:
     has a mark is left as stored. A failure keeps the stored matches. The key
     stays in the environment. Nothing is written to Intervals.
     """
+    if st.session_state.get("rio_test_preview"):
+        return
     plan = st.session_state.get("season_plan")
     if not isinstance(plan, dict):
         return
@@ -1268,6 +1283,10 @@ def _with_plan(page):
         # Log in and a restored token both set this. Home or Start opens first.
         if st.session_state.get("rio_enter") is True:
             _route_after_login()
+        if st.session_state.pop("rio_test_go_admin", None):
+            admin = _nav_page("Admin")
+            if admin is not None:
+                st.switch_page(admin)
         _load_local()
         _load_shared_plan()
         _pull_for(page.__name__)
@@ -3351,6 +3370,9 @@ def _render_nav(active: str) -> None:
     """Page links follow Streamlit routing and stay in this tab."""
     if _EMBEDDING:
         return
+    from ui.sample_season_ui import preview_banner
+
+    preview_banner()
     home = _HOME_PAGE
     if home is None and _NAV_PAGES:
         home = _NAV_PAGES[0][1]
@@ -5997,6 +6019,8 @@ def _seed_profile_fields(local: dict, email: str) -> None:
 
 def _persist_local(name: object, preferred: object, timezone: object, settings: dict) -> None:
     """Write name and preferences when they differ from the stored profile."""
+    if st.session_state.get("rio_test_preview"):
+        return
     who = _account_identity()
     if who is None:
         return
@@ -6046,6 +6070,8 @@ def _persist_local(name: object, preferred: object, timezone: object, settings: 
 
 def _clear_season_marks() -> None:
     """Drop marks and actuals. The season is rebuilt from the four inputs."""
+    if st.session_state.get("rio_test_preview"):
+        return
     who = _account_identity()
     inputs = st.session_state.get("season_inputs")
     if who is None or not inputs_ok(inputs) or not isinstance(st.session_state.get("season_plan"), dict):
@@ -6080,6 +6106,8 @@ def _clear_season_marks() -> None:
 
 def _reset_saved_plan() -> None:
     """Remove stored seasons. The account stays."""
+    if st.session_state.get("rio_test_preview"):
+        return
     who = _account_identity()
     if who is None:
         return
@@ -6733,6 +6761,9 @@ def page_admin() -> None:
     who = _account_identity()
     email = who[0] if who is not None else ""
     if not viewer_is_admin(email):
+        from ui.sample_season_ui import drop_preview
+
+        drop_preview()
         home = _nav_page("Home")
         if home is not None:
             params = _link_params()
@@ -6741,6 +6772,12 @@ def page_admin() -> None:
             else:
                 st.switch_page(home)
         st.stop()
+    pending = st.session_state.pop("rio_test_go", None)
+    if pending in ("home", "plan", "activity"):
+        target = {"home": "Home", "plan": "Plan", "activity": "Activity"}[pending]
+        page = _nav_page(target)
+        if page is not None:
+            st.switch_page(page)
     st.markdown(_css("Admin"), unsafe_allow_html=True)
     _render_nav("Admin")
     st.markdown(
@@ -6777,6 +6814,9 @@ def page_admin() -> None:
             _card(_label("Accounts"), _table(table), _note("Read only."))
         else:
             _card(_label("Accounts"), '<p class="rio-empty">No accounts yet.</p>', _note("Read only."))
+    from ui.sample_season_ui import render_test_season
+
+    render_test_season()
     _render_hero_editor()
 
 

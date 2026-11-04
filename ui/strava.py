@@ -351,15 +351,85 @@ def to_stored_activity(run: dict) -> dict:
     }
 
 
-def planned_vs_actual(run: dict, *, current: str, goal: str, start: date, goal_day: date, on: date) -> dict:
+def earlier_logs(runs: object, on: date) -> list[PaceLog]:
+    """Logs dated before this day. The run on this day does not correct itself."""
+    found = []
+    if not isinstance(runs, list):
+        return found
+    for run in runs:
+        entry = _one_log(run)
+        if entry is not None and entry.on < on:
+            found.append(entry)
+    return found
+
+
+def _rep_count(template: str) -> int | None:
+    if "_x" not in template:
+        return None
+    tail = template.rsplit("_x", 1)[-1]
+    if tail.isdigit():
+        return int(tail)
+    return None
+
+
+def _lap_times(run: dict) -> list[int]:
+    laps = run.get("laps")
+    if not isinstance(laps, list):
+        return []
+    found = []
+    for lap in laps:
+        if not isinstance(lap, dict):
+            continue
+        seconds = lap.get("moving_seconds")
+        if isinstance(seconds, bool) or not isinstance(seconds, int) or seconds <= 0:
+            continue
+        found.append(seconds)
+    return found
+
+
+def _one_log(run: object) -> PaceLog | None:
+    """A pace log only when the laps are the prescribed reps.
+
+    The whole moving time is used for a one-rep day. A longer lap list is
+    left out so a warm-up does not move the correction.
+    """
+    if not isinstance(run, dict):
+        return None
+    try:
+        day = date.fromisoformat(str(run.get("date")))
+    except ValueError:
+        return None
+    template = str(run.get("template_id") or "")
+    reps = _rep_count(template)
+    times = _lap_times(run)
+    actual = None
+    if reps is not None and times and len(times) == reps:
+        actual = sum(times) / len(times)
+    elif reps == 1 and isinstance(run.get("moving_seconds"), int) and not isinstance(run.get("moving_seconds"), bool):
+        actual = float(run["moving_seconds"])
+    if actual is None or actual <= 0:
+        return None
+    return PaceLog(day, float(actual), template)
+
+
+def planned_vs_actual(
+    run: dict,
+    *,
+    current: str,
+    goal: str,
+    start: date,
+    goal_day: date,
+    on: date,
+    logs: list[PaceLog] | tuple[PaceLog, ...] | None = None,
+) -> dict:
     """Planned line and status from workout_times, next to this run."""
     template = run.get("template_id") or ""
-    logs = []
-    if isinstance(run.get("pace_s_per_km"), float) and isinstance(run.get("moving_seconds"), int):
-        try:
-            logs.append(PaceLog(date.fromisoformat(str(run.get("date"))), float(run["moving_seconds"]), str(template)))
-        except ValueError:
-            logs = []
+    collected: list[PaceLog] = []
+    if isinstance(logs, (list, tuple)):
+        collected.extend(entry for entry in logs if isinstance(entry, PaceLog))
+    own = _one_log(run)
+    if own is not None:
+        collected.append(own)
     found = None
     if template:
         try:
@@ -370,7 +440,7 @@ def planned_vs_actual(run: dict, *, current: str, goal: str, start: date, goal_d
                 start=start,
                 goal_date=goal_day,
                 on=on,
-                logs=logs,
+                logs=collected,
             )
         except ValueError:
             found = None
