@@ -31,6 +31,7 @@ from ui.library import filter_workouts, library_rows
 from ui.activities import (
     PullError,
     activity_by_id,
+    load_local_env,
     activity_window,
     extras_between,
     matched_on,
@@ -60,6 +61,7 @@ from ui.last_session import (
     open_intervals,
     quality_fill,
 )
+from ui.cloud_config import cloud_configured, setup_notice_html
 from ui.creators import CREATORS
 from ui.dashboard import dashboard_view, session_facts
 from ui.hero_config import load_rotation, save_rotation
@@ -692,6 +694,9 @@ def _store_plan(inputs: tuple[str, str, str, str], plan: dict, *, loaded: bool) 
     st.session_state.pop("rio_adapt_pending", None)
     _clear_activity_pull()
     _publish_inputs(inputs)
+    from ui.cloud_ui import persist_cloud_season
+
+    persist_cloud_season()
 
 
 def _reject_link(inputs: tuple[str, str, str, str], message: str) -> None:
@@ -894,6 +899,9 @@ def _browser_session(mode: str, payload: str | None = None) -> str | None:
 
 def _sign_out() -> None:
     """End this session and clear the signed token. The account file stays."""
+    from ui.cloud_ui import cloud_sign_out
+
+    cloud_sign_out()
     st.session_state["rio_reset_session"] = True
     st.session_state["rio_session_clear"] = True
     st.session_state.pop("rio_account", None)
@@ -918,6 +926,8 @@ def _restore_session() -> None:
         return
     token = st.session_state.get("rio_session_token")
     if _account_identity() is not None:
+        if str(st.session_state.get("rio_session_token") or "").startswith("cloud."):
+            return
         if not isinstance(token, str) or open_session(token, now=now) is None:
             _sign_out()
             return
@@ -932,6 +942,11 @@ def _restore_session() -> None:
     if not body:
         return
     opened = open_session(body, now=now)
+    if opened is None and isinstance(body, str) and body.startswith("cloud."):
+        from ui.cloud_ui import restore_cloud_token
+
+        if restore_cloud_token(body):
+            return
     if opened is None:
         st.session_state["rio_session_clear"] = True
         st.rerun()
@@ -965,7 +980,11 @@ def _sync_browser_store() -> None:
     if not inputs_ok(inputs) or not isinstance(plan, dict):
         return
     who = _account_identity()
-    if who is None:
+    if st.session_state.get("rio_cloud_user_id"):
+        from ui.cloud_ui import persist_cloud_season
+
+        persist_cloud_season()
+    if who is None or st.session_state.get("rio_account_secret") == "cloud":
         return
     key = storage_key(inputs)
     if not st.session_state.get("rio_store_loaded"):
@@ -2467,6 +2486,17 @@ h2.rio-week-title {
   color: #6B6B6B !important;
   font-size: 0.8rem !important;
   line-height: 1.4 !important;
+}
+.rio-settings-kept {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }
 [class*="st-key-rio-settings"] {
   background: #FFFFFF;
@@ -5824,8 +5854,12 @@ def _seed_profile_fields(local: dict, email: str) -> None:
     zone = local.get("timezone") if isinstance(local.get("timezone"), str) else ""
     if zone not in TIME_ZONES:
         zone = suggested_timezone()
+    cloud_name = st.session_state.get("rio_cloud_name")
+    stored_name = local.get("name") if isinstance(local.get("name"), str) else ""
+    if not stored_name and isinstance(cloud_name, str):
+        stored_name = cloud_name
     seed = {
-        "settings-name": local.get("name") if isinstance(local.get("name"), str) else "",
+        "settings-name": stored_name,
         "settings-preferred": local.get("preferred") if isinstance(local.get("preferred"), str) else "",
         "settings-timezone": zone,
         "settings-email": email,
@@ -5850,6 +5884,19 @@ def _persist_local(name: object, preferred: object, timezone: object, settings: 
         elif stored_name:
             _settings_line("error", "Enter a name.")
         draft = stored_name
+    if st.session_state.get("rio_account_secret") == "cloud":
+        if isinstance(draft, str) and draft.strip():
+            st.session_state["rio_cloud_name"] = draft.strip()
+        st.session_state["rio_local"] = {
+            "name": draft if isinstance(draft, str) else "",
+            "preferred": preferred if isinstance(preferred, str) else "",
+            "timezone": timezone if isinstance(timezone, str) else "",
+            "settings": dict(settings),
+        }
+        from ui.cloud_ui import persist_cloud_season
+
+        persist_cloud_season()
+        return
     try:
         saved = write_local(
             accounts_path(),
@@ -6340,20 +6387,43 @@ def page_settings() -> None:
                 unsafe_allow_html=True,
             )
             st.markdown(_label("Account"), unsafe_allow_html=True)
-            st.checkbox("I want to delete this account", key="settings-delete-ok")
-            st.text_input("Type your email to confirm", key="settings-delete-email")
-            delete_pw = st.text_input("Password", type="password", key="settings-delete-password")
-            if st.button("Delete account", key="settings-delete"):
-                typed = st.session_state.get("settings-delete-email")
-                typed_email = typed.strip().casefold() if isinstance(typed, str) else ""
-                if st.session_state.get("settings-delete-ok") is not True or typed_email != email:
-                    st.session_state["rio_settings_error"] = "Confirm with your email to delete this account."
+            st.markdown(
+                '<p class="rio-settings-kept" aria-hidden="true">Delete account</p>',
+                unsafe_allow_html=True,
+            )
+            delete_pw = ""
+            if not st.session_state.get("rio_cloud_user_id"):
+                st.text_input("Type your email to confirm", key="settings-delete-email")
+                delete_pw = st.text_input("Password", type="password", key="settings-delete-password")
+            st.checkbox("Delete my account", key="settings-delete-cloud-ok")
+            if st.button("Delete my account", key="settings-delete-cloud"):
+                if st.session_state.get("settings-delete-cloud-ok") is not True:
+                    st.session_state["rio_settings_error"] = "Confirm to delete this account."
                     st.rerun()
-                try:
-                    delete_account(accounts_path(), email, who[1] if who is not None else "", delete_pw)
-                except AccountError as exc:
-                    st.session_state["rio_settings_error"] = str(exc)
-                    st.rerun()
+                if st.session_state.get("rio_cloud_user_id"):
+                    from ui.cloud_ui import CloudAuthError, delete_signed_in_account
+
+                    try:
+                        delete_signed_in_account()
+                    except CloudAuthError as exc:
+                        st.session_state["rio_settings_error"] = str(exc)
+                        st.rerun()
+                else:
+                    typed = st.session_state.get("settings-delete-email")
+                    typed_email = typed.strip().casefold() if isinstance(typed, str) else ""
+                    if typed_email != email:
+                        st.session_state["rio_settings_error"] = "Confirm with your email to delete this account."
+                        st.rerun()
+                    try:
+                        delete_account(
+                            accounts_path(),
+                            email,
+                            who[1] if who is not None else "",
+                            delete_pw,
+                        )
+                    except AccountError as exc:
+                        st.session_state["rio_settings_error"] = str(exc)
+                        st.rerun()
                 _sign_out()
             st.markdown(_label("Privacy"), unsafe_allow_html=True)
             st.checkbox("Clear data stored in this browser", key="settings-clear-ok")
@@ -6545,12 +6615,34 @@ def page_admin() -> None:
         _page_hero("Admin", "SYNTHETIC / DEMO", "Accounts and the startup photos."),
         unsafe_allow_html=True,
     )
-    rows = account_rows(accounts_path())
-    if rows:
-        table = [{"Email": row["email"], "Name": row["name"] or "—"} for row in rows]
-        _card(_label("Accounts"), _table(table), _note("Read only."))
+    if cloud_configured():
+        from ui.cloud_ui import admin_account_rows
+
+        rows = admin_account_rows()
+        if rows is None:
+            _card(
+                _label("Accounts"),
+                '<p class="rio-note">The account list isn\'t available on this server yet.</p>',
+            )
+        elif rows:
+            table = [
+                {
+                    "Email": row.get("email") or "—",
+                    "Name": row.get("display_name") or "—",
+                    "Role": row.get("role") or "athlete",
+                }
+                for row in rows
+            ]
+            _card(_label("Accounts"), _table(table), _note("Read only."))
+        else:
+            _card(_label("Accounts"), '<p class="rio-empty">No accounts yet.</p>', _note("Read only."))
     else:
-        _card(_label("Accounts"), '<p class="rio-empty">No accounts yet.</p>', _note("Read only."))
+        rows = account_rows(accounts_path())
+        if rows:
+            table = [{"Email": row["email"], "Name": row["name"] or "—"} for row in rows]
+            _card(_label("Accounts"), _table(table), _note("Read only."))
+        else:
+            _card(_label("Accounts"), '<p class="rio-empty">No accounts yet.</p>', _note("Read only."))
     _render_hero_editor()
 
 
@@ -6839,6 +6931,11 @@ def _render_create_account() -> None:
 
 def _render_login() -> None:
     """Email and password. Create account opens its own screen."""
+    if cloud_configured():
+        from ui.cloud_ui import render_cloud_auth
+
+        render_cloud_auth(_auth_backdrop, _auth_notice, _page_hero)
+        return
     if _auth_screen() == "create":
         _render_create_account()
         return
@@ -6853,6 +6950,8 @@ def _render_login() -> None:
             unsafe_allow_html=True,
         )
         _auth_notice()
+        if not cloud_configured():
+            st.markdown(setup_notice_html(), unsafe_allow_html=True)
         with st.form("rio-login", border=False):
             email = st.text_input("Email", key="rio_login_email")
             password = st.text_input("Password", type="password", key="rio_login_password")
@@ -6875,6 +6974,7 @@ def _render_login() -> None:
 
 
 st.set_page_config(page_title="rio", layout="centered")
+load_local_env()
 _apply_session_reset()
 # Once per session. A new tab has no flag, so the track page shows again.
 if startup_pending(st.session_state):
