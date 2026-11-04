@@ -2487,6 +2487,17 @@ h2.rio-week-title {
   font-size: 0.8rem !important;
   line-height: 1.4 !important;
 }
+.rio-settings-kept {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
 [class*="st-key-rio-settings"] {
   background: #FFFFFF;
   border: 1px solid #DADADA;
@@ -6376,21 +6387,14 @@ def page_settings() -> None:
                 unsafe_allow_html=True,
             )
             st.markdown(_label("Account"), unsafe_allow_html=True)
-            st.checkbox("I want to delete this account", key="settings-delete-ok")
-            st.text_input("Type your email to confirm", key="settings-delete-email")
-            delete_pw = st.text_input("Password", type="password", key="settings-delete-password")
-            if st.button("Delete account", key="settings-delete"):
-                typed = st.session_state.get("settings-delete-email")
-                typed_email = typed.strip().casefold() if isinstance(typed, str) else ""
-                if st.session_state.get("settings-delete-ok") is not True or typed_email != email:
-                    st.session_state["rio_settings_error"] = "Confirm with your email to delete this account."
-                    st.rerun()
-                try:
-                    delete_account(accounts_path(), email, who[1] if who is not None else "", delete_pw)
-                except AccountError as exc:
-                    st.session_state["rio_settings_error"] = str(exc)
-                    st.rerun()
-                _sign_out()
+            st.markdown(
+                '<p class="rio-settings-kept" aria-hidden="true">Delete account</p>',
+                unsafe_allow_html=True,
+            )
+            delete_pw = ""
+            if not st.session_state.get("rio_cloud_user_id"):
+                st.text_input("Type your email to confirm", key="settings-delete-email")
+                delete_pw = st.text_input("Password", type="password", key="settings-delete-password")
             st.checkbox("Delete my account", key="settings-delete-cloud-ok")
             if st.button("Delete my account", key="settings-delete-cloud"):
                 if st.session_state.get("settings-delete-cloud-ok") is not True:
@@ -6402,6 +6406,22 @@ def page_settings() -> None:
                     try:
                         delete_signed_in_account()
                     except CloudAuthError as exc:
+                        st.session_state["rio_settings_error"] = str(exc)
+                        st.rerun()
+                else:
+                    typed = st.session_state.get("settings-delete-email")
+                    typed_email = typed.strip().casefold() if isinstance(typed, str) else ""
+                    if typed_email != email:
+                        st.session_state["rio_settings_error"] = "Confirm with your email to delete this account."
+                        st.rerun()
+                    try:
+                        delete_account(
+                            accounts_path(),
+                            email,
+                            who[1] if who is not None else "",
+                            delete_pw,
+                        )
+                    except AccountError as exc:
                         st.session_state["rio_settings_error"] = str(exc)
                         st.rerun()
                 _sign_out()
