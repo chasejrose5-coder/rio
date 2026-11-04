@@ -218,6 +218,7 @@ __marimo__/
 .streamlit/secrets.toml
 
 .env.*
+!.env.example
 *.db
 data/rio.sqlite
 data/explain_spend.json
