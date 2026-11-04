@@ -234,7 +234,7 @@ def status_html() -> str:
         count = len(runs)
     if not isinstance(when, int) or not isinstance(count, int):
         return ""
-    return f'<p class="rio-note">Last synced {_pacific(when)}, {count} runs imported</p>'
+    return f'<p class="rio-note">Last synced {_local_when(when)}, {count} runs imported</p>'
 
 
 def activity_block() -> None:
@@ -523,10 +523,27 @@ def load_into_session() -> None:
     _remember(runs)
 
 
-def _pacific(when: int) -> str:
+def _zone_name() -> str:
+    """The zone from Settings. UTC when this session has not chosen one."""
+    try:
+        settings = st.session_state.get("rio_settings")
+    except Exception:
+        return "UTC"
+    if isinstance(settings, dict):
+        zone = settings.get("timezone")
+        if isinstance(zone, str) and zone:
+            return zone
+    return "UTC"
+
+
+def _local_when(when: int) -> str:
     from datetime import datetime
     from zoneinfo import ZoneInfo
 
-    local = datetime.fromtimestamp(when, ZoneInfo("America/Los_Angeles"))
+    try:
+        zone = ZoneInfo(_zone_name())
+    except Exception:
+        zone = ZoneInfo("UTC")
+    local = datetime.fromtimestamp(when, zone)
     hour = int(local.strftime("%I"))
-    return f"{local.strftime('%b')} {local.day}, {hour}:{local.strftime('%M')} {local.strftime('%p')} PT"
+    return f"{local.strftime('%b')} {local.day}, {hour}:{local.strftime('%M')} {local.strftime('%p')}"

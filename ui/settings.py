@@ -116,7 +116,10 @@ def normalize(raw: object) -> dict:
 
 
 def suggested_timezone() -> str:
-    """A zone from this machine when it is one we list. Otherwise UTC."""
+    """The browser zone when it is one we list. Otherwise this machine, then UTC."""
+    browser = _browser_timezone()
+    if browser in TIME_ZONES:
+        return browser
     key = None
     try:
         key = getattr(datetime.now().astimezone().tzinfo, "key", None)
@@ -125,6 +128,19 @@ def suggested_timezone() -> str:
     if isinstance(key, str) and key in TIME_ZONES:
         return key
     return "UTC"
+
+
+def _browser_timezone() -> str | None:
+    """The zone Streamlit reports for this browser. None outside a page run."""
+    try:
+        import streamlit as st
+
+        zone = st.context.timezone
+    except Exception:
+        return None
+    if isinstance(zone, str) and zone:
+        return zone
+    return None
 
 
 def start_on(day: date, behavior: object) -> date:
