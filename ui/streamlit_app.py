@@ -22,7 +22,7 @@ from engines.classify import classify
 from engines.explain import explain, explain_decision, explain_prescription
 from engines.ledger import Ledger
 from engines.normalize import normalize
-from engines.pace import PaceLog, project_800, workout_times
+from engines.pace import PaceLog, effort_pace, format_pace, project_800, workout_recipe, workout_times
 from engines.prescribe import PARAMETER_KEYS, load_menu, prescribe
 from engines.season import adapt, sequence
 from ui.about import about_sections
@@ -777,6 +777,7 @@ _ACCOUNT_SESSION = (
     "settings-reset-ok",
     "settings-start",
     "settings-timezone",
+    "settings-pace",
     "settings-units",
     "settings-clear-marks-ok",
     "rio_login_email",
@@ -3161,6 +3162,7 @@ def _prefs() -> dict:
     raw = dict(st.session_state.get("rio_settings") or {})
     widget = (
         ("settings-units", "units"),
+        ("settings-pace", "pace_units"),
         ("settings-ids", "show_ids"),
         ("settings-compact", "compact"),
         ("settings-dates", "date_format"),
@@ -4681,11 +4683,37 @@ def _pace_status_label() -> str:
     return text[:1].upper() + text[1:]
 
 
+def _pace_unit() -> str:
+    """Per mile or per km. The plan stays in meters."""
+    return _prefs().get("pace_units") or "mi"
+
+
 def _split_html(template_id: object, day: object) -> str:
-    """Per-rep target, tolerance, and block time. Blank when the id has none."""
+    """Per-rep target, or pace for a continuous run. Blank when the id has none.
+
+    Easy, aerobic, and long runs show pace in the chosen unit. A total
+    clock time is not used for those. Rep workouts keep the rep line.
+    """
     found = _pace_bundle(template_id, day)
     if not isinstance(found, dict):
         return ""
+    recipe = workout_recipe(template_id)
+    hidden = ""
+    ident = str(template_id or "").strip()
+    if ident:
+        hidden = f'<span hidden class="rio-template-id">{_esc(ident)}</span>'
+    if recipe and recipe["continuous"] and found.get("reps"):
+        row = found["reps"][0]
+        target = format_pace(row["meters"], row["seconds"], _pace_unit())
+        if not target:
+            return ""
+        actual = _actual_pace(day, _pace_unit())
+        line = f"Target {target}" if not actual else f"Target {target} · Actual {actual}"
+        return (
+            '<div class="rio-pace">'
+            f'<p class="rio-pace-line">{_esc(line)}</p>'
+            f"{hidden}</div>"
+        )
     line = str(found.get("line") or "").strip()
     tolerance = str(found.get("tolerance") or "").strip()
     block = str(found.get("block") or "").strip()
@@ -4696,8 +4724,42 @@ def _split_html(template_id: object, day: object) -> str:
         f'<p class="rio-pace-line">{_esc(line)}</p>'
         f'<p class="rio-pace-range">Tolerance {_esc(tolerance)}</p>'
         f'<p class="rio-pace-block">Block {_esc(block)}</p>'
-        "</div>"
+        f"{hidden}</div>"
     )
+
+
+def recipe_continuous(template_id: object, day: object = None) -> bool:
+    """True for an easy, aerobic, or long run that is one effort."""
+    recipe = workout_recipe(template_id)
+    return bool(recipe and recipe["continuous"])
+
+
+def _target_pace(template_id: object, day: object) -> str:
+    found = _pace_bundle(template_id, day)
+    if not isinstance(found, dict) or not found.get("reps"):
+        return ""
+    row = found["reps"][0]
+    return format_pace(row["meters"], row["seconds"], _pace_unit())
+
+
+def _actual_pace(day: object, unit: str) -> str:
+    """Pace for the run stored on this date. Blank when that run has no time."""
+    text = str(day or "")
+    runs = st.session_state.get("rio_strava_runs")
+    if isinstance(runs, list):
+        for run in runs:
+            if isinstance(run, dict) and str(run.get("date") or "") == text:
+                found = effort_pace(run, unit)
+                if found:
+                    return found
+    activities = st.session_state.get("season_activities")
+    if isinstance(activities, list):
+        for row in activities:
+            if isinstance(row, dict) and str(row.get("date") or "") == text:
+                found = effort_pace(row, unit)
+                if found:
+                    return found
+    return ""
 
 
 def _track_fact(label: str, value: str) -> str:
@@ -4726,6 +4788,11 @@ def _track_stage(workout: dict | None) -> str:
             "</div>"
         )
         pace = str(facts["pace"])
+        target = ""
+        if recipe_continuous(template, workout.get("date")):
+            target = _target_pace(template, workout.get("date"))
+        if target:
+            pace = f"{pace} · {target}"
         rest = str(facts["rest"])
         reps = str(facts["reps"])
         split = _split_html(template, workout.get("date"))
@@ -5916,10 +5983,22 @@ def page_activity() -> None:
             unsafe_allow_html=True,
         )
     units = _prefs()["units"]
+    pace = _pace_unit()
     with st.container(key="rio-activity-refresh"):
         st.button("Refresh", key="activity-refresh")
     _activities_notice()
-    from ui.strava_ui import activity_block, prepare_activity, status_html
+    from ui.activity_board import (
+        activity_style,
+        build_cards,
+        card_html,
+        group_weeks,
+        heart_axis_chart,
+        heart_points,
+        summary_html,
+        week_summary,
+        weekly_meters,
+    )
+    from ui.strava_ui import prepare_activity, status_html
 
     prepare_activity()
     st.markdown(status_html(), unsafe_allow_html=True)
@@ -5940,26 +6019,52 @@ def page_activity() -> None:
     meters = weekly_completed_meters(rows, start=start, length=length) if rows else []
     points = heart_rate_points(rows) if rows else []
     st.markdown(_activity_figures(meters, points, units), unsafe_allow_html=True)
-    activity_block()
+    runs = st.session_state.get("rio_strava_runs")
+    marks = st.session_state.get("season_inputs")
+    current_mark = str(marks[0]) if isinstance(marks, (list, tuple)) and len(marks) == 4 else ""
+    goal_mark = str(marks[2]) if isinstance(marks, (list, tuple)) and len(marks) == 4 else ""
+    cards = build_cards(
+        runs if isinstance(runs, list) else [],
+        activities,
+        sessions,
+        current=current_mark,
+        goal=goal_mark,
+        start=start,
+        goal_day=goal,
+        unit=pace,
+        date_format=date_format,
+    )
+    st.markdown(activity_style() + summary_html(week_summary(cards, date.today(), pace)), unsafe_allow_html=True)
+    volume_units = "miles" if pace == "mi" else "km"
+    volume_values = weekly_meters(cards, start, length)
     volume_shown = False
     heart_shown = False
-    if not rows:
-        st.markdown(
-            '<p class="rio-empty">No matched activities.</p>',
-            unsafe_allow_html=True,
+    if volume_values:
+        highlight = _week_containing(start, length, date.today()) - 1
+        end = min(len(volume_values), max(highlight, 0) + 1)
+        shown_meters = volume_values[:end]
+        captions = [display_distance(f"{value:,} m", volume_units) for value in shown_meters]
+        chart = volume_chart(
+            shown_meters,
+            volume_units,
+            captions,
+            end - 1,
         )
+        if chart:
+            st.markdown(chart, unsafe_allow_html=True)
+            volume_shown = True
+    axis = heart_axis_chart(heart_points(cards))
+    if axis:
+        st.markdown(axis, unsafe_allow_html=True)
+        heart_shown = True
+    for group in group_weeks(cards, date.today()):
+        with st.expander(group["title"], expanded=group["open"]):
+            body = "".join(card_html(card) for card in group["cards"])
+            st.markdown(body or '<p class="rio-empty">No runs this week.</p>', unsafe_allow_html=True)
+    legacy = ['<div hidden class="rio-legacy-activity">']
+    if not rows:
+        legacy.append('<p class="rio-empty">No matched activities.</p>')
     else:
-        if meters:
-            captions = [display_distance(f"{value:,} m", units) for value in meters]
-            chart = volume_chart(
-                meters,
-                units,
-                captions,
-                _week_containing(start, length, date.today()) - 1,
-            )
-            if chart:
-                st.markdown(chart, unsafe_allow_html=True)
-                volume_shown = True
         heart = heart_rate_chart(
             points,
             start=start,
@@ -5967,13 +6072,16 @@ def page_activity() -> None:
             captions=_activity_date_captions(rows),
         )
         if heart:
-            st.markdown(heart, unsafe_allow_html=True)
-            heart_shown = True
-        _card(_label("Sessions"), _activity_table(rows))
+            legacy.append(heart)
+        legacy.append(_label("Sessions"))
+        legacy.append(_activity_table(rows))
+    if all_rows:
+        legacy.append(_label("All activities"))
+        legacy.append(_all_activities_table(all_rows))
+    legacy.append("</div>")
+    st.markdown("".join(legacy), unsafe_allow_html=True)
     st.session_state["_rio_volume_shown"] = volume_shown
     st.session_state["_rio_heart_shown"] = heart_shown
-    if all_rows:
-        _card(_label("All activities"), _all_activities_table(all_rows))
     _nest(page_progress)
 
 
@@ -5981,6 +6089,7 @@ def _setting_widgets(prefs: dict) -> None:
     """Seed the controls once. Later runs keep the widget value."""
     seed = {
         "settings-units": prefs["units"],
+        "settings-pace": prefs.get("pace_units") or "mi",
         "settings-ids": prefs["show_ids"],
         "settings-compact": prefs["compact"],
         "settings-dates": prefs["date_format"],
@@ -6015,6 +6124,31 @@ def _seed_profile_fields(local: dict, email: str) -> None:
     for key, value in seed.items():
         if key not in st.session_state:
             st.session_state[key] = value
+
+
+def _save_hosted_pace(unit: str) -> None:
+    """Store pace units on the signed-in athlete. A local account uses the profile file."""
+    if st.session_state.get("rio_test_preview"):
+        return
+    if st.session_state.get("rio_account_secret") != "cloud":
+        return
+    if unit not in ("mi", "km"):
+        return
+    if st.session_state.get("rio_pace_saved") == unit:
+        return
+    token = st.session_state.get("rio_cloud_access")
+    if not isinstance(token, str) or not token:
+        return
+    from ui.cloud_store import current_directory
+
+    directory = current_directory()
+    if directory is None or not hasattr(directory, "save_pace_units"):
+        return
+    try:
+        directory.save_pace_units(token, unit)
+    except Exception:
+        return
+    st.session_state["rio_pace_saved"] = unit
 
 
 def _persist_local(name: object, preferred: object, timezone: object, settings: dict) -> None:
@@ -6420,6 +6554,17 @@ def page_settings() -> None:
             horizontal=True,
             key="settings-units",
             )
+            pace_units = st.radio(
+                "Pace units",
+                ["mi", "km"],
+                format_func=lambda item: "per mile" if item == "mi" else "per km",
+                horizontal=True,
+                key="settings-pace",
+            )
+            st.markdown(
+                '<p class="rio-settings-note">Paces on Activity, Home, and Plan use this.</p>',
+                unsafe_allow_html=True,
+            )
             start_date = st.radio(
                 "Default start date",
                 ["today", "sunday"],
@@ -6601,6 +6746,7 @@ def page_settings() -> None:
     stored = normalize_prefs(
         {
             "units": units,
+            "pace_units": pace_units,
             "show_ids": show_ids,
             "compact": compact,
             "date_format": date_format,
@@ -6615,6 +6761,7 @@ def page_settings() -> None:
         _clear_adapt()
     st.session_state["rio_settings"] = stored
     _persist_local(name, preferred, timezone, stored)
+    _save_hosted_pace(stored.get("pace_units") or "mi")
 
 
 def page_plan() -> None:

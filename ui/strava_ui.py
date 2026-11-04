@@ -234,33 +234,62 @@ def status_html() -> str:
 
 
 def activity_block() -> None:
-    rows = _comparisons()
-    if not rows:
-        return
-    lines = []
-    for row in rows:
-        status = f' · {_esc(row["status"])}' if row.get("status") else ""
-        lines.append(
-            "<p>"
-            f'{_esc(row["date"])} · {_esc(row["name"])}<br>'
-            f'Planned {_esc(row["planned"])}<br>'
-            f'Actual {_esc(row["actual"])}{status}'
-            "</p>"
-        )
-    _card(_label("Planned vs actual"), "".join(lines), _note("From your Strava runs."))
+    """Activity draws one card per run. The old stacked list stays off the page."""
+    return
 
 
 def home_line() -> str:
     prepare_home()
-    rows = _comparisons()
-    matched = [row for row in rows if row.get("status") != "Extra"]
-    if not matched and not rows:
+    runs = st.session_state.get("rio_strava_runs")
+    inputs = st.session_state.get("season_inputs")
+    plan = st.session_state.get("season_plan")
+    sessions = plan.get("sessions") if isinstance(plan, dict) else None
+    if not isinstance(runs, list) or not runs:
         return ""
-    row = matched[-1] if matched else rows[-1]
+    if not isinstance(sessions, list):
+        sessions = []
+    if not isinstance(inputs, (list, tuple)) or len(inputs) != 4:
+        return ""
+    try:
+        start = date.fromisoformat(str(inputs[1]))
+        goal_day = date.fromisoformat(str(inputs[3]))
+    except ValueError:
+        return ""
+    from ui.activity_board import build_cards
+    from ui.settings import normalize
+
+    raw = dict(st.session_state.get("rio_settings") or {})
+    picked = st.session_state.get("settings-pace")
+    if picked in ("mi", "km"):
+        raw["pace_units"] = picked
+    unit = normalize(raw)["pace_units"]
+    try:
+        cards = build_cards(
+            runs,
+            [],
+            sessions,
+            current=str(inputs[0]),
+            goal=str(inputs[2]),
+            start=start,
+            goal_day=goal_day,
+            unit=unit,
+        )
+    except (TypeError, ValueError):
+        return ""
+    matched = [card for card in cards if card.get("status") != "Extra"]
+    pool = matched or cards
+    if not pool:
+        return ""
+    card = max(pool, key=lambda item: (item["date"], item["id"]))
+    hidden = ""
+    template = str(card.get("template_id") or "").strip()
+    if template:
+        hidden = f'<span hidden class="rio-template-id">{_esc(template)}</span>'
     return (
         '<div class="rio-card rio-card-tight">'
         '<p class="rio-mark-label">Planned vs actual</p>'
-        f'<p class="rio-note">{_esc(row["name"])} · {_esc(row["actual"])} · {_esc(row["status"])}</p>'
+        f'<p class="rio-note">{_esc(card["name"])} · {_esc(card["detail"])} · {_esc(card["status"])}</p>'
+        f"{hidden}"
         "</div>"
     )
 
@@ -305,6 +334,7 @@ def _comparisons() -> list[dict]:
                 goal_day=goal_day,
                 on=on,
                 logs=earlier_logs(runs, on),
+                unit=_pace_choice(),
             )
             if run.get("matched") is not True:
                 row["planned"] = "—"
@@ -313,14 +343,23 @@ def _comparisons() -> list[dict]:
     return rows
 
 
-def _actual_text(run: dict) -> str:
-    distance = run.get("distance_m")
-    distance_text = "—"
-    if isinstance(distance, (int, float)) and not isinstance(distance, bool):
-        distance_text = f"{float(distance) / 1000:.1f} km"
-    from ui.strava import pace_text
+def _pace_choice() -> str:
+    from ui.settings import normalize
 
-    return f"{distance_text} · {pace_text(run.get('pace_s_per_km'))}"
+    raw = dict(st.session_state.get("rio_settings") or {})
+    picked = st.session_state.get("settings-pace")
+    if picked in ("mi", "km"):
+        raw["pace_units"] = picked
+    return normalize(raw)["pace_units"]
+
+
+def _actual_text(run: dict) -> str:
+    from engines.pace import effort_pace
+
+    found = effort_pace(run, _pace_choice())
+    if found:
+        return f"Actual {found}"
+    return "Actual —"
 
 
 def _cached_token() -> dict | None:

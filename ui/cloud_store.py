@@ -145,6 +145,22 @@ class MemoryDirectory:
             name = profile.get("display_name")
             if isinstance(name, str) and name.strip():
                 self.users[user_id]["display_name"] = name.strip()
+            self._keep_pace(user_id, profile.get("pace_units"))
+
+    def save_pace_units(self, access_token: object, unit: object) -> None:
+        """Remember per mile or per km on this athlete. The other account stays."""
+        user_id = self.user_id(access_token)
+        if not self._keep_pace(user_id, unit):
+            raise CloudAuthError("Pace units could not be saved.")
+
+    def _keep_pace(self, user_id: str, unit: object) -> bool:
+        if unit not in ("mi", "km"):
+            return False
+        user = self.users.get(user_id)
+        if user is None:
+            return False
+        user["pace_units"] = unit
+        return True
 
     def refresh_session(self, refresh_token: object) -> dict:
         if not isinstance(refresh_token, str):
@@ -433,12 +449,34 @@ class SupabaseDirectory:
         goal = _first(client.table("goals").select("*").eq("user_id", user_id).execute())
         plans = _rows(client.table("plans").select("*").eq("user_id", user_id).execute())
         results = _rows(client.table("results").select("*").eq("user_id", user_id).execute())
+        profile = profile or {}
+        pace = None
+        try:
+            pace = _pace_from_metadata(self._auth_user(access_token))
+        except Exception:
+            pace = None
+        if pace and isinstance(profile, dict):
+            profile = dict(profile)
+            profile["pace_units"] = pace
         return {
-            "profile": profile or {},
+            "profile": profile,
             "goal": goal or _blank_goal(),
             "plans": plans,
             "results": results,
         }
+
+    def save_pace_units(self, access_token: object, unit: object) -> None:
+        """Store per mile or per km on the auth user. No new table."""
+        if unit not in ("mi", "km"):
+            raise CloudAuthError("Pace units could not be saved.")
+        if not isinstance(access_token, str) or not access_token:
+            raise CloudAuthError("Sign in again.")
+        try:
+            self._auth_user_update(access_token, {"pace_units": unit})
+        except CloudAuthError:
+            raise
+        except Exception:
+            raise CloudAuthError("Pace units could not be saved.") from None
 
     def save_bundle(self, access_token: object, bundle: object) -> None:
         if not isinstance(bundle, dict):
@@ -648,6 +686,41 @@ class SupabaseDirectory:
             }
         ).execute()
 
+    def _auth_user(self, access_token: object) -> dict | None:
+        """The signed-in auth user, or None. The token is not returned."""
+        if not isinstance(access_token, str) or not access_token:
+            return None
+        try:
+            return self._auth_request("GET", access_token, None)
+        except Exception:
+            return None
+
+    def _auth_user_update(self, access_token: str, data: dict) -> None:
+        """Merge fields onto user_metadata. Existing name metadata stays."""
+        self._auth_request("PUT", access_token, {"data": data})
+
+    def _auth_request(self, method: str, access_token: str, body: dict | None) -> dict:
+        import json
+        import urllib.request
+
+        payload = None if body is None else json.dumps(body).encode("utf-8")
+        request = urllib.request.Request(
+            self.url.rstrip("/") + "/auth/v1/user",
+            data=payload,
+            headers={
+                "apikey": self.anon_key,
+                "Authorization": "Bearer " + access_token,
+                "Content-Type": "application/json",
+            },
+            method=method,
+        )
+        with urllib.request.urlopen(request, timeout=8) as response:
+            raw = response.read()
+        if not raw:
+            return {}
+        parsed = json.loads(raw.decode("utf-8"))
+        return parsed if isinstance(parsed, dict) else {}
+
 
 def memory_directory() -> MemoryDirectory:
     global _MEMORY
@@ -693,13 +766,36 @@ def _clean_goal(goal: dict) -> dict:
 
 
 def _public_user(user: dict) -> dict:
-    return {
+    row = {
         "id": user["id"],
         "email": user["email"],
         "display_name": user["display_name"],
         "role": user["role"],
         "created_at": user["created_at"],
     }
+    pace = user.get("pace_units")
+    if pace in ("mi", "km"):
+        row["pace_units"] = pace
+    return row
+
+
+def _pace_from_metadata(user: object) -> str | None:
+    """pace_units on the auth user, when it is per mile or per km."""
+    meta = None
+    if isinstance(user, dict):
+        meta = user.get("user_metadata")
+        if not isinstance(meta, dict):
+            nested = user.get("user")
+            if isinstance(nested, dict):
+                meta = nested.get("user_metadata")
+    else:
+        meta = getattr(user, "user_metadata", None)
+    if not isinstance(meta, dict):
+        return None
+    pace = meta.get("pace_units")
+    if pace in ("mi", "km"):
+        return pace
+    return None
 
 
 def _session_dict(response: object, name: str) -> dict:

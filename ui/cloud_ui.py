@@ -289,6 +289,13 @@ def _apply_bundle(bundle: dict) -> None:
         st.session_state["rio_cloud_role"] = st.session_state["rio_cloud_profile"]["role"]
         if profile.get("display_name"):
             st.session_state["rio_cloud_name"] = profile.get("display_name")
+        pace = profile.get("pace_units")
+        if pace in ("mi", "km"):
+            current = st.session_state.get("rio_settings")
+            settings = dict(current) if isinstance(current, dict) else {}
+            settings["pace_units"] = pace
+            st.session_state["rio_settings"] = settings
+            st.session_state["rio_pace_saved"] = pace
     plans = bundle.get("plans") or []
     if not plans:
         _remember_digest()
