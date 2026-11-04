@@ -32,6 +32,7 @@ from ui.strava import (
     import_runs,
     make_state,
     match_runs,
+    earlier_logs,
     planned_vs_actual,
     redirect_uri,
     state_matches,
@@ -89,6 +90,8 @@ def strava_connected() -> bool:
 
 def sync_once(force: bool = False) -> bool:
     """Import once the season is loaded. A failed import does not stick the flag."""
+    if st.session_state.get("rio_test_preview"):
+        return False
     if st.session_state.get("rio_strava_synced") is True and not force:
         return False
     if not _plan_ready():
@@ -176,6 +179,8 @@ def render_connect_button() -> None:
 
 def prepare_activity() -> None:
     """Sync before the lists are drawn, then load this user's saved runs."""
+    if st.session_state.get("rio_test_preview"):
+        return
     if not strava_connected():
         return
     st.session_state.pop("activities_notice", None)
@@ -194,6 +199,8 @@ def prepare_activity() -> None:
 
 
 def prepare_home() -> None:
+    if st.session_state.get("rio_test_preview"):
+        return
     if not strava_connected():
         return
     sync_once()
@@ -202,6 +209,11 @@ def prepare_home() -> None:
 
 def status_html() -> str:
     """The sync line under Refresh, or the error from the last attempt."""
+    if st.session_state.get("rio_test_preview"):
+        count = st.session_state.get("rio_strava_count")
+        if isinstance(count, int):
+            return f'<p class="rio-note">TEST season · {count} runs</p>'
+        return ""
     if not strava_connected() and not st.session_state.get("rio_strava_notice"):
         return ""
     notice = st.session_state.get("rio_strava_notice")
@@ -292,6 +304,7 @@ def _comparisons() -> list[dict]:
                 start=start,
                 goal_day=goal_day,
                 on=on,
+                logs=earlier_logs(runs, on),
             )
             if run.get("matched") is not True:
                 row["planned"] = "—"
@@ -447,6 +460,8 @@ def _season_start(sessions: list) -> int | None:
 
 def load_into_session() -> None:
     """Read this user's saved runs and match them to the plan."""
+    if st.session_state.get("rio_test_preview"):
+        return
     user_id = st.session_state.get("rio_cloud_user_id")
     store = current_strava_store()
     service_key = _service_key()

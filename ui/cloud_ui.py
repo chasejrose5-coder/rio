@@ -185,6 +185,8 @@ def cloud_sign_out() -> None:
 
 def persist_cloud_season() -> None:
     """Write the season already in this session onto the signed-in user."""
+    if st.session_state.get("rio_test_preview"):
+        return
     token = st.session_state.get("rio_cloud_access")
     directory = current_directory()
     inputs = st.session_state.get("season_inputs")
