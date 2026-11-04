@@ -15,17 +15,21 @@ if str(ROOT) not in sys.path:
 from ui.strava import (
     SCOPE,
     RateGate,
+    StravaError,
     StravaLimited,
     authorize_url,
     deauthorize,
     exchange_code,
     import_runs,
+    is_run,
+    list_after,
     make_state,
     match_runs,
     parse_activity,
     parse_lap,
     planned_vs_actual,
     state_matches,
+    to_stored_activity,
 )
 from ui.strava_store import reset_memory_strava
 
@@ -225,10 +229,112 @@ def test_rate_limit_and_disconnect() -> None:
         _restore(saved)
 
 
+def _run(ident: int, *, laps: bool, sport: str = "Run", name: str = "Run") -> dict:
+    row = {
+        "id": ident,
+        "name": name,
+        "sport_type": sport,
+        "type": sport,
+        "start_date_local": "2026-11-03T08:00:00",
+        "distance": 1000,
+        "moving_time": 300,
+        "elapsed_time": 300,
+    }
+    if laps:
+        row["laps"] = [{"distance": 1000, "moving_time": 300, "elapsed_time": 300}]
+    return row
+
+
+def test_more_run_types_paging_and_a_failed_detail() -> None:
+    saved = _use_fake_secrets()
+    try:
+        if not is_run({"sport_type": "TrailRun", "type": "Run", "name": "Hills"}):
+            raise AssertionError("a trail run was dropped")
+        if not is_run({"sport_type": "VirtualRun", "name": "Treadmill"}):
+            raise AssertionError("a virtual run was dropped")
+        if not is_run({"sport_type": "Workout", "type": "Workout", "name": "Morning Run"}):
+            raise AssertionError("a workout named as a run was dropped")
+        if is_run({"sport_type": "Workout", "type": "Workout", "name": "Yoga"}):
+            raise AssertionError("yoga was treated as a run")
+        now = 1_700_000_000
+        floor = list_after(now, None, None)
+        if now - floor < 120 * 24 * 60 * 60 - 5:
+            raise AssertionError("the first sync is shorter than 120 days")
+        early = now - 200 * 24 * 60 * 60
+        if list_after(now, None, early) != early:
+            raise AssertionError("the season start was ignored")
+        recent = now - 2 * 24 * 60 * 60
+        if list_after(now, recent, early) != recent:
+            raise AssertionError("a later sync did not start at the last sync")
+        calls = []
+
+        def get(url, query, access):
+            calls.append(int(query.get("page") or 1) if url.endswith("/activities") else url)
+            if url.endswith("/activities"):
+                page = int(query.get("page") or 1)
+                if page == 1:
+                    return [_run(index, laps=True) for index in range(100)]
+                if page == 2:
+                    return [_run(500, laps=True)]
+                return []
+            raise StravaError("detail failed")
+
+        def post(url, form):
+            return _token_payload(now + 5000)
+
+        _token, runs = import_runs(
+            {"access_token": "a", "refresh_token": "r", "expires_at": now + 5000, "athlete_name": "Ada"},
+            now=now,
+            last_sync=None,
+            get=get,
+            post=post,
+            gate=RateGate(per_quarter=500, per_day=500),
+        )
+        if len(runs) != 101:
+            raise AssertionError(len(runs))
+        if calls[:2] != [1, 2]:
+            raise AssertionError(calls[:4])
+        skipped = {"n": 0}
+
+        def flaky(url, query, access):
+            if url.endswith("/activities"):
+                if int(query.get("page") or 1) > 1:
+                    return []
+                return [_run(1, laps=False, sport="TrailRun"), _run(2, laps=True, name="Easy")]
+            if url.endswith("/1"):
+                skipped["n"] += 1
+                raise StravaError("detail failed")
+            return _run(2, laps=True, name="Easy")
+
+        _token, kept = import_runs(
+            {"access_token": "a", "refresh_token": "r", "expires_at": now + 5000, "athlete_name": "Ada"},
+            now=now,
+            last_sync=None,
+            get=flaky,
+            post=post,
+            gate=RateGate(per_quarter=50, per_day=50),
+        )
+        if skipped["n"] != 1 or len(kept) != 2 or _token.get("detail_skips") != 1:
+            raise AssertionError((skipped, len(kept), _token.get("detail_skips")))
+        stored = to_stored_activity(kept[1])
+        if stored.get("distance") != stored.get("work_m") or stored.get("distance") is None:
+            raise AssertionError(stored)
+        extra = match_runs(kept, [{"date": "2026-11-04", "template_id": "aer_5000_r0_x1"}])
+        if extra[0]["matched"] is not False:
+            raise AssertionError("an unmatched run was hidden")
+        source = (ROOT / "ui" / "strava_store.py").read_text(encoding="utf-8")
+        writer = source[source.rindex("def put_activities(") : source.rindex("def get_activities(")]
+        if "_service()" not in writer or "_user()" in writer:
+            raise AssertionError("activities are not written with the server client")
+    finally:
+        _restore(saved)
+
+
 def main() -> None:
     test_oauth_state_and_exchange()
     test_import_parses_runs_and_matches_the_plan()
     test_rate_limit_and_disconnect()
+    test_more_run_types_paging_and_a_failed_detail()
     print("strava ok")
 
 

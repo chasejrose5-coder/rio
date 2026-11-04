@@ -22,7 +22,8 @@ from engines.pace import PaceLog, workout_times
 CLIENT_ID = "RIO_STRAVA_CLIENT_ID"
 CLIENT_SECRET = "RIO_STRAVA_CLIENT_SECRET"
 SCOPE = "activity:read_all"
-RUN_TYPES = frozenset({"Run", "TrackRun", "VirtualRun"})
+RUN_TYPES = frozenset({"Run", "TrailRun", "VirtualRun"})
+PAGE_SIZE = 100
 AUTH_URL = "https://www.strava.com/oauth/authorize"
 TOKEN_URL = "https://www.strava.com/oauth/token"
 DEAUTH_URL = "https://www.strava.com/oauth/deauthorize"
@@ -124,7 +125,7 @@ def parse_token(payload: object) -> dict:
 
 def refresh_if_needed(token: dict, now: int, post) -> dict:
     """Return a usable token. An expired access token is refreshed once."""
-    expires = token.get("expires_at")
+    expires = _as_epoch(token.get("expires_at"))
     if isinstance(expires, int) and expires > now + 60:
         return token
     from ui.cloud_config import read_setting
@@ -234,15 +235,40 @@ def sport_type(row: dict) -> str:
     return str(sport)
 
 
+def is_run(row: object) -> bool:
+    """Run, trail run, virtual run, or a Workout whose name is clearly a run."""
+    if not isinstance(row, dict):
+        return False
+    labels = {str(row.get("sport_type") or ""), str(row.get("type") or "")}
+    if labels & RUN_TYPES:
+        return True
+    if "Workout" not in labels:
+        return False
+    text = " ".join(
+        str(row.get(key) or "") for key in ("name", "type", "sport_type")
+    ).lower()
+    return "run" in text and "walk" not in text
+
+
+def activity_id(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    return None
+
+
 def parse_activity(summary: object, detail: object | None = None) -> dict | None:
     """One run, or None when the sport is not a run."""
     source = detail if isinstance(detail, dict) else summary
     if not isinstance(source, dict):
         return None
-    if sport_type(source) not in RUN_TYPES:
+    if not is_run(source):
         return None
-    ident = source.get("id")
-    if isinstance(ident, bool) or not isinstance(ident, int):
+    ident = activity_id(source.get("id"))
+    if ident is None:
         return None
     day = local_day(source.get("start_date_local")) or local_day(source.get("start_date"))
     if not day:
@@ -312,6 +338,7 @@ def to_stored_activity(run: dict) -> dict:
         "name": run.get("name") or "Run",
         "matched": run.get("matched") is True,
         "work_m": run.get("distance_m"),
+        "distance": run.get("distance_m"),
         "heart_rate": run.get("average_hr"),
         "start": run.get("start_local") or "",
         "reps": reps,
@@ -366,42 +393,82 @@ def planned_vs_actual(run: dict, *, current: str, goal: str, start: date, goal_d
     }
 
 
-def list_after(now: int, last_sync: int | None) -> int:
-    """Epoch for the list call. Thirty days, or the last sync when it is later."""
-    month = int((datetime.fromtimestamp(now, timezone.utc) - timedelta(days=30)).timestamp())
-    if isinstance(last_sync, int) and last_sync > month:
+def list_after(now: int, last_sync: int | None, season_start: int | None = None) -> int:
+    """Epoch for the list call.
+
+    A later sync starts at the last sync. The first sync starts at the season
+    start when that is earlier, and always at least 120 days back.
+    """
+    floor = int((datetime.fromtimestamp(now, timezone.utc) - timedelta(days=120)).timestamp())
+    if isinstance(season_start, int) and season_start < floor:
+        floor = season_start
+    if isinstance(last_sync, int) and last_sync > floor:
         return last_sync
-    return month
+    return floor
 
 
-def import_runs(token: dict, *, now: int, last_sync: int | None, get, post, gate: RateGate) -> tuple[dict, list[dict]]:
-    """Refresh if needed, then import runs. Non-runs are dropped."""
+def _as_epoch(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    return None
+
+
+def import_runs(
+    token: dict,
+    *,
+    now: int,
+    last_sync: int | None,
+    get,
+    post,
+    gate: RateGate,
+    season_start: int | None = None,
+) -> tuple[dict, list[dict]]:
+    """Refresh if needed, then import runs. Non-runs are dropped.
+
+    Pages until a short page. A failed detail read is counted and skipped.
+    """
     fresh = refresh_if_needed(token, now, post)
-    gate.take(now)
-    listed = get(
-        LIST_URL,
-        {"after": list_after(now, last_sync), "per_page": 100},
-        fresh["access_token"],
-    )
-    if not isinstance(listed, list):
-        raise StravaError("Strava activities could not be read.")
+    after = list_after(now, _as_epoch(last_sync), _as_epoch(season_start))
+    listed: list = []
+    page = 1
+    while page <= 20:
+        gate.take(now)
+        batch = get(
+            LIST_URL,
+            {"after": after, "per_page": PAGE_SIZE, "page": page},
+            fresh["access_token"],
+        )
+        if not isinstance(batch, list):
+            raise StravaError("Strava activities could not be read.")
+        listed.extend(batch)
+        if len(batch) < PAGE_SIZE:
+            break
+        page += 1
     runs = []
+    skipped = 0
     for summary in listed:
-        if not isinstance(summary, dict):
-            continue
-        if sport_type(summary) not in RUN_TYPES:
+        if not isinstance(summary, dict) or not is_run(summary):
             continue
         detail = summary
         if not isinstance(summary.get("laps"), list):
-            ident = summary.get("id")
-            if isinstance(ident, int):
-                gate.take(now)
-                loaded = get(DETAIL_URL.format(ident), {}, fresh["access_token"])
+            ident = activity_id(summary.get("id"))
+            if ident is not None:
+                try:
+                    gate.take(now)
+                    loaded = get(DETAIL_URL.format(ident), {}, fresh["access_token"])
+                except Exception:
+                    skipped += 1
+                    loaded = None
                 if isinstance(loaded, dict):
                     detail = loaded
         parsed = parse_activity(summary, detail)
         if parsed is not None:
             runs.append(parsed)
+    fresh["detail_skips"] = skipped
     return fresh, runs
 
 
@@ -446,6 +513,12 @@ def _fake_post(url: str, form: dict) -> dict:
 
 
 def _fake_get(url: str, query: dict) -> object:
+    flag = os.environ.get("RIO_STRAVA_FAIL_FILE", "")
+    if flag and os.path.exists(flag):
+        raise StravaError("Strava could not be reached.")
+    page = query.get("page") if isinstance(query, dict) else None
+    if page not in (None, 1, "1"):
+        return []
     if "/activities/" in url and not url.rstrip("/").endswith("activities"):
         return {
             "id": 42,
@@ -472,6 +545,18 @@ def _fake_get(url: str, query: dict) -> object:
             "elapsed_time": 1560,
             "average_heartrate": 148,
             "max_heartrate": 170,
+        },
+        {
+            "id": 44,
+            "name": "Trail loop",
+            "sport_type": "TrailRun",
+            "start_date_local": "2026-10-15T09:00:00",
+            "distance": 8000.0,
+            "moving_time": 3000,
+            "elapsed_time": 3200,
+            "laps": [
+                {"distance": 1000, "moving_time": 375, "elapsed_time": 380},
+            ],
         },
         {
             "id": 43,
