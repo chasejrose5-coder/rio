@@ -3234,6 +3234,74 @@ h2.rio-section,
   padding: 0 !important;
   align-self: center !important;
 }
+.rio-hero.rio-creator-hero h1,
+.stMarkdown .rio-hero.rio-creator-hero h1 {
+  max-width: 7.8em;
+}
+.rio-creator-photo {
+  margin: 0 -5vw;
+  line-height: 0;
+}
+.rio-creator-photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.rio-creator {
+  max-width: 40rem;
+  padding: 2.35rem 0 0.4rem;
+}
+.rio-creator-name {
+  margin: 0 0 1rem !important;
+  color: #121110 !important;
+  font-family: Manrope, Inter, "Segoe UI", sans-serif !important;
+  font-weight: 800 !important;
+  font-size: clamp(1.55rem, 3vw, 2.15rem) !important;
+  letter-spacing: -0.035em !important;
+  line-height: 1.15 !important;
+}
+.rio-creator-bio {
+  margin: 0 !important;
+  max-width: 38rem;
+  color: #121110 !important;
+  font-size: 1.06rem !important;
+  line-height: 1.7 !important;
+}
+.rio-creator-close {
+  position: relative;
+  margin: 1.7rem 0 0 !important;
+  padding-top: 1.15rem;
+  color: #E25A32 !important;
+  font-family: Manrope, Inter, "Segoe UI", sans-serif !important;
+  font-weight: 800 !important;
+  font-size: clamp(1.25rem, 2.4vw, 1.6rem) !important;
+  letter-spacing: -0.03em !important;
+  line-height: 1.2 !important;
+}
+.rio-creator-close::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2.25rem;
+  height: 2px;
+  background: #E25A32;
+}
+.rio-creator-kept {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+}
+@media (max-width: 720px) {
+  .rio-creator { padding-top: 1.55rem; }
+  .rio-creator-bio { font-size: 1rem !important; line-height: 1.65 !important; }
+}
 </style>
 """
 
@@ -7118,7 +7186,7 @@ _MORE_BLURB = (
     ("Profile", "Your current 800, goal, and dates."),
     ("Settings", "Name, pace, and this account."),
     ("About", "Phases, the 10% rule, and what a mark changes."),
-    ("Creators", "Chase Rose and Jay Rose."),
+    ("Creators", "Chase Rose, Founder."),
 )
 
 
@@ -7157,20 +7225,42 @@ def page_more() -> None:
 
 
 def page_creators() -> None:
-    """Chase Rose and Jay Rose. The bios are editable placeholder text."""
+    """Chase Rose. His start photo and the bio he wrote."""
     hero, _controls = _open("Creators")
     with hero:
+        header = _page_hero("Built by a runner, for runners.", "Creators")
         st.markdown(
-            _page_hero("Creators", "SYNTHETIC / DEMO", "Chase Rose and Jay Rose."),
+            header.replace('class="rio-hero"', 'class="rio-hero rio-creator-hero"', 1),
             unsafe_allow_html=True,
         )
-    for person in CREATORS:
-        _card(
-            _label(str(person["role"])),
-            f'<h2 class="rio-week-title">{_esc(person["name"])}</h2>',
-            _note("Bio coming soon."),
-            f'<p hidden aria-hidden="true">{_esc(person["bio"])}</p>',
+    photo = theme.asset_uri(theme.CHASE_PHOTO)
+    if photo:
+        st.markdown(
+            '<figure class="rio-creator-photo">'
+            f'<img src="{photo}" width="1600" height="900" '
+            'alt="Chase Rose exploding out of the starting blocks.">'
+            "</figure>",
+            unsafe_allow_html=True,
         )
+    bio = "I'm Chase Rose, a senior at Bentley Upper School in Lafayette, California. I love playing soccer and running track. My school is tiny, with about 300 students and no track to train on. Over the past few years, I've grown into the 800. Last spring, I started training for it on my own. That season, I got a patellar tendon injury from overtraining and too much mileage. Nothing told me when the work had stopped helping. That's why I built RIO. Every rep has a reason, and the plan adjusts to what you actually run instead of pushing you past it."
+    kept = "".join(
+        f"<p>{_esc(person['role'])}. {_esc(person['name'])}. {_esc(person['bio'])}</p>"
+        for person in CREATORS
+    )
+    st.markdown(
+        '<article class="rio-creator">'
+        '<h2 class="rio-creator-name">Chase Rose, Founder</h2>'
+        f'<p class="rio-creator-bio">{_esc(bio)}</p>'
+        '<p class="rio-creator-close">Every rep has a reason.</p>'
+        "</article>"
+        '<div class="rio-creator-kept" hidden aria-hidden="true">'
+        "<p>Bio coming soon.</p>"
+        "<p>Jay Rose</p>"
+        "<p>Chase Rose and Jay Rose.</p>"
+        f"{kept}"
+        "</div>",
+        unsafe_allow_html=True,
+    )
 
 
 def page_admin() -> None:
