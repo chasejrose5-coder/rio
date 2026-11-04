@@ -52,7 +52,6 @@ _HTML = """
   <p class="rio-brand-mark">RIO</p>
   <p class="rio-brand-owned">Runner Intelligence Owned</p>
   <h1 class="rio-startup-headline">Your Race, Your Plan, Your Result</h1>
-  <p class="rio-brand-line">Understand the work behind your goal</p>
   <p class="rio-reason-line">Every rep has a reason</p>
   <blockquote class="rio-founder-quote">
     <p class="rio-founder-words">“Most plans tell you what to run. RIO shows you why, and adjusts when the season doesn't go to script.”</p>
@@ -151,13 +150,6 @@ header {{
   line-height: 0.92 !important;
   overflow-wrap: normal !important;
   word-break: normal !important;
-}}
-.rio-brand-line {{
-  margin: 0 0 0.55rem !important;
-  color: rgba(244, 241, 236, 0.78) !important;
-  font-size: 1.05rem !important;
-  font-weight: 400 !important;
-  line-height: 1.45 !important;
 }}
 .rio-reason-line {{
   margin: 0.35rem 0 0.7rem !important;
