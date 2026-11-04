@@ -31,6 +31,7 @@ class MemoryDirectory:
         self.users: dict[str, dict] = {}
         self.by_email: dict[str, str] = {}
         self.sessions: dict[str, str] = {}
+        self.refreshes: dict[str, str] = {}
         self.resets: dict[str, str] = {}
         self.goals: dict[str, dict] = {}
         self.plans: dict[str, list] = {}
@@ -145,6 +146,26 @@ class MemoryDirectory:
             if isinstance(name, str) and name.strip():
                 self.users[user_id]["display_name"] = name.strip()
 
+    def refresh_session(self, refresh_token: object) -> dict:
+        if not isinstance(refresh_token, str):
+            raise CloudAuthError("Sign in again.")
+        access = self.refreshes.get(refresh_token)
+        user_id = self.sessions.get(access or "")
+        if user_id is None or user_id not in self.users:
+            raise CloudAuthError("Sign in again.")
+        return self._open(user_id)
+
+    def set_role(self, user_id: object, role: object, service_key: object) -> None:
+        """Set a role with the server key. The signed-in client cannot do this."""
+        if not isinstance(service_key, str) or not service_key.strip():
+            raise CloudAuthError("This role could not be saved.")
+        if role not in ("athlete", "coach", "admin") or not isinstance(user_id, str):
+            raise CloudAuthError("This role could not be saved.")
+        user = self.users.get(user_id)
+        if user is None:
+            raise CloudAuthError("This role could not be saved.")
+        user["role"] = role
+
     def list_users(self, service_key: object) -> list[dict] | None:
         if not isinstance(service_key, str) or not service_key.strip():
             return None
@@ -168,11 +189,13 @@ class MemoryDirectory:
 
     def _open(self, user_id: str) -> dict:
         token = secrets.token_hex(16)
+        refresh = "refresh-" + token
         self.sessions[token] = user_id
+        self.refreshes[refresh] = token
         user = self.users[user_id]
         return {
             "access_token": token,
-            "refresh_token": "refresh-" + token,
+            "refresh_token": refresh,
             "user_id": user_id,
             "email": user["email"],
             "display_name": user["display_name"],
@@ -273,6 +296,26 @@ class SupabaseDirectory:
         except Exception as exc:
             raise CloudAuthError("Sign-in could not be finished. Try again.") from exc
         return _session_dict(response, "")
+
+    def refresh_session(self, refresh_token: object) -> dict:
+        if not isinstance(refresh_token, str) or not refresh_token:
+            raise CloudAuthError("Sign in again.")
+        try:
+            response = self._client(self.anon_key).auth.refresh_session(refresh_token)
+        except Exception as exc:
+            raise CloudAuthError("Sign in again.") from exc
+        return _session_dict(response, "")
+
+    def set_role(self, user_id: object, role: object, service_key: object) -> None:
+        """Set a role with the server key. The signed-in client cannot do this."""
+        if not isinstance(service_key, str) or not service_key.strip():
+            raise CloudAuthError("This role could not be saved.")
+        if role not in ("athlete", "coach", "admin") or not isinstance(user_id, str):
+            raise CloudAuthError("This role could not be saved.")
+        try:
+            self._client(service_key).table("profiles").update({"role": role}).eq("id", user_id).execute()
+        except Exception as exc:
+            raise CloudAuthError("This role could not be saved.") from exc
 
     def request_reset(self, email: object) -> str:
         cleaned = normalize_email(email)
@@ -406,7 +449,6 @@ class SupabaseDirectory:
                 "id": session["user_id"],
                 "email": session["email"],
                 "display_name": name or session.get("display_name") or "",
-                "role": "athlete",
             }
         ).execute()
 

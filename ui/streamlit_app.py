@@ -827,6 +827,21 @@ export default function (component) {
     return;
   }
   var key = "rio.session.v1";
+  var cookieName = "rio_hosted";
+  function readCookie() {
+    var parts = (document.cookie || "").split("; ");
+    var prefix = cookieName + "=";
+    for (var i = 0; i < parts.length; i++) {
+      if (parts[i].indexOf(prefix) === 0) {
+        try {
+          return decodeURIComponent(parts[i].substring(prefix.length));
+        } catch (err) {
+          return "";
+        }
+      }
+    }
+    return "";
+  }
   if (mode === "clear" || mode === "clear-all") {
     try {
       if (mode === "clear-all") {
@@ -835,6 +850,7 @@ export default function (component) {
         window.localStorage.removeItem(key);
       }
     } catch (err) {}
+    document.cookie = cookieName + "=; Path=/; Max-Age=0; SameSite=Lax; Secure";
   }
   if (mode === "write" && typeof data.payload === "string") {
     try {
@@ -843,6 +859,14 @@ export default function (component) {
       }
     } catch (err) {}
   }
+  if (mode === "write" && typeof data.cookie === "string" && data.cookie) {
+    var maxAge = parseInt(data.max_age, 10);
+    if (!maxAge || maxAge < 1) {
+      maxAge = 86400;
+    }
+    document.cookie = cookieName + "=" + encodeURIComponent(data.cookie)
+      + "; Path=/; Max-Age=" + String(maxAge) + "; SameSite=Lax; Secure";
+  }
   var body = "";
   try {
     var stored = window.localStorage.getItem(key);
@@ -850,12 +874,18 @@ export default function (component) {
   } catch (err) {
     body = "";
   }
-  var token = mode + "\\n" + body;
+  var cookie = "";
+  try {
+    cookie = readCookie();
+  } catch (err) {
+    cookie = "";
+  }
+  var token = mode + "\\n" + body + "\\n" + cookie;
   if (window.__rioSessionToken === token) {
     return;
   }
   window.__rioSessionToken = token;
-  component.setStateValue("record", { body: body });
+  component.setStateValue("record", { body: body, cookie: cookie });
 }
 """
 
@@ -885,16 +915,93 @@ def _mount_session(data: dict, *, widget_key: str):
     )
 
 
-def _browser_session(mode: str, payload: str | None = None) -> str | None:
+# One browser bridge per run. A second mount on the same key breaks the page.
+_BRIDGE_CACHE: dict | None = None
+
+
+def _browser_session(
+    mode: str,
+    payload: str | None = None,
+    cookie: str | None = None,
+    max_age: int | None = None,
+) -> str | None:
     """The token currently in this browser, once the bridge has answered."""
+    global _BRIDGE_CACHE
+    if _BRIDGE_CACHE is not None and mode == "read" and payload is None and cookie is None:
+        body = _BRIDGE_CACHE.get("body")
+        return body if isinstance(body, str) else None
     data = {"mode": mode}
     if payload is not None:
         data["payload"] = payload
+    if cookie is not None:
+        data["cookie"] = cookie
+        data["max_age"] = int(max_age if isinstance(max_age, int) else 86400)
     result = _mount_session(data, widget_key="rio-keep-session")
     record = getattr(result, "record", None)
-    if not isinstance(record, dict) or not isinstance(record.get("body"), str):
+    hosted = ""
+    if isinstance(record, dict) and isinstance(record.get("cookie"), str):
+        hosted = record["cookie"]
+    body = record.get("body") if isinstance(record, dict) else None
+    _BRIDGE_CACHE = {"body": body if isinstance(body, str) else None, "cookie": hosted}
+    if not isinstance(body, str):
         return None
-    return record["body"]
+    return body
+
+
+def _flush_cookie_if_needed() -> None:
+    """Write a pending hosted cookie. A read already mounted this run waits."""
+    cookie = st.session_state.get("rio_cookie_write")
+    pending = st.session_state.get("rio_session_write")
+    if not isinstance(cookie, str) or not cookie:
+        return
+    if _BRIDGE_CACHE is not None:
+        return
+    payload = pending if isinstance(pending, str) else ""
+    max_age = st.session_state.get("rio_cookie_max_age")
+    written = _browser_session(
+        "write",
+        payload,
+        cookie,
+        max_age if isinstance(max_age, int) else None,
+    )
+    if written is None:
+        return
+    st.session_state.pop("rio_session_write", None)
+    st.session_state.pop("rio_cookie_write", None)
+    st.session_state.pop("rio_cookie_max_age", None)
+
+
+def _restore_hosted_from_bridge() -> None:
+    """A hosted cookie becomes this session before the startup page is chosen."""
+    if not cloud_configured():
+        return
+    cached = _BRIDGE_CACHE or {}
+    raw = cached.get("cookie") if isinstance(cached, dict) else ""
+    if not isinstance(raw, str) or not raw:
+        return
+    from ui.cloud_ui import restore_hosted_cookie
+
+    restore_hosted_cookie(raw)
+
+
+def _boot_bridge() -> None:
+    """Read the browser once. A signed-in rerun does not call the host again."""
+    if st.session_state.get("rio_session_clear") is True:
+        return
+    if _account_identity() is not None:
+        _flush_cookie_if_needed()
+        return
+    body = _browser_session("read")
+    if body is None:
+        st.stop()
+    _restore_hosted_from_bridge()
+
+
+def _has_current_season() -> bool:
+    """A saved plan with sessions. That season opens Home, not the startup page."""
+    from ui.cloud_session import plan_has_sessions
+
+    return plan_has_sessions(st.session_state.get("season_plan"))
 
 
 def _sign_out() -> None:
@@ -1134,7 +1241,7 @@ def _route_after_login() -> None:
     who = _account_identity()
     if who is not None:
         keys = record_keys(accounts_path(), who[0], who[1], KEY_PREFIX)
-        if has_active_plan(keys, date.today()):
+        if has_active_plan(keys, date.today()) or _has_current_season():
             home = _nav_page("Home")
             if home is not None:
                 page = home
@@ -6618,7 +6725,9 @@ def page_admin() -> None:
     if cloud_configured():
         from ui.cloud_ui import admin_account_rows
 
-        rows = admin_account_rows()
+        if "rio_admin_rows" not in st.session_state:
+            st.session_state["rio_admin_rows"] = admin_account_rows()
+        rows = st.session_state.get("rio_admin_rows")
         if rows is None:
             _card(
                 _label("Accounts"),
@@ -6976,13 +7085,14 @@ def _render_login() -> None:
 st.set_page_config(page_title="rio", layout="centered")
 load_local_env()
 _apply_session_reset()
-# Once per session. A new tab has no flag, so the track page shows again.
-if startup_pending(st.session_state):
+_session_was_open = _account_identity() is not None
+_boot_bridge()
+# Once per session. A saved season with sessions opens Home instead.
+if startup_pending(st.session_state) and not _has_current_season():
     if render_startup():
         acknowledge_startup(st.session_state)
         st.rerun()
     st.stop()
-_session_was_open = _account_identity() is not None
 _restore_session()
 _open_restored_session(_session_was_open)
 _start_page = st.Page(_with_plan(page_start), title="Start", default=True)
