@@ -180,7 +180,7 @@ html, body, .stApp {{
   min-height: 100vh !important;
 }}
 .stApp {{
-  background-color: {BG} !important;
+  background-color: #2A1B1B !important;
   background-image: {image} !important;
   background-size: cover !important;
   background-position: center center !important;
@@ -314,8 +314,23 @@ html, body, .stApp {{
   font-size: clamp(48px, 6vw, 84px) !important;
   font-weight: 800 !important;
   letter-spacing: -0.04em !important;
-  line-height: 0.92 !important;
+  line-height: 1.02 !important;
+  padding-bottom: 0.08em !important;
   opacity: 1 !important;
+}}
+[class*="st-key-rio-auth-card"] .rio-range {{
+  margin-top: 0.35rem !important;
+}}
+[class*="st-key-rio-auth-card"] [data-testid="stVerticalBlock"] {{
+  gap: 0.6rem !important;
+}}
+[class*="st-key-rio-auth-card"] button,
+[class*="st-key-rio-auth-card"] a[data-testid^="stBaseLinkButton"] {{
+  min-height: 44px !important;
+  border-radius: 999px !important;
+}}
+[class*="st-key-rio-auth-card"] [data-testid="stTextInputRootElement"] {{
+  min-height: 44px !important;
 }}
 [class*="st-key-rio-auth-card"] .rio-range,
 [class*="st-key-rio-goal-card"] .rio-range,
@@ -832,7 +847,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
   box-shadow: none !important;
   border-radius: 0 !important;
   display: grid !important;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 1.2rem 1.5rem !important;
   padding: 0.4rem 0 0.2rem !important;
 }}
@@ -935,8 +950,8 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"],
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] span,
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] p {{
-  color: {INVERSE} !important;
-  -webkit-text-fill-color: {INVERSE} !important;
+  color: {ACCENT} !important;
+  -webkit-text-fill-color: {ACCENT} !important;
   opacity: 1 !important;
 }}
 .rio-stat-row.rio-stat-five {{
@@ -1165,16 +1180,16 @@ html {{ color-scheme: light; }}
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"],
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] span,
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] p {{
-  color: {INVERSE} !important;
-  -webkit-text-fill-color: {INVERSE} !important;
+  color: {ACCENT} !important;
+  -webkit-text-fill-color: {ACCENT} !important;
   opacity: 1 !important;
   border-bottom-color: transparent !important;
 }}
 [class*="st-key-rio-sub-"][class*="-is-active"] [data-testid="stPageLink-NavLink"],
 [class*="st-key-rio-sub-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] span,
 [class*="st-key-rio-sub-"][class*="-is-active"] [data-testid="stPageLink-NavLink"] p {{
-  color: {TEXT} !important;
-  -webkit-text-fill-color: {TEXT} !important;
+  color: {ACCENT} !important;
+  -webkit-text-fill-color: {ACCENT} !important;
   opacity: 1 !important;
   border-bottom-color: transparent !important;
 }}

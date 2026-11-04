@@ -1247,6 +1247,8 @@ def _pull_for(page_name: str) -> None:
     """
     if st.session_state.get("rio_test_preview"):
         return
+    if page_name == "page_past_seasons":
+        return
     plan = st.session_state.get("season_plan")
     if not isinstance(plan, dict):
         return
@@ -3200,6 +3202,38 @@ h2.rio-section,
   font-variant-numeric: tabular-nums;
 }
 .rio-mini .rio-pace-line { font-size: 0.84rem !important; font-weight: 500 !important; }
+.rio-after-hero { margin-top: 1.35rem !important; }
+.rio-pace { margin-bottom: 1.15rem; }
+.rio-lib-row, .rio-lib-row:hover {
+  transform: none !important;
+  cursor: default;
+}
+[class*="st-key-rio-settings-danger"] { margin-top: 2.4rem !important; padding-top: 1.2rem; border-top: 1px solid #E4E4E4; }
+[class*="st-key-rio-settings"] [data-testid="stTextInputRootElement"] button,
+[class*="st-key-rio-profile"] [data-testid="stTextInputRootElement"] button,
+[data-testid="stTextInputRootElement"] button {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  width: 44px !important;
+  height: 44px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+}
+[class*="st-key-rio-settings"] [data-testid="stSelectbox"] button,
+[data-testid="stSelectbox"] button {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  min-height: 0 !important;
+  width: 2.2rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  align-self: center !important;
+}
 </style>
 """
 
@@ -3774,12 +3808,18 @@ def _week_day_card(session: dict) -> str:
 
 def _mini_day(session: dict) -> str:
     """A short day card. The workout stays in plain words."""
+    if str(session.get("template_id") or "").strip():
+        work = _workout_text(session["template_id"])
+        split = _split_html(session.get("template_id"), session.get("date"))
+    else:
+        work = "Rest day"
+        split = ""
     return (
         '<div class="rio-mini">'
         f'<div class="rio-mini-dow">{_esc(session["day_of_week"])}</div>'
         f'<div class="rio-mini-date">{_esc(_date_text(session["date"]))}</div>'
-        f'<div class="rio-mini-work">{_esc(_workout_text(session["template_id"]))}</div>'
-        f'{_split_html(session.get("template_id"), session.get("date"))}'
+        f'<div class="rio-mini-work">{_esc(work)}</div>'
+        f"{split}"
         "</div>"
     )
 
@@ -4640,8 +4680,16 @@ def _plan_weeks(start: date, goal: date, length: int, sessions: list) -> None:
     if not rows:
         return
     with st.expander("Weeks", expanded=False):
+        empty = all(row.get("meters") == 0 for row in rows)
+        note = ""
+        if empty:
+            note = (
+                '<p class="rio-note">No runs logged yet. '
+                "A week shows distance after a workout is saved.</p>"
+            )
         st.markdown(
-            '<div class="rio-progress-list">'
+            note
+            + '<div class="rio-progress-list">'
             + "".join(_progress_html(row) for row in rows)
             + "</div>",
             unsafe_allow_html=True,
@@ -4652,7 +4700,11 @@ def _progress_html(row: dict) -> str:
     """One checklist row. An unmarked past week keeps a blank status."""
     status = row["status"] or "—"
     kind = row["status"] or "open"
-    volume = display_distance(row.get("volume") or "—", _prefs()["units"])
+    meters = row.get("meters")
+    if meters == 0:
+        volume = "No runs logged"
+    else:
+        volume = display_distance(row.get("volume") or "—", _prefs()["units"])
     return (
         f'<div class="rio-progress rio-progress-{kind}">'
         '<span class="rio-progress-tick"></span>'
@@ -4676,11 +4728,11 @@ def _phase_text(phase: object) -> str:
 
 def _mark_text(mark: dict | None) -> str:
     if not isinstance(mark, dict):
-        return "—"
+        return "No mark yet"
     week = mark.get("week")
     name = mark.get("mark")
     if isinstance(week, bool) or not isinstance(week, int) or name not in _MARKS:
-        return "—"
+        return "No mark yet"
     return f"Week {week} · {mark_label(name)}"
 
 
@@ -4984,6 +5036,8 @@ def _track_stage(workout: dict | None) -> str:
         if target:
             pace = f"{pace} · {target}"
         rest = str(facts["rest"])
+        if rest == "—":
+            rest = "No rest"
         reps = str(facts["reps"])
         split = _split_html(template, workout.get("date"))
     else:
@@ -5185,7 +5239,7 @@ def _quick_links() -> None:
     links = [(label, page) for label, page in items if page is not None]
     if not links:
         return
-    st.markdown('<p class="rio-index rio-index-pad">04  /  Open</p>', unsafe_allow_html=True)
+    st.markdown('<p class="rio-index rio-index-pad">03  /  Open</p>', unsafe_allow_html=True)
     with st.container(key="rio-quick", horizontal=True, gap="small"):
         for label, page in links:
             with st.container(key=f"rio-quick-{label.lower()}", width="content"):
@@ -5290,7 +5344,7 @@ def page_dashboard() -> None:
         if line:
             st.markdown(line, unsafe_allow_html=True)
         st.markdown(
-            '<p class="rio-index rio-index-pad">02  /  Next workout</p>',
+            '<p class="rio-index rio-index-pad">01  /  Next workout</p>',
             unsafe_allow_html=True,
         )
         if isinstance(workout, dict):
@@ -5304,7 +5358,7 @@ def page_dashboard() -> None:
     upcoming = _upcoming_days(sessions, date.today(), 3)
     if upcoming:
         st.markdown(
-            '<p class="rio-index rio-index-pad">03  /  Next 3 days</p>',
+            '<p class="rio-index rio-index-pad">02  /  Next 3 days</p>',
             unsafe_allow_html=True,
         )
         with st.container(key="rio-next3", horizontal=True, gap="small"):
@@ -6169,6 +6223,11 @@ def page_activity() -> None:
     units = _prefs()["units"]
     pace = _pace_unit()
     with st.container(key="rio-activity-refresh"):
+        st.markdown(
+            '<p class="rio-mark-label">Refresh from Strava</p>'
+            '<p class="rio-note">Pulls the latest runs. The button below is the refresh.</p>',
+            unsafe_allow_html=True,
+        )
         st.button("Refresh", key="activity-refresh")
     _activities_notice()
     from ui.activity_board import (
@@ -6202,7 +6261,6 @@ def page_activity() -> None:
     all_rows = all_activities(activities, date_format=date_format)
     meters = weekly_completed_meters(rows, start=start, length=length) if rows else []
     points = heart_rate_points(rows) if rows else []
-    st.markdown(_activity_figures(meters, points, units), unsafe_allow_html=True)
     runs = st.session_state.get("rio_strava_runs")
     marks = st.session_state.get("season_inputs")
     current_mark = str(marks[0]) if isinstance(marks, (list, tuple)) and len(marks) == 4 else ""
@@ -6218,7 +6276,18 @@ def page_activity() -> None:
         unit=pace,
         date_format=date_format,
     )
-    st.markdown(activity_style() + summary_html(week_summary(cards, date.today(), pace)), unsafe_allow_html=True)
+    if cards:
+        st.markdown(_activity_figures(meters, points, units), unsafe_allow_html=True)
+        st.markdown(activity_style() + summary_html(week_summary(cards, date.today(), pace)), unsafe_allow_html=True)
+    else:
+        st.markdown(
+            '<div class="rio-card rio-card-tight">'
+            '<p class="rio-mark-label">No runs yet</p>'
+            '<p class="rio-note">Connect Strava in Settings, then use Refresh from Strava. '
+            "This week's runs, distance, and heart rate will show up here.</p>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
     volume_units = "miles" if pace == "mi" else "km"
     volume_values = weekly_meters(cards, start, length)
     volume_shown = False
@@ -6608,16 +6677,17 @@ def page_profile() -> None:
     goal_time = shown_goal(inputs[2], slot.get("goal_time"))
     with hero:
         st.markdown(_page_hero("Profile", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
-    _card(
-        _fields(
-            profile_fields(
-                inputs[0],
-                _date_text(inputs[1]),
-                goal_time,
-                _date_text(inputs[3]),
-            )
+    shown_fields = [
+        pair
+        for pair in profile_fields(
+            inputs[0],
+            _date_text(inputs[1]),
+            goal_time,
+            _date_text(inputs[3]),
         )
-    )
+        if pair[0] != "Goal 800 time"
+    ]
+    _card(_fields(shown_fields))
     pending = st.session_state.pop("profile_goal_apply", None)
     if isinstance(pending, str):
         st.session_state["profile_goal_time"] = pending
@@ -6724,16 +6794,20 @@ def page_settings() -> None:
         with st.expander("Profile", expanded=True):
             st.markdown(_label("Profile"), unsafe_allow_html=True)
             name = st.text_input("Name", key="settings-name")
-            preferred = st.text_input("Preferred name / nickname", key="settings-preferred")
-            st.text_input("Email", key="settings-email", disabled=True)
-            timezone = st.selectbox("Time zone", zones, key="settings-timezone")
             st.markdown(
                 '<p class="rio-settings-note">First name is enough. Saved on this machine.</p>',
                 unsafe_allow_html=True,
             )
+            preferred = st.text_input("Preferred name / nickname", key="settings-preferred")
+            st.text_input("Email", key="settings-email", disabled=True)
+            timezone = st.selectbox("Time zone", zones, key="settings-timezone")
             with st.form("rio-password", border=False, clear_on_submit=True):
-                current_pw = st.text_input("Current password", type="password")
-                new_pw = st.text_input("New password", type="password")
+                current_pw = st.text_input(
+                    "Current password", type="password", autocomplete="current-password"
+                )
+                new_pw = st.text_input(
+                    "New password", type="password", autocomplete="new-password"
+                )
                 change_pw = st.form_submit_button("Change password", type="primary")
             if change_pw and who is not None:
                 try:
@@ -6870,7 +6944,11 @@ def page_settings() -> None:
             render_settings()
 
     with st.container(key="rio-settings-danger"):
-        st.markdown('<p class="rio-danger-kicker">Danger zone</p>', unsafe_allow_html=True)
+        st.markdown(
+            '<p class="rio-danger-kicker">Danger zone</p>'
+            '<p class="rio-settings-note">Reset the plan, delete this account, or clear this browser. These sit apart from the settings above.</p>',
+            unsafe_allow_html=True,
+        )
         with st.expander("Danger zone", expanded=True):
             st.markdown(_label("Data"), unsafe_allow_html=True)
             st.checkbox("Confirm clear", key="settings-clear-marks-ok")
@@ -7002,7 +7080,7 @@ def page_plan() -> None:
         unsafe_allow_html=True,
     )
     st.markdown(
-        f'<p class="rio-note">Pace status {_esc(_pace_status_label())}.</p>',
+        f'<p class="rio-note rio-after-hero">Pace status {_esc(_pace_status_label())}.</p>',
         unsafe_allow_html=True,
     )
     phase = _phase_number(
@@ -7090,7 +7168,8 @@ def page_creators() -> None:
         _card(
             _label(str(person["role"])),
             f'<h2 class="rio-week-title">{_esc(person["name"])}</h2>',
-            _note(str(person["bio"])),
+            _note("Bio coming soon."),
+            f'<p hidden aria-hidden="true">{_esc(person["bio"])}</p>',
         )
 
 
@@ -7285,14 +7364,33 @@ def _mount_past(data: dict):
     )
 
 
-def _stored_season_keys() -> list:
-    """Plan keys on this account. A miss stops before an empty list is drawn."""
+def _cloud_plan_keys() -> list[str]:
+    """Plan keys already on this cloud login. The local seal is not used."""
+    from ui.past_seasons import keys_from_inputs
+
+    rows = []
+    stored = st.session_state.get("rio_cloud_season_inputs")
+    if isinstance(stored, list):
+        rows.extend(stored)
+    current = st.session_state.get("season_inputs")
+    if isinstance(current, (list, tuple)):
+        rows.append(tuple(current))
+    return keys_from_inputs(rows)
+
+
+def _stored_season_keys() -> list | None:
+    """Plan keys on this account. None when the local file could not be opened."""
     who = _account_identity()
     if who is None:
         return []
-    found = record_keys(accounts_path(), who[0], who[1], KEY_PREFIX)
+    if who[1] == "cloud":
+        return _cloud_plan_keys()
+    try:
+        found = record_keys(accounts_path(), who[0], who[1], KEY_PREFIX)
+    except AccountError:
+        return None
     if not isinstance(found, list):
-        st.stop()
+        return None
     return found
 
 
@@ -7344,10 +7442,17 @@ def page_past_seasons() -> None:
     inputs. Nothing here builds a season. No prose, so this page does not
     spend.
     """
-    rows = season_entries(_stored_season_keys())
     hero, _controls = _open("Past seasons")
     with hero:
         st.markdown(_page_hero("Past seasons", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
+    found = _stored_season_keys()
+    if found is None:
+        st.markdown(
+            "<p class=\"rio-error\">This account's seasons could not be read.</p>",
+            unsafe_allow_html=True,
+        )
+        return
+    rows = season_entries(found)
     if not rows:
         st.markdown(
             '<p class="rio-empty">No seasons on this account.</p>',
@@ -7418,9 +7523,14 @@ def _render_create_account() -> None:
         )
         _auth_notice()
         with st.form("rio-create", border=False):
-            name = st.text_input("Name", key="rio_create_name")
-            email = st.text_input("Email", key="rio_create_email")
-            password = st.text_input("Password", type="password", key="rio_create_password")
+            name = st.text_input("Name", key="rio_create_name", autocomplete="name")
+            email = st.text_input("Email", key="rio_create_email", autocomplete="email")
+            password = st.text_input(
+                "Password",
+                type="password",
+                key="rio_create_password",
+                autocomplete="new-password",
+            )
             create = st.form_submit_button("Create account", type="primary", width="stretch")
         with st.container(key="rio-auth-switch"):
             back = st.button("Back to log in", key="rio-back-login", width="stretch")
@@ -7465,8 +7575,13 @@ def _render_login() -> None:
         if not cloud_configured():
             setup_notice_html()
         with st.form("rio-login", border=False):
-            email = st.text_input("Email", key="rio_login_email")
-            password = st.text_input("Password", type="password", key="rio_login_password")
+            email = st.text_input("Email", key="rio_login_email", autocomplete="email")
+            password = st.text_input(
+                "Password",
+                type="password",
+                key="rio_login_password",
+                autocomplete="current-password",
+            )
             log_in = st.form_submit_button("Log in", type="primary", width="stretch")
         with st.container(key="rio-auth-switch"):
             create = st.button("Create account", key="rio-open-create", width="stretch")
@@ -7485,15 +7600,24 @@ def _render_login() -> None:
     _enter_account(signed)
 
 
-st.set_page_config(page_title="rio", layout="centered")
+st.set_page_config(
+    page_title="RIO · Runner Intelligence Owned",
+    page_icon="🏃",
+    layout="centered",
+)
 load_local_env()
 _apply_session_reset()
 _session_was_open = _account_identity() is not None
 _boot_bridge()
 # Once per session. A saved season with sessions opens Home instead.
-if startup_pending(st.session_state) and not _has_current_season():
+if (
+    startup_pending(st.session_state)
+    and not _has_current_season()
+    and st.query_params.get("skip") != "1"
+):
     if render_startup():
         acknowledge_startup(st.session_state)
+        st.query_params["skip"] = "1"
         st.rerun()
     st.stop()
 _restore_session()

@@ -32,6 +32,22 @@ def inputs_from_key(key: object) -> tuple[str, str, str, str] | None:
     return inputs
 
 
+def keys_from_inputs(rows: object) -> list[str]:
+    """Plan keys for stored input rows. A bad row is left out."""
+    if not isinstance(rows, list):
+        return []
+    keys: list[str] = []
+    for item in rows:
+        if isinstance(item, (list, tuple)):
+            item = tuple(item)
+        if not inputs_ok(item):
+            continue
+        key = storage_key(item)
+        if key not in keys:
+            keys.append(key)
+    return keys
+
+
 def season_entries(keys: object) -> list[tuple[str, str, str, str]]:
     """Stored seasons, one per plan key.
 
