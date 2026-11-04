@@ -89,6 +89,21 @@ def hosted_sid(raw: object) -> bool:
     return isinstance(raw, str) and raw.startswith(HOSTED_PREFIX) and 8 < len(raw) < 200
 
 
+def request_leaf(url: object) -> str:
+    """The last path segment, without the host or the query."""
+    from urllib.parse import urlparse
+
+    if not isinstance(url, str) or not url:
+        return ""
+    path = urlparse(url).path.rstrip("/")
+    return path.rsplit("/", 1)[-1]
+
+
+def load_is_app_root(url: object) -> bool:
+    """True for the app root and Home. A named page such as Plan stays put."""
+    return request_leaf(url) in ("", "~", "+", "home")
+
+
 def hosted_hash(sid: str) -> str:
     """The key stored on the server. The raw cookie is not stored."""
     return hashlib.sha256(sid.encode("utf-8")).hexdigest()

@@ -587,7 +587,7 @@ class SupabaseDirectory:
         user_id = self._token_user(client, access_token)
         profile = _first(client.table("profiles").select("*").eq("id", user_id).execute())
         goal = _first(client.table("goals").select("*").eq("user_id", user_id).execute())
-        plans = _rows(client.table("plans").select("*").eq("user_id", user_id).execute())
+        plans = _rows(_plans_query(client, user_id).execute())
         results = _rows(client.table("results").select("*").eq("user_id", user_id).execute())
         profile = profile or {}
         auth_user = self._auth_user(access_token)
@@ -646,9 +646,7 @@ class SupabaseDirectory:
         if isinstance(plans, list):
             for plan in plans:
                 if isinstance(plan, dict):
-                    saved = dict(plan)
-                    saved["user_id"] = user_id
-                    client.table("plans").upsert(saved).execute()
+                    _save_plan(client, _plan_row(plan, user_id))
         results = bundle.get("results")
         if isinstance(results, list):
             for item in results:
@@ -772,8 +770,7 @@ class SupabaseDirectory:
             client.table("goals").upsert(saved_goal).execute()
             client.table("results").delete().eq("user_id", user_id).execute()
             client.table("plans").delete().eq("user_id", user_id).execute()
-            saved_plan = deepcopy(plan_row)
-            saved_plan["user_id"] = user_id
+            saved_plan = _plan_row(plan_row, user_id)
             client.table("plans").insert(saved_plan).execute()
         except Exception:
             raise CloudAuthError("The test season could not be saved.") from None
@@ -786,7 +783,7 @@ class SupabaseDirectory:
         try:
             client = self._client(service_key)
             goal = _first(client.table("goals").select("*").eq("user_id", user_id).execute())
-            plans = _rows(client.table("plans").select("*").eq("user_id", user_id).execute())
+            plans = _rows(_plans_query(client, user_id).execute())
         except Exception:
             raise CloudAuthError("The test season could not be saved.") from None
         return {"goal": goal or _blank_goal(), "plan_row": plans[-1] if plans else None}
@@ -1205,6 +1202,48 @@ def _hosted_record(record: dict, issued: int) -> dict:
         "issued_at": issued,
         "expires_at": expires,
     }
+
+
+PLAN_CONFLICT = "user_id,start_date,goal_date,current_time,goal_time"
+
+
+def _plans_query(client, user_id: str):
+    """Oldest first, so the last row is the one most recently saved."""
+    return (
+        client.table("plans")
+        .select("*")
+        .eq("user_id", user_id)
+        .order("updated_at")
+        .order("id")
+    )
+
+
+def _plan_row(plan: dict, user_id: str) -> dict:
+    """One season row. The primary key is not sent, so the season key can match."""
+    saved = dict(plan)
+    saved.pop("id", None)
+    saved["user_id"] = user_id
+    for key in ("start_date", "goal_date", "current_time", "goal_time"):
+        if not isinstance(saved.get(key), str):
+            saved[key] = ""
+    saved["updated_at"] = datetime.now(timezone.utc).isoformat()
+    return saved
+
+
+def _missing_plan_key(exc: BaseException) -> bool:
+    """True when the season unique index has not been created yet."""
+    text = _exc_text(exc)
+    return "42p10" in text or "no unique" in text or "no matching" in text or "on conflict" in text
+
+
+def _save_plan(client, saved: dict) -> None:
+    """Update the season in place. Fall back to an insert if the key is not there yet."""
+    try:
+        client.table("plans").upsert(saved, on_conflict=PLAN_CONFLICT).execute()
+    except Exception as exc:
+        if not _missing_plan_key(exc):
+            raise
+        client.table("plans").upsert(saved).execute()
 
 
 def _hosted_expired(row: dict, *, now: int | None = None) -> bool:

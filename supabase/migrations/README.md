@@ -12,6 +12,8 @@ The service role bypasses those policies. The app uses it only on the server, an
 
 `006_app_sessions.sql` stores hosted session tokens on the server. The browser cookie holds only an id. Run it after 005. It is safe to run again. Until it has been run, the app still writes the older cookie so a login is not lost.
 
+`007_plans_season_key.sql` keeps one row per season and deletes older copies of that same season. A different season stays. Run it after 006. It is safe to run again. Until it has been run, a save still writes a new row, and a reload reads the newest `updated_at`.
+
 After the SQL:
 
 1. Authentication, URL configuration. Site URL: `https://riotraining.streamlit.app`. Redirect URLs: `https://riotraining.streamlit.app` and `https://riotraining.streamlit.app/**`. For a laptop, also add `http://localhost:8501` and `http://localhost:8501/**`.
