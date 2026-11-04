@@ -142,9 +142,13 @@ def sync_once(force: bool = False) -> bool:
 
 
 def render_settings() -> None:
-    if not configured():
-        return
     st.markdown(_label("Strava"), unsafe_allow_html=True)
+    if not configured():
+        st.markdown(
+            _note("Strava is not set up on this server yet."),
+            unsafe_allow_html=True,
+        )
+        return
     st.markdown(_note("Strava data is only visible to you."), unsafe_allow_html=True)
     token = _cached_token()
     if isinstance(token, dict) and token.get("athlete_name"):

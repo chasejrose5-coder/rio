@@ -205,6 +205,29 @@ _PACE = (
 )
 
 
+MARK_LABEL = {
+    "on_track": "On track",
+    "not_hitting": "Not hitting",
+    "smashing": "Smashing",
+}
+
+
+def mark_label(mark: object) -> str:
+    """The words for a stored mark. The stored value stays the raw code."""
+    text = str(mark or "").strip()
+    if not text:
+        return "—"
+    return MARK_LABEL.get(text, text.replace("_", " "))
+
+
+def plain_marks(text: object) -> str:
+    """Replace raw mark codes in a sentence that is about to be shown."""
+    shown = str(text or "")
+    for raw, label in MARK_LABEL.items():
+        shown = shown.replace(raw, label)
+    return shown
+
+
 def session_facts(template_id: object, description: object = "") -> dict:
     """Distance, pace, rest, and reps for the home track.
 
