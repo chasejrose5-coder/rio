@@ -28,6 +28,10 @@ MUTED = "#6E6A64"
 QUIET = "#6E6A64"
 ACCENT = "#E25A32"
 HOVER = "#C94A25"
+# White text sits on this darker orange. ACCENT stays the brand color.
+BUTTON = "#C2461F"
+BUTTON_HOVER = "#A63C1A"
+BUTTON_ACTIVE = "#8C3216"
 LIGHT = "#E25A32"
 BG = "#F4F1EC"
 SURFACE = "#FFFcf7"
@@ -78,6 +82,15 @@ _LATIN = (
 )
 
 
+# Served from ui/static when the app script is ui/streamlit_app.py.
+_PHOTO_STATIC = {
+    "startup_track.jpg": "photos/startup-track.jpg",
+    "login_floodlights.jpg": "photos/login.jpg",
+    "start_line.jpg": "photos/start.jpg",
+    "about_stadium.jpg": "photos/about.jpg",
+}
+
+
 @lru_cache(maxsize=8)
 def data_uri(path: str) -> str:
     """A JPEG as a data URI. Empty when the file is missing."""
@@ -88,39 +101,80 @@ def data_uri(path: str) -> str:
     return "data:image/jpeg;base64," + encoded
 
 
+def static_url(name: str) -> str:
+    """The desktop photo URL, or empty when this name is not served."""
+    rel = _PHOTO_STATIC.get(name)
+    if not rel:
+        return ""
+    return "/app/static/" + rel
+
+
+def static_mobile_url(name: str) -> str:
+    """The narrower photo. Empty when there is no desktop file."""
+    rel = _PHOTO_STATIC.get(name, "")
+    if not rel.endswith(".jpg"):
+        return ""
+    return "/app/static/" + rel[:-4] + "-800.jpg"
+
+
 def asset_uri(name: str) -> str:
-    """A file in ui/assets as a data URI."""
-    return data_uri(str(ASSETS / name))
+    """A photo served as a static file. The page CSS does not embed it."""
+    return static_url(name)
 
 
 @lru_cache(maxsize=1)
 def font_css() -> str:
-    """@font-face rules for the bundled woff2 files. Empty faces are skipped."""
+    """@font-face rules. The files are served, not embedded."""
     faces = []
     for family, weight, name in _FACES:
-        file = FONTS / name
-        if not file.is_file():
-            continue
-        encoded = base64.b64encode(file.read_bytes()).decode("ascii")
         faces.append(
             "@font-face{"
             f"font-family:'{family}';"
             "font-style:normal;"
             f"font-weight:{weight};"
             "font-display:swap;"
-            f"src:url('data:font/woff2;base64,{encoded}') format('woff2');"
+            f"src:url('/app/static/fonts/{name}') format('woff2');"
             f"unicode-range:{_LATIN};"
             "}"
         )
     return "\n".join(faces)
 
 
+def focus_css() -> str:
+    """A ring for keyboard focus. A mouse click does not draw it."""
+    return """
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+summary:focus-visible,
+[role="radio"]:focus-visible,
+[role="checkbox"]:focus-visible,
+[tabindex]:focus-visible,
+[data-testid="stSelectbox"] input:focus-visible,
+[data-testid="stTextInput"] input:focus-visible,
+[data-testid="stDateInput"] input:focus-visible,
+[data-testid="stNumberInput"] input:focus-visible {
+  outline: 2px solid #E25A32 !important;
+  outline-offset: 3px !important;
+}
+"""
+
+
 def _image(uri: str) -> str:
     return f'url("{uri}")' if uri else "none"
 
 
-def fullscreen_rules(image: str) -> str:
+def fullscreen_rules(image: str, mobile: str | None = None) -> str:
     """Photo on .stApp, transparent shells, and a light shade over the photo."""
+    mobile_rule = ""
+    if mobile:
+        mobile_rule = f"""
+@media (max-width: 800px) {{
+  .stApp {{ background-image: {mobile} !important; }}
+}}
+"""
     return f"""
 html, body, .stApp {{
   min-height: 100vh !important;
@@ -273,11 +327,27 @@ html, body, .stApp {{
 [class*="st-key-rio-auth-card"] [data-testid="stFormSubmitButton"] button,
 [class*="st-key-rio-goal-card"] [data-testid="stBaseButton-primary"],
 [class*="st-key-rio-goal-card"] [data-testid="stFormSubmitButton"] button {{
-  background: {ACCENT} !important;
-  background-color: {ACCENT} !important;
-  border: 1px solid {ACCENT} !important;
+  background: {BUTTON} !important;
+  background-color: {BUTTON} !important;
+  border: 1px solid {BUTTON} !important;
   color: {INK} !important;
   opacity: 1 !important;
+}}
+[class*="st-key-rio-auth-card"] [data-testid="stFormSubmitButton"] button:hover,
+[class*="st-key-rio-goal-card"] [data-testid="stBaseButton-primary"]:hover,
+[class*="st-key-rio-goal-card"] [data-testid="stFormSubmitButton"] button:hover {{
+  background: {BUTTON_HOVER} !important;
+  background-color: {BUTTON_HOVER} !important;
+  border-color: {BUTTON_HOVER} !important;
+  color: {INK} !important;
+}}
+[class*="st-key-rio-auth-card"] [data-testid="stFormSubmitButton"] button:active,
+[class*="st-key-rio-goal-card"] [data-testid="stBaseButton-primary"]:active,
+[class*="st-key-rio-goal-card"] [data-testid="stFormSubmitButton"] button:active {{
+  background: {BUTTON_ACTIVE} !important;
+  background-color: {BUTTON_ACTIVE} !important;
+  border-color: {BUTTON_ACTIVE} !important;
+  color: {INK} !important;
 }}
 [class*="st-key-rio-auth-card"] [data-testid="stFormSubmitButton"] button p,
 [class*="st-key-rio-auth-card"] [data-testid="stFormSubmitButton"] button span,
@@ -298,12 +368,17 @@ html, body, .stApp {{
   color: {TEXT} !important;
   opacity: 1 !important;
 }}
+{mobile_rule}
+{focus_css()}
 """
 
 
 def fullscreen_css(uri: str) -> str:
     """Full-screen photo for Log in, Create account, and Start."""
-    return "<style>" + fullscreen_rules(_image(uri)) + "</style>"
+    mobile = None
+    if isinstance(uri, str) and uri.endswith(".jpg") and not uri.endswith("-800.jpg"):
+        mobile = _image(uri[:-4] + "-800.jpg")
+    return "<style>" + fullscreen_rules(_image(uri), mobile) + "</style>"
 
 
 def primary_button_css(selector: str) -> str:
@@ -311,8 +386,8 @@ def primary_button_css(selector: str) -> str:
     return f"""
 {selector} button,
 {selector} [data-testid="stBaseButton-primary"] {{
-  background: {ACCENT} !important;
-  border: 1px solid {ACCENT} !important;
+  background: {BUTTON} !important;
+  border: 1px solid {BUTTON} !important;
   border-radius: {BUTTON_RADIUS} !important;
   color: {INK} !important;
   min-height: 2.8rem !important;
@@ -331,8 +406,14 @@ def primary_button_css(selector: str) -> str:
 }}
 {selector} button:hover,
 {selector} [data-testid="stBaseButton-primary"]:hover {{
-  background: {HOVER} !important;
-  border-color: {HOVER} !important;
+  background: {BUTTON_HOVER} !important;
+  border-color: {BUTTON_HOVER} !important;
+  color: {INK} !important;
+}}
+{selector} button:active,
+{selector} [data-testid="stBaseButton-primary"]:active {{
+  background: {BUTTON_ACTIVE} !important;
+  border-color: {BUTTON_ACTIVE} !important;
   color: {INK} !important;
 }}
 """
@@ -579,8 +660,8 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
   align-self: center !important;
 }}
 [class*="st-key-rio-start-session"] [data-testid="stPageLink-NavLink"] {{
-  background: {ACCENT} !important;
-  background-color: {ACCENT} !important;
+  background: {BUTTON} !important;
+  background-color: {BUTTON} !important;
   border-radius: 999px !important;
   padding: 0.62rem 1.05rem !important;
   margin: 0.35rem 0 0.15rem !important;
@@ -604,7 +685,10 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{
   background: transparent !important;
 }}
 [class*="st-key-rio-start-session"] [data-testid="stPageLink-NavLink"]:hover {{
-  background: {HOVER} !important;
+  background: {BUTTON_HOVER} !important;
+}}
+[class*="st-key-rio-start-session"] [data-testid="stPageLink-NavLink"]:active {{
+  background: {BUTTON_ACTIVE} !important;
 }}
 [class*="st-key-rio-logout"] button,
 [class*="st-key-rio-logout"] button p,
@@ -1141,8 +1225,8 @@ html {{ color-scheme: light; }}
 
 .stApp [data-testid="stBaseButton-primary"],
 .stApp [data-testid="stFormSubmitButton"] button {{
-  background: {ACCENT} !important;
-  border: 1px solid {ACCENT} !important;
+  background: {BUTTON} !important;
+  border: 1px solid {BUTTON} !important;
   border-radius: {BUTTON_RADIUS} !important;
   color: {INK} !important;
   font-size: 1rem !important;
@@ -1160,8 +1244,14 @@ html {{ color-scheme: light; }}
 }}
 .stApp [data-testid="stBaseButton-primary"]:hover,
 .stApp [data-testid="stFormSubmitButton"] button:hover {{
-  background: {HOVER} !important;
-  border-color: {HOVER} !important;
+  background: {BUTTON_HOVER} !important;
+  border-color: {BUTTON_HOVER} !important;
+  color: {INK} !important;
+}}
+.stApp [data-testid="stBaseButton-primary"]:active,
+.stApp [data-testid="stFormSubmitButton"] button:active {{
+  background: {BUTTON_ACTIVE} !important;
+  border-color: {BUTTON_ACTIVE} !important;
   color: {INK} !important;
 }}
 [data-testid="stBaseButton-secondary"],
@@ -1377,6 +1467,18 @@ html {{ color-scheme: light; }}
 
 {motion_rules()}
 {editorial_css()}
+
+.rio-about-banner {{
+  background-image: url("/app/static/photos/about.jpg") !important;
+  background-size: cover !important;
+  background-position: center center !important;
+}}
+@media (max-width: 800px) {{
+  .rio-about-banner {{
+    background-image: url("/app/static/photos/about-800.jpg") !important;
+  }}
+}}
+{focus_css()}
 
 @media (max-width: 720px) {{
   .rio-lib, .rio-stat-row {{ grid-template-columns: 1fr; }}

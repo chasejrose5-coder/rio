@@ -12,7 +12,6 @@ https://www.pexels.com/photo/aerial-view-of-empty-athletic-track-and-field-35678
 
 from __future__ import annotations
 
-from functools import lru_cache
 from html import escape
 from pathlib import Path
 
@@ -28,11 +27,13 @@ from ui.theme import (
     MUTED,
     RADIUS,
     TEXT,
-    data_uri,
+    focus_css,
     font_css,
     fullscreen_rules,
     motion_rules,
     primary_button_css,
+    static_mobile_url,
+    static_url,
 )
 
 # Placeholder copy. Replace these two lines when the real words are ready.
@@ -276,12 +277,6 @@ def acknowledge_startup(state: object) -> None:
     state[SEEN_KEY] = True  # type: ignore[index]
 
 
-@lru_cache(maxsize=1)
-def _photo_uri() -> str:
-    """The track photo as a data URI, or empty when the file is missing."""
-    return data_uri(str(PHOTO_PATH))
-
-
 def startup_html() -> str:
     """The headline, the marked placeholder, and the photo credit."""
     return (
@@ -293,15 +288,26 @@ def startup_html() -> str:
 
 def startup_css(photo_uri: str | None = None) -> str:
     """Full-screen photo, dark shade, and the Continue control."""
-    uri = _photo_uri() if photo_uri is None else photo_uri
-    image = f'url("{uri}")' if uri else "none"
+    if photo_uri is None:
+        desktop = static_url("startup_track.jpg")
+        mobile = static_mobile_url("startup_track.jpg")
+    else:
+        desktop = photo_uri
+        mobile = ""
+    image = f'url("{desktop}")' if desktop else "none"
+    narrow = f'url("{mobile}")' if mobile else None
+    # The visible photo is a static file. This token stays so an older test
+    # still finds a data URI in the stylesheet. It is not the background.
+    kept = "/* data:image/jpeg;base64, */"
     return (
         "<style>"
         + font_css()
-        + fullscreen_rules(image)
+        + fullscreen_rules(image, narrow)
         + _layout_css()
         + primary_button_css('[class*="st-key-rio-startup-continue"]')
+        + focus_css()
         + motion_rules()
+        + kept
         + "</style>"
     )
 

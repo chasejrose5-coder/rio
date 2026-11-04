@@ -1628,8 +1628,11 @@ footer {
   background: transparent !important;
 }
 [class*="st-key-rio-nav"] [data-testid="stPageLink-NavLink"]:focus-visible,
-button:focus-visible {
-  outline: 1px solid #C94A25;
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #E25A32;
   outline-offset: 3px;
 }
 [class*="st-key-rio-logout"] {
@@ -2028,7 +2031,7 @@ h2.rio-week-title {
 [class*="st-key-rio-hit-dash"]:focus-within .rio-next,
 [class*="st-key-rio-hit-dash"]:focus-within .rio-hero,
 [class*="st-key-rio-hit-dash"]:focus-within .rio-track-stage {
-  outline: 1px solid #C94A25;
+  outline: 2px solid #E25A32;
   outline-offset: 2px;
 }
 [class*="st-key-rio-hit-cal-"]:hover .rio-cal-session {
@@ -2257,8 +2260,8 @@ h2.rio-week-title {
 [class*="st-key-rio-week"] button p { color: inherit !important; }
 [class*="st-key-rio-week"] button[kind="primary"],
 [class*="st-key-rio-week"] [data-testid="stBaseButton-primary"] {
-  background: #E25A32 !important;
-  border-color: #E25A32 !important;
+  background: #C2461F !important;
+  border-color: #C2461F !important;
   color: #FFFFFF !important;
 }
 [class*="st-key-rio-week"] button[kind="secondary"]:hover,
@@ -2269,8 +2272,14 @@ h2.rio-week-title {
 }
 [class*="st-key-rio-week"] button[kind="primary"]:hover,
 [class*="st-key-rio-week"] [data-testid="stBaseButton-primary"]:hover {
-  background: #C94A25 !important;
-  border-color: #C94A25 !important;
+  background: #A63C1A !important;
+  border-color: #A63C1A !important;
+  color: #FFFFFF !important;
+}
+[class*="st-key-rio-week"] button[kind="primary"]:active,
+[class*="st-key-rio-week"] [data-testid="stBaseButton-primary"]:active {
+  background: #8C3216 !important;
+  border-color: #8C3216 !important;
   color: #FFFFFF !important;
 }
 [class*="st-key-rio-week"] [data-testid="stHorizontalBlock"] {
@@ -2464,8 +2473,8 @@ h2.rio-week-title {
 [class*="st-key-rio-start"] [data-testid="stBaseButton-primary"],
 [class*="st-key-rio-profile-edit"] button,
 [class*="st-key-rio-profile-edit"] [data-testid="stBaseButton-primary"] {
-  background: #E25A32 !important;
-  border: 1px solid #E25A32 !important;
+  background: #C2461F !important;
+  border: 1px solid #C2461F !important;
   border-radius: 999px !important;
   color: #FFFFFF !important;
   min-height: 2.75rem !important;
@@ -2485,8 +2494,16 @@ h2.rio-week-title {
 [class*="st-key-rio-start"] [data-testid="stBaseButton-primary"]:hover,
 [class*="st-key-rio-profile-edit"] button:hover,
 [class*="st-key-rio-profile-edit"] [data-testid="stBaseButton-primary"]:hover {
-  background: #C94A25 !important;
-  border-color: #C94A25 !important;
+  background: #A63C1A !important;
+  border-color: #A63C1A !important;
+  color: #FFFFFF !important;
+}
+[class*="st-key-rio-start"] button:active,
+[class*="st-key-rio-start"] [data-testid="stBaseButton-primary"]:active,
+[class*="st-key-rio-profile-edit"] button:active,
+[class*="st-key-rio-profile-edit"] [data-testid="stBaseButton-primary"]:active {
+  background: #8C3216 !important;
+  border-color: #8C3216 !important;
   color: #FFFFFF !important;
 }
 [class*="st-key-rio-auth-switch"] button,
@@ -3021,8 +3038,8 @@ h2.rio-section,
 [class*="st-key-rio-confirm"] button p { color: inherit !important; }
 [class*="st-key-rio-confirm"] button[kind="primary"],
 [class*="st-key-rio-confirm"] [data-testid="stBaseButton-primary"] {
-  background: #E25A32 !important;
-  border-color: #E25A32 !important;
+  background: #C2461F !important;
+  border-color: #C2461F !important;
   color: #FFFFFF !important;
 }
 [class*="st-key-rio-confirm"] button[kind="secondary"]:hover,
@@ -3033,8 +3050,14 @@ h2.rio-section,
 }
 [class*="st-key-rio-confirm"] button[kind="primary"]:hover,
 [class*="st-key-rio-confirm"] [data-testid="stBaseButton-primary"]:hover {
-  background: #C94A25 !important;
-  border-color: #C94A25 !important;
+  background: #A63C1A !important;
+  border-color: #A63C1A !important;
+  color: #FFFFFF !important;
+}
+[class*="st-key-rio-confirm"] button[kind="primary"]:active,
+[class*="st-key-rio-confirm"] [data-testid="stBaseButton-primary"]:active {
+  background: #8C3216 !important;
+  border-color: #8C3216 !important;
   color: #FFFFFF !important;
 }
 [class*="st-key-rio-settings"] [data-testid="stCheckbox"]:has(input:checked) svg {
@@ -3066,13 +3089,18 @@ h2.rio-section,
   background: #F2F2F2 !important;
 }
 [class*="st-key-rio-settings"] [data-testid="stBaseButton-primary"] {
-  background: #E25A32 !important;
-  border-color: #E25A32 !important;
+  background: #C2461F !important;
+  border-color: #C2461F !important;
   color: #FFFFFF !important;
 }
 [class*="st-key-rio-settings"] [data-testid="stBaseButton-primary"]:hover {
-  background: #C94A25 !important;
-  border-color: #C94A25 !important;
+  background: #A63C1A !important;
+  border-color: #A63C1A !important;
+  color: #FFFFFF !important;
+}
+[class*="st-key-rio-settings"] [data-testid="stBaseButton-primary"]:active {
+  background: #8C3216 !important;
+  border-color: #8C3216 !important;
   color: #FFFFFF !important;
 }
 [class*="st-key-rio-settings"] input:disabled {
@@ -6632,11 +6660,9 @@ def page_about() -> None:
     week, or call a model. Recorded prose spend stays at $25.
     """
     hero, _controls = _open("About")
-    photo = theme.asset_uri(theme.ABOUT_PHOTO)
-    image = f"url('{photo}')" if photo else "none"
     with hero:
         st.markdown(
-            f'<header class="rio-about-banner" style="background-image:{image}">'
+            '<header class="rio-about-banner">'
             '<div class="rio-about-shade" aria-hidden="true"></div>'
             '<div class="rio-about-title">'
             '<p class="rio-index rio-index-light">About</p>'
