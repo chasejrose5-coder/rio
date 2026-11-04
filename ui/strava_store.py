@@ -121,7 +121,7 @@ class SupabaseStrava:
         }
 
     def put_activities(self, user_id: str, rows: list) -> None:
-        client = self._user()
+        client = self._service()
         for row in rows:
             if not isinstance(row, dict):
                 continue
@@ -146,7 +146,7 @@ class SupabaseStrava:
 
     def get_activities(self, user_id: str) -> list:
         response = (
-            self._user()
+            self._service()
             .table("strava_activities")
             .select("*")
             .eq("user_id", user_id)

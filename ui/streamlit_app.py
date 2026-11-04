@@ -1199,26 +1199,29 @@ def _pull_for(page_name: str) -> None:
     sessions = plan.get("sessions")
     if not isinstance(sessions, list):
         sessions = []
-    try:
-        if refresh:
-            updated = sync_all(
-                sessions,
-                st.session_state.get("season_activities"),
-                date.today(),
-            )
+    from ui.strava_ui import strava_connected
+
+    if not strava_connected():
+        try:
+            if refresh:
+                updated = sync_all(
+                    sessions,
+                    st.session_state.get("season_activities"),
+                    date.today(),
+                )
+            else:
+                updated = sync_recent(
+                    sessions,
+                    st.session_state.get("season_activities"),
+                    date.today(),
+                )
+        except PullError as exc:
+            st.session_state["activities_notice"] = str(exc)
         else:
-            updated = sync_recent(
-                sessions,
-                st.session_state.get("season_activities"),
-                date.today(),
-            )
-    except PullError as exc:
-        st.session_state["activities_notice"] = str(exc)
-    else:
-        st.session_state["season_activities"] = updated
-        st.session_state.pop("activities_notice", None)
-        if opened:
-            _apply_activity_marks(plan)
+            st.session_state["season_activities"] = updated
+            st.session_state.pop("activities_notice", None)
+            if opened:
+                _apply_activity_marks(plan)
     from ui.strava_ui import restore_rows
 
     restore_rows()
@@ -5881,6 +5884,23 @@ def page_activity() -> None:
         st.markdown('<p class="rio-empty">—</p>', unsafe_allow_html=True)
         return
 
+    with hero:
+        st.markdown(
+            _page_hero(
+                "Activity",
+                _activity_banner(_stored_activities(), st.session_state.get("season_actuals")),
+                f"{_date_text(start)} — {_date_text(goal)}",
+            ),
+            unsafe_allow_html=True,
+        )
+    units = _prefs()["units"]
+    with st.container(key="rio-activity-refresh"):
+        st.button("Refresh", key="activity-refresh")
+    _activities_notice()
+    from ui.strava_ui import activity_block, prepare_activity, status_html
+
+    prepare_activity()
+    st.markdown(status_html(), unsafe_allow_html=True)
     activities = _stored_activities()
     actuals = st.session_state.get("season_actuals")
     stored_actuals = actuals if isinstance(actuals, dict) else {}
@@ -5895,24 +5915,9 @@ def page_activity() -> None:
         date_format=date_format,
     )
     all_rows = all_activities(activities, date_format=date_format)
-    with hero:
-        st.markdown(
-            _page_hero(
-                "Activity",
-                _activity_banner(activities, stored_actuals),
-                f"{_date_text(start)} — {_date_text(goal)}",
-            ),
-            unsafe_allow_html=True,
-        )
-    units = _prefs()["units"]
     meters = weekly_completed_meters(rows, start=start, length=length) if rows else []
     points = heart_rate_points(rows) if rows else []
     st.markdown(_activity_figures(meters, points, units), unsafe_allow_html=True)
-    with st.container(key="rio-activity-refresh"):
-        st.button("Refresh", key="activity-refresh")
-    _activities_notice()
-    from ui.strava_ui import activity_block
-
     activity_block()
     volume_shown = False
     heart_shown = False

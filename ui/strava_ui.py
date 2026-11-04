@@ -22,6 +22,7 @@ from ui.strava import (
     RateGate,
     StravaError,
     StravaLimited,
+    _as_epoch,
     authorize_url,
     configured,
     deauthorize,
@@ -82,21 +83,28 @@ def consume_callback() -> None:
     st.rerun()
 
 
-def sync_once(force: bool = False) -> None:
+def strava_connected() -> bool:
+    return isinstance(_cached_token(), dict)
+
+
+def sync_once(force: bool = False) -> bool:
+    """Import once the season is loaded. A failed import does not stick the flag."""
     if st.session_state.get("rio_strava_synced") is True and not force:
-        return
+        return False
+    if not _plan_ready():
+        return False
     user_id = st.session_state.get("rio_cloud_user_id")
     token = _cached_token()
     if not isinstance(user_id, str) or not isinstance(token, dict):
-        return
+        return False
     store = current_strava_store()
     service_key = _service_key()
     if store is None or not service_key:
-        return
-    plan = st.session_state.get("season_plan")
-    sessions = plan.get("sessions") if isinstance(plan, dict) else []
+        st.session_state["rio_strava_notice"] = "Strava could not be saved."
+        return False
+    sessions = _sessions()
     now = int(time.time())
-    last = token.get("last_sync_at") if isinstance(token.get("last_sync_at"), int) else None
+    last = _as_epoch(token.get("last_sync_at"))
     try:
         fresh, runs = import_runs(
             token,
@@ -105,14 +113,14 @@ def sync_once(force: bool = False) -> None:
             get=http_get,
             post=http_post,
             gate=_GATE,
+            season_start=_season_start(sessions),
         )
     except StravaLimited as exc:
         st.session_state["rio_strava_notice"] = str(exc)
-        st.session_state["rio_strava_synced"] = True
-        return
+        return False
     except StravaError as exc:
         st.session_state["rio_strava_notice"] = str(exc)
-        return
+        return False
     runs = match_runs(runs, sessions)
     fresh["last_sync_at"] = now
     fresh["athlete_name"] = fresh.get("athlete_name") or token.get("athlete_name") or ""
@@ -121,9 +129,13 @@ def sync_once(force: bool = False) -> None:
         _save_token(user_id, fresh)
     except Exception:
         st.session_state["rio_strava_notice"] = "Strava could not be saved."
-        return
-    _remember(runs)
+        return False
+    st.session_state.pop("rio_strava_notice", None)
     st.session_state["rio_strava_synced"] = True
+    st.session_state["rio_strava_synced_at"] = now
+    st.session_state["rio_strava_count"] = len(runs)
+    _remember(runs)
+    return True
 
 
 def render_settings() -> None:
@@ -162,33 +174,77 @@ def render_connect_button() -> None:
     st.link_button("Connect with Strava", url)
 
 
-def activity_block() -> None:
-    if st.session_state.get("activity-refresh") is True:
+def prepare_activity() -> None:
+    """Sync before the lists are drawn, then load this user's saved runs."""
+    if not strava_connected():
+        return
+    st.session_state.pop("activities_notice", None)
+    clicked = st.session_state.get("activity-refresh") is True
+    drawing = st.session_state.get("rio_strava_draw_after_sync") is True
+    if clicked and not drawing:
         st.session_state["rio_strava_synced"] = False
         sync_once(force=True)
+        st.session_state["rio_strava_draw_after_sync"] = True
+        st.rerun()
+    if drawing:
+        st.session_state["rio_strava_draw_after_sync"] = False
+    else:
+        sync_once()
+    load_into_session()
+
+
+def prepare_home() -> None:
+    if not strava_connected():
+        return
+    sync_once()
+    load_into_session()
+
+
+def status_html() -> str:
+    """The sync line under Refresh, or the error from the last attempt."""
+    if not strava_connected() and not st.session_state.get("rio_strava_notice"):
+        return ""
     notice = st.session_state.get("rio_strava_notice")
     if isinstance(notice, str) and notice.strip():
-        st.markdown(f'<p class="rio-note">{_esc(notice)}</p>', unsafe_allow_html=True)
+        return f'<p class="rio-error">{_esc(notice.strip())}</p>'
+    when = st.session_state.get("rio_strava_synced_at")
+    if not isinstance(when, int):
+        token = _cached_token()
+        if isinstance(token, dict):
+            when = _as_epoch(token.get("last_sync_at"))
+    count = st.session_state.get("rio_strava_count")
+    runs = st.session_state.get("rio_strava_runs")
+    if not isinstance(count, int) and isinstance(runs, list):
+        count = len(runs)
+    if not isinstance(when, int) or not isinstance(count, int):
+        return ""
+    return f'<p class="rio-note">Last synced {_pacific(when)}, {count} runs imported</p>'
+
+
+def activity_block() -> None:
     rows = _comparisons()
     if not rows:
         return
     lines = []
     for row in rows:
+        status = f' · {_esc(row["status"])}' if row.get("status") else ""
         lines.append(
             "<p>"
             f'{_esc(row["date"])} · {_esc(row["name"])}<br>'
             f'Planned {_esc(row["planned"])}<br>'
-            f'Actual {_esc(row["actual"])} · {_esc(row["status"])}'
+            f'Actual {_esc(row["actual"])}{status}'
             "</p>"
         )
     _card(_label("Planned vs actual"), "".join(lines), _note("From your Strava runs."))
 
 
 def home_line() -> str:
+    prepare_home()
     rows = _comparisons()
-    if not rows:
+    matched = [row for row in rows if row.get("status") != "Extra"]
+    if not matched and not rows:
         return ""
-    row = rows[-1]
+    row = matched[-1] if matched else rows[-1]
     return (
         '<div class="rio-card rio-card-tight">'
         '<p class="rio-mark-label">Planned vs actual</p>'
@@ -200,32 +256,58 @@ def home_line() -> str:
 def _comparisons() -> list[dict]:
     runs = st.session_state.get("rio_strava_runs")
     inputs = st.session_state.get("season_inputs")
-    if not isinstance(runs, list) or not isinstance(inputs, (list, tuple)) or len(inputs) != 4:
+    if not isinstance(runs, list):
         return []
-    try:
-        start = date.fromisoformat(str(inputs[1]))
-        goal_day = date.fromisoformat(str(inputs[3]))
-    except ValueError:
-        return []
+    start = goal_day = None
+    current = goal = ""
+    if isinstance(inputs, (list, tuple)) and len(inputs) == 4:
+        current = str(inputs[0])
+        goal = str(inputs[2])
+        try:
+            start = date.fromisoformat(str(inputs[1]))
+            goal_day = date.fromisoformat(str(inputs[3]))
+        except ValueError:
+            start = goal_day = None
     rows = []
     for run in runs:
-        if not isinstance(run, dict) or run.get("matched") is not True:
+        if not isinstance(run, dict):
             continue
         try:
             on = date.fromisoformat(str(run.get("date")))
         except ValueError:
             continue
-        rows.append(
-            planned_vs_actual(
+        if start is None or goal_day is None:
+            row = {
+                "date": run.get("date") or "",
+                "name": run.get("name") or "Run",
+                "planned": "—",
+                "actual": _actual_text(run),
+                "status": "Extra",
+            }
+        else:
+            row = planned_vs_actual(
                 run,
-                current=str(inputs[0]),
-                goal=str(inputs[2]),
+                current=current,
+                goal=goal,
                 start=start,
                 goal_day=goal_day,
                 on=on,
             )
-        )
+            if run.get("matched") is not True:
+                row["planned"] = "—"
+                row["status"] = "Extra"
+        rows.append(row)
     return rows
+
+
+def _actual_text(run: dict) -> str:
+    distance = run.get("distance_m")
+    distance_text = "—"
+    if isinstance(distance, (int, float)) and not isinstance(distance, bool):
+        distance_text = f"{float(distance) / 1000:.1f} km"
+    from ui.strava import pace_text
+
+    return f"{distance_text} · {pace_text(run.get('pace_s_per_km'))}"
 
 
 def _cached_token() -> dict | None:
@@ -329,3 +411,64 @@ def _clear_callback() -> None:
 def _service_key() -> str:
     settings = cloud_settings() or {}
     return str(settings.get("service_key") or "")
+
+
+def _plan_ready() -> bool:
+    return bool(_sessions())
+
+
+def _sessions() -> list:
+    plan = st.session_state.get("season_plan")
+    sessions = plan.get("sessions") if isinstance(plan, dict) else None
+    if not isinstance(sessions, list):
+        return []
+    return sessions
+
+
+def _season_start(sessions: list) -> int | None:
+    days = []
+    for session in sessions:
+        if not isinstance(session, dict):
+            continue
+        text = session.get("date")
+        if not isinstance(text, str):
+            continue
+        try:
+            days.append(date.fromisoformat(text))
+        except ValueError:
+            continue
+    if not days:
+        return None
+    start = min(days)
+    from datetime import datetime, timezone
+
+    return int(datetime(start.year, start.month, start.day, tzinfo=timezone.utc).timestamp())
+
+
+def load_into_session() -> None:
+    """Read this user's saved runs and match them to the plan."""
+    user_id = st.session_state.get("rio_cloud_user_id")
+    store = current_strava_store()
+    service_key = _service_key()
+    runs: list = []
+    if isinstance(user_id, str) and store is not None and service_key:
+        try:
+            loaded = store.get_activities(user_id)
+            runs = loaded if isinstance(loaded, list) else []
+        except Exception:
+            st.session_state["rio_strava_notice"] = "Strava activities could not be read."
+            saved = st.session_state.get("rio_strava_runs")
+            runs = saved if isinstance(saved, list) else []
+    runs = match_runs(runs, _sessions())
+    if "rio_strava_count" not in st.session_state:
+        st.session_state["rio_strava_count"] = len(runs)
+    _remember(runs)
+
+
+def _pacific(when: int) -> str:
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    local = datetime.fromtimestamp(when, ZoneInfo("America/Los_Angeles"))
+    hour = int(local.strftime("%I"))
+    return f"{local.strftime('%b')} {local.day}, {hour}:{local.strftime('%M')} {local.strftime('%p')} PT"
