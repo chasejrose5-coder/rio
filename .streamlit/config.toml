@@ -1,6 +1,10 @@
 [server]
 enableStaticServing = true
 
+[client]
+toolbarMode = "minimal"
+showErrorDetails = "none"
+
 [theme]
 base = "light"
 primaryColor = "#E25A32"

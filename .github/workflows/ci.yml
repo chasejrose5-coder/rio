@@ -2,6 +2,8 @@ name: tests
 
 on:
   pull_request:
+  push:
+    branches: [main]
 
 jobs:
   test:
@@ -11,5 +13,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r requirements.txt pytest
+      - run: pip install -r requirements.txt pytest pip-audit
       - run: pytest -q
+      - run: python -m pip_audit -r requirements.txt
