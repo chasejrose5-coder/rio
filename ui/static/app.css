@@ -2945,6 +2945,13 @@ html,
   padding: 0.45rem 0.95rem !important;
   align-self: center !important;
 }
+/* The Start form rule [class*="st-key-rio-start"] also matches this pill and
+   pads 2.5rem under it, which lifts the orange box above the nav links. */
+[class*="st-key-rio-start-session"] {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  max-width: none !important;
+}
 [class*="st-key-rio-logout"] button {
   margin: 0 !important;
   padding: 0 !important;
