@@ -190,6 +190,16 @@ class MemoryDirectory:
             raise CloudAuthError("The intro guide could not be saved.")
         user["intro_seen"] = seen
 
+    def save_strava_prompt_seen(self, access_token: object, seen: object) -> None:
+        """Remember that this athlete dismissed the Strava card, or connected."""
+        user_id = self.user_id(access_token)
+        if not isinstance(seen, bool):
+            raise CloudAuthError("The Strava prompt could not be saved.")
+        user = self.users.get(user_id)
+        if user is None:
+            raise CloudAuthError("The Strava prompt could not be saved.")
+        user["strava_prompt_seen"] = seen
+
     def _keep_pace(self, user_id: str, unit: object) -> bool:
         if unit not in ("mi", "km"):
             return False
@@ -602,12 +612,17 @@ class SupabaseDirectory:
         auth_user = self._auth_user(access_token)
         pace = _pace_from_metadata(auth_user)
         intro = intro_seen_value(auth_user)
-        if isinstance(profile, dict) and (pace or intro is not None):
+        from ui.plan_strava import prompt_seen_value
+
+        prompt = prompt_seen_value(auth_user)
+        if isinstance(profile, dict) and (pace or intro is not None or prompt is not None):
             profile = dict(profile)
             if pace:
                 profile["pace_units"] = pace
             if intro is not None:
                 profile["intro_seen"] = intro
+            if prompt is not None:
+                profile["strava_prompt_seen"] = prompt
         return {
             "profile": profile,
             "goal": goal or _blank_goal(),
@@ -640,6 +655,19 @@ class SupabaseDirectory:
             raise
         except Exception:
             raise CloudAuthError("The intro guide could not be saved.") from None
+
+    def save_strava_prompt_seen(self, access_token: object, seen: object) -> None:
+        """Store the Strava prompt flag on the auth user, next to intro_seen."""
+        if not isinstance(seen, bool):
+            raise CloudAuthError("The Strava prompt could not be saved.")
+        if not isinstance(access_token, str) or not access_token:
+            raise CloudAuthError("Sign in again.")
+        try:
+            self._auth_user_update(access_token, {"strava_prompt_seen": seen})
+        except CloudAuthError:
+            raise
+        except Exception:
+            raise CloudAuthError("The Strava prompt could not be saved.") from None
 
     def save_bundle(self, access_token: object, bundle: object) -> None:
         if not isinstance(bundle, dict):
@@ -1065,6 +1093,8 @@ def _public_user(user: dict) -> dict:
         row["pace_units"] = pace
     if isinstance(user.get("intro_seen"), bool):
         row["intro_seen"] = user["intro_seen"]
+    if isinstance(user.get("strava_prompt_seen"), bool):
+        row["strava_prompt_seen"] = user["strava_prompt_seen"]
     return row
 
 

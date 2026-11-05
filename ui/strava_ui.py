@@ -165,23 +165,65 @@ def render_settings() -> None:
     render_connect_button()
 
 
-def render_connect_button() -> None:
+def connect_url() -> str | None:
+    """The Strava authorize URL Settings uses. None when connect is not available."""
     if not configured() or isinstance(_cached_token(), dict):
-        return
+        return None
     user_id = st.session_state.get("rio_cloud_user_id")
     if not isinstance(user_id, str) or not user_id:
-        return
+        return None
     if "rio_strava_state" not in st.session_state:
         nonce = secrets.token_urlsafe(12)
         st.session_state["rio_strava_nonce"] = nonce
         st.session_state["rio_strava_state"] = make_state(user_id, nonce)
     state = st.session_state.get("rio_strava_state")
     if not isinstance(state, str):
-        return
+        return None
     url = authorize_url(read_setting(CLIENT_ID), redirect_uri(), state)
     if os.environ.get("RIO_STRAVA_TRANSPORT") == "fake":
         url = redirect_uri() + "?" + urllib.parse.urlencode({"code": "fake-code", "state": state})
+    return url
+
+
+def render_connect_button() -> None:
+    url = connect_url()
+    if not url:
+        return
     st.link_button("Connect with Strava", url)
+
+
+def render_plan_prompt() -> bool:
+    """The card after Generate. True when the athlete taps Not now.
+
+    Connect uses connect_url(), the same OAuth link as Settings.
+    """
+    st.markdown(
+        '<div class="rio-card">'
+        '<h2 class="rio-week-title">Your plan is ready.</h2>'
+        '<p class="rio-note">Connect Strava so your runs show up.</p>'
+        "</div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "<style>"
+        '[class*="st-key-rio-strava-connect"] [data-testid="stBaseLinkButton-primary"],'
+        '[class*="st-key-rio-strava-connect"] a {'
+        "background:#C2461F !important;border:1px solid #C2461F !important;"
+        "color:#FFFFFF !important;}"
+        '[class*="st-key-rio-strava-connect"] a p,'
+        '[class*="st-key-rio-strava-connect"] a span {color:#FFFFFF !important;}'
+        "</style>",
+        unsafe_allow_html=True,
+    )
+    url = connect_url()
+    if url:
+        st.link_button(
+            "Connect Strava",
+            url,
+            type="primary",
+            key="rio-strava-connect",
+        )
+    return st.button("Not now", key="rio-strava-not-now") is True
 
 
 def prepare_activity() -> None:

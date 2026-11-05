@@ -17,5 +17,4 @@ Activity used: Long Z2 Test (Sun Sep 27 2026, 08:12 AM)
 
 ## Notes
 - Must open the activity title (full page with charts), not the calendar square.
-- Easy / Z2 runs may not list lap distance. Next check should be a WorkOutDoors session with manual laps or an interval schedule.
 
