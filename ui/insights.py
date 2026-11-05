@@ -255,6 +255,164 @@ def current_phase_note(phase: int) -> dict[str, str] | None:
     }
 
 
+# What the phase before this one did. Display only. Present lines stay on PHASES.
+_DID = {
+    1: "built the engine and kept the fast reps short",
+    2: "grew the base and stepped the short fast reps up",
+    3: "brought in threshold and aerobic power, and kept speed in the week",
+    4: "started the work that holds race pace when it hurts",
+    5: "lengthened the specific reps and kept the aim on the 800",
+    6: "built the kick and kept speed nearby",
+    7: "made the week look like the race",
+    8: "stayed short and fresh",
+}
+_DAY_ORDER = (
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+)
+
+
+def _day_list(days: list[str]) -> str:
+    if len(days) == 1:
+        return days[0]
+    if len(days) == 2:
+        return f"{days[0]} and {days[1]}"
+    return ", ".join(days[:-1]) + f", and {days[-1]}"
+
+
+def _session_role(session: dict) -> str:
+    """Hard, easy, long run, race, or off. Read from the stored day."""
+    template = str(session.get("template_id") or "").strip()
+    codes = session.get("reason_codes") or []
+    names = {str(code) for code in codes} if isinstance(codes, list) else set()
+    if not template:
+        return "off"
+    if template == "rr_800_r0_x1":
+        return "race"
+    if "weekly_aerobic_long_run" in names:
+        return "long"
+    if template.startswith("aer_") or "extra_easy_day" in names or "extra_easy_week" in names:
+        return "easy"
+    return "hard"
+
+
+def _phase_weeks(sessions: list, phase: int) -> list[int]:
+    grouped: dict[int, list] = {}
+    for session in sessions or []:
+        if not isinstance(session, dict):
+            continue
+        week = session.get("week_number")
+        if isinstance(week, bool) or not isinstance(week, int):
+            continue
+        grouped.setdefault(week, []).append(session)
+    found = []
+    for week in sorted(grouped):
+        if _phase_in(grouped[week]) == phase:
+            found.append(week)
+    return found
+
+
+def _role_sentences(rows: list[dict]) -> list[str]:
+    """Hard and easy days from this week's stored sessions."""
+    present: dict[str, str] = {}
+    for session in rows:
+        day = str(session.get("day_of_week") or "").strip()
+        if day not in _DAY_ORDER:
+            continue
+        present[day] = _session_role(session)
+    if not present:
+        return []
+    if (
+        "Friday" not in present
+        and "Saturday" in present
+        and any(day in present for day in _DAY_ORDER[:5])
+    ):
+        present["Friday"] = "off"
+    groups = {"hard": [], "easy": [], "long": [], "race": [], "off": []}
+    for day in _DAY_ORDER:
+        role = present.get(day)
+        if role is None:
+            continue
+        groups[role].append(day)
+    sentences = []
+    if groups["hard"]:
+        verb = "is" if len(groups["hard"]) == 1 else "are"
+        sentences.append(f"{_day_list(groups['hard'])} {verb} hard.")
+    if groups["easy"]:
+        verb = "is" if len(groups["easy"]) == 1 else "are"
+        sentences.append(f"{_day_list(groups['easy'])} {verb} easy.")
+    if groups["long"]:
+        verb = "is" if len(groups["long"]) == 1 else "are"
+        sentences.append(f"{_day_list(groups['long'])} {verb} the long run.")
+    if groups["race"]:
+        verb = "is" if len(groups["race"]) == 1 else "are"
+        noun = "the race" if len(groups["race"]) == 1 else "races"
+        sentences.append(f"{_day_list(groups['race'])} {verb} {noun}.")
+    if groups["off"]:
+        verb = "is" if len(groups["off"]) == 1 else "are"
+        sentences.append(f"{_day_list(groups['off'])} {verb} off.")
+    return sentences
+
+
+def phase_story(
+    *,
+    phase: int,
+    week: int,
+    sessions: list,
+    thin: bool = False,
+) -> dict | None:
+    """Where this week sits, what the phase does, then the phase on either side.
+
+    The collapsed line is the because. The sentences are the expand.
+    Times stay off this card. None when the phase is not one of the eight.
+    """
+    name = phase_name(phase)
+    primary, _secondary = capacities(phase)
+    if not name or not primary:
+        return None
+    if isinstance(week, bool) or not isinstance(week, int):
+        week = -1
+    span = _phase_weeks(sessions, phase)
+    if week in span and len(span) == 1:
+        place = ", the only week of this phase,"
+    elif week in span:
+        place = f", week {span.index(week) + 1} of {len(span)},"
+    else:
+        place = ""
+    collapsed = (
+        f"This week sits in phase {phase}{place} "
+        f"because the season still needs {primary}."
+    )
+    sentences = []
+    doing = phase_line(phase)
+    aim = phase_rest(phase)
+    if doing:
+        sentences.append(doing if doing.endswith(".") else f"{doing}.")
+    if aim and aim != doing:
+        sentences.append(aim if aim.endswith(".") else f"{aim}.")
+    sentences.extend(_role_sentences(_week_rows(sessions, week)))
+    sentences.append("Hard-day marks can ease or advance later weeks.")
+    sentences.append("They do not rewrite this week after the fact.")
+    if phase > 1:
+        previous = phase - 1
+        sentences.append(f"The phase before was phase {previous}, {phase_name(previous)}.")
+        sentences.append(f"It {_DID[previous]}.")
+    if phase < 8:
+        nxt = phase + 1
+        sentences.append(f"The next phase is phase {nxt}, {phase_name(nxt)}.")
+        following = phase_line(nxt)
+        if following:
+            sentences.append(following if following.endswith(".") else f"{following}.")
+    if thin:
+        sentences.append(THIN)
+    return {"collapsed": collapsed, "sentences": sentences}
+
+
 def _phase_in(sessions: list) -> int | None:
     found: list[int] = []
     for session in sessions or []:

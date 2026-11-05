@@ -2908,3 +2908,18 @@ summary:focus-visible,
   font-weight: 600;
   color: #121110;
 }
+.rio-stat-row.rio-stat-words .rio-stat-value {
+  font-size: clamp(1.15rem, 2vw, 1.65rem) !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+.rio-glossary {
+  margin: 0.85rem 0 0.15rem;
+  max-width: 34rem;
+}
+.rio-glossary p {
+  margin: 0.12rem 0 !important;
+  color: #6E6A64 !important;
+  font-size: 0.92rem !important;
+  line-height: 1.35 !important;
+}
