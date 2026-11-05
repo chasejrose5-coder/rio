@@ -2898,3 +2898,13 @@ summary:focus-visible,
 [class*="st-key-season-result"] input {
   border: 1px solid #CFC8BD !important;
 }
+[class*="st-key-rio-this-week"] [data-testid="stExpander"],
+[class*="st-key-rio-insight-"] {
+  border-left: 3px solid #E25A32;
+  background: #FFFCF7;
+  border-radius: 16px;
+}
+.rio-insight-headline {
+  font-weight: 600;
+  color: #121110;
+}
