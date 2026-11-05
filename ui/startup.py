@@ -30,6 +30,7 @@ from ui.theme import (
     focus_css,
     font_css,
     fullscreen_rules,
+    image_set,
     motion_rules,
     primary_button_css,
     static_mobile_url,
@@ -295,8 +296,14 @@ def startup_css(photo_uri: str | None = None) -> str:
     else:
         desktop = photo_uri
         mobile = ""
-    image = f'url("{desktop}")' if desktop else "none"
-    narrow = f'url("{mobile}")' if mobile else None
+    if desktop:
+        image = image_set(desktop[:-4] + "-1200.webp", desktop)
+    else:
+        image = "none"
+    if mobile:
+        narrow = image_set(desktop[:-4] + "-800.webp", mobile) if desktop else f'url("{mobile}")'
+    else:
+        narrow = None
     # The visible photo is a static file. These tokens stay so an older test
     # still finds them. Neither one is the background the browser paints.
     kept = "/* data:image/jpeg;base64, */\n/* /app/static/photos/startup-track.jpg */"

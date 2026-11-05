@@ -2792,13 +2792,13 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {
 
 
 .rio-about-banner {
-  background-image: url("photos/about.jpg") !important;
+  background-image: image-set(url("photos/about-1200.webp") type("image/webp"), url("photos/about.jpg") type("image/jpeg")) !important;
   background-size: cover !important;
   background-position: center center !important;
 }
-@media (max-width: 800px) {
+@media (max-width: 1200px) {
   .rio-about-banner {
-    background-image: url("photos/about-800.jpg") !important;
+    background-image: image-set(url("photos/about-800.webp") type("image/webp"), url("photos/about-800.jpg") type("image/jpeg")) !important;
   }
 }
 

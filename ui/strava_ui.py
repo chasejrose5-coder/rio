@@ -12,7 +12,7 @@ import os
 import secrets
 import time
 import urllib.parse
-from datetime import date
+from datetime import date, timedelta
 
 import streamlit as st
 
@@ -66,9 +66,56 @@ def _card(*parts: str) -> None:
 
 
 def boot_strava() -> None:
-    """Finish a redirect, then import once for this signed-in session."""
+    """Finish a redirect, then let the page paint before the import."""
     consume_callback()
+    if st.session_state.get("rio_test_preview"):
+        return
+    if st.session_state.get("rio_strava_sync_state") == "done":
+        return
+    if not isinstance(st.session_state.get("rio_cloud_user_id"), str):
+        st.session_state["rio_strava_sync_state"] = "done"
+        return
+    _paint_then_sync()
+
+
+def strava_sync_action(passes: int) -> str:
+    """The first call paints. The next call imports."""
+    if passes < 1:
+        return "skip"
+    return "sync"
+
+
+def strava_gate_pending() -> bool:
+    """True until the deferred import has looked up this athlete's token."""
+    if st.session_state.get("rio_strava_sync_state") == "done":
+        return False
+    if st.session_state.get("rio_strava_checked") is True:
+        return False
+    if "rio_strava_token" in st.session_state:
+        return False
+    return True
+
+
+def run_deferred_strava(passes: int) -> str:
+    """skip on the first pass, wait until a plan exists, then import once."""
+    if strava_sync_action(passes) != "sync":
+        return "skip"
+    if not _plan_ready():
+        return "wait"
     sync_once()
+    return "synced"
+
+
+@st.fragment(run_every=timedelta(seconds=1))
+def _paint_then_sync() -> None:
+    """Import after the first paint, then redraw so Activity and errors show."""
+    passes = int(st.session_state.get("rio_strava_defer_passes") or 0)
+    outcome = run_deferred_strava(passes)
+    st.session_state["rio_strava_defer_passes"] = passes + 1
+    if outcome != "synced":
+        return
+    st.session_state["rio_strava_sync_state"] = "done"
+    st.rerun(scope="app")
 
 
 def consume_callback() -> None:
