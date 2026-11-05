@@ -626,6 +626,11 @@ def _publish_cookie(session: dict, issued: int) -> None:
                 }
             )
         except CloudAuthError:
+            import logging
+
+            logging.getLogger("rio.cloud").warning(
+                "app_sessions unavailable; falling back to the legacy cookie"
+            )
             sid = None
     if hosted_sid(sid):
         st.session_state["rio_hosted_sid"] = sid

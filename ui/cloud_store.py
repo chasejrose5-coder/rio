@@ -994,8 +994,10 @@ class SupabaseDirectory:
         if not isinstance(row, dict) or _hosted_expired(row):
             if isinstance(row, dict):
                 self.drop_hosted_session(sid)
+            self._purge_expired_sessions()
             return None
-        return row
+        self._purge_expired_sessions()
+        return _open_hosted_row(row)
 
     def update_hosted_session(self, sid: object, record: object) -> None:
         if not hosted_sid(sid) or not isinstance(record, dict) or not self.service_key:
@@ -1011,6 +1013,17 @@ class SupabaseDirectory:
             self._client(self.service_key).table("app_sessions").upsert(row).execute()
         except Exception as exc:
             raise CloudAuthError("Sign in again.") from exc
+
+    def _purge_expired_sessions(self) -> None:
+        """Drop expired rows. A missing table does not block the sign-in."""
+        if not self.service_key:
+            return
+        try:
+            self._client(self.service_key).table("app_sessions").delete().lt(
+                "expires_at", datetime.now(timezone.utc).isoformat()
+            ).execute()
+        except Exception:
+            return
 
     def drop_hosted_session(self, sid: object) -> None:
         if not hosted_sid(sid) or not self.service_key:
@@ -1344,17 +1357,60 @@ def _issued(value: object) -> int:
     return value
 
 
+def _session_fernet():
+    """Fernet from RIO_SESSION_KEY. None when the secret is not set."""
+    raw = os.environ.get("RIO_SESSION_KEY", "").strip()
+    if not raw:
+        return None
+    from cryptography.fernet import Fernet
+
+    key = base64.urlsafe_b64encode(hashlib.sha256(raw.encode("utf-8")).digest())
+    return Fernet(key)
+
+
+def seal_session_secret(value: str) -> str:
+    """Seal a token for app_sessions. Plaintext stays readable if no key is set."""
+    if not value:
+        return ""
+    box = _session_fernet()
+    if box is None:
+        return value
+    return "f2." + box.encrypt(value.encode("utf-8")).decode("ascii")
+
+
+def open_session_secret(value: object) -> str:
+    """Open a sealed token. An older plaintext row still opens."""
+    if not isinstance(value, str) or not value:
+        return ""
+    if not value.startswith("f2."):
+        return value
+    box = _session_fernet()
+    if box is None:
+        return ""
+    try:
+        return box.decrypt(value[3:].encode("ascii")).decode("utf-8")
+    except Exception:
+        return ""
+
+
 def _hosted_record(record: dict, issued: int) -> dict:
     expires = datetime.fromtimestamp(issued + SESSION_SECONDS, timezone.utc).isoformat()
     return {
         "user_id": str(record.get("user_id") or ""),
-        "access_token": str(record.get("access_token") or ""),
-        "refresh_token": str(record.get("refresh_token") or ""),
+        "access_token": seal_session_secret(str(record.get("access_token") or "")),
+        "refresh_token": seal_session_secret(str(record.get("refresh_token") or "")),
         "email": str(record.get("email") or ""),
         "display_name": str(record.get("display_name") or ""),
         "issued_at": issued,
         "expires_at": expires,
     }
+
+
+def _open_hosted_row(row: dict) -> dict:
+    opened = dict(row)
+    opened["access_token"] = open_session_secret(row.get("access_token"))
+    opened["refresh_token"] = open_session_secret(row.get("refresh_token"))
+    return opened
 
 
 PLAN_CONFLICT = "user_id,start_date,goal_date,current_time,goal_time"
@@ -1467,6 +1523,11 @@ def _save_plan(client, saved: dict) -> None:
     except Exception as exc:
         if not _missing_plan_key(exc):
             raise
+        import logging
+
+        logging.getLogger("rio.cloud").warning(
+            "plans_season_key unavailable; inserting a plan row"
+        )
         client.table("plans").upsert(saved).execute()
 
 
