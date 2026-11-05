@@ -33,6 +33,7 @@ from ui.cloud_store import (
     signup_outcome,
 )
 from ui.cloud_ui import (
+    SHOW_FORGOT_PASSWORD,
     SHOW_GOOGLE_SIGN_IN,
     SHOW_SIGNUP_EMAIL_CONFIRM,
     _visible_auth_error,
@@ -351,6 +352,97 @@ def test_v01_hides_google_and_signup_confirm_ui() -> None:
         cloud_ui.SHOW_SIGNUP_EMAIL_CONFIRM = False
 
 
+def test_v01_hides_forgot_password_on_login() -> None:
+    """v0.1 hides Forgot password on Log in. A recovery URL still opens reset."""
+    if SHOW_FORGOT_PASSWORD:
+        raise AssertionError("forgot password is visible on log in in v0.1")
+    ui = (ROOT / "ui" / "cloud_ui.py").read_text(encoding="utf-8")
+    sign_in = ui[ui.index("def _render_sign_in(") : ui.index("def _render_sign_up(")]
+    button = 'st.button("Forgot password?", key="rio-forgot"'
+    navigate = 'st.session_state["rio_auth_screen"] = "forgot"'
+    if "SHOW_FORGOT_PASSWORD" not in sign_in or button not in sign_in:
+        raise AssertionError("the forgot button is not behind the v0.1 flag")
+    if sign_in.index("if SHOW_FORGOT_PASSWORD") > sign_in.index(button):
+        raise AssertionError("Forgot password renders before the v0.1 hide")
+    gate = "if SHOW_FORGOT_PASSWORD and forgot"
+    if gate not in sign_in or sign_in.index(gate) > sign_in.index(navigate):
+        raise AssertionError("log in still opens forgot password in v0.1")
+    if 'st.form_submit_button("Log in"' not in sign_in:
+        raise AssertionError("email log in was removed")
+    if 'st.button("Create account"' not in sign_in:
+        raise AssertionError("create account was removed from log in")
+    auth = ui[ui.index("def render_cloud_auth(") : ui.index("def open_cloud_session(")]
+    forgot_route = auth[auth.index('== "forgot"') : auth.index("_render_forgot(")]
+    if "SHOW_FORGOT_PASSWORD" in forgot_route:
+        raise AssertionError("an open forgot screen was blocked")
+    if "_render_reset(" not in auth:
+        raise AssertionError("the reset screen was removed")
+    callback = ui[ui.index("def _consume_callback(") : ui.index("def _render_sign_in(")]
+    if 'params.get("reset") == "password"' not in callback:
+        raise AssertionError("a recovery URL no longer opens reset")
+    if 'params.get("type") == "recovery"' not in callback:
+        raise AssertionError("a recovery URL no longer opens reset")
+    if "SHOW_FORGOT_PASSWORD" in callback:
+        raise AssertionError("a recovery URL is behind the login hide")
+    forgot = ui[ui.index("def _render_forgot(") : ui.index("def _render_reset(")]
+    if 'st.form_submit_button("Send reset email"' not in forgot:
+        raise AssertionError("the forgot screen was removed")
+    reset = ui[ui.index("def _render_reset(") : ui.index("def _publish_cookie(")]
+    if "SHOW_FORGOT_PASSWORD" in reset:
+        raise AssertionError("the new-password screen is behind the login hide")
+    if 'st.form_submit_button("Save password"' not in reset:
+        raise AssertionError("the new-password screen was removed")
+
+    from streamlit.testing.v1 import AppTest
+
+    script = (
+        "import sys\n"
+        f"sys.path.insert(0, {str(ROOT)!r})\n"
+        "from ui.cloud_ui import render_cloud_auth\n"
+        "def backdrop():\n"
+        "    return None\n"
+        "def notice():\n"
+        "    return None\n"
+        "def hero(title, kicker, line=''):\n"
+        "    return title\n"
+        "render_cloud_auth(backdrop, notice, hero)\n"
+    )
+
+    def _labels(widgets) -> list[str]:
+        return [widget.label for widget in widgets]
+
+    shown = AppTest.from_string(script, default_timeout=30).run(timeout=30)
+    if shown.exception:
+        raise AssertionError(shown.exception)
+    buttons = _labels(shown.button)
+    if "Forgot password?" in buttons:
+        raise AssertionError(buttons)
+    if "Log in" not in buttons or "Create account" not in buttons:
+        raise AssertionError(buttons)
+    for name, value in (("type", "recovery"), ("reset", "password")):
+        recovery = AppTest.from_string(script, default_timeout=30)
+        recovery.query_params[name] = value
+        recovery = recovery.run(timeout=30)
+        if recovery.exception:
+            raise AssertionError(recovery.exception)
+        if _labels(recovery.button) != ["Save password"] or _labels(recovery.text_input) != ["New password"]:
+            raise AssertionError((name, _labels(recovery.button), _labels(recovery.text_input)))
+    kept = AppTest.from_string(script, default_timeout=30)
+    kept.session_state["rio_auth_screen"] = "forgot"
+    kept = kept.run(timeout=30)
+    if "Send reset email" not in _labels(kept.button):
+        raise AssertionError(_labels(kept.button))
+    import ui.cloud_ui as cloud_ui
+
+    cloud_ui.SHOW_FORGOT_PASSWORD = True
+    try:
+        restored = AppTest.from_string(script, default_timeout=30).run(timeout=30)
+        if "Forgot password?" not in _labels(restored.button):
+            raise AssertionError(_labels(restored.button))
+    finally:
+        cloud_ui.SHOW_FORGOT_PASSWORD = False
+
+
 def test_rep_distances_stay_in_meters() -> None:
     reps = "8 × 150 m at or faster than goal 800 pace, long rest"
     fast = "10 × 60 m fast, rolling start, full rest"
@@ -435,6 +527,7 @@ def main() -> None:
     test_profile_failure_and_sign_in_are_visible()
     test_auth_links_use_the_hosted_site_when_the_url_is_unset()
     test_v01_hides_google_and_signup_confirm_ui()
+    test_v01_hides_forgot_password_on_login()
     test_rep_distances_stay_in_meters()
     test_intro_flag_and_guide_copy()
     test_founder_line_and_compact_heroes()
