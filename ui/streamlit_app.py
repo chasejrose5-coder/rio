@@ -716,7 +716,14 @@ def _mount_store(data: dict, *, widget_key: str = "rio-plan-store"):
 
 
 def _publish_inputs(inputs: tuple[str, str, str, str]) -> None:
-    """Put the four inputs in the URL. Leave a session date where it is."""
+    """Put the four inputs in the URL. A hosted account keeps them off the link."""
+    from ui.plan_store import INPUTS
+
+    if _hosted_account():
+        for key in INPUTS:
+            if key in st.query_params:
+                del st.query_params[key]
+        return
     wanted = query_values(inputs)
     current = {key: str(st.query_params.get(key) or "") for key in wanted}
     if current == wanted:
@@ -728,7 +735,11 @@ def _link_params(extra: dict | None = None) -> dict[str, str] | None:
     """Page links keep the four inputs. Streamlit clears them otherwise."""
     params: dict[str, str] = {}
     inputs = st.session_state.get("season_inputs")
-    if inputs_ok(inputs) and isinstance(st.session_state.get("season_plan"), dict):
+    if (
+        not _hosted_account()
+        and inputs_ok(inputs)
+        and isinstance(st.session_state.get("season_plan"), dict)
+    ):
         params.update(query_values(inputs))
     if extra:
         for key, value in extra.items():
@@ -797,10 +808,47 @@ def _generate_season(current_time, start_date, goal_time, goal_date) -> dict:
     return plan
 
 
+def _recall_cloud_season(inputs: tuple[str, str, str, str]) -> bool:
+    """Open a stored season with its marks. Nothing is rebuilt or saved."""
+    from ui.plan_store import row_for_inputs
+
+    row = row_for_inputs(st.session_state.get("rio_cloud_plan_rows"), inputs)
+    if not isinstance(row, dict):
+        return False
+    plan = row.get("plan")
+    if not isinstance(plan, dict):
+        return False
+    marks = row.get("marks")
+    actuals = row.get("actuals")
+    st.session_state["season_inputs"] = tuple(str(part) for part in inputs)
+    st.session_state["season_plan"] = plan
+    st.session_state["season_marks"] = marks if isinstance(marks, dict) else {}
+    st.session_state["season_actuals"] = actuals if isinstance(actuals, dict) else {}
+    st.session_state["rio_store_loaded"] = True
+    st.session_state.pop("season_link_preview", None)
+    return True
+
+
 def _ensure_linked_plan(inputs: tuple[str, str, str, str]) -> None:
     """Page load with these four inputs rebuilds the plan through sequence()."""
+    from ui.plan_store import hosted_link_action
+
     current = st.session_state.get("season_inputs")
     plan = st.session_state.get("season_plan")
+    if _hosted_account():
+        action = hosted_link_action(
+            inputs,
+            st.session_state.get("rio_cloud_season_inputs"),
+            current if isinstance(plan, dict) else None,
+        )
+        if action == "same":
+            _publish_inputs(inputs)
+            return
+        if action == "open" and _recall_cloud_season(inputs):
+            _publish_inputs(inputs)
+            return
+        st.session_state["season_link_preview"] = inputs
+        return
     if current == inputs and isinstance(plan, dict):
         _publish_inputs(inputs)
         return
@@ -816,6 +864,29 @@ def _ensure_linked_plan(inputs: tuple[str, str, str, str]) -> None:
         _reject_link(inputs, str(exc))
         return
     _store_plan(inputs, built, loaded=False)
+
+
+def _link_preview_note() -> None:
+    """A foreign link stays a preview until the athlete chooses it."""
+    preview = st.session_state.get("season_link_preview")
+    save_error = st.session_state.pop("rio_save_error", None)
+    if isinstance(save_error, str) and save_error.strip():
+        st.markdown(f'<p class="rio-error">{_esc(save_error.strip())}</p>', unsafe_allow_html=True)
+    if not isinstance(preview, tuple) or len(preview) != 4:
+        return
+    st.markdown(
+        '<p class="rio-note">This link names a different season. Your saved season was left as it is.</p>',
+        unsafe_allow_html=True,
+    )
+    if st.button("Use this season", key="rio-adopt-link"):
+        try:
+            built = sequence(*preview)
+        except ValueError as exc:
+            st.session_state["season_link_error"] = str(exc)
+            return
+        st.session_state.pop("season_link_preview", None)
+        _store_plan(preview, built, loaded=True)
+        st.rerun()
 
 
 # Cleared when the signed-in account changes, before the next screen draws widgets.
@@ -1414,6 +1485,7 @@ def _with_plan(page):
                 st.switch_page(admin)
         _load_local()
         _load_shared_plan()
+        _link_preview_note()
         if _intro_gate():
             return
         _pull_for(page.__name__)
@@ -5904,13 +5976,22 @@ def _open_past(inputs: tuple[str, str, str, str], *, first: bool) -> None:
         return
     with st.container(key=f"rio-hit-past-{_past_token(inputs)}", gap=None):
         st.markdown(html, unsafe_allow_html=True)
-        st.page_link(
-            page,
-            label=f"{inputs[1]} {inputs[3]} {inputs[2]}",
-            icon="",
-            query_params=query_values(inputs),
+        params = None if _hosted_account() else query_values(inputs)
+        if _hosted_account() and st.button(
+            f"{inputs[1]} {inputs[3]} {inputs[2]}",
+            key=f"rio-past-open-{_past_token(inputs)}",
             width="stretch",
-        )
+        ):
+            _recall_cloud_season(inputs)
+            st.switch_page(page)
+        if not _hosted_account():
+            st.page_link(
+                page,
+                label=f"{inputs[1]} {inputs[3]} {inputs[2]}",
+                icon="",
+                query_params=params,
+                width="stretch",
+            )
 
 
 def page_past_seasons() -> None:

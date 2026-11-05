@@ -62,6 +62,40 @@ def inputs_ok(value: object) -> bool:
     return plan_inputs(dict(zip(INPUTS, value))) == value
 
 
+def hosted_link_action(inputs: tuple[str, str, str, str], saved: object, current: object) -> str:
+    """same, open, or preview. A signed-in URL does not build a new season."""
+    key = tuple(str(part) for part in inputs)
+    if current == key:
+        return "same"
+    known = set()
+    if isinstance(saved, (list, tuple)):
+        for item in saved:
+            if isinstance(item, (list, tuple)) and len(item) == 4:
+                known.add(tuple(str(part) for part in item))
+    if key in known:
+        return "open"
+    return "preview"
+
+
+def row_for_inputs(rows: object, inputs: tuple[str, str, str, str]) -> dict | None:
+    """The stored season for these four inputs, including its marks."""
+    key = tuple(str(part) for part in inputs)
+    if not isinstance(rows, (list, tuple)):
+        return None
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        found = (
+            str(row.get("current_time") or ""),
+            str(row.get("start_date") or ""),
+            str(row.get("goal_time") or ""),
+            str(row.get("goal_date") or ""),
+        )
+        if found == key:
+            return row
+    return None
+
+
 def query_values(inputs: tuple[str, str, str, str]) -> dict[str, str]:
     """The four URL fields. A session date is not one of them."""
     return {
