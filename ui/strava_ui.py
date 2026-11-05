@@ -236,7 +236,7 @@ def render_connect_button() -> None:
     url = connect_url()
     if not url:
         return
-    st.link_button("Connect with Strava", url)
+    st.link_button("Connect with Strava", url, type="primary")
 
 
 def render_plan_prompt() -> bool:
