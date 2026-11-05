@@ -275,7 +275,12 @@ def persist_cloud_season() -> None:
                 "profile": {"display_name": st.session_state.get("rio_cloud_name") or ""},
             },
         )
-    except CloudAuthError:
+    except CloudAuthError as exc:
+        st.session_state["rio_save_error"] = str(exc)
+        try:
+            st.toast(str(exc))
+        except Exception:
+            pass
         return
     st.session_state["rio_cloud_saved_hash"] = digest
 
@@ -378,6 +383,7 @@ def _apply_bundle(bundle: dict) -> None:
             )
         )
     st.session_state["rio_cloud_season_inputs"] = remembered
+    st.session_state["rio_cloud_plan_rows"] = [item for item in plans if isinstance(item, dict)]
     if not plans:
         _remember_digest()
         return
