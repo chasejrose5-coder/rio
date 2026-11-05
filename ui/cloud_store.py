@@ -10,11 +10,14 @@ stored on a user session.
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import os
 import secrets
 import time
 from copy import deepcopy
 from datetime import datetime, timezone
+from urllib.parse import quote
 
 from ui.accounts import normalize_email, normalize_name, password_ok
 from ui.cloud_session import SESSION_SECONDS, hosted_hash, hosted_sid, new_hosted_sid
@@ -108,7 +111,7 @@ class MemoryDirectory:
         # The code stands in for the provider round trip. No request is sent.
         return f"{redirect_to}?code={code}&provider=google"
 
-    def exchange_code(self, code: object) -> dict:
+    def exchange_code(self, code: object, flow: object = None) -> dict:
         if not isinstance(code, str) or "google:" + code not in self.resets:
             raise CloudAuthError("Sign-in could not be finished. Try again.")
         self.resets.pop("google:" + code, None)
@@ -416,9 +419,10 @@ class MemoryDirectory:
         }
 
 
-# Code-verifier storage for the Google redirect only. It is not a PostgREST client,
-# and user queries never read it. Each query builds its own client.
-_OAUTH_STORAGE: object | None = None
+# One verifier per sign-in attempt. The key is the flow id in that browser's
+# redirect, so two visitors cannot overwrite each other. Not a Supabase client.
+_PKCE: dict[str, tuple[str, float]] = {}
+_PKCE_SECONDS = 600
 
 # Shared sockets only. No Authorization header and no user token live here.
 _HTTP_POOL: object | None = None
@@ -434,31 +438,44 @@ def _http_pool():
     return _HTTP_POOL
 
 
-def _fresh_options(*, oauth: bool = False):
+def _fresh_options():
     """No shared session and no automatic refresh. One visitor cannot replace another."""
     from supabase import ClientOptions
 
-    storage = None
-    if oauth:
-        global _OAUTH_STORAGE
-        if _OAUTH_STORAGE is None:
-            from supabase_auth import SyncMemoryStorage
-
-            _OAUTH_STORAGE = SyncMemoryStorage()
-        storage = _OAUTH_STORAGE
-    pool = _http_pool()
-    if storage is None:
-        return ClientOptions(
-            persist_session=False,
-            auto_refresh_token=False,
-            httpx_client=pool,
-        )
     return ClientOptions(
         persist_session=False,
         auto_refresh_token=False,
-        storage=storage,
-        httpx_client=pool,
+        httpx_client=_http_pool(),
     )
+
+
+def pkce_challenge(verifier: str) -> str:
+    """S256 challenge. The verifier itself is not in the URL."""
+    digest = hashlib.sha256(verifier.encode("ascii")).digest()
+    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+
+
+def stash_verifier(flow: str, verifier: str, *, now: float | None = None) -> None:
+    """Remember this attempt. A later attempt uses a different flow id."""
+    moment = time.time() if now is None else now
+    _drop_old_verifiers(moment)
+    _PKCE[flow] = (verifier, moment)
+
+
+def take_verifier(flow: str, *, now: float | None = None) -> str:
+    """The verifier for this attempt only. Another attempt stays put."""
+    moment = time.time() if now is None else now
+    _drop_old_verifiers(moment)
+    verifier, created = _PKCE.pop(flow, ("", 0.0))
+    if not verifier or moment - created > _PKCE_SECONDS:
+        return ""
+    return verifier
+
+
+def _drop_old_verifiers(now: float) -> None:
+    dead = [key for key, (_verifier, created) in _PKCE.items() if now - created > _PKCE_SECONDS]
+    for key in dead:
+        _PKCE.pop(key, None)
 
 
 class SupabaseDirectory:
@@ -476,14 +493,6 @@ class SupabaseDirectory:
         except ImportError as exc:
             raise CloudAuthError("Accounts could not be reached.") from exc
         return create_client(self.url, key, options=_fresh_options())
-
-    def _oauth_client(self):
-        """The Google round trip keeps its code verifier. This client is not used for rows."""
-        try:
-            from supabase import create_client
-        except ImportError as exc:
-            raise CloudAuthError("Accounts could not be reached.") from exc
-        return create_client(self.url, self.anon_key, options=_fresh_options(oauth=True))
 
     def sign_up(self, email: object, password: object, name: object) -> dict:
         cleaned = normalize_email(email)
@@ -545,29 +554,28 @@ class SupabaseDirectory:
             return
 
     def google_url(self, redirect_to: str) -> str:
-        try:
-            response = self._oauth_client().auth.sign_in_with_oauth(
-                {
-                    "provider": "google",
-                    "options": {
-                        "redirect_to": redirect_to,
-                        "skip_browser_redirect": True,
-                    },
-                }
-            )
-        except Exception as exc:
-            raise CloudAuthError("Google sign-in could not be started.") from exc
-        url = getattr(response, "url", None) or (response.get("url") if isinstance(response, dict) else "")
-        if not isinstance(url, str) or not url:
-            raise CloudAuthError("Google sign-in could not be started.")
-        return url
+        """A Google link for this attempt. Another visitor gets a different verifier."""
+        flow = secrets.token_urlsafe(16)
+        verifier = secrets.token_urlsafe(64)
+        stash_verifier(flow, verifier)
+        joiner = "&" if "?" in redirect_to else "?"
+        back = f"{redirect_to}{joiner}flow={quote(flow, safe='')}"
+        return (
+            f"{self.url.rstrip('/')}/auth/v1/authorize?provider=google"
+            f"&redirect_to={quote(back, safe='')}"
+            f"&code_challenge={quote(pkce_challenge(verifier), safe='')}"
+            f"&code_challenge_method=s256"
+        )
 
-    def exchange_code(self, code: object) -> dict:
-        if not isinstance(code, str) or not code:
+    def exchange_code(self, code: object, flow: object = None) -> dict:
+        if not isinstance(code, str) or not code or not isinstance(flow, str) or not flow:
+            raise CloudAuthError("Sign-in could not be finished. Try again.")
+        verifier = take_verifier(flow)
+        if not verifier:
             raise CloudAuthError("Sign-in could not be finished. Try again.")
         try:
-            response = self._oauth_client().auth.exchange_code_for_session(
-                {"auth_code": code}
+            response = self._client(self.anon_key).auth.exchange_code_for_session(
+                {"auth_code": code, "code_verifier": verifier}
             )
         except Exception as exc:
             raise CloudAuthError("Sign-in could not be finished. Try again.") from exc
@@ -615,8 +623,16 @@ class SupabaseDirectory:
             raise CloudAuthError("That reset link is no longer valid.")
         try:
             client = self._client(self.anon_key)
-            client.auth.set_session(token, token)
+            verified = client.auth.verify_otp({"token_hash": token, "type": "recovery"})
+            session = getattr(verified, "session", None)
+            access = _attr(session, "access_token")
+            refresh = _attr(session, "refresh_token")
+            if not access or not refresh:
+                raise CloudAuthError("That reset link is no longer valid.")
+            client.auth.set_session(str(access), str(refresh))
             client.auth.update_user({"password": password})
+        except CloudAuthError:
+            raise
         except Exception as exc:
             raise CloudAuthError("That reset link is no longer valid.") from exc
 
