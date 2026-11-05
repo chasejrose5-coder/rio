@@ -249,8 +249,29 @@ def render_session(payload: dict) -> None:
                 ("Reason codes", _codes(codes)),
             ]
         ),
-        _prose(_copy(explain(result))),
+        _prose(_copy(_shown_prose("session", result))),
     )
+
+
+def _shown_prose(kind: str, payload: object) -> str:
+    """One paragraph per input for this session. Strava rows are not included."""
+    from ui.load_gate import cached_paragraph
+
+    found = st.session_state.get("rio_explain_cache")
+    cache = found if isinstance(found, dict) else {}
+
+    def _compute() -> str:
+        if kind == "session":
+            return explain(payload)
+        if kind == "next":
+            template_id, codes, goal = payload  # type: ignore[misc]
+            return explain_prescription(template_id, codes, goal)
+        template_id, codes = payload  # type: ignore[misc]
+        return explain_decision(template_id, codes)
+
+    text = cached_paragraph(cache, kind, payload, _compute)
+    st.session_state["rio_explain_cache"] = cache
+    return text
 
 
 def selected_fixture_path() -> Path | None:
@@ -404,10 +425,13 @@ def page_next() -> None:
         if template_id:
             parts.append(
                 _prose(
-                    explain_prescription(
-                        template_id,
-                        [str(code) for code in codes],
-                        ledger.goal,
+                    _shown_prose(
+                        "next",
+                        (
+                            template_id,
+                            [str(code) for code in codes],
+                            ledger.goal,
+                        ),
                     )
                 )
             )
@@ -457,7 +481,14 @@ def page_decisions() -> None:
         _fields([("reason_codes", _codes(codes))]),
     ]
     if template_id:
-        parts.append(_prose(explain_decision(template_id, [str(code) for code in codes])))
+        parts.append(
+            _prose(
+                _shown_prose(
+                    "decision",
+                    (template_id, [str(code) for code in codes]),
+                )
+            )
+        )
     parts.append(
         _fields(
             [
@@ -1065,7 +1096,9 @@ def _boot_bridge() -> None:
         return
     body = _browser_session("read")
     if body is None:
-        st.stop()
+        # The cookie arrives on the next run. Stopping here paints nothing
+        # on run 1. The startup page below still stops after it draws.
+        return
     _restore_hosted_from_bridge()
 
 
@@ -1277,6 +1310,13 @@ def _pull_for(page_name: str) -> None:
     if not isinstance(plan, dict):
         return
     refresh = page_name == "page_activity" and st.session_state.get("activity-refresh") is True
+    from ui.load_gate import pull_again
+
+    if not pull_again(refresh, st.session_state.get("rio_intervals_pulled") is True):
+        from ui.strava_ui import restore_rows
+
+        restore_rows()
+        return
     opened = page_name in _PULL_PAGES
     if not refresh and not opened and st.session_state.get("activities_loaded"):
         return
@@ -1286,8 +1326,10 @@ def _pull_for(page_name: str) -> None:
     sessions = plan.get("sessions")
     if not isinstance(sessions, list):
         sessions = []
-    from ui.strava_ui import strava_connected
+    from ui.strava_ui import strava_connected, strava_gate_pending
 
+    if not refresh and strava_gate_pending():
+        return
     if not strava_connected():
         try:
             if refresh:
@@ -1314,6 +1356,7 @@ def _pull_for(page_name: str) -> None:
     restore_rows()
     st.session_state["activities_trigger"] = trigger
     st.session_state["activities_loaded"] = True
+    st.session_state["rio_intervals_pulled"] = True
 
 
 def _open_restored_session(was_signed_in: bool) -> None:
@@ -5579,10 +5622,17 @@ def page_creators() -> None:
         )
     photo = theme.static_url(theme.CHASE_PHOTO)
     if photo:
+        stem = photo[:-4]
         st.markdown(
             '<figure class="rio-creator-photo">'
+            "<picture>"
+            f'<source srcset="{stem}-800.webp 800w, {stem}-1200.webp 1200w" '
+            'sizes="(max-width: 1200px) 100vw, 1200px" type="image/webp">'
+            f'<source srcset="{stem}-800.jpg 800w, {photo} 1600w" '
+            'sizes="(max-width: 1200px) 100vw, 1200px">'
             f'<img src="{photo}" width="1600" height="900" '
             'alt="Chase Rose exploding out of the starting blocks.">'
+            "</picture>"
             "</figure>",
             unsafe_allow_html=True,
         )

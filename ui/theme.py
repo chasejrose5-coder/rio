@@ -194,12 +194,20 @@ def _image(uri: str) -> str:
     return f'url("{uri}")' if uri else "none"
 
 
+def image_set(preferred: str, fallback: str) -> str:
+    """WebP first, JPEG if the browser has no WebP."""
+    return (
+        f'image-set(url("{preferred}") type("image/webp"), '
+        f'url("{fallback}") type("image/jpeg"))'
+    )
+
+
 def fullscreen_rules(image: str, mobile: str | None = None) -> str:
     """Photo on .stApp, transparent shells, and a light shade over the photo."""
     mobile_rule = ""
     if mobile:
         mobile_rule = f"""
-@media (max-width: 800px) {{
+@media (max-width: 1200px) {{
   .stApp {{ background-image: {mobile} !important; }}
 }}
 """
@@ -423,9 +431,17 @@ html, body, .stApp {{
 def fullscreen_css(uri: str) -> str:
     """Full-screen photo for Log in, Create account, and Start."""
     mobile = None
+    image = _image(uri)
     if isinstance(uri, str) and uri.endswith(".jpg") and not uri.endswith("-800.jpg"):
-        mobile = _image(uri[:-4] + "-800.jpg")
-    return "<style>" + fullscreen_rules(_image(uri), mobile) + "</style>"
+        stem = uri[:-4]
+        name = uri.rsplit("/", 1)[-1]
+        jpeg_800 = stem + "-800.jpg"
+        if name in {"start.jpg", "startup-track.jpg"}:
+            image = image_set(stem + "-1200.webp", uri)
+            mobile = image_set(stem + "-800.webp", jpeg_800)
+        else:
+            mobile = _image(jpeg_800)
+    return "<style>" + fullscreen_rules(image, mobile) + "</style>"
 
 
 def primary_button_css(selector: str) -> str:
@@ -1519,13 +1535,13 @@ html {{ color-scheme: light; }}
 {editorial_css()}
 
 .rio-about-banner {{
-  background-image: url("photos/about.jpg") !important;
+  background-image: image-set(url("photos/about-1200.webp") type("image/webp"), url("photos/about.jpg") type("image/jpeg")) !important;
   background-size: cover !important;
   background-position: center center !important;
 }}
-@media (max-width: 800px) {{
+@media (max-width: 1200px) {{
   .rio-about-banner {{
-    background-image: url("photos/about-800.jpg") !important;
+    background-image: image-set(url("photos/about-800.webp") type("image/webp"), url("photos/about-800.jpg") type("image/jpeg")) !important;
   }}
 }}
 {focus_css()}

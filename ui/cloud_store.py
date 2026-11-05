@@ -152,6 +152,11 @@ class MemoryDirectory:
             "goal": deepcopy(self.goals.get(user_id) or _blank_goal()),
             "plans": deepcopy(self.plans.get(user_id) or []),
             "results": deepcopy(self.results.get(user_id) or []),
+            "auth_user": {
+                "id": user_id,
+                "email": user["email"],
+                "email_confirmed_at": user.get("email_confirmed_at") or "",
+            },
         }
 
     def save_bundle(self, access_token: object, bundle: object) -> None:
@@ -415,6 +420,19 @@ class MemoryDirectory:
 # and user queries never read it. Each query builds its own client.
 _OAUTH_STORAGE: object | None = None
 
+# Shared sockets only. No Authorization header and no user token live here.
+_HTTP_POOL: object | None = None
+
+
+def _http_pool():
+    """One connection pool for this process. It does not keep a visitor's token."""
+    global _HTTP_POOL
+    if _HTTP_POOL is None:
+        import httpx
+
+        _HTTP_POOL = httpx.Client(timeout=8.0, follow_redirects=True)
+    return _HTTP_POOL
+
 
 def _fresh_options(*, oauth: bool = False):
     """No shared session and no automatic refresh. One visitor cannot replace another."""
@@ -428,9 +446,19 @@ def _fresh_options(*, oauth: bool = False):
 
             _OAUTH_STORAGE = SyncMemoryStorage()
         storage = _OAUTH_STORAGE
+    pool = _http_pool()
     if storage is None:
-        return ClientOptions(persist_session=False, auto_refresh_token=False)
-    return ClientOptions(persist_session=False, auto_refresh_token=False, storage=storage)
+        return ClientOptions(
+            persist_session=False,
+            auto_refresh_token=False,
+            httpx_client=pool,
+        )
+    return ClientOptions(
+        persist_session=False,
+        auto_refresh_token=False,
+        storage=storage,
+        httpx_client=pool,
+    )
 
 
 class SupabaseDirectory:
@@ -603,18 +631,28 @@ class SupabaseDirectory:
 
     def _load_bundle(self, access_token: object) -> dict:
         client = self._user_client(access_token)
-        user_id = self._token_user(client, access_token)
-        profile = _first(client.table("profiles").select("*").eq("id", user_id).execute())
-        goal = _first(client.table("goals").select("*").eq("user_id", user_id).execute())
-        plans = _rows(_plans_query(client, user_id).execute())
-        results = _rows(client.table("results").select("*").eq("user_id", user_id).execute())
+        record = self._auth_record(client, access_token)
+        user_id = record["id"]
+        try:
+            profile, goal, plans, results = _embedded_bundle(
+                _first(
+                    client.table("profiles")
+                    .select("*,goals(*),plans(*),results(*)")
+                    .eq("id", user_id)
+                    .limit(1)
+                    .execute()
+                )
+            )
+        except CloudAuthError:
+            raise
+        except Exception:
+            profile, goal, plans, results = self._bundle_parallel(access_token, user_id)
         profile = profile or {}
-        auth_user = self._auth_user(access_token)
-        pace = _pace_from_metadata(auth_user)
-        intro = intro_seen_value(auth_user)
+        pace = _pace_from_metadata(record)
+        intro = intro_seen_value(record)
         from ui.plan_strava import prompt_seen_value
 
-        prompt = prompt_seen_value(auth_user)
+        prompt = prompt_seen_value(record)
         if isinstance(profile, dict) and (pace or intro is not None or prompt is not None):
             profile = dict(profile)
             if pace:
@@ -628,7 +666,39 @@ class SupabaseDirectory:
             "goal": goal or _blank_goal(),
             "plans": plans,
             "results": results,
+            "auth_user": {
+                "id": user_id,
+                "email": record.get("email") or "",
+                "email_confirmed_at": record.get("email_confirmed_at") or "",
+            },
         }
+
+    def _bundle_parallel(self, access_token: str, user_id: str) -> tuple:
+        """Four row reads at once. Each read gets its own client."""
+        from concurrent.futures import ThreadPoolExecutor
+
+        def _profile():
+            client = self._user_client(access_token)
+            return _first(client.table("profiles").select("*").eq("id", user_id).execute())
+
+        def _goal():
+            client = self._user_client(access_token)
+            return _first(client.table("goals").select("*").eq("user_id", user_id).execute())
+
+        def _plans():
+            client = self._user_client(access_token)
+            return _rows(_plans_query(client, user_id).execute())
+
+        def _results():
+            client = self._user_client(access_token)
+            return _rows(client.table("results").select("*").eq("user_id", user_id).execute())
+
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            profile = pool.submit(_profile)
+            goal = pool.submit(_goal)
+            plans = pool.submit(_plans)
+            results = pool.submit(_results)
+            return profile.result(), goal.result(), plans.result(), results.result()
 
     def save_pace_units(self, access_token: object, unit: object) -> None:
         """Store per mile or per km on the auth user. No new table."""
@@ -957,6 +1027,10 @@ class SupabaseDirectory:
 
     def _token_user(self, client, access_token: str) -> str:
         """Who this token is. The client's saved session is not consulted."""
+        return self._auth_record(client, access_token)["id"]
+
+    def _auth_record(self, client, access_token: str) -> dict:
+        """One server check of this token. The client's saved session is not read."""
         if not isinstance(access_token, str) or not access_token:
             raise CloudAuthError("Sign in again.")
         try:
@@ -964,12 +1038,10 @@ class SupabaseDirectory:
         except Exception as exc:
             raise CloudAuthError("Sign in again.") from exc
         found = getattr(user, "user", user)
-        user_id = getattr(found, "id", None)
-        if not user_id and isinstance(found, dict):
-            user_id = found.get("id")
-        if not user_id:
+        record = _plain_auth_user(found)
+        if not record.get("id"):
             raise CloudAuthError("Sign in again.")
-        return str(user_id)
+        return record
 
     def _ensure_profile(self, session: dict, name: str) -> None:
         """Insert this athlete's profile, or update the display name only.
@@ -1016,21 +1088,22 @@ class SupabaseDirectory:
 
     def _auth_request(self, method: str, access_token: str, body: dict | None) -> dict:
         import json
-        import urllib.request
 
         payload = None if body is None else json.dumps(body).encode("utf-8")
-        request = urllib.request.Request(
+        pool = _http_pool()
+        response = pool.request(
+            method,
             self.url.rstrip("/") + "/auth/v1/user",
-            data=payload,
+            content=payload,
             headers={
                 "apikey": self.anon_key,
                 "Authorization": "Bearer " + access_token,
                 "Content-Type": "application/json",
             },
-            method=method,
+            timeout=8,
         )
-        with urllib.request.urlopen(request, timeout=8) as response:
-            raw = response.read()
+        response.raise_for_status()
+        raw = response.content
         if not raw:
             return {}
         parsed = json.loads(raw.decode("utf-8"))
@@ -1269,6 +1342,77 @@ def _hosted_record(record: dict, issued: int) -> dict:
 
 
 PLAN_CONFLICT = "user_id,start_date,goal_date,current_time,goal_time"
+
+
+def _plain_auth_user(found: object) -> dict:
+    """id, email, and confirmation from a get_user result. The token is not copied."""
+    if isinstance(found, dict):
+        raw = found
+    else:
+        raw = {
+            "id": getattr(found, "id", None),
+            "email": getattr(found, "email", None),
+            "email_confirmed_at": getattr(found, "email_confirmed_at", None),
+            "user_metadata": getattr(found, "user_metadata", None),
+        }
+    user_id = raw.get("id")
+    email = raw.get("email")
+    confirmed = raw.get("email_confirmed_at")
+    meta = raw.get("user_metadata")
+    return {
+        "id": "" if not user_id else str(user_id),
+        "email": email if isinstance(email, str) else "",
+        "email_confirmed_at": "" if not confirmed else str(confirmed),
+        "user_metadata": meta if isinstance(meta, dict) else None,
+    }
+
+
+def _embedded_bundle(row: dict | None) -> tuple:
+    """Split one profile response. No profile row is an empty bundle, not an error."""
+    if row is None:
+        return {}, None, [], []
+    if not isinstance(row, dict) or any(key not in row for key in ("goals", "plans", "results")):
+        raise RuntimeError("bundle embed")
+    profile = {
+        key: value
+        for key, value in row.items()
+        if key not in ("goals", "plans", "results")
+    }
+    return profile, _one_row(row.get("goals")), _sort_plans(_many_rows(row.get("plans"))), _many_rows(row.get("results"))
+
+
+def _one_row(value: object) -> dict | None:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, list):
+        for item in value:
+            if isinstance(item, dict):
+                return item
+    return None
+
+
+def _many_rows(value: object) -> list:
+    if isinstance(value, list):
+        return [item for item in value if isinstance(item, dict)]
+    if isinstance(value, dict):
+        return [value]
+    return []
+
+
+def _sort_plans(plans: list) -> list:
+    """Oldest first, matching the plans query, so the last row is the newest."""
+
+    def _key(row: dict) -> tuple:
+        updated = row.get("updated_at")
+        ident = row.get("id")
+        missing = not isinstance(updated, str) or not updated
+        return (
+            1 if missing else 0,
+            "" if missing else updated,
+            "" if ident is None else str(ident),
+        )
+
+    return sorted(plans, key=_key)
 
 
 def _plans_query(client, user_id: str):

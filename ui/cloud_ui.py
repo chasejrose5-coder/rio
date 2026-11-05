@@ -143,7 +143,8 @@ def _restore_parsed(parsed: dict, *, sid: str | None) -> bool:
     profile = bundle.get("profile") if isinstance(bundle, dict) else {}
     if not isinstance(profile, dict):
         profile = {}
-    auth_email = _confirmed_email(directory, access, email)
+    auth_user = bundle.get("auth_user") if isinstance(bundle, dict) else None
+    auth_email = _confirmed_email(directory, access, email, auth_user)
     open_cloud_session(
         {
             "email": auth_email,
@@ -306,10 +307,7 @@ def _sync_admin_role_once() -> None:
     directory = current_directory()
     user = None
     if directory is not None and isinstance(token, str):
-        try:
-            user = directory.verified_user(token)
-        except CloudAuthError:
-            user = None
+        user = _verified_for(directory, token)
     email = None
     user_id = st.session_state.get("rio_cloud_user_id")
     if isinstance(user, dict) and user.get("email_confirmed_at"):
@@ -422,6 +420,7 @@ def _load_saved_season(token: str) -> None:
         bundle = directory.load_bundle(token)
     except CloudAuthError:
         return
+    _remember_verified(token, bundle.get("auth_user") if isinstance(bundle, dict) else None)
     _apply_bundle(bundle)
 
 
@@ -660,12 +659,48 @@ def _store_refreshed(sid, access, refresh, user_id, email, name, issued) -> None
     st.session_state["rio_session_write"] = ""
 
 
-def _confirmed_email(directory, access: str, fallback: str) -> str:
-    """The auth user's email when it is confirmed. A profile email is ignored."""
+def _remember_verified(access: object, user: object) -> dict | None:
+    """Keep this sign-in's server user for later reads in the same session."""
+    if not isinstance(access, str) or not access or not isinstance(user, dict):
+        return None
+    user_id = user.get("id")
+    email = user.get("email")
+    if not user_id or not isinstance(email, str) or not email:
+        return None
+    public = {
+        "id": str(user_id),
+        "email": email,
+        "email_confirmed_at": user.get("email_confirmed_at") or "",
+    }
+    st.session_state["rio_verified_token"] = access
+    st.session_state["rio_verified_user"] = public
+    return public
+
+
+def _verified_for(directory, access: str, auth_user: object = None) -> dict | None:
+    """The auth user already checked for this token, or one fresh server check."""
+    cached = st.session_state.get("rio_verified_user")
+    if (
+        isinstance(cached, dict)
+        and st.session_state.get("rio_verified_token") == access
+        and cached.get("id")
+        and isinstance(cached.get("email"), str)
+        and cached.get("email")
+    ):
+        return cached
+    remembered = _remember_verified(access, auth_user)
+    if remembered is not None:
+        return remembered
     try:
         user = directory.verified_user(access)
     except CloudAuthError:
-        user = None
+        return None
+    return _remember_verified(access, user)
+
+
+def _confirmed_email(directory, access: str, fallback: str, auth_user: object = None) -> str:
+    """The auth user's email when it is confirmed. A profile email is ignored."""
+    user = _verified_for(directory, access, auth_user)
     if isinstance(user, dict) and user.get("email_confirmed_at"):
         found = user.get("email")
         if isinstance(found, str) and found:
