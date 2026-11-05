@@ -2923,3 +2923,281 @@ summary:focus-visible,
   font-size: 0.92rem !important;
   line-height: 1.35 !important;
 }
+
+/* Home, Profile, Creators polish. Cards stay light. Orange on the pill is #C2461F. */
+html,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"] {
+  scrollbar-gutter: stable;
+}
+[class*="st-key-rio-nav"] {
+  align-items: center !important;
+}
+[class*="st-key-rio-links"],
+[class*="st-key-rio-start-session"],
+[class*="st-key-rio-logout"] {
+  display: flex !important;
+  align-items: center !important;
+  align-self: center !important;
+}
+[class*="st-key-rio-start-session"] [data-testid="stPageLink-NavLink"] {
+  margin: 0 !important;
+  padding: 0.45rem 0.95rem !important;
+  align-self: center !important;
+}
+[class*="st-key-rio-logout"] button {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+.rio-soft-card,
+[class*="st-key-rio-home-today"],
+[class*="st-key-rio-profile-race"] {
+  background: #FFFCF7 !important;
+  border: 1px solid #DCD6CC !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 22px rgba(18, 17, 16, 0.045) !important;
+}
+.rio-glossary.rio-soft-card {
+  max-width: none;
+  margin: 1.15rem 0 0.15rem;
+  padding: 0.9rem 1.1rem 0.95rem;
+}
+.rio-glossary.rio-soft-card p {
+  margin: 0.18rem 0 !important;
+}
+[class*="st-key-rio-home-today"] {
+  padding: 0.95rem 1.15rem 1.05rem !important;
+  margin: 0.45rem 0 0.35rem !important;
+}
+[class*="st-key-rio-home-today"] .rio-index-pad {
+  padding: 0 0 0.35rem !important;
+}
+[class*="st-key-rio-next3"] {
+  gap: 0.85rem !important;
+  align-items: stretch !important;
+}
+[class*="st-key-rio-next3"] .rio-mini {
+  background: #FFFCF7 !important;
+  border: 1px solid #DCD6CC !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 22px rgba(18, 17, 16, 0.045) !important;
+  padding: 1rem 1.05rem 0.95rem !important;
+  height: 100%;
+  box-sizing: border-box;
+}
+.rio-phase-panel { padding: 0.15rem 0 0.25rem; }
+.rio-phase-headline {
+  margin: 0.1rem 0 0.35rem !important;
+  color: #121110 !important;
+  font-family: Manrope, Inter, "Segoe UI", sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 1.35rem !important;
+  letter-spacing: -0.03em !important;
+  line-height: 1.15 !important;
+}
+.rio-phase-focus {
+  margin: 0 !important;
+  max-width: 42rem;
+  color: #121110 !important;
+  font-size: 0.98rem !important;
+  line-height: 1.45 !important;
+}
+.rio-week-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 0.9rem 0 0.95rem;
+  padding: 0;
+}
+.rio-week-chip {
+  flex: 0 0 auto;
+  min-width: 3.35rem;
+  background: #F4F1EC;
+  border: 1px solid #E4DDD4;
+  border-radius: 12px;
+  padding: 0.42rem 0.62rem 0.46rem;
+  text-align: center;
+}
+.rio-week-chip strong {
+  display: block;
+  color: #6E6A64;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.rio-week-chip span {
+  display: block;
+  margin-top: 0.12rem;
+  color: #121110;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.rio-week-chip.is-hard {
+  background: #F6E7E1;
+  border-color: #E25A32;
+}
+.rio-week-chip.is-hard span { color: #E25A32; }
+.rio-week-chip.is-long { border-color: #121110; }
+.rio-phase-progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.5rem;
+  margin: 0.1rem 0 0.7rem !important;
+  color: #121110 !important;
+  font-size: 0.92rem !important;
+  line-height: 1.35 !important;
+}
+.rio-phase-step em {
+  display: block;
+  margin-bottom: 0.08rem;
+  color: #6E6A64;
+  font-style: normal;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.rio-phase-arrow {
+  color: #E25A32;
+  font-weight: 700;
+  padding: 0 0.15rem;
+}
+.rio-phase-caption {
+  margin: 0.2rem 0 0 !important;
+  max-width: 42rem;
+  color: #6E6A64 !important;
+  font-size: 0.86rem !important;
+  line-height: 1.4 !important;
+}
+.rio-profile-lead {
+  margin: 1.15rem 0 0.85rem !important;
+  max-width: 38rem;
+  color: #121110 !important;
+  font-size: 1rem !important;
+  line-height: 1.45 !important;
+}
+.rio-profile-group { margin: 0 0 0.9rem; padding: 1rem 1.15rem 0.85rem; }
+.rio-soft-help,
+.rio-profile-hint {
+  margin: 0 0 0.55rem !important;
+  color: #6E6A64 !important;
+  font-size: 0.92rem !important;
+  line-height: 1.4 !important;
+}
+.rio-profile-hint { margin: 0.35rem 0 0.15rem !important; }
+[class*="st-key-rio-profile-race"] {
+  max-width: 40rem;
+  padding: 1rem 1.15rem 1.05rem !important;
+  margin: 0 0 1.4rem !important;
+}
+[class*="st-key-rio-profile-race"] [class*="st-key-rio-profile-edit"] {
+  max-width: 22rem !important;
+  margin-top: 0.15rem !important;
+  padding-bottom: 0.15rem !important;
+}
+[class*="st-key-rio-profile-edit"] [data-testid="stTooltipHoverTarget"] button,
+[class*="st-key-rio-profile-race"] [data-testid="stTooltipHoverTarget"] button,
+[class*="st-key-rio-profile-edit"] [data-testid="stTooltipIcon"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #6E6A64 !important;
+  min-height: 0 !important;
+  width: 1rem !important;
+  height: 1rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+[class*="st-key-rio-profile-edit"] [data-testid="stTooltipHoverTarget"] button p,
+[class*="st-key-rio-profile-edit"] [data-testid="stTooltipHoverTarget"] button span,
+[class*="st-key-rio-profile-race"] [data-testid="stTooltipHoverTarget"] button p,
+[class*="st-key-rio-profile-race"] [data-testid="stTooltipHoverTarget"] button span {
+  color: #6E6A64 !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+}
+.rio-creator-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(16rem, 0.95fr);
+  gap: 1.15rem 1.6rem;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  margin-top: 1.25rem;
+}
+.rio-creator-layout > * { min-width: 0; }
+.rio-creator-layout .rio-creator-photo {
+  display: flex;
+  margin: 0 !important;
+  width: 100%;
+  height: 100%;
+  min-height: 18rem;
+}
+.rio-creator-layout .rio-creator-photo picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.rio-creator-layout .rio-creator-photo img {
+  display: block;
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  object-fit: cover;
+  object-position: center 32%;
+  border-radius: 16px;
+}
+.rio-creator-layout .rio-creator {
+  max-width: none !important;
+  padding: 0.2rem 0 0.4rem !important;
+}
+.rio-creator-facts {
+  margin: 0 0 0.55rem !important;
+  color: #E25A32 !important;
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+  line-height: 1.4 !important;
+  overflow-wrap: anywhere;
+}
+.rio-creator-layout .rio-creator-bio + .rio-creator-bio {
+  margin-top: 0.85rem !important;
+}
+@media (max-width: 800px) {
+  .rio-creator-layout {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  .rio-creator-layout .rio-creator-photo,
+  .rio-creator-layout .rio-creator-photo picture,
+  .rio-creator-layout .rio-creator-photo img {
+    height: auto !important;
+    min-height: 0;
+  }
+  .rio-creator-layout .rio-creator-photo img {
+    object-fit: unset;
+    object-position: center;
+  }
+  .rio-week-strip {
+    flex-wrap: nowrap;
+    gap: 0.22rem;
+  }
+  .rio-week-chip {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0.32rem 0.08rem 0.36rem;
+    border-radius: 10px;
+  }
+  .rio-week-chip strong { font-size: 0.58rem; letter-spacing: 0.04em; }
+  .rio-week-chip span { font-size: 0.66rem; }
+  .rio-phase-progress { gap: 0.45rem 0.55rem; }
+}
