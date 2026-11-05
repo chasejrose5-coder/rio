@@ -105,7 +105,21 @@ header {{
 [class*="st-key-rio-startup-continue"] button span {{
   font-family: {FONT} !important;
 }}
+@font-face {{
+  font-family: "Inter Fallback";
+  src: local("Arial");
+  size-adjust: 107.12%;
+  ascent-override: 90.44%;
+  descent-override: 22.52%;
+  line-gap-override: 0%;
+}}
+.rio-startup-copy,
+.rio-startup-copy h1,
+.rio-startup-copy p {{
+  font-family: Inter, "Inter Fallback", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+}}
 .rio-startup-copy {{
+  min-height: 26rem;
   position: relative;
   z-index: 5;
   margin: 0;
