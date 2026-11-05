@@ -5995,7 +5995,6 @@ def page_creators() -> None:
         '<div class="rio-creator-layout">'
         f"{figure}"
         '<article class="rio-creator">'
-        '<p class="rio-creator-facts">800m athlete · Goal 1:55.0 · Stanford Invitational (March 2027)</p>'
         '<h2 class="rio-creator-name">Chase Rose, Founder</h2>'
         f"{body}"
         '<p class="rio-creator-close">Every rep has a reason.</p>'
