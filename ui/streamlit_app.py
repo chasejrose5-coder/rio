@@ -5570,6 +5570,9 @@ def page_admin() -> None:
     from ui.sample_season_ui import render_test_season
 
     render_test_season()
+    from ui.probability_ui import render_admin_stub
+
+    render_admin_stub()
     _render_hero_editor()
 
 
