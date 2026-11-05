@@ -22,6 +22,7 @@ from ui.cloud_store import (
     SIGNUP_PASSWORD,
     SIGNUP_PROFILE,
     SIGNUP_RATE,
+    SIGNIN_MISMATCH,
     SIGNIN_RATE,
     CloudAuthError,
     SupabaseDirectory,
@@ -30,6 +31,11 @@ from ui.cloud_store import (
     signin_error_message,
     signup_error_message,
     signup_outcome,
+)
+from ui.cloud_ui import (
+    SHOW_GOOGLE_SIGN_IN,
+    SHOW_SIGNUP_EMAIL_CONFIRM,
+    _visible_auth_error,
 )
 from ui.intro import STEPS, guide_html
 from ui.settings import display_distance, display_training
@@ -304,6 +310,47 @@ def test_auth_links_use_the_hosted_site_when_the_url_is_unset() -> None:
         raise AssertionError("confirm email does not return to log in")
 
 
+def test_v01_hides_google_and_signup_confirm_ui() -> None:
+    """v0.1 hides incomplete Google and confirm-email UI. Restore is the flags."""
+    if SHOW_GOOGLE_SIGN_IN or SHOW_SIGNUP_EMAIL_CONFIRM:
+        raise AssertionError("incomplete auth is visible in v0.1")
+    if _visible_auth_error(SIGNUP_CONFIRM, signing_up=True) != SIGNUP_FAILED:
+        raise AssertionError("create account still says to check email")
+    if _visible_auth_error(SIGNUP_CONFIRM, signing_up=False) != SIGNIN_MISMATCH:
+        raise AssertionError("log in still says to check email")
+    if "Check your email" in _visible_auth_error(SIGNUP_CONFIRM, signing_up=True):
+        raise AssertionError("confirm copy leaked onto create account")
+    if _visible_auth_error(SIGNUP_EXISTS, signing_up=True) != SIGNUP_EXISTS:
+        raise AssertionError("a real sign-up error was rewritten")
+    ui = (ROOT / "ui" / "cloud_ui.py").read_text(encoding="utf-8")
+    google = ui[ui.index("def _google_button(") :]
+    if google.index("if not SHOW_GOOGLE_SIGN_IN") > google.index(
+        'st.link_button("Continue with Google"'
+    ):
+        raise AssertionError("Continue with Google renders before the v0.1 hide")
+    auth = ui[ui.index("def render_cloud_auth(") : ui.index("def open_cloud_session(")]
+    if "SHOW_SIGNUP_EMAIL_CONFIRM" not in auth:
+        raise AssertionError("the confirm screen is not behind the v0.1 flag")
+    if auth.index("if SHOW_SIGNUP_EMAIL_CONFIRM") > auth.index("_render_confirm("):
+        raise AssertionError("the confirm screen still opens in v0.1")
+    sign_in = ui[ui.index("def _render_sign_in(") : ui.index("def _render_sign_up(")]
+    sign_up = ui[ui.index("def _render_sign_up(") : ui.index("def _render_confirm(")]
+    if 'st.form_submit_button("Log in"' not in sign_in:
+        raise AssertionError("email log in was removed")
+    if 'st.form_submit_button("Create account"' not in sign_up:
+        raise AssertionError("email create account was removed")
+    if "_google_button(" not in sign_in or "_google_button(" not in sign_up:
+        raise AssertionError("the Google button call was deleted")
+    import ui.cloud_ui as cloud_ui
+
+    cloud_ui.SHOW_SIGNUP_EMAIL_CONFIRM = True
+    try:
+        if cloud_ui._visible_auth_error(SIGNUP_CONFIRM, signing_up=True) != SIGNUP_CONFIRM:
+            raise AssertionError("restore does not bring the confirm message back")
+    finally:
+        cloud_ui.SHOW_SIGNUP_EMAIL_CONFIRM = False
+
+
 def test_rep_distances_stay_in_meters() -> None:
     reps = "8 × 150 m at or faster than goal 800 pace, long rest"
     fast = "10 × 60 m fast, rolling start, full rest"
@@ -387,6 +434,7 @@ def main() -> None:
     test_sign_up_uses_the_redirect_and_saves_a_profile_without_role()
     test_profile_failure_and_sign_in_are_visible()
     test_auth_links_use_the_hosted_site_when_the_url_is_unset()
+    test_v01_hides_google_and_signup_confirm_ui()
     test_rep_distances_stay_in_meters()
     test_intro_flag_and_guide_copy()
     test_founder_line_and_compact_heroes()
