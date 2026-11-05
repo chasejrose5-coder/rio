@@ -31,12 +31,15 @@ from ui.cloud_store import (
 
 # v0.1 temporary hide. Google sign-in and the signup confirmation-email
 # screen are incomplete and must not show on Log in or Create account.
+# Forgot password is hidden on Log in until reset email has custom SMTP.
 # Email and password stay. Auth backend (google_url, SIGNUP_CONFIRM,
-# signup_outcome) stays.
-# TODO(v0.1 restore): set both True to show "Continue with Google" and
-# "Check your email to confirm your account, then log in."
+# signup_outcome, request_reset) stays. A recovery URL still opens reset.
+# TODO(v0.1 restore): set these True to show "Continue with Google",
+# "Check your email to confirm your account, then log in.", and
+# "Forgot password?".
 SHOW_GOOGLE_SIGN_IN = False
 SHOW_SIGNUP_EMAIL_CONFIRM = False
+SHOW_FORGOT_PASSWORD = False
 
 
 def render_cloud_auth(backdrop, notice, hero) -> None:
@@ -486,9 +489,12 @@ def _render_sign_in(backdrop, notice, hero) -> None:
             )
             submitted = st.form_submit_button("Log in", type="primary", width="stretch")
         _google_button("rio-google")
-        forgot = st.button("Forgot password?", key="rio-forgot", type="tertiary")
+        # TODO(v0.1 restore): set SHOW_FORGOT_PASSWORD = True.
+        forgot = False
+        if SHOW_FORGOT_PASSWORD:
+            forgot = st.button("Forgot password?", key="rio-forgot", type="tertiary")
         create = st.button("Create account", key="rio-open-create", width="stretch")
-    if forgot:
+    if SHOW_FORGOT_PASSWORD and forgot:
         st.session_state["rio_auth_screen"] = "forgot"
         st.rerun()
     if create:
