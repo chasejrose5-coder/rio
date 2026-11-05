@@ -3515,8 +3515,14 @@ def _track_fact(label: str, value: str) -> str:
     )
 
 
+def _on_today(workout: object) -> bool:
+    """True when the stored session date is today."""
+    return isinstance(workout, dict) and str(workout.get("date") or "") == date.today().isoformat()
+
+
 def _track_stage(workout: dict | None) -> str:
     """The oval, with the next session beside it. Display only."""
+    title = "Today's workout" if _on_today(workout) else "Next workout"
     if isinstance(workout, dict):
         template = str(workout.get("template_id") or "").strip()
         day = str(workout.get("day_of_week") or "—")
@@ -3528,7 +3534,7 @@ def _track_stage(workout: dict | None) -> str:
         ident = _id_html(template, "rio-track-id")
         caption = (
             '<div class="rio-track-fact">'
-            f"{_label('Next workout')}"
+            f"{_label(title)}"
             f'<p class="rio-track-day">{_esc(day)}'
             f'<span class="rio-track-sub">{_esc(when)}</span></p>'
             "</div>"
@@ -3550,7 +3556,7 @@ def _track_stage(workout: dict | None) -> str:
         ident = ""
         caption = (
             '<div class="rio-track-fact">'
-            f"{_label('Next workout')}"
+            f"{_label(title)}"
             '<p class="rio-track-day">—</p>'
             "</div>"
         )
@@ -3690,24 +3696,17 @@ def _stat_tile(label: str, value: object) -> str:
 
 
 def _track_meta(view: dict, pace_status: str = "") -> str:
-    """Days, phase, last mark, this week, and the pace status."""
-    remaining = view.get("days_remaining")
-    number = (
-        str(remaining)
-        if isinstance(remaining, int) and not isinstance(remaining, bool)
-        else "—"
-    )
+    """Phase, last mark, this week, and the progress status."""
     mark = view.get("mark")
     tiles = (
-        _stat_tile("Days to goal", number)
-        + _stat_tile("Training block", _phase_text(view.get("phase")))
+        _stat_tile("Training block", _phase_text(view.get("phase")))
         + _stat_tile("Last timed effort", _mark_text(mark if isinstance(mark, dict) else None))
         + _stat_tile("This week", view.get("focus"))
     )
     kind = "rio-stat-row"
     if pace_status:
-        tiles += _stat_tile("Pace status", pace_status)
-        kind = "rio-stat-row rio-stat-five"
+        tiles += _stat_tile("Progress status", pace_status)
+        kind = "rio-stat-row rio-stat-words"
     return f'<div class="{kind}">{tiles}</div>'
 
 
@@ -3733,7 +3732,7 @@ def _home_headline(days: object, goal: str) -> str:
     return _esc("—")
 
 
-def _quick_links() -> None:
+def _quick_links(*, index: str | None = "03  /  Open") -> None:
     items = (
         ("Plan", _nav_page("Plan")),
         ("Activity", _nav_page("Activity")),
@@ -3743,7 +3742,11 @@ def _quick_links() -> None:
     links = [(label, page) for label, page in items if page is not None]
     if not links:
         return
-    st.markdown('<p class="rio-index rio-index-pad">03  /  Open</p>', unsafe_allow_html=True)
+    if index:
+        st.markdown(
+            f'<p class="rio-index rio-index-pad">{index}</p>',
+            unsafe_allow_html=True,
+        )
     with st.container(key="rio-quick", horizontal=True, gap="small"):
         for label, page in links:
             with st.container(key=f"rio-quick-{label.lower()}", width="content"):
@@ -3756,17 +3759,22 @@ def _quick_links() -> None:
                 )
 
 
-def _render_this_week(plan: dict, goal: date, sessions: list) -> None:
-    """The authored this-week card. A signed-in plan shows it without a model."""
-    from ui.insights import current_phase_note, no_plan_copy, season_thesis, this_week_copy
+def _render_this_week(plan: dict, goal: date, sessions: list) -> bool:
+    """The current phase, collapsed first. A hard-day note can follow it.
 
+    The season essay and the eight-phase list stay off this page. The goal
+    date is not counted here.
+    """
+    from ui.insights import no_plan_copy, phase_story
+
+    del goal
     who = _account_identity()
     if who is None:
-        return
+        return False
     inputs = st.session_state.get("season_inputs")
     if not isinstance(inputs, tuple) or len(inputs) != 4:
         st.markdown(f'<p class="rio-note">{_esc(no_plan_copy())}</p>', unsafe_allow_html=True)
-        return
+        return False
     week = None
     length = plan.get("season_length_weeks")
     start_text = plan.get("start_date")
@@ -3788,38 +3796,27 @@ def _render_this_week(plan: dict, goal: date, sessions: list) -> None:
             text = str(code)
             if len(text) == 7 and text.startswith("phase_") and text[6] in "12345678":
                 phase = int(text[6])
-    remaining = (goal - date.today()).days
-    if remaining < 0:
-        remaining = 0
     from ui.strava_ui import strava_connected
 
     logged = st.session_state.get("season_actuals")
     has_log = isinstance(logged, dict) and bool(logged)
     thin = not has_log and not strava_connected()
-    card = None if phase is None else this_week_copy(
-        phase=phase,
-        days_to_goal=remaining,
-        goal=str(inputs[2]),
-        race_date=str(inputs[3]),
-        thin=thin,
-    )
-    thesis = season_thesis(current_mark=str(inputs[0]), goal=str(inputs[2]), race_date=str(inputs[3]))
-    if card is None and thesis is None:
-        st.markdown(f'<p class="rio-note">{_esc(no_plan_copy())}</p>', unsafe_allow_html=True)
-        return
-    with st.container(key="rio-this-week"):
-        if card is not None:
-            with st.expander(card["collapsed"], expanded=False):
-                st.markdown(_esc(card["expanded"]).replace("\n", "<br>"), unsafe_allow_html=True)
-        if thesis is not None:
-            with st.expander(thesis["collapsed"], expanded=False):
-                body = _esc(thesis["expanded"]).replace("\n\n", "</p><p>").replace("\n", " ")
-                st.markdown(f"<p>{body}</p>", unsafe_allow_html=True)
-                note = None if phase is None else current_phase_note(phase)
-                if note is not None:
-                    st.markdown(f'<p>{_esc(note["collapsed"])}</p>', unsafe_allow_html=True)
-                    st.markdown(f'<p>{_esc(note["expanded"])}</p>', unsafe_allow_html=True)
-        _show_stored_insight()
+    story = None
+    if phase is not None and isinstance(week, int) and not isinstance(week, bool):
+        story = phase_story(phase=phase, week=week, sessions=sessions, thin=thin)
+    showed = False
+    if story is not None:
+        st.markdown(
+            '<p class="rio-index rio-index-pad">01  /  Current phase</p>',
+            unsafe_allow_html=True,
+        )
+        with st.container(key="rio-this-week"):
+            with st.expander(story["collapsed"], expanded=False):
+                body = "".join(f"<p>{_esc(line)}</p>" for line in story["sentences"])
+                st.markdown(body, unsafe_allow_html=True)
+        showed = True
+    _show_stored_insight()
+    return showed
 
 
 def _remember_workout_note(plan: dict, session: dict, mark: str, detail: str) -> None:
@@ -3908,15 +3905,18 @@ def _show_stored_insight(session: dict | None = None) -> None:
 def page_dashboard() -> None:
     """The plan Start stored, as of today.
 
-    The next workout is the first session on or after today. The track
-    shows that session's distance, pace, rest, and reps. Days until the
-    goal and the current phase sit under the track. The phase and the
-    one-line focus are that week's, from reason codes already stored.
-    The last mark is the latest week mark, when one exists. Days until the
-    goal count from today. Opening this page reads the last 14 days and
-    matches each activity to that date. An unmarked quality day can already
-    hold the mark from those WORK times. An unmatched activity is an extra
-    session. No prose, so this page does not spend. No scores.
+    The next workout is the first session on or after today. When that
+    session is today, the section says Today's workout. The track shows
+    that session's distance, pace, rest, and reps. The training block, the
+    last timed effort, this week's focus, and the progress status sit under
+    the track. The phase story is this week's place in the current phase,
+    then the phase before and the phase after. The phase and the one-line
+    focus are that week's, from reason codes already stored. The last mark
+    is the latest week mark, when one exists. Opening this page reads the
+    last 14 days and matches each activity to that date. An unmarked quality
+    day can already hold the mark from those WORK times. An unmatched
+    activity is an extra session. The phase story is authored copy. It does
+    not call a model. No scores.
     """
     chrome = st.container(gap=None)
     hero = st.container(gap=None)
@@ -3992,18 +3992,23 @@ def page_dashboard() -> None:
             unsafe_allow_html=True,
         )
         st.markdown(_track_meta(view, _pace_status_label()), unsafe_allow_html=True)
-        st.caption(
-            "A training block is one phase of the season. A timed effort is a run you logged. "
-            "Times use minutes:seconds.tenths, like 2:05.0."
-        )
-        from ui.strava_ui import home_line
-
-        line = home_line()
-        if line:
-            st.markdown(line, unsafe_allow_html=True)
-        _render_this_week(plan, goal, sessions)
         st.markdown(
-            '<p class="rio-index rio-index-pad">01  /  Next workout</p>',
+            '<div class="rio-glossary">'
+            "<p>A training block is one phase of the season.</p>"
+            "<p>A timed effort is a run you logged.</p>"
+            "<p>Times use minutes:seconds.tenths, like 2:05.0.</p>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        showed_phase = _render_this_week(plan, goal, sessions)
+        if showed_phase:
+            workout_index = "02  /  Today's workout" if _on_today(workout) else "02  /  Next workout"
+            upcoming_index = "03  /  Next 3 days"
+        else:
+            workout_index = "01  /  Today's workout" if _on_today(workout) else "01  /  Next workout"
+            upcoming_index = "02  /  Next 3 days"
+        st.markdown(
+            f'<p class="rio-index rio-index-pad">{workout_index}</p>',
             unsafe_allow_html=True,
         )
         if isinstance(workout, dict):
@@ -4017,13 +4022,13 @@ def page_dashboard() -> None:
     upcoming = _upcoming_days(sessions, date.today(), 3)
     if upcoming:
         st.markdown(
-            '<p class="rio-index rio-index-pad">02  /  Next 3 days</p>',
+            f'<p class="rio-index rio-index-pad">{upcoming_index}</p>',
             unsafe_allow_html=True,
         )
         with st.container(key="rio-next3", horizontal=True, gap="small"):
             for session in upcoming:
                 _session_link(session, "mini")
-    _quick_links()
+    _quick_links(index=None if showed_phase else "03  /  Open")
     oldest, newest = activity_window(date.today())
     _render_extras(extras_between(_stored_activities(), oldest, newest))
 
