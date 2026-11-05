@@ -607,12 +607,21 @@ def _plain_reasons(codes: list) -> str:
     return f'<div class="rio-reasons">{"".join(lines)}</div>'
 
 
+@st.cache_data
+def _menu_rows() -> list:
+    """The frozen menu. Cached across reruns. It does not depend on a visitor."""
+    return load_menu()
+
+
 def _menu_by_id() -> dict[str, dict]:
     """Frozen template recipes. Read for the structure sentence. Not a new plan."""
-    global _MENU_BY_ID
-    if _MENU_BY_ID is None:
-        _MENU_BY_ID = {row["id"]: row for row in load_menu()}
-    return _MENU_BY_ID
+    return {row["id"]: row for row in _menu_rows()}
+
+
+@st.cache_data(max_entries=256)
+def _sequence_cached(current: str, start: str, goal: str, goal_date: str) -> dict:
+    """sequence() for these four inputs. The result does not depend on a visitor."""
+    return sequence(current, start, goal, goal_date)
 
 
 def _structure_text(template_id: object) -> str:
@@ -859,7 +868,7 @@ def _ensure_linked_plan(inputs: tuple[str, str, str, str]) -> None:
     ):
         return
     try:
-        built = sequence(*inputs)
+        built = _sequence_cached(*inputs)
     except ValueError as exc:
         _reject_link(inputs, str(exc))
         return
@@ -1615,7 +1624,9 @@ _MARK_PREFIX = "season"
 # accent-color: #e25a32
 # cursor: default
 # min-width: 44px
-_APP_CSS_HREF = "app/static/app.css?v=1"
+from ui.css_href import cached_app_css_href
+
+_APP_CSS_HREF = cached_app_css_href()
 
 
 _COMPACT_CSS = """
@@ -6185,6 +6196,10 @@ _open_restored_session(_session_was_open)
 from ui.strava_ui import boot_strava
 
 boot_strava()
+st.markdown(
+    '<style>@import url("' + _APP_CSS_HREF + '");</style>',
+    unsafe_allow_html=True,
+)
 _start_page = st.Page(_with_plan(page_start), title="Start", default=True)
 _session_page = st.Page(_with_plan(page_session), title="Session", url_path="session")
 _HOME_PAGE = _start_page
