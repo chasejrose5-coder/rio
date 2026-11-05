@@ -2824,3 +2824,77 @@ summary:focus-visible,
   .rio-lib, .rio-stat-row { grid-template-columns: 1fr; }
   .rio-stat-tile .rio-stat-value { font-size: 1.25rem !important; }
 }
+
+/* Review pass: type floor, orange as a rule, one help icon, steady nav. */
+.rio-phase-week,
+.rio-mark-label,
+.rio-index,
+.rio-cal-num,
+.rio-cal-label,
+.rio-cal-dow,
+.rio-kicker,
+.rio-chip {
+  font-size: 0.75rem !important;
+}
+.rio-index {
+  color: #121110 !important;
+}
+.rio-index::before {
+  content: "";
+  display: inline-block;
+  width: 18px;
+  height: 2px;
+  background: #E25A32;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+[data-testid="stTooltipIcon"] svg {
+  width: 16px;
+  height: 16px;
+  color: #6E6A64 !important;
+}
+[class*="st-key-rio-nav"] {
+  min-height: 64px !important;
+}
+[class*="st-key-rio-settings-danger"] button {
+  color: #B42318 !important;
+  border: 1px solid #B42318 !important;
+  background: transparent !important;
+}
+[class*="st-key-rio-auth-card"] h1,
+[class*="st-key-rio-auth-card"] .rio-hero h1 {
+  font-family: Inter, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-size: clamp(2.25rem, 4vw, 2.75rem) !important;
+}
+@media (max-height: 700px) {
+  [class*="st-key-rio-auth-card"] h1 { font-size: 2.25rem !important; }
+  [class*="st-key-rio-auth-card"] { margin-top: 1rem !important; }
+}
+.stApp h1 a[href^="#"],
+.stApp h2 a[href^="#"] { display: none !important; }
+.rio-plan-gap { height: 1.25rem; }
+.rio-cal-quiet {
+  background: transparent;
+  border: 1px dashed #DCD6CC;
+  border-radius: 14px;
+  min-height: 72px;
+}
+.rio-index-pad { padding: 1.5rem 0 0.25rem !important; }
+[class*="st-key-rio-next3"] .rio-daycard {
+  background: #FFFCF7;
+  border: 1px solid #DCD6CC;
+  border-radius: 16px;
+  padding: 1rem 1.1rem;
+}
+[class*="st-key-rio-library"] { margin-top: 0.5rem !important; }
+.rio-more-row { position: relative; }
+.rio-more-row::after {
+  content: "›";
+  float: right;
+  color: #6E6A64;
+  font-size: 1.25rem;
+}
+[class*="st-key-rio-hit-more"]:hover { background: #EDE8E1; }
+[class*="st-key-season-result"] input {
+  border: 1px solid #CFC8BD !important;
+}
