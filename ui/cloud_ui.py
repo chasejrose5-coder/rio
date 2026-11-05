@@ -22,10 +22,21 @@ from ui.cloud_session import (
 )
 from ui.cloud_store import (
     ACCOUNTS_UNAVAILABLE,
+    SIGNIN_MISMATCH,
     SIGNUP_CONFIRM,
+    SIGNUP_FAILED,
     CloudAuthError,
     current_directory,
 )
+
+# v0.1 temporary hide. Google sign-in and the signup confirmation-email
+# screen are incomplete and must not show on Log in or Create account.
+# Email and password stay. Auth backend (google_url, SIGNUP_CONFIRM,
+# signup_outcome) stays.
+# TODO(v0.1 restore): set both True to show "Continue with Google" and
+# "Check your email to confirm your account, then log in."
+SHOW_GOOGLE_SIGN_IN = False
+SHOW_SIGNUP_EMAIL_CONFIRM = False
 
 
 def render_cloud_auth(backdrop, notice, hero) -> None:
@@ -35,8 +46,13 @@ def render_cloud_auth(backdrop, notice, hero) -> None:
         _render_reset(backdrop, notice, hero)
         return
     if st.session_state.get("rio_auth_screen") == "confirm":
-        _render_confirm(backdrop, notice, hero)
-        return
+        # TODO(v0.1 restore): set SHOW_SIGNUP_EMAIL_CONFIRM = True.
+        if SHOW_SIGNUP_EMAIL_CONFIRM:
+            _render_confirm(backdrop, notice, hero)
+            return
+        st.session_state["rio_auth_screen"] = "login"
+        if st.session_state.get("rio_login_error") == SIGNUP_CONFIRM:
+            st.session_state.pop("rio_login_error", None)
     if st.session_state.get("rio_auth_screen") == "create":
         _render_sign_up(backdrop, notice, hero)
         return
@@ -486,7 +502,7 @@ def _render_sign_in(backdrop, notice, hero) -> None:
     try:
         session = directory.sign_in(email, password)
     except CloudAuthError as exc:
-        st.session_state["rio_login_error"] = str(exc)
+        st.session_state["rio_login_error"] = _visible_auth_error(str(exc), signing_up=False)
         st.rerun()
     open_cloud_session(session)
     st.rerun()
@@ -520,8 +536,8 @@ def _render_sign_up(backdrop, notice, hero) -> None:
     try:
         session = directory.sign_up(email, password, name)
     except CloudAuthError as exc:
-        st.session_state["rio_login_error"] = str(exc)
-        if str(exc) == SIGNUP_CONFIRM:
+        st.session_state["rio_login_error"] = _visible_auth_error(str(exc), signing_up=True)
+        if str(exc) == SIGNUP_CONFIRM and SHOW_SIGNUP_EMAIL_CONFIRM:
             st.session_state["rio_auth_screen"] = "confirm"
         st.rerun()
     open_cloud_session(session)
@@ -729,8 +745,24 @@ def _directory_or_notice():
     return directory
 
 
+def _visible_auth_error(message: str, *, signing_up: bool) -> str:
+    """The message on Log in or Create account.
+
+    v0.1 does not show signup confirmation-email copy. Other errors stay.
+    TODO(v0.1 restore): set SHOW_SIGNUP_EMAIL_CONFIRM = True.
+    """
+    if message == SIGNUP_CONFIRM and not SHOW_SIGNUP_EMAIL_CONFIRM:
+        return SIGNUP_FAILED if signing_up else SIGNIN_MISMATCH
+    return message
+
+
 def _google_button(key: str) -> None:
-    """A link to the provider. A failed start leaves the email form in place."""
+    """A link to the provider. A failed start leaves the email form in place.
+
+    TODO(v0.1 restore): set SHOW_GOOGLE_SIGN_IN = True.
+    """
+    if not SHOW_GOOGLE_SIGN_IN:
+        return
     directory = current_directory()
     if directory is None or not cloud_configured():
         return
