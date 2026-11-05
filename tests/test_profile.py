@@ -30,7 +30,7 @@ def test_fields_are_the_four_start_values() -> None:
     if rows != [
         ("Current 800 time", "2:02.9"),
         ("Start date", "2026-04-19"),
-        ("Goal 800 time", "1:55.0"),
+        ("Goal 800m time", "1:55.0"),
         ("Goal date", "2027-03-19"),
     ]:
         raise AssertionError(rows)

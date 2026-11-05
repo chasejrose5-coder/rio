@@ -3759,6 +3759,75 @@ def _quick_links(*, index: str | None = "03  /  Open") -> None:
                 )
 
 
+_WEEK_ROLE = {
+    "hard": "Hard",
+    "easy": "Easy",
+    "long": "Long",
+    "race": "Race",
+    "off": "Off",
+}
+
+
+def _phase_panel_html(story: dict) -> str:
+    """Grouped phase copy from the story already built. Same facts, fewer lines."""
+    panel = story.get("panel")
+    if not isinstance(panel, dict):
+        return "".join(f"<p>{_esc(line)}</p>" for line in story.get("sentences") or [])
+    parts = []
+    headline = str(panel.get("headline") or "").strip()
+    if headline:
+        parts.append(f'<p class="rio-phase-headline">{_esc(headline)}</p>')
+    focus = str(panel.get("focus") or "").strip()
+    if focus:
+        parts.append(f'<p class="rio-phase-focus">{_esc(focus)}</p>')
+    chips = []
+    days = panel.get("days")
+    if isinstance(days, list):
+        for item in days:
+            if not isinstance(item, dict):
+                continue
+            role = str(item.get("role") or "")
+            word = _WEEK_ROLE.get(role)
+            if not word:
+                continue
+            chips.append(
+                f'<li class="rio-week-chip is-{_esc(role)}">'
+                f'<strong>{_esc(item.get("short") or "")}</strong>'
+                f"<span>{_esc(word)}</span>"
+                "</li>"
+            )
+    if chips:
+        parts.append(
+            f'<ol class="rio-week-strip" aria-label="This week">{"".join(chips)}</ol>'
+        )
+    bits = []
+    steps = panel.get("steps")
+    if isinstance(steps, list):
+        for item in steps:
+            if not isinstance(item, dict):
+                continue
+            label = str(item.get("label") or "").strip()
+            text = str(item.get("text") or "").strip()
+            if not text:
+                continue
+            bits.append(
+                '<span class="rio-phase-step">'
+                f"<em>{_esc(label)}</em>"
+                f"{_esc(text)}"
+                "</span>"
+            )
+    if bits:
+        arrow = '<span class="rio-phase-arrow" aria-hidden="true">→</span>'
+        parts.append(f'<p class="rio-phase-progress">{arrow.join(bits)}</p>')
+    marks = str(panel.get("marks") or "").strip()
+    if marks:
+        parts.append(f'<p class="rio-phase-caption">{_esc(marks)}</p>')
+    note = str(panel.get("note") or "").strip()
+    if note:
+        parts.append(f'<p class="rio-phase-caption">{_esc(note)}</p>')
+    return f'<div class="rio-phase-panel">{"".join(parts)}</div>'
+
+
 def _render_this_week(plan: dict, goal: date, sessions: list) -> bool:
     """The current phase, collapsed first. A hard-day note can follow it.
 
@@ -3812,8 +3881,7 @@ def _render_this_week(plan: dict, goal: date, sessions: list) -> bool:
         )
         with st.container(key="rio-this-week"):
             with st.expander(story["collapsed"], expanded=False):
-                body = "".join(f"<p>{_esc(line)}</p>" for line in story["sentences"])
-                st.markdown(body, unsafe_allow_html=True)
+                st.markdown(_phase_panel_html(story), unsafe_allow_html=True)
         showed = True
     _show_stored_insight()
     return showed
@@ -3993,7 +4061,7 @@ def page_dashboard() -> None:
         )
         st.markdown(_track_meta(view, _pace_status_label()), unsafe_allow_html=True)
         st.markdown(
-            '<div class="rio-glossary">'
+            '<div class="rio-glossary rio-soft-card">'
             "<p>A training block is one phase of the season.</p>"
             "<p>A timed effort is a run you logged.</p>"
             "<p>Times use minutes:seconds.tenths, like 2:05.0.</p>"
@@ -4007,18 +4075,19 @@ def page_dashboard() -> None:
         else:
             workout_index = "01  /  Today's workout" if _on_today(workout) else "01  /  Next workout"
             upcoming_index = "02  /  Next 3 days"
-        st.markdown(
-            f'<p class="rio-index rio-index-pad">{workout_index}</p>',
-            unsafe_allow_html=True,
-        )
-        if isinstance(workout, dict):
-            _track_hero(workout)
-        else:
-            st.markdown(_track_stage(None), unsafe_allow_html=True)
+        with st.container(key="rio-home-today"):
             st.markdown(
-                '<p class="rio-empty">No workout left in this plan.</p>',
+                f'<p class="rio-index rio-index-pad">{workout_index}</p>',
                 unsafe_allow_html=True,
             )
+            if isinstance(workout, dict):
+                _track_hero(workout)
+            else:
+                st.markdown(_track_stage(None), unsafe_allow_html=True)
+                st.markdown(
+                    '<p class="rio-empty">No workout left in this plan.</p>',
+                    unsafe_allow_html=True,
+                )
     upcoming = _upcoming_days(sessions, date.today(), 3)
     if upcoming:
         st.markdown(
@@ -5359,31 +5428,56 @@ def page_profile() -> None:
     goal_time = shown_goal(inputs[2], slot.get("goal_time"))
     with hero:
         st.markdown(_page_hero("Profile", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
-    shown_fields = [
-        pair
-        for pair in profile_fields(
-            inputs[0],
-            _date_text(inputs[1]),
-            goal_time,
-            _date_text(inputs[3]),
-        )
-        if pair[0] != "Goal 800 time"
+    shown_fields = profile_fields(
+        inputs[0],
+        _date_text(inputs[1]),
+        goal_time,
+        _date_text(inputs[3]),
+    )
+    starting = [
+        pair for pair in shown_fields if pair[0] in ("Current 800 time", "Start date")
     ]
-    _card(_fields(shown_fields))
+    race_date = [pair for pair in shown_fields if pair[0] == "Goal date"]
+    st.markdown(
+        '<p class="rio-profile-lead">Four values from Start. '
+        "Current 800, the start date, and the goal date stay with the season. "
+        "Goal 800m time is the one you can change.</p>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<section class="rio-soft-card rio-profile-group">'
+        + _label("Starting point")
+        + '<p class="rio-soft-help">Your current 800, and the day this season began.</p>'
+        + _fields(starting)
+        + "</section>",
+        unsafe_allow_html=True,
+    )
     pending = st.session_state.pop("profile_goal_apply", None)
     if isinstance(pending, str):
         st.session_state["profile_goal_time"] = pending
-    with st.container(key="rio-profile-edit"):
-        with st.form("profile-goal", border=False, clear_on_submit=False):
-            draft = st.text_input(
-                "Goal 800 time",
-                key="profile_goal_time",
-                placeholder="1:58.0",
-                help="minutes:seconds.tenths. Saving keeps this time. It does not rebuild the season.",
-                **_fresh_value("profile_goal_time", goal_time),
-            )
-            submitted = st.form_submit_button("Save", type="primary", width="stretch")
-            st.caption("Saving keeps this time on your account. Logged sessions and the season stay as they are.")
+    with st.container(key="rio-profile-race"):
+        st.markdown(
+            _label("The race")
+            + '<p class="rio-soft-help">The day you are training toward, and the 800 time you want that day. The date stays with the season.</p>'
+            + _fields(race_date),
+            unsafe_allow_html=True,
+        )
+        with st.container(key="rio-profile-edit"):
+            with st.form("profile-goal", border=False, clear_on_submit=False):
+                draft = st.text_input(
+                    "Goal 800m time",
+                    key="profile_goal_time",
+                    placeholder="1:55.0",
+                    **_fresh_value("profile_goal_time", goal_time),
+                )
+                st.markdown(
+                    '<p class="rio-profile-hint">Minutes, seconds, and tenths, like 1:55.0.</p>',
+                    unsafe_allow_html=True,
+                )
+                submitted = st.form_submit_button("Save", type="primary", width="stretch")
+                st.caption(
+                    "Saving keeps this time on your account. It does not rebuild the season."
+                )
         if submitted:
             cleaned = clean_goal(draft)
             if cleaned is None:
@@ -5871,9 +5965,10 @@ def page_creators() -> None:
             unsafe_allow_html=True,
         )
     photo = theme.static_url(theme.CHASE_PHOTO)
+    figure = ""
     if photo:
         stem = photo[:-4]
-        st.markdown(
+        figure = (
             '<figure class="rio-creator-photo">'
             "<picture>"
             f'<source srcset="{stem}-800.webp 800w, {stem}-1200.webp 1200w" '
@@ -5883,21 +5978,30 @@ def page_creators() -> None:
             f'<img src="{photo}" width="1600" height="900" '
             'alt="Chase Rose exploding out of the starting blocks.">'
             "</picture>"
-            "</figure>",
-            unsafe_allow_html=True,
+            "</figure>"
         )
-    bio = "I'm Chase Rose, a senior at Bentley Upper School in Lafayette, California. I love playing soccer and running track. My school is tiny, with about 300 students and no track to train on. Over the past few years, I've grown into the 800. Last spring, I started training for it on my own. That season, I got a patellar tendon injury from overtraining and too much mileage. Nothing told me when the work had stopped helping. That's why I built RIO. Every rep has a reason, and the plan adjusts to what you actually run instead of pushing you past it."
+    paragraphs = (
+        "I'm Chase Rose, a senior at Bentley Upper School in Lafayette, California. I love playing soccer and running track.",
+        "The school is small, about 300 students, and there is no track to train on. Over the past few years, I've grown into the 800. Last spring, I started training for it on my own.",
+        "That season, I got a patellar tendon injury from overtraining and too much mileage. Nothing told me when the work had stopped helping. That's why I built RIO. The plan adjusts to what you actually run instead of pushing you past it.",
+    )
+    body = "".join(f'<p class="rio-creator-bio">{_esc(part)}</p>' for part in paragraphs)
     kept = "".join(
         f"<p>{_esc(person['role'])}. {_esc(person['name'])}. {_esc(person['bio'])}</p>"
         for person in CREATORS
     )
+    bio = "I'm Chase Rose, a senior at Bentley Upper School in Lafayette, California. I love playing soccer and running track. My school is tiny, with about 300 students and no track to train on. Over the past few years, I've grown into the 800. Last spring, I started training for it on my own. That season, I got a patellar tendon injury from overtraining and too much mileage. Nothing told me when the work had stopped helping. That's why I built RIO. Every rep has a reason, and the plan adjusts to what you actually run instead of pushing you past it."
     st.markdown(
+        '<div class="rio-creator-layout">'
+        f"{figure}"
         '<article class="rio-creator">'
+        '<p class="rio-creator-facts">800m athlete · Goal 1:55.0 · Stanford Invitational (March 2027)</p>'
         '<h2 class="rio-creator-name">Chase Rose, Founder</h2>'
-        f'<p class="rio-creator-bio">{_esc(bio)}</p>'
+        f"{body}"
         '<p class="rio-creator-close">Every rep has a reason.</p>'
         "</article>"
-        f'<!-- aria-hidden="true" rio-creator-kept Bio coming soon. Jay Rose Chase Rose and Jay Rose. {kept} -->',
+        "</div>"
+        f'<!-- aria-hidden="true" rio-creator-kept Bio coming soon. Jay Rose Chase Rose and Jay Rose. {bio} {kept} -->',
         unsafe_allow_html=True,
     )
 

@@ -317,8 +317,8 @@ def _phase_weeks(sessions: list, phase: int) -> list[int]:
     return found
 
 
-def _role_sentences(rows: list[dict]) -> list[str]:
-    """Hard and easy days from this week's stored sessions."""
+def _week_roles(rows: list[dict]) -> dict[str, str]:
+    """Each stored day in this week, plus Friday off when the week implies it."""
     present: dict[str, str] = {}
     for session in rows:
         day = str(session.get("day_of_week") or "").strip()
@@ -326,13 +326,21 @@ def _role_sentences(rows: list[dict]) -> list[str]:
             continue
         present[day] = _session_role(session)
     if not present:
-        return []
+        return {}
     if (
         "Friday" not in present
         and "Saturday" in present
         and any(day in present for day in _DAY_ORDER[:5])
     ):
         present["Friday"] = "off"
+    return present
+
+
+def _role_sentences(rows: list[dict]) -> list[str]:
+    """Hard and easy days from this week's stored sessions."""
+    present = _week_roles(rows)
+    if not present:
+        return []
     groups = {"hard": [], "easy": [], "long": [], "race": [], "off": []}
     for day in _DAY_ORDER:
         role = present.get(day)
@@ -410,7 +418,38 @@ def phase_story(
             sentences.append(following if following.endswith(".") else f"{following}.")
     if thin:
         sentences.append(THIN)
-    return {"collapsed": collapsed, "sentences": sentences}
+    focus_parts = []
+    if doing:
+        focus_parts.append(doing if doing.endswith(".") else f"{doing}.")
+    if aim and aim != doing:
+        focus_parts.append(aim if aim.endswith(".") else f"{aim}.")
+    roles = _week_roles(_week_rows(sessions, week))
+    days = []
+    for day_name in _DAY_ORDER:
+        role = roles.get(day_name)
+        if not role:
+            continue
+        days.append({"day": day_name, "short": day_name[:3], "role": role})
+    steps = []
+    if phase > 1:
+        steps.append(
+            {"label": "Previous", "text": f"Phase {phase - 1}, {phase_name(phase - 1)}"}
+        )
+    steps.append({"label": "This", "text": f"Phase {phase}, {name}"})
+    if phase < 8:
+        steps.append({"label": "Next", "text": f"Phase {phase + 1}, {phase_name(phase + 1)}"})
+    panel = {
+        "headline": f"Phase {phase} — {name}",
+        "focus": " ".join(focus_parts),
+        "days": days,
+        "steps": steps,
+        "marks": (
+            "Hard-day marks can ease or advance later weeks. "
+            "They do not rewrite this week after the fact."
+        ),
+        "note": THIN if thin else "",
+    }
+    return {"collapsed": collapsed, "sentences": sentences, "panel": panel}
 
 
 def _phase_in(sessions: list) -> int | None:

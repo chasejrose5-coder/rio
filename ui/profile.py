@@ -29,7 +29,7 @@ def profile_fields(
     return [
         ("Current 800 time", _text(current_time)),
         ("Start date", _text(start_date)),
-        ("Goal 800 time", _text(goal_time)),
+        ("Goal 800m time", _text(goal_time)),
         ("Goal date", _text(goal_date)),
     ]
 
