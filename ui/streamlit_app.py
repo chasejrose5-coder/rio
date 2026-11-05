@@ -1498,7 +1498,9 @@ _MARK_PREFIX = "season"
 # accent-color: #e25a32
 # cursor: default
 # min-width: 44px
-_APP_CSS_HREF = "app/static/app.css?v=1"
+from ui.css_href import cached_app_css_href
+
+_APP_CSS_HREF = cached_app_css_href()
 
 
 _COMPACT_CSS = """
