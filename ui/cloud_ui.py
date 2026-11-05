@@ -178,7 +178,7 @@ def restore_cloud_token(stored: str) -> bool:
     profile = bundle.get("profile") or {}
     open_cloud_session(
         {
-            "email": profile.get("email") or "",
+            "email": _confirmed_email(directory, token, ""),
             "user_id": profile.get("id") or "",
             "access_token": token,
             "refresh_token": "",
@@ -428,21 +428,22 @@ def _consume_callback() -> None:
     params = st.query_params
     if str(params.get("state") or "").startswith("strava:"):
         return
+    if params.get("reset") == "password" or params.get("type") == "recovery":
+        st.session_state["rio_cloud_reset"] = True
+        return
     code = params.get("code")
     if isinstance(code, str) and code and st.session_state.get("rio_cloud_user_id") is None:
         directory = current_directory()
         if directory is None:
             return
         try:
-            session = directory.exchange_code(code)
+            session = directory.exchange_code(code, params.get("flow") or "")
         except CloudAuthError as exc:
             st.session_state["rio_login_error"] = str(exc)
             return
         open_cloud_session(session)
         st.query_params.clear()
         st.rerun()
-    if params.get("reset") == "password" or params.get("type") == "recovery":
-        st.session_state["rio_cloud_reset"] = True
 
 
 def _render_sign_in(backdrop, notice, hero) -> None:
@@ -583,7 +584,7 @@ def _render_reset(backdrop, notice, hero) -> None:
     if not submitted:
         return
     directory = _directory_or_notice()
-    token = st.query_params.get("token") or st.query_params.get("code") or ""
+    token = st.query_params.get("token_hash") or st.query_params.get("token") or ""
     if directory is None:
         return
     try:
