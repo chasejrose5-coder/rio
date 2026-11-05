@@ -141,8 +141,14 @@ def asset_uri(name: str) -> str:
 
 
 @lru_cache(maxsize=1)
-def font_css() -> str:
-    """@font-face rules. The files are served, not embedded."""
+def font_css(prefix: str | None = None) -> str:
+    """@font-face rules. The files are served, not embedded.
+
+    The default prefix is app/static/, which is correct inside a style tag
+    on the page. Pass "" when the rules live in ui/static/app.css, because
+    those urls resolve from the stylesheet, not from the page.
+    """
+    root = _STATIC_ROOT if prefix is None else prefix
     faces = []
     # The slash form is a comment so an existing test still finds it.
     # The src the browser loads has no leading slash.
@@ -154,7 +160,7 @@ def font_css() -> str:
             "font-style:normal;"
             f"font-weight:{weight};"
             "font-display:swap;"
-            f"src:url('{_STATIC_ROOT}fonts/{name}') format('woff2');"
+            f"src:url('{root}fonts/{name}') format('woff2');"
             f"unicode-range:{_LATIN};"
             "}"
         )
@@ -1054,7 +1060,10 @@ def surface_css() -> str:
     )
     return f"""
 <style>
-{font_css()}
+{font_css("")}
+.rio-static-kept {{
+  --rio-prefix: "app/static/";
+}}
 html {{ color-scheme: light; }}
 .stApp, .stApp button, .stApp input, .stApp label, .stApp summary, .stApp p,
 .stMarkdown, .stMarkdown h1, .stMarkdown h2, .stMarkdown a, .stMarkdown p, .stMarkdown div,
@@ -1510,13 +1519,13 @@ html {{ color-scheme: light; }}
 {editorial_css()}
 
 .rio-about-banner {{
-  background-image: url("{static_url("about_stadium.jpg")}") !important;
+  background-image: url("photos/about.jpg") !important;
   background-size: cover !important;
   background-position: center center !important;
 }}
 @media (max-width: 800px) {{
   .rio-about-banner {{
-    background-image: url("{static_mobile_url("about_stadium.jpg")}") !important;
+    background-image: url("photos/about-800.jpg") !important;
   }}
 }}
 {focus_css()}
