@@ -9,6 +9,7 @@ stored on a planned row. Neither decodes an id into reps, rest, or distances.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -732,6 +733,234 @@ def _reserve_spend(worst: int) -> bool:
     except OSError:
         return False
     return True
+
+
+# Reduced fields for one hard day. Raw activities, laps, and tokens are not keys.
+INSIGHT_FIELDS = (
+    "athlete_first_name",
+    "goal_800",
+    "race_date",
+    "days_to_goal",
+    "phase",
+    "phase_name",
+    "week_number",
+    "session_date",
+    "session_family",
+    "session_label",
+    "planned_summary",
+    "result_band",
+    "result_detail",
+    "pace_factor_before",
+    "pace_factor_after",
+    "pace_factor_delta",
+    "hard_days_this_week",
+    "later_weeks_effect",
+    "easy_hr_note",
+    "tone",
+    "max_sentences",
+)
+INSIGHT_BANDS = ("on_track", "fell_short", "went_better")
+INSIGHT_EFFECTS = ("unchanged", "eased", "advanced", "next_week_easy", "unknown")
+INSIGHT_HR = ("truly_easy", "not_easy", "missing")
+_HARD_DAY_COUNTS = ("planned", "logged", "on_track", "fell_short", "went_better")
+_INSIGHT_BANNED = (
+    "strava",
+    "gps",
+    "chatgpt",
+    "openai",
+    "as an ai",
+    "language model",
+    "diagnos",
+    "injury",
+    "doctor",
+    "medical",
+    "new workout",
+    "change the plan",
+    "skip the session",
+)
+_BAND_WORDS = {
+    "on_track": ("on track", "held", "as planned", "steady"),
+    "fell_short": ("short", "ease", "eased", "behind"),
+    "went_better": ("better", "ahead", "forward", "advanced"),
+}
+
+
+def insight_inputs_ok(payload: object) -> bool:
+    """True when the payload is only the reduced hard-day fields."""
+    if not isinstance(payload, dict):
+        return False
+    if set(payload) - set(INSIGHT_FIELDS):
+        return False
+    if payload.get("tone") != "chase" or payload.get("max_sentences") != 4:
+        return False
+    if payload.get("result_band") not in INSIGHT_BANDS:
+        return False
+    if payload.get("later_weeks_effect") not in INSIGHT_EFFECTS:
+        return False
+    note = payload.get("easy_hr_note")
+    if note is not None and note not in INSIGHT_HR:
+        return False
+    counts = payload.get("hard_days_this_week")
+    if not isinstance(counts, dict) or set(counts) != set(_HARD_DAY_COUNTS):
+        return False
+    for key in _HARD_DAY_COUNTS:
+        value = counts[key]
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            return False
+    if not isinstance(payload.get("phase"), int) or isinstance(payload.get("phase"), bool):
+        return False
+    if not 1 <= payload["phase"] <= 8:
+        return False
+    for key in ("goal_800", "race_date", "phase_name", "session_date", "session_family"):
+        if not isinstance(payload.get(key), str) or not payload[key].strip():
+            return False
+    days = payload.get("days_to_goal")
+    if isinstance(days, bool) or not isinstance(days, int) or days < 0:
+        return False
+    week = payload.get("week_number")
+    if isinstance(week, bool) or not isinstance(week, int) or week < 1:
+        return False
+    if _insight_has_stream(payload):
+        return False
+    return True
+
+
+def _insight_has_stream(value: object) -> bool:
+    """A list is a lap or sample stream. Names of other systems are refused."""
+    if isinstance(value, list):
+        return True
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if "strava" in str(key).lower() or _insight_has_stream(item):
+                return True
+        return False
+    if isinstance(value, str):
+        lowered = value.lower()
+        return "strava" in lowered or "gps" in lowered
+    return False
+
+
+def _insight_sentences(text: str) -> list[str]:
+    parts = re.split(r"(?<=[.!?])\s+", text.strip())
+    return [part for part in parts if part.strip()]
+
+
+def _insight_numbers(payload: dict) -> set[str]:
+    return set(re.findall(r"\d+", json.dumps(payload, sort_keys=True, ensure_ascii=False)))
+
+
+def insight_acceptable(output: object, inputs: dict) -> bool:
+    """True when the model stayed inside the reduced note."""
+    if not isinstance(output, dict):
+        return False
+    if set(output) != {"headline", "body", "carry_forward", "used_result_band"}:
+        return False
+    if output.get("used_result_band") != inputs.get("result_band"):
+        return False
+    headline = output.get("headline")
+    body = output.get("body")
+    carry = output.get("carry_forward")
+    if not isinstance(headline, str) or not isinstance(body, str) or not isinstance(carry, str):
+        return False
+    words = [word for word in headline.split() if word]
+    if not words or len(words) > 8:
+        return False
+    sentences = _insight_sentences(body)
+    if len(sentences) < 2 or len(sentences) > 4:
+        return False
+    if carry and len(_insight_sentences(carry)) != 1:
+        return False
+    blob = f"{headline} {body} {carry}".lower()
+    if any(token in blob for token in _INSIGHT_BANNED):
+        return False
+    allowed = _insight_numbers(inputs)
+    for number in re.findall(r"\d+", blob):
+        if number not in allowed:
+            return False
+    band = str(inputs.get("result_band") or "")
+    if not any(word in blob for word in _BAND_WORDS.get(band, ())):
+        return False
+    return True
+
+
+def _insight_json(text: str) -> dict | None:
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        cleaned = cleaned.split("\n", 1)[-1]
+        fence = cleaned.rfind("```")
+        if fence >= 0:
+            cleaned = cleaned[:fence]
+    try:
+        parsed = json.loads(cleaned.strip())
+    except json.JSONDecodeError:
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def _log_insight(canonical: str, output: dict) -> None:
+    """Store a hash of the reduced input and the accepted note. Not the prompt."""
+    override = os.environ.get("RIO_INSIGHT_LOG_PATH", "").strip()
+    path = Path(override) if override else Path(__file__).resolve().parent.parent / "data" / "insight_log.jsonl"
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    line = json.dumps({"sha256": digest, "output": output}, ensure_ascii=False)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(line + "\n")
+    except OSError:
+        return
+
+
+def complete_insight(inputs: object) -> dict | None:
+    """One note for a hard day. None when the input, the cap, or the reply fails."""
+    if not insight_inputs_ok(inputs):
+        return None
+    canonical = json.dumps(inputs, sort_keys=True, ensure_ascii=False)
+    prompt = (
+        "Reply with one JSON object and no other text. "
+        "Keys are headline, body, carry_forward, and used_result_band. "
+        "Voice is Chase. Short sentences. No run-ons. "
+        "used_result_band must equal result_band. "
+        "Do not invent a number. Do not change the plan or name a new workout. "
+        "Do not mention Strava, GPS, laps, or AI. No medical claims. "
+        "headline is at most 8 words. body is 2 to 4 sentences. "
+        "carry_forward is one sentence or an empty string. "
+        "Say the result in plain words: on track, fell short, or went better.\n"
+    )
+    try:
+        text = _complete(canonical, prompt)
+    except (
+        OSError,
+        urllib.error.URLError,
+        json.JSONDecodeError,
+        KeyError,
+        ValueError,
+        TypeError,
+    ):
+        return None
+    if not text:
+        return None
+    parsed = _insight_json(text)
+    if parsed is None or not insight_acceptable(parsed, inputs):
+        return None
+    _log_insight(canonical, parsed)
+    return parsed
+
+
+def weekly_inputs_ok(payload: object) -> bool:
+    """A finished week uses the same reduced fields. A live week does not."""
+    if not isinstance(payload, dict) or payload.get("week_ended") is not True:
+        return False
+    reduced = {key: value for key, value in payload.items() if key != "week_ended"}
+    return insight_inputs_ok(reduced)
+
+
+def weekly_digest(payload: object) -> dict | None:
+    """The same note shape for a week that has already ended."""
+    if not weekly_inputs_ok(payload) or not isinstance(payload, dict):
+        return None
+    reduced = {key: value for key, value in payload.items() if key != "week_ended"}
+    return complete_insight(reduced)
 
 
 def _settle_spend(reserved: int, actual: int) -> None:

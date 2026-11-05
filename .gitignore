@@ -223,6 +223,7 @@ __marimo__/
 data/rio.sqlite
 data/explain_spend.json
 data/explain_spend.json.tmp
+data/insight_log.jsonl
 data/accounts.json
 data/accounts.json.tmp
 data/session.key

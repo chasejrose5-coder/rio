@@ -2721,6 +2721,7 @@ def _commit_result(
     marks[week] = mark
     st.session_state["season_marks"] = marks
     st.session_state["season_plan"] = updated
+    _remember_workout_note(updated, session, str(row["mark"]), text)
     st.rerun()
 
 
@@ -3755,6 +3756,155 @@ def _quick_links() -> None:
                 )
 
 
+def _render_this_week(plan: dict, goal: date, sessions: list) -> None:
+    """The authored this-week card. A signed-in plan shows it without a model."""
+    from ui.insights import current_phase_note, no_plan_copy, season_thesis, this_week_copy
+
+    who = _account_identity()
+    if who is None:
+        return
+    inputs = st.session_state.get("season_inputs")
+    if not isinstance(inputs, tuple) or len(inputs) != 4:
+        st.markdown(f'<p class="rio-note">{_esc(no_plan_copy())}</p>', unsafe_allow_html=True)
+        return
+    week = None
+    length = plan.get("season_length_weeks")
+    start_text = plan.get("start_date")
+    if isinstance(length, int) and not isinstance(length, bool) and isinstance(start_text, str):
+        try:
+            from ui.dashboard import current_week
+
+            week = current_week(start=date.fromisoformat(start_text), length=length, today=date.today())
+        except ValueError:
+            week = None
+    rows = [
+        session
+        for session in sessions
+        if isinstance(session, dict) and week is not None and session.get("week_number") == week
+    ]
+    phase = None
+    for session in rows:
+        for code in session.get("reason_codes") or []:
+            text = str(code)
+            if len(text) == 7 and text.startswith("phase_") and text[6] in "12345678":
+                phase = int(text[6])
+    remaining = (goal - date.today()).days
+    if remaining < 0:
+        remaining = 0
+    from ui.strava_ui import strava_connected
+
+    logged = st.session_state.get("season_actuals")
+    has_log = isinstance(logged, dict) and bool(logged)
+    thin = not has_log and not strava_connected()
+    card = None if phase is None else this_week_copy(
+        phase=phase,
+        days_to_goal=remaining,
+        goal=str(inputs[2]),
+        race_date=str(inputs[3]),
+        thin=thin,
+    )
+    thesis = season_thesis(current_mark=str(inputs[0]), goal=str(inputs[2]), race_date=str(inputs[3]))
+    if card is None and thesis is None:
+        st.markdown(f'<p class="rio-note">{_esc(no_plan_copy())}</p>', unsafe_allow_html=True)
+        return
+    with st.container(key="rio-this-week"):
+        if card is not None:
+            with st.expander(card["collapsed"], expanded=False):
+                st.markdown(_esc(card["expanded"]).replace("\n", "<br>"), unsafe_allow_html=True)
+        if thesis is not None:
+            with st.expander(thesis["collapsed"], expanded=False):
+                body = _esc(thesis["expanded"]).replace("\n\n", "</p><p>").replace("\n", " ")
+                st.markdown(f"<p>{body}</p>", unsafe_allow_html=True)
+                note = None if phase is None else current_phase_note(phase)
+                if note is not None:
+                    st.markdown(f'<p>{_esc(note["collapsed"])}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p>{_esc(note["expanded"])}</p>', unsafe_allow_html=True)
+        _show_stored_insight()
+
+
+def _remember_workout_note(plan: dict, session: dict, mark: str, detail: str) -> None:
+    """Ask for one note after a hard day. A rejected reply leaves the authored card."""
+    from ui.insights import workout_inputs
+    from engines.explain import complete_insight
+
+    inputs = st.session_state.get("season_inputs")
+    if not isinstance(inputs, tuple) or len(inputs) != 4:
+        return
+    goal = None
+    try:
+        goal = date.fromisoformat(str(inputs[3]))
+    except ValueError:
+        return
+    remaining = (goal - date.today()).days
+    if remaining < 0:
+        remaining = 0
+    name = str(st.session_state.get("rio_cloud_name") or "")
+    payload = workout_inputs(
+        session=session,
+        plan_sessions=plan.get("sessions") if isinstance(plan.get("sessions"), list) else [],
+        goal=str(inputs[2]),
+        race_date=str(inputs[3]),
+        days_to_goal=remaining,
+        mark=mark,
+        result_detail=detail,
+        first_name=name,
+    )
+    if payload is None:
+        return
+    notes = st.session_state.get("rio_workout_notes")
+    stored = dict(notes) if isinstance(notes, dict) else {}
+    day = str(session.get("date") or "")
+    if day in stored:
+        return
+    note = complete_insight(payload)
+    if note is None:
+        return
+    stored[day] = {"note": note, "viewed": False}
+    st.session_state["rio_workout_notes"] = stored
+
+
+def _insight_entry(item: object) -> dict | None:
+    if not isinstance(item, dict) or item.get("viewed") is True:
+        return None
+    note = item.get("note")
+    return note if isinstance(note, dict) else None
+
+
+def _show_stored_insight(session: dict | None = None) -> None:
+    """Headline and body stay up until Got it. The carry line is the expand."""
+    notes = st.session_state.get("rio_workout_notes")
+    if not isinstance(notes, dict):
+        return
+    if isinstance(session, dict) and session.get("date"):
+        days = [str(session.get("date"))]
+    else:
+        days = [str(day) for day in notes]
+    for day in days:
+        note = _insight_entry(notes.get(day))
+        if note is None:
+            continue
+        headline = str(note.get("headline") or "").strip()
+        body = str(note.get("body") or "").strip()
+        if not headline or not body:
+            continue
+        with st.container(key=f"rio-insight-{day}"):
+            st.markdown(
+                f'<p class="rio-insight-headline">{_esc(headline)}</p>'
+                f'<p>{_esc(body)}</p>',
+                unsafe_allow_html=True,
+            )
+            carry = str(note.get("carry_forward") or "").strip()
+            if carry:
+                with st.expander("Carry forward", expanded=False):
+                    st.markdown(f'<p>{_esc(carry)}</p>', unsafe_allow_html=True)
+            if st.button("Got it", key=f"rio-insight-got-{day}"):
+                current = dict(notes.get(day) or {})
+                current["viewed"] = True
+                notes[day] = current
+                st.session_state["rio_workout_notes"] = notes
+                st.rerun()
+
+
 def page_dashboard() -> None:
     """The plan Start stored, as of today.
 
@@ -3851,6 +4001,7 @@ def page_dashboard() -> None:
         line = home_line()
         if line:
             st.markdown(line, unsafe_allow_html=True)
+        _render_this_week(plan, goal, sessions)
         st.markdown(
             '<p class="rio-index rio-index-pad">01  /  Next workout</p>',
             unsafe_allow_html=True,
@@ -4557,6 +4708,7 @@ def page_session() -> None:
     _card(*parts)
     if _quality_day(session):
         _render_result(plan, session, int(st.session_state.get("season_generation") or 0))
+    _show_stored_insight(session)
 
 
 def _data_value(value: object) -> str:
