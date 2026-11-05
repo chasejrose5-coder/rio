@@ -802,6 +802,8 @@ _ACCOUNT_SESSION = (
     "rio_create_password",
     "rio_intro_force",
     "rio_intro_seen",
+    "rio_strava_offer",
+    "rio_strava_prompt_seen",
     "rio_local",
     "rio_local_email",
     "rio_settings",
@@ -1626,6 +1628,92 @@ def _store_intro(seen: bool) -> None:
     st.session_state["rio_local_email"] = who[0]
 
 
+def _strava_prompt_dismissed() -> bool:
+    return st.session_state.get("rio_strava_prompt_seen") is True
+
+
+def _arm_strava_prompt() -> None:
+    """After a successful generate, offer Strava once if it is not connected."""
+    from ui.plan_strava import should_offer_strava
+    from ui.strava_ui import strava_connected
+
+    _remember_strava_connected()
+    if should_offer_strava(
+        just_generated=True,
+        connected=strava_connected(),
+        dismissed=_strava_prompt_dismissed(),
+    ):
+        st.session_state["rio_strava_offer"] = True
+
+
+def _maybe_strava_prompt() -> None:
+    """The card on the page that opens right after Generate."""
+    from ui.plan_strava import should_offer_strava
+    from ui.strava_ui import render_plan_prompt, strava_connected
+
+    _remember_strava_connected()
+    if st.session_state.get("rio_strava_offer") is not True:
+        return
+    if not should_offer_strava(
+        just_generated=True,
+        connected=strava_connected(),
+        dismissed=_strava_prompt_dismissed(),
+    ):
+        st.session_state["rio_strava_offer"] = False
+        return
+    if render_plan_prompt():
+        _store_strava_prompt_seen()
+        st.rerun()
+
+
+def _remember_strava_connected() -> None:
+    """A connected account does not see the card again, even after a disconnect."""
+    from ui.strava_ui import strava_connected
+
+    if _strava_prompt_dismissed() or not strava_connected():
+        return
+    _store_strava_prompt_seen()
+
+
+def _store_strava_prompt_seen() -> None:
+    """Keep the dismissal on this account. Session state remains if the save fails."""
+    st.session_state["rio_strava_prompt_seen"] = True
+    st.session_state["rio_strava_offer"] = False
+    try:
+        if st.session_state.get("rio_account_secret") == "cloud":
+            token = st.session_state.get("rio_cloud_access")
+            if not isinstance(token, str) or not token:
+                return
+            from ui.cloud_store import current_directory
+
+            directory = current_directory()
+            if directory is None or not hasattr(directory, "save_strava_prompt_seen"):
+                return
+            directory.save_strava_prompt_seen(token, True)
+            return
+        who = _account_identity()
+        local = st.session_state.get("rio_local")
+        if who is None or not isinstance(local, dict):
+            return
+        settings = dict(local.get("settings") or {})
+        settings["strava_prompt_seen"] = True
+        saved = write_local(
+            accounts_path(),
+            who[0],
+            who[1],
+            local.get("name") or "",
+            local.get("preferred") or "",
+            local.get("timezone") or "",
+            settings,
+        )
+    except Exception:
+        return
+    else:
+        if st.session_state.get("rio_account_secret") != "cloud":
+            st.session_state["rio_local"] = saved
+            st.session_state["rio_local_email"] = who[0]
+
+
 def _load_local() -> None:
     """Read this account's name and preferences once. The plan is not opened."""
     who = _account_identity()
@@ -1646,6 +1734,8 @@ def _load_local() -> None:
         st.session_state["rio_settings"] = dict(settings)
     if "intro_seen" in settings and "rio_intro_seen" not in st.session_state:
         st.session_state["rio_intro_seen"] = settings.get("intro_seen") is True
+    if "strava_prompt_seen" in settings and "rio_strava_prompt_seen" not in st.session_state:
+        st.session_state["rio_strava_prompt_seen"] = settings.get("strava_prompt_seen") is True
 
 
 def _display_name() -> str:
@@ -2915,6 +3005,7 @@ def page_start() -> None:
             unsafe_allow_html=True,
         )
         return
+    _arm_strava_prompt()
     home = _nav_page("Home")
     if home is None:
         return
@@ -3555,6 +3646,7 @@ def page_dashboard() -> None:
     with chrome:
         st.markdown(_css("Home"), unsafe_allow_html=True)
         _render_nav("Home")
+    _maybe_strava_prompt()
     named = _display_name()
     hello = hey(named)
     title = plan_title(named)
@@ -5249,6 +5341,7 @@ def page_settings() -> None:
             from ui.strava_ui import render_settings
 
             render_settings()
+            _remember_strava_connected()
 
     with st.container(key="rio-settings-danger"):
         st.markdown(

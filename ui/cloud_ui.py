@@ -213,6 +213,8 @@ def cloud_sign_out() -> None:
         "rio_cloud_saved_hash",
         "rio_intro_seen",
         "rio_intro_force",
+        "rio_strava_prompt_seen",
+        "rio_strava_offer",
         "rio_role_synced",
         "rio_cookie_write",
         "rio_cookie_max_age",
@@ -362,6 +364,8 @@ def _apply_bundle(bundle: dict) -> None:
             st.session_state["rio_pace_saved"] = pace
         if "intro_seen" in profile:
             st.session_state["rio_intro_seen"] = profile.get("intro_seen") is True
+        if "strava_prompt_seen" in profile:
+            st.session_state["rio_strava_prompt_seen"] = profile.get("strava_prompt_seen") is True
     plans = bundle.get("plans") or []
     remembered = []
     for item in plans:
