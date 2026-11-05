@@ -2816,6 +2816,7 @@ def _render_result(plan: dict, session: dict, generation: int) -> None:
     stay editable. The activity id or filename is stored with the actuals.
     """
     day = str(session["date"])
+    st.caption("Times save as you type.")
     stem = f"season-result-{generation}-{day}"
     handled_key = f"{stem}-handled"
     applied_key = f"{stem}-intervals-open"
@@ -3227,11 +3228,11 @@ def _phase_text(phase: object) -> str:
 
 def _mark_text(mark: dict | None) -> str:
     if not isinstance(mark, dict):
-        return "No mark yet"
+        return "No timed run yet"  # No mark yet
     week = mark.get("week")
     name = mark.get("mark")
     if isinstance(week, bool) or not isinstance(week, int) or name not in _MARKS:
-        return "No mark yet"
+        return "No timed run yet"  # No mark yet
     return f"Week {week} · {mark_label(name)}"
 
 
@@ -4750,7 +4751,10 @@ def page_activity() -> None:
         for _label_text, _settings_page in _MORE_PAGES:
             if _label_text == "Settings":
                 st.page_link(_settings_page, label="Connect Strava in Settings")
-    _activities_notice()
+    from ui.strava_ui import strava_connected as _strava_ready
+
+    if _strava_ready():
+        _activities_notice()
     from ui.activity_board import (
         activity_style,
         build_cards,
@@ -5333,7 +5337,7 @@ def page_settings() -> None:
                 new_pw = st.text_input(
                     "New password", type="password", autocomplete="new-password"
                 )
-                change_pw = st.form_submit_button("Change password", type="primary")
+                change_pw = st.form_submit_button("Change password")
             if change_pw and who is not None:
                 try:
                     secret = change_password(accounts_path(), who[0], who[1], current_pw, new_pw)
@@ -5345,7 +5349,7 @@ def page_settings() -> None:
                 st.rerun()
 
     with st.container(key="rio-settings-prefs"):
-        with st.expander("Preferences", expanded=True):
+        with st.expander("Preferences", expanded=False):
             st.markdown(_label("Preferences"), unsafe_allow_html=True)
             pace_units = st.radio(
                 "Pace units",
@@ -5396,12 +5400,13 @@ def page_settings() -> None:
                 horizontal=True,
                 key="settings-dates",
             )
-            confirm = st.toggle("Confirm before a mark changes later weeks", key="settings-confirm")
+            # Confirm before a mark changes later weeks
+            confirm = st.toggle("Ask me before a timed run changes later weeks", key="settings-confirm")
     reminders = False
     recap = False
 
     with st.container(key="rio-settings-data"):
-        with st.expander("Data", expanded=True):
+        with st.expander("Data", expanded=False):
             st.markdown(_label("Data"), unsafe_allow_html=True)
             plan = st.session_state.get("season_plan")
             inputs = st.session_state.get("season_inputs")
@@ -5430,12 +5435,12 @@ def page_settings() -> None:
                 )
 
     with st.container(key="rio-settings-account"):
-        with st.expander("Account", expanded=True):
+        with st.expander("Account", expanded=False):
             st.markdown(_label("Account"), unsafe_allow_html=True)
             with st.form("rio-email", border=False, clear_on_submit=True):
                 new_email = st.text_input("New email")
                 email_pw = st.text_input("Password", type="password")
-                change_mail = st.form_submit_button("Change email", type="primary")
+                change_mail = st.form_submit_button("Change email")
             if change_mail and who is not None:
                 try:
                     updated = change_email(accounts_path(), who[0], who[1], email_pw, new_email)
@@ -5447,7 +5452,7 @@ def page_settings() -> None:
                 st.rerun()
 
     with st.container(key="rio-settings-privacy"):
-        with st.expander("Privacy", expanded=True):
+        with st.expander("Privacy", expanded=False):
             st.markdown(_label("Privacy"), unsafe_allow_html=True)
             st.markdown(
                 f'<p class="rio-settings-note">{_esc(_browser_clear_note())}</p>',
@@ -5455,7 +5460,7 @@ def page_settings() -> None:
             )
 
     with st.container(key="rio-settings-about"):
-        with st.expander("About", expanded=True):
+        with st.expander("About", expanded=False):
             st.markdown(_label("About"), unsafe_allow_html=True)
             st.markdown(
                 f'<p class="rio-settings-note">RIO {_esc(APP_VERSION)}</p>',
@@ -5463,7 +5468,7 @@ def page_settings() -> None:
             )
 
     with st.container(key="rio-settings-strava"):
-        with st.expander("Strava", expanded=True):
+        with st.expander("Strava", expanded=False):
             from ui.strava_ui import render_settings
 
             render_settings()
@@ -5475,7 +5480,7 @@ def page_settings() -> None:
             '<p class="rio-settings-note">Reset the plan, delete this account, or clear this browser. These sit apart from the settings above.</p>',
             unsafe_allow_html=True,
         )
-        with st.expander("Danger zone", expanded=True):
+        with st.expander("Danger zone", expanded=False):
             st.markdown(_label("Data"), unsafe_allow_html=True)
             st.checkbox("Confirm clear", key="settings-clear-marks-ok")
             if st.button("Clear all marks / actuals", key="settings-clear-marks"):
@@ -5626,16 +5631,21 @@ def page_plan() -> None:
         + "</div>",
         unsafe_allow_html=True,
     )
-    _plan_weeks(start, goal, length, sessions)
+    remembered = st.session_state.get("rio_plan_last", "Calendar")
+    if remembered not in ("Calendar", "This week", "Full season"):
+        remembered = "Calendar"
     view = st.segmented_control(
         "Plan view",
         ["Calendar", "This week", "Full season"],
-        default="Calendar",
+        default=remembered,
         key="plan-view",
         label_visibility="collapsed",
         width="stretch",
     )
-    choice = view if isinstance(view, str) and view else "Calendar"
+    choice = view if isinstance(view, str) and view else remembered
+    st.session_state["rio_plan_last"] = choice
+    st.markdown('<div class="rio-plan-gap"></div>', unsafe_allow_html=True)
+    _plan_weeks(start, goal, length, sessions)
     saved = _MARK_PREFIX
     try:
         if choice == "This week":
@@ -5678,7 +5688,7 @@ def page_more() -> None:
             continue
         slug = label.lower().replace(" ", "-")
         html = (
-            '<div class="rio-card rio-card-tight">'
+            '<div class="rio-card rio-card-tight rio-more-row">'
             + _label(label)
             + f'<p class="rio-note">{_esc(blurb)}</p>'
             + "</div>"
