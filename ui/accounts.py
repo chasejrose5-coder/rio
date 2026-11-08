@@ -16,6 +16,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import secrets
 import threading
 from pathlib import Path
@@ -369,13 +370,41 @@ def write_local(
             "settings": _clean_settings(settings),
             "timezone": _apply_zone(timezone, current["timezone"]),
         }
+        _keep_easy(nxt, current)
         if nxt != current:
             account["name"] = nxt["name"]
-            account["profile"] = {
-                "preferred": nxt["preferred"],
-                "settings": nxt["settings"],
-                "timezone": nxt["timezone"],
-            }
+            account["profile"] = _profile_payload(nxt)
+            _save(path, store)
+        return nxt
+
+
+def write_easy_pace(
+    path: Path,
+    email: object,
+    secret: object,
+    pace: object,
+    unit: object,
+) -> dict:
+    """Store this athlete's easy pace. A bad seal or pace leaves the file as it was."""
+    cleaned = normalize_email(email)
+    seal = _secret_bytes(secret)
+    easy = _accept_easy(pace, unit)
+    if cleaned is None or seal is None or easy is None:
+        raise AccountError("Enter a pace like 7:25.")
+    with _LOCK:
+        store = _load(path)
+        account = store["accounts"].get(cleaned)
+        if not isinstance(account, dict):
+            raise AccountError("Enter a pace like 7:25.")
+        if _open_bundle(account.get("records"), seal) is None:
+            raise AccountError("Enter a pace like 7:25.")
+        current = _local_view(account)
+        nxt = dict(current)
+        nxt["easy_pace"] = easy[0]
+        nxt["easy_pace_unit"] = easy[1]
+        if nxt != current:
+            account["name"] = nxt["name"]
+            account["profile"] = _profile_payload(nxt)
             _save(path, store)
         return nxt
 
@@ -501,12 +530,17 @@ def _local_view(account: dict) -> dict:
     timezone = profile.get("timezone")
     if not _zone_ok(timezone):
         timezone = ""
-    return {
+    view = {
         "name": name,
         "preferred": preferred,
         "settings": _clean_settings(profile.get("settings")),
         "timezone": timezone,
     }
+    easy = _accept_easy(profile.get("easy_pace"), profile.get("easy_pace_unit"))
+    if easy is not None:
+        view["easy_pace"] = easy[0]
+        view["easy_pace_unit"] = easy[1]
+    return view
 
 
 def _apply_name(current: str, proposed: object) -> str:
@@ -545,6 +579,47 @@ def _apply_zone(proposed: object, current: str) -> str:
     if _zone_ok(current):
         return current
     return "UTC"
+
+
+_EASY_PACE = re.compile(r"^(\d{1,2}):([0-5]\d)$")
+_EASY_TRAIL = re.compile(r"^\d{1,2}:[0-5]\d\.0+$")
+
+
+def _accept_easy(pace: object, unit: object) -> tuple[str, str] | None:
+    """A stored easy pace, or None. The same bounds as the pace screen."""
+    if unit not in ("mi", "km") or not isinstance(pace, str):
+        return None
+    text = pace.strip()
+    if _EASY_TRAIL.fullmatch(text):
+        text = text.split(".", 1)[0]
+    found = _EASY_PACE.fullmatch(text)
+    if found is None:
+        return None
+    minutes = int(found.group(1))
+    seconds = int(found.group(2))
+    total = minutes * 60 + seconds
+    if total < 60 or total > 30 * 60:
+        return None
+    return f"{minutes}:{seconds:02d}", unit
+
+
+def _keep_easy(nxt: dict, current: dict) -> None:
+    """A settings save does not drop an easy pace already on this profile."""
+    if "easy_pace" in current and "easy_pace_unit" in current:
+        nxt["easy_pace"] = current["easy_pace"]
+        nxt["easy_pace_unit"] = current["easy_pace_unit"]
+
+
+def _profile_payload(view: dict) -> dict:
+    payload = {
+        "preferred": view["preferred"],
+        "settings": view["settings"],
+        "timezone": view["timezone"],
+    }
+    if "easy_pace" in view and "easy_pace_unit" in view:
+        payload["easy_pace"] = view["easy_pace"]
+        payload["easy_pace_unit"] = view["easy_pace_unit"]
+    return payload
 
 
 def _clean_settings(value: object) -> dict:

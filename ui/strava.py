@@ -424,10 +424,13 @@ def planned_vs_actual(
     on: date,
     logs: list[PaceLog] | tuple[PaceLog, ...] | None = None,
     unit: str = "mi",
+    easy_pace: object = None,
+    easy_unit: object = None,
 ) -> dict:
     """Planned line and status from workout_times, next to this run.
 
     Continuous runs are pace in `unit` (per mile unless km is asked).
+    A saved easy pace replaces that line for an easy or long run.
     Rep workouts keep the per-rep target. An int distance still counts.
     """
     template = run.get("template_id") or ""
@@ -448,6 +451,8 @@ def planned_vs_actual(
                 goal_date=goal_day,
                 on=on,
                 logs=collected,
+                easy_pace=easy_pace,
+                easy_unit=easy_unit,
             )
         except ValueError:
             found = None

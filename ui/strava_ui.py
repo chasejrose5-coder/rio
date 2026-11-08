@@ -422,6 +422,8 @@ def _comparisons() -> list[dict]:
                 "status": "Extra",
             }
         else:
+            from ui.easy_pace import pace_kwargs
+
             row = planned_vs_actual(
                 run,
                 current=current,
@@ -431,6 +433,7 @@ def _comparisons() -> list[dict]:
                 on=on,
                 logs=earlier_logs(runs, on),
                 unit=_pace_choice(),
+                **pace_kwargs(),
             )
             if run.get("matched") is not True:
                 row["planned"] = "—"

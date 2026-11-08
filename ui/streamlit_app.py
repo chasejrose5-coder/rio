@@ -1,6 +1,6 @@
 # streamlit_app.py — Start, Dashboard, Calendar, Library, Last Session, Activity, Next, Decisions, Ledger, Goal, Progress, Season, Past seasons, Weekly, Profile, Settings, About, and Session. Display only. No classification rules.
 
-"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. The first screen is the startup page. Continue opens Log in. A signed token in this browser keeps the email and seal key for one day. Each page load restores them when that token is under a day old. That page load opens Home when the account has a plan whose goal date is today or later, and Start when there is no plan or that goal date is past. Log out clears it, and so does a token that is a day old or older. Create account is its own screen. A successful create or log in opens Home when a stored plan's goal date is today or later, and Start when there is no plan or that goal date is past. Marks and actuals are saved on that account under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores that account's marks and actuals. Dashboard reads that plan: a track for the next session, with distance, pace, rest, and reps, plus the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity lists one row per matched Intervals workout: the date, the template or label, completed work meters, and average heart rate. The line is weekly completed WORK distance. Warm-up, cool-down, and template meters stay out. A dot marks each matched workout that has an average heart rate, labeled with the date. An unmatched activity stays off that matched list. A matched activity with no work meters and no heart rate stays off it. A second table lists every activity: the date, the activity name, the activity distance, and average heart rate. An unmatched row is labeled extra. An activity with no distance and no heart rate stays off both lists. No stored match and no Intervals file leaves the matched list empty. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening Dashboard, Weekly, Session, Progress, or Activity reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. Refresh on Activity reads every activity for this athlete. A matched Tuesday or Thursday quality day with no stored mark is judged from that activity's WORK elapsed times. The mark and those times are stored with the session, and adapt() changes only later weeks. Those times fill the quality-day boxes and stay editable. A day that already has a mark is left as stored. Recovery days, long runs, extra activities, and empty rep times do not call adapt(). A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved on that account with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Create account asks for a name and stores it with the account. Home greets that name. Settings keeps the name, local preferences, and account actions on this machine. Profile shows the current 800 time, the start date, the goal 800 time, and the goal date already stored from Start. Saving a goal time keeps it for this account in this browser and leaves the season as stored. Past seasons lists each season this account has already stored. A row shows the start date, the goal date, and the goal time from that plan key. Choosing a row opens that season from those four inputs. The page does not build a season. Session shows one day of that plan. Fixed pre-warm-up, warm-up, cool-down, and core notes follow the workout and are not stored on the session. A matched activity shows its rep times, completed WORK distance, and average heart rate beside the template. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. Opening Session reads recent activities through the read-only adapter and does not write back to Intervals. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. About states the eight phases, the 10% rule, that classification is rules, not AI, and that a hard-day mark adapts later weeks. About does not call a model. No scores. No spend."""
+"""Start asks for four inputs and calls sequence(). Generate season writes current_time, start_date, goal_time, and goal_date into the URL. The first screen is the startup page. Continue opens Log in. A signed token in this browser keeps the email and seal key for one day. Each page load restores them when that token is under a day old. That page load opens Home when the account has a plan whose goal date is today or later, and Start when there is no plan or that goal date is past. Log out clears it, and so does a token that is a day old or older. Create account is its own screen. After an account is created, and for an athlete who has not saved an easy pace, the next screen asks for that pace in minutes and seconds, per mile or per kilometer. Easy and long runs use the saved pace. Profile can change it. The 1.55 aer fraction is not shown as their pace. A successful create or log in opens Home when a stored plan's goal date is today or later, and Start when there is no plan or that goal date is past. Marks and actuals are saved on that account under those inputs. A page opened with the four inputs calls sequence() to rebuild the plan and restores that account's marks and actuals. Dashboard reads that plan: a track for the next session, with distance, pace, rest, and reps, plus the days until the goal, the current phase, the last mark, and one line for this week. Calendar shows that plan as a month. A session day carries a short label, and the day opens that session. Library lists the frozen menu. Last Session reads normalize, classify, and explain. Choosing a JSON file in tests/fixtures/intervals reads that file locally, runs to_normalize_input, then normalize, classify, and explain. The page does not call Intervals.icu. Activity lists one row per matched Intervals workout: the date, the template or label, completed work meters, and average heart rate. The line is weekly completed WORK distance. Warm-up, cool-down, and template meters stay out. A dot marks each matched workout that has an average heart rate, labeled with the date. An unmatched activity stays off that matched list. A matched activity with no work meters and no heart rate stays off it. A second table lists every activity: the date, the activity name, the activity distance, and average heart rate. An unmatched row is labeled extra. An activity with no distance and no heart rate stays off both lists. No stored match and no Intervals file leaves the matched list empty. That page does not call explain. Next reads prescribe and explain. Decisions reads one planned row and explain. Ledger and Goal read the ledger. Progress lists that plan by week and shows each week's completed work distance from WORK intervals in a loaded Intervals file. Warm-up and cool-down stay out. A day with no file contributes 0. A week with no file shows 0 m. A line on Progress plots that same weekly distance, and a week with no file stays at 0. Dots on Progress mark each matched activity that has an average heart rate, labeled with the day and the value. A day with no heart rate is left blank. Template meters are not used. Season shows that plan and reads adapt. Weekly shows one week of that plan, a recap of what was recorded, and reads adapt. Opening Dashboard, Weekly, Session, Progress, or Activity reads the last 14 days of activities with the local key and matches each activity to the planned session on that date. Refresh on Activity reads every activity for this athlete. A matched Tuesday or Thursday quality day with no stored mark is judged from that activity's WORK elapsed times. The mark and those times are stored with the session, and adapt() changes only later weeks. Those times fill the quality-day boxes and stay editable. A day that already has a mark is left as stored. Recovery days, long runs, extra activities, and empty rep times do not call adapt(). A matched day uses that activity for rep times, WORK distance, and average heart rate. An activity with no planned session is an extra session. The matches are saved on that account with the marks and actuals. Another athlete opening the link uses the key on their own machine. The recap volume sums those WORK distances for this week and the week before. A day with no file contributes 0. A week with no file shows 0 m. Template meters are not used. Create account asks for a name and stores it with the account. Home greets that name. Settings keeps the name, local preferences, and account actions on this machine. Profile shows the current 800 time, the start date, the goal 800 time, and the goal date already stored from Start. Saving a goal time keeps it for this account in this browser and leaves the season as stored. Past seasons lists each season this account has already stored. A row shows the start date, the goal date, and the goal time from that plan key. Choosing a row opens that season from those four inputs. The page does not build a season. Session shows one day of that plan. Fixed pre-warm-up, warm-up, cool-down, and core notes follow the workout and are not stored on the session. A matched activity shows its rep times, completed WORK distance, and average heart rate beside the template. Tuesday and Thursday quality take one time per rep and call adapt. Choosing an Intervals JSON file reads it locally and fills each rep box with that WORK interval's elapsed time. The numbers stay editable. Filled times go through judge() and can call adapt(). The activity id or the filename is stored with the actuals. Opening Session reads recent activities through the read-only adapter and does not write back to Intervals. When that activity JSON has an average heart rate, the page shows it. A continuous session takes one time. About states the eight phases, the 10% rule, that classification is rules, not AI, and that a hard-day mark adapts later weeks. About does not call a model. No scores. No spend."""
 
 from __future__ import annotations
 
@@ -24,6 +24,8 @@ from engines.ledger import Ledger
 from engines.normalize import normalize
 from engines.pace import (
     PaceLog,
+    canonical_easy_pace,
+    easy_pace_phrase,
     effort_pace,
     format_pace,
     format_span,
@@ -110,6 +112,7 @@ from ui.accounts import (
     read_record,
     record_keys,
     shown_name,
+    write_easy_pace,
     write_local,
     write_record,
 )
@@ -911,6 +914,11 @@ _ACCOUNT_SESSION = (
     "rio_create_email",
     "rio_create_name",
     "rio_create_password",
+    "easy-pace",
+    "easy-pace-unit",
+    "rio_easy_pace",
+    "rio_easy_pace_error",
+    "rio_easy_pace_unit",
     "rio_intro_force",
     "rio_intro_seen",
     "rio_strava_offer",
@@ -1495,6 +1503,8 @@ def _with_plan(page):
         _load_local()
         _load_shared_plan()
         _link_preview_note()
+        if _easy_pace_gate():
+            return
         if _intro_gate():
             return
         _pull_for(page.__name__)
@@ -1690,6 +1700,88 @@ def _prefs() -> dict:
     return prefs
 
 
+def _easy_pace_gate() -> bool:
+    """Stop on the easy-pace screen until this athlete has saved one."""
+    if st.session_state.get("rio_test_preview"):
+        return False
+    if _saved_easy() is not None:
+        return False
+    st.markdown(_css("Easy pace"), unsafe_allow_html=True)
+    _render_nav("Home")
+    from ui.easy_pace import render_easy_pace
+
+    result = render_easy_pace()
+    if result is not None:
+        _store_easy_pace(*result)
+        st.rerun()
+    return True
+
+
+def _saved_easy() -> tuple[str, str] | None:
+    from ui.easy_pace import stored_easy_pace
+
+    return stored_easy_pace()
+
+
+def _easy_phrase() -> str:
+    found = _saved_easy()
+    if found is None:
+        return ""
+    return easy_pace_phrase(found[0], found[1])
+
+
+def _store_easy_pace(pace: str, unit: str) -> bool:
+    """Write the pace on this athlete. False leaves the screen up."""
+    text = canonical_easy_pace(pace)
+    if text is None or unit not in ("mi", "km"):
+        st.session_state["rio_easy_pace_error"] = "Enter a pace like 7:25."
+        return False
+    if st.session_state.get("rio_test_preview"):
+        st.session_state["rio_easy_pace"] = text
+        st.session_state["rio_easy_pace_unit"] = unit
+        return True
+    try:
+        if _hosted_account():
+            token = st.session_state.get("rio_cloud_access")
+            if not isinstance(token, str) or not token:
+                raise AccountError("Easy pace could not be saved.")
+            from ui.cloud_store import current_directory
+
+            directory = current_directory()
+            if directory is None or not hasattr(directory, "save_easy_pace"):
+                raise AccountError("Easy pace could not be saved.")
+            directory.save_easy_pace(token, text, unit)
+            profile = st.session_state.get("rio_cloud_profile")
+            if isinstance(profile, dict):
+                profile["easy_pace"] = text
+                profile["easy_pace_unit"] = unit
+                st.session_state["rio_cloud_profile"] = profile
+        else:
+            who = _account_identity()
+            if who is None:
+                raise AccountError("Easy pace could not be saved.")
+            saved = write_easy_pace(accounts_path(), who[0], who[1], text, unit)
+            st.session_state["rio_local"] = saved
+            st.session_state["rio_local_email"] = who[0]
+    except Exception:
+        st.session_state["rio_easy_pace_error"] = "Easy pace could not be saved."
+        return False
+    st.session_state["rio_easy_pace"] = text
+    st.session_state["rio_easy_pace_unit"] = unit
+    return True
+
+
+def _easy_pace_section() -> None:
+    """The same pace form, on Profile, after the first screen has been saved."""
+    from ui.easy_pace import render_easy_pace
+
+    current = _easy_phrase()
+    result = render_easy_pace(current=current)
+    if result is not None:
+        _store_easy_pace(*result)
+        st.rerun()
+
+
 def _intro_due() -> bool:
     """True for a new account, or when Settings asked to show the guide again."""
     if st.session_state.get("rio_test_preview"):
@@ -1870,6 +1962,12 @@ def _load_local() -> None:
         st.session_state["rio_settings"] = dict(settings)
     if "intro_seen" in settings and "rio_intro_seen" not in st.session_state:
         st.session_state["rio_intro_seen"] = settings.get("intro_seen") is True
+    if "rio_easy_pace" not in st.session_state:
+        text = canonical_easy_pace(local.get("easy_pace"))
+        unit = local.get("easy_pace_unit")
+        if text and unit in ("mi", "km"):
+            st.session_state["rio_easy_pace"] = text
+            st.session_state["rio_easy_pace_unit"] = unit
     if "strava_prompt_seen" in settings and "rio_strava_prompt_seen" not in st.session_state:
         st.session_state["rio_strava_prompt_seen"] = settings.get("strava_prompt_seen") is True
 
@@ -3392,6 +3490,8 @@ def _pace_bundle(template_id: object, day: object) -> dict | None:
     if not isinstance(sessions, list):
         sessions = []
     current, start, goal_mark, goal_day = marks
+    from ui.easy_pace import pace_kwargs
+
     try:
         return workout_times(
             template_id,
@@ -3401,6 +3501,7 @@ def _pace_bundle(template_id: object, day: object) -> dict | None:
             goal_date=goal_day,
             on=on,
             logs=_pace_logs(sessions),
+            **pace_kwargs(),
         )
     except ValueError:
         return None
@@ -3419,6 +3520,8 @@ def _pace_status_label() -> str:
     if not logs:
         return "No runs yet"
     current, start, goal_mark, goal_day = marks
+    from ui.easy_pace import pace_kwargs
+
     try:
         found = project_800(
             current_mark=current,
@@ -3427,6 +3530,7 @@ def _pace_status_label() -> str:
             goal_date=goal_day,
             on=date.today(),
             logs=logs,
+            **pace_kwargs(),
         )
     except ValueError:
         return "Not enough data"
@@ -3442,29 +3546,33 @@ def _pace_unit() -> str:
 def _split_html(template_id: object, day: object) -> str:
     """Per-rep target, or pace for a continuous run. Blank when the id has none.
 
-    Easy, aerobic, and long runs show pace in the chosen unit. A total
-    clock time is not used for those. Rep workouts keep the rep line.
+    Easy, aerobic, and long runs show the saved easy pace, such as
+    7:25 per mile. A total clock time is not used for those. When that
+    pace is missing, the card asks for it instead of guessing. Rep
+    workouts keep the rep line.
     """
-    found = _pace_bundle(template_id, day)
-    if not isinstance(found, dict):
-        return ""
     recipe = workout_recipe(template_id)
     hidden = ""
     ident = str(template_id or "").strip()
     if ident:
         hidden = f'<span hidden class="rio-template-id">{_esc(ident)}</span>'
-    if recipe and recipe["continuous"] and found.get("reps"):
-        row = found["reps"][0]
-        target = format_pace(row["meters"], row["seconds"], _pace_unit())
-        if not target:
-            return ""
+    if recipe and recipe["continuous"]:
+        phrase = _easy_phrase()
         actual = _actual_pace(day, _pace_unit())
-        line = f"Target {target}" if not actual else f"Target {target} · Actual {actual}"
+        if phrase:
+            line = f"Run at {phrase}"
+        else:
+            line = "Set your easy pace before this run."
+        if actual:
+            line = f"{line} · Actual {actual}"
         return (
             '<div class="rio-pace">'
             f'<p class="rio-pace-line">{_esc(line)}</p>'
             f"{hidden}</div>"
         )
+    found = _pace_bundle(template_id, day)
+    if not isinstance(found, dict):
+        return ""
     line = str(found.get("line") or "").strip()
     tolerance = str(found.get("tolerance") or "").strip()
     block = str(found.get("block") or "").strip()
@@ -3489,6 +3597,8 @@ def recipe_continuous(template_id: object, day: object = None) -> bool:
 
 
 def _target_pace(template_id: object, day: object) -> str:
+    if recipe_continuous(template_id, day):
+        return _easy_phrase()
     found = _pace_bundle(template_id, day)
     if not isinstance(found, dict) or not found.get("reps"):
         return ""
@@ -3550,11 +3660,9 @@ def _track_stage(workout: dict | None) -> str:
             "</div>"
         )
         pace = str(facts["pace"])
-        target = ""
         if recipe_continuous(template, workout.get("date")):
-            target = _target_pace(template, workout.get("date"))
-        if target:
-            pace = f"{pace} · {target}"
+            phrase = _easy_phrase()
+            pace = phrase if phrase else "Set your easy pace"
         rest = str(facts["rest"])
         if rest == "—":
             rest = "No rest"
@@ -5026,6 +5134,8 @@ def page_activity() -> None:
     marks = st.session_state.get("season_inputs")
     current_mark = str(marks[0]) if isinstance(marks, (list, tuple)) and len(marks) == 4 else ""
     goal_mark = str(marks[2]) if isinstance(marks, (list, tuple)) and len(marks) == 4 else ""
+    from ui.easy_pace import pace_kwargs
+
     cards = build_cards(
         runs if isinstance(runs, list) else [],
         activities,
@@ -5036,6 +5146,7 @@ def page_activity() -> None:
         goal_day=goal,
         unit=pace,
         date_format=date_format,
+        **pace_kwargs(),
     )
     if cards:
         st.markdown(_activity_figures(meters, points, units), unsafe_allow_html=True)
@@ -5428,6 +5539,7 @@ def page_profile() -> None:
                     _page_hero("Profile", "SYNTHETIC / DEMO"),
                     unsafe_allow_html=True,
                 )
+        _easy_pace_section()
         if not error:
             st.markdown(
                 '<p class="rio-empty">Generate a season on Start.</p>',
@@ -5438,6 +5550,7 @@ def page_profile() -> None:
     goal_time = shown_goal(inputs[2], slot.get("goal_time"))
     with hero:
         st.markdown(_page_hero("Profile", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
+    _easy_pace_section()
     shown_fields = profile_fields(
         inputs[0],
         _date_text(inputs[1]),

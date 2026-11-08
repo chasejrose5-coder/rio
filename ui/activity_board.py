@@ -78,6 +78,8 @@ def build_cards(
     goal_day: date,
     unit: object = PACE_MILE,
     date_format: str = "iso",
+    easy_pace: object = None,
+    easy_unit: object = None,
 ) -> list[dict]:
     """One card per run. A Strava row and the stored copy of it are one card."""
     chosen = pace_unit(unit)
@@ -114,6 +116,8 @@ def build_cards(
                 on=on,
                 logs=earlier_logs(combined, on),
                 unit=chosen,
+                easy_pace=easy_pace,
+                easy_unit=easy_unit,
             )
         except (ValueError, ArithmeticError):
             compared = {
