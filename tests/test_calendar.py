@@ -53,10 +53,14 @@ def test_labels_follow_the_stored_session() -> None:
         raise AssertionError("a race-readiness day was called Race")
     if session_label("rr_800_r240_x2") != "Race readiness":
         raise AssertionError("another 800 id was treated as the race")
-    if session_label("aer_8000_r0_x1") != "Long":
-        raise AssertionError("the 8 km long run was not Long")
+    if session_label("aer_8000_r0_x1") != "Easy":
+        raise AssertionError("8 km was still treated as the Saturday long run")
+    if session_label("aer_9500_r0_x1") != "Long":
+        raise AssertionError("the 9.5 km long run was not Long")
     if session_label("aer_12000_r0_x1") != "Long":
         raise AssertionError("the 12 km long run was not Long")
+    if session_label("aer_15000_r0_x1") != "Long":
+        raise AssertionError("the 15 km long run was not Long")
     if session_label("aer_10000_r0_x1", ["weekly_aerobic_long_run"]) != "Long":
         raise AssertionError("the weekly long-run code was ignored")
     if session_label("aer_10000_r0_x1") != "Easy":
