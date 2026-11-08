@@ -1,0 +1,7 @@
+id: "aer_12500_r0_x1"
+name: "Long easy, about 12.5 km"
+family: "aerobic"
+primary_stimulus: "aerobic"
+secondary_stimulus: "threshold"
+default_structure: "One continuous easy run, planned 12500 m. Still talkable. Not a long threshold."
+constraints: "Once a week at most. Skip on meet week."

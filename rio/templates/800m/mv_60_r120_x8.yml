@@ -1,0 +1,7 @@
+id: "mv_60_r120_x8"
+name: "8 × 60 m, 2 min rest"
+family: "max_velocity"
+primary_stimulus: "max_velocity"
+secondary_stimulus: ""
+default_structure: "8 × 60 m from a rolling start, 120 s walk-back rest. Fast, not tired on purpose."
+constraints: "Not the day after a race. Not if sleep was poor. Stop the set if form breaks."

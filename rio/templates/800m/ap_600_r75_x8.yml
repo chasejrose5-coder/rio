@@ -1,0 +1,7 @@
+id: "ap_600_r75_x8"
+name: "8 × 600 m, 75 s rest"
+family: "aerobic_power"
+primary_stimulus: "aerobic_power"
+secondary_stimulus: "threshold"
+default_structure: "8 × 600 m strong aerobic / VO2, 75 s rest. Breathing is the limiter, not a sprint."
+constraints: "Not goal 800 pace. If it is 800 pace, relabel speed endurance."

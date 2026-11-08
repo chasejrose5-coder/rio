@@ -1,0 +1,7 @@
+id: "thr_1600_r90_x4"
+name: "4 × 1600 m cruise, 90 s rest"
+family: "threshold"
+primary_stimulus: "threshold"
+secondary_stimulus: "aerobic"
+default_structure: "4 × 1600 m comfortably hard, 90 s rest. Not 800 pace."
+constraints: "Talk in short phrases. If he cannot, it is aerobic power, not threshold. Do not turn it into a time trial."

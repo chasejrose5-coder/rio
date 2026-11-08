@@ -1,0 +1,7 @@
+id: "aer_9500_r0_x1"
+name: "Easy 50–60 min, about 9.5 km"
+family: "aerobic"
+primary_stimulus: "aerobic"
+secondary_stimulus: ""
+default_structure: "One continuous easy run, planned 9500 m."
+constraints: "Not the day after an 800 race. Use the shorter recovery row instead."

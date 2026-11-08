@@ -1,0 +1,7 @@
+id: "spd_200_r180_x8"
+name: "8 × 200 m, 3 min rest"
+family: "speed"
+primary_stimulus: "speed"
+secondary_stimulus: ""
+default_structure: "8 × 200 m near or faster than goal 800 pace, 180 s rest."
+constraints: "Stop if reps slide off pace. Not a 400s day."
