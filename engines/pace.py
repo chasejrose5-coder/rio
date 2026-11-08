@@ -41,6 +41,9 @@ Distances
     A flat id repeats one distance.
     An up id (a ladder) steps evenly from the first distance to the last,
     one step per rep.
+    A dn id (a descending ladder) steps evenly from the first distance
+    down to the last, one step per rep. Three reps from 800 to 400 are
+    800, 600, 400.
     A py id (a pyramid) climbs to the long rep at the middle, then comes
     back down by the same step. Five reps from 200 to 400 are
     200, 300, 400, 300, 200.
@@ -117,7 +120,7 @@ STATUS_BEHIND = "behind"
 
 _MARK = re.compile(r"^(\d+):(\d{2}(?:\.\d+)?)$")
 _ID = re.compile(
-    r"^(?P<family>[a-z]+)_(?:(?P<shape>py|up)_)?(?P<start>\d+)"
+    r"^(?P<family>[a-z]+)_(?:(?P<shape>py|up|dn)_)?(?P<start>\d+)"
     r"(?:to(?P<end>\d+))?_r(?P<rest>\d+)_x(?P<reps>\d+)$"
 )
 _ISO_DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -642,16 +645,21 @@ def _parse_id(template_id: object) -> tuple[str, str, int, int, int, int] | None
     last = first if end is None else int(end)
     rest = int(found.group("rest"))
     reps = int(found.group("reps"))
-    if first <= 0 or last < first or rest < 0 or reps <= 0:
-        return None
     shape = found.group("shape") or ""
+    if first <= 0 or rest < 0 or reps <= 0:
+        return None
     if shape and end is None:
+        return None
+    if shape == "dn":
+        if last >= first:
+            return None
+    elif last < first:
         return None
     return family, shape, first, last, rest, reps
 
 
 def _distances(shape: str, first: int, last: int, reps: int) -> list[int]:
-    if shape == "up":
+    if shape in ("up", "dn"):
         return _ladder(first, last, reps)
     if shape == "py":
         return _pyramid(first, last, reps)

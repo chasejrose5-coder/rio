@@ -64,11 +64,11 @@ The two JSON files in `tests/fixtures/intervals/` are synthetic. The README ther
 
 ## Templates
 
-`rio/templates/800m/` holds 40 YAML recipes. `load_menu()` reads every `*.yml` in that folder. The id inside the file must match the file name. Each recipe has `id`, `name`, `family`, `primary_stimulus`, `secondary_stimulus`, `default_structure`, and `constraints`.
+`rio/templates/800m/` holds 82 YAML recipes. `load_menu()` reads every `*.yml` in that folder. The id inside the file must match the file name. Each recipe has `id`, `name`, `family`, `primary_stimulus`, `secondary_stimulus`, `default_structure`, and `constraints`.
 
 The season places a subset. Phases 1–7 are a six-day week: Sunday, Monday, and Wednesday are `aer_5000_r0_x1`, Tuesday and Thursday are quality, Saturday is `aer_8000_r0_x1` or `aer_12000_r0_x1`, Friday is off. Phase 8 is a shorter taper and can place `rr_800_r0_x1` on the last Saturday. The phase lists name the quality ids the week is allowed to use, plus a few aerobic ids.
 
-Ladder and step ids (`*_up_*`, `*_py_*`) and several other recipes stay on the menu for prescribe and the Library. They are not in those phase lists, so a generated season does not place them.
+Ladder and step ids (`*_up_*`, `*_py_*`, `*_dn_*`) and several other recipes stay on the menu for prescribe and the Library. They are not in those phase lists, so a generated season does not place them.
 
 The four practice fixtures in `tests/fixtures/` are separate from the menu. Each is one repeated lap: `easy.yml` (aerobic), `se_400.yml` (speed endurance), `vo2_800.yml` (aerobic power), `race_800.yml` (race readiness). The note on each says Chase did not run it. `expected_family` is on the file for tests. `normalize()` drops that field before classification.
 

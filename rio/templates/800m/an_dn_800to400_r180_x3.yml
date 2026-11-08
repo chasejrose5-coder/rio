@@ -1,0 +1,7 @@
+id: "an_dn_800to400_r180_x3"
+name: "Descending ladder 800-600-400 m, 3 min rest"
+family: "anaerobic_capacity"
+primary_stimulus: "anaerobic_capacity"
+secondary_stimulus: "speed_endurance"
+default_structure: "3 steps: 800, 600, 400 m. 180 s rest after each. Hard, not a sprint on the 400."
+constraints: "Descending ladder. Do not add a 1000 m step."

@@ -1,0 +1,7 @@
+id: "spd_250_r180_x6"
+name: "6 × 250 m, 3 min rest"
+family: "speed"
+primary_stimulus: "speed"
+secondary_stimulus: "speed_endurance"
+default_structure: "6 × 250 m near goal 800 pace, 180 s rest."
+constraints: "If the last two reps die, the label is speed endurance, not speed. Do not force the name."

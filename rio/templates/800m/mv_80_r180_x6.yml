@@ -1,0 +1,7 @@
+id: "mv_80_r180_x6"
+name: "6 × 80 m, 3 min rest"
+family: "max_velocity"
+primary_stimulus: "max_velocity"
+secondary_stimulus: "speed"
+default_structure: "6 × 80 m, 180 s full recovery. Acceleration into a short fly."
+constraints: "No hard session the same day. Skip if a race is inside 48 hours unless this is the sharpen."

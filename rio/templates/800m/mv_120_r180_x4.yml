@@ -1,0 +1,7 @@
+id: "mv_120_r180_x4"
+name: "4 × 120 m, 3 min rest"
+family: "max_velocity"
+primary_stimulus: "max_velocity"
+secondary_stimulus: "speed"
+default_structure: "4 × 120 m, 180 s rest. 120 m stays the longest top-speed rep in this menu."
+constraints: "Cut the set if the last rep is clearly slower. Do not add 150 m reps."

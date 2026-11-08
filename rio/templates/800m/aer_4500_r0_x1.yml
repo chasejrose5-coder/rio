@@ -1,0 +1,7 @@
+id: "aer_4500_r0_x1"
+name: "Recovery 25–30 min, about 4.5 km"
+family: "aerobic"
+primary_stimulus: "aerobic"
+secondary_stimulus: ""
+default_structure: "One continuous very easy run, planned 4500 m. Truly easy."
+constraints: "Fine the day after hard work or a race. No strides in this id."

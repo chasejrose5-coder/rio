@@ -1,0 +1,7 @@
+id: "thr_5000_r0_x1"
+name: "Continuous 5 km, comfortably hard"
+family: "threshold"
+primary_stimulus: "threshold"
+secondary_stimulus: "aerobic"
+default_structure: "One continuous 5000 m, comfortably hard, phrase-talkable. Not the easy 30 min run. Not a time trial."
+constraints: "Once a week. Skip on meet week. Not a time trial."

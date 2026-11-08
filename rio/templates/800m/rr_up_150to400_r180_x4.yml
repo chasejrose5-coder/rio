@@ -1,0 +1,7 @@
+id: "rr_up_150to400_r180_x4"
+name: "Sharpen ladder 150-200-300-400 m"
+family: "race_readiness"
+primary_stimulus: "race_readiness"
+secondary_stimulus: "speed"
+default_structure: "4 steps: 150, 200, 300, 400 m. 180 s rest. Goal 800 pace. Up only, no down-ladder."
+constraints: "Meet week only. Not a fitness session."

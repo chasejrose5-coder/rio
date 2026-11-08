@@ -1,0 +1,7 @@
+id: "ap_800_r90_x4"
+name: "4 × 800 m, 90 s rest"
+family: "aerobic_power"
+primary_stimulus: "aerobic_power"
+secondary_stimulus: ""
+default_structure: "4 × 800 m strong, clearly slower than goal 800 race pace, 90 s rest. Lighter than 5 × 800."
+constraints: "Do not call this a race. Race is race_readiness."

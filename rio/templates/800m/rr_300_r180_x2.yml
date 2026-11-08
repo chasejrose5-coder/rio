@@ -1,0 +1,7 @@
+id: "rr_300_r180_x2"
+name: "Sharpen 2 × 300 m, 3 min rest"
+family: "race_readiness"
+primary_stimulus: "race_readiness"
+secondary_stimulus: "speed"
+default_structure: "2 × 300 m at goal 800 pace, 180 s rest."
+constraints: "Meet week only. Not a fitness session. Two reps, then stop."

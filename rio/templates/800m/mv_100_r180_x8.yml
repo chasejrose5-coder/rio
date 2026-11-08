@@ -1,0 +1,7 @@
+id: "mv_100_r180_x8"
+name: "8 × 100 m, 3 min rest"
+family: "max_velocity"
+primary_stimulus: "max_velocity"
+secondary_stimulus: "speed"
+default_structure: "8 × 100 m, 180 s rest. Quality over fatigue."
+constraints: "Cut the set if form breaks. Do not shorten the rest to get more work."

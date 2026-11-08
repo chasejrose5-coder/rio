@@ -1,0 +1,7 @@
+id: "thr_2400_r120_x2"
+name: "2 × 2400 m cruise, 2 min rest"
+family: "threshold"
+primary_stimulus: "threshold"
+secondary_stimulus: "aerobic"
+default_structure: "2 × 2400 m comfortably hard, 120 s rest. Longer reps than the 2000s, not a time trial."
+constraints: "One threshold session in a week in v0.1. A second needs a reason."

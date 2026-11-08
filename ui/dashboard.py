@@ -181,7 +181,7 @@ def _focus_label(template_id: object) -> str:
 
 # Frozen ids: se_400_r90_x6, aer_10000_r0_x1, thr_up_800to1600_r60_x3.
 _ID_FACTS = re.compile(
-    r"(?:^|_)(?:py_|up_)?(\d+)(?:to(\d+))?_r(\d+)_x(\d+)$"
+    r"(?:^|_)(?:py_|up_|dn_)?(\d+)(?:to(\d+))?_r(\d+)_x(\d+)$"
 )
 
 # Pace words already written on the card. First match wins. Display only.
@@ -250,7 +250,7 @@ def session_facts(template_id: object, description: object = "") -> dict:
         distance = f"{start} m"
     else:
         finish = int(end)
-        if finish <= start:
+        if finish <= 0 or finish == start:
             return blank
         distance = f"{start}–{finish} m"
     return {

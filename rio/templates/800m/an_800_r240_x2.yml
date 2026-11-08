@@ -1,0 +1,7 @@
+id: "an_800_r240_x2"
+name: "2 × 800 m hard, 4 min rest"
+family: "anaerobic_capacity"
+primary_stimulus: "anaerobic_capacity"
+secondary_stimulus: "aerobic_power"
+default_structure: "2 × 800 m strong, not a race, 240 s rest."
+constraints: "Do not stack on a race week. Not a race."

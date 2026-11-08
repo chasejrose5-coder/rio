@@ -1,0 +1,7 @@
+id: "spd_150_r150_x10"
+name: "10 × 150 m, 2.5 min rest"
+family: "speed"
+primary_stimulus: "speed"
+secondary_stimulus: "max_velocity"
+default_structure: "10 × 150 m at or faster than goal 800 pace, 150 s rest."
+constraints: "Stop if form or pace breaks. Do not shorten the rest. If rest drops under 90 s, this is no longer speed."
