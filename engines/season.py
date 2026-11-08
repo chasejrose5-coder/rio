@@ -13,10 +13,11 @@ start_date, and days before start_date are left out. Later weeks are full
 Sunday–Saturday weeks.
 
 Quality days use the locked 800 m capacity weights. The phase menu is the
-allowed set. The six-day week places Tuesday and Thursday quality, the
-Saturday long run, and three aer_5000 recovery days. When a quality day
-has more than one eligible template, the higher primary-capacity weight
-wins, and that session records capacity_weight.
+allowed set. The six-day week places Tuesday and Thursday quality, one
+Saturday long run, and three aer_5000 recovery days. The long run starts
+at 9.5 km and steps up 500 m a week to 15 km. When a quality day has more
+than one eligible template, the higher primary-capacity weight wins, and
+that session records capacity_weight.
 
 No model. No spend. Prose spend stays capped at $25 in engines/explain.py.
 This file does not write the exam file.
@@ -40,10 +41,13 @@ from engines.prescribe import load_menu
 _RISE_NUM = 11
 _RISE_DEN = 10
 
-_LONG_RUNS = ("aer_8000_r0_x1", "aer_12000_r0_x1")
-_LONG_8 = "aer_8000_r0_x1"
-_LONG_12 = "aer_12000_r0_x1"
-_LONG_METERS = {_LONG_8: 8000, _LONG_12: 12000}
+# Saturday long run, shortest to longest. 500 m apart. Frozen menu ids.
+# The first training week uses the first rung. Later training weeks step
+# one rung up, hold at the last rung, or step one rung down. 8 km is not
+# a Saturday long run.
+_LONG_LADDER = tuple(f"aer_{meters}_r0_x1" for meters in range(9500, 15001, 500))
+_LONG_INDEX = {template_id: index for index, template_id in enumerate(_LONG_LADDER)}
+_LONG_RUNS = _LONG_LADDER
 
 # Easy days the 10% rule may insert. They are frozen menu ids.
 _HOLDS = ("aer_4000_r0_x1", "aer_5000_r0_x1", "aer_10000_r0_x1")
@@ -248,9 +252,31 @@ _OUTCOMES = {
     "aer_4000_r0_x1": "Hit: one continuous very easy run. Truly easy.",
     "aer_5000_r0_x1": "Hit: one continuous easy run, talkable the whole way.",
     "aer_8000_r0_x1": "Hit: one continuous easy run, talkable, with no pace chase.",
+    "aer_9500_r0_x1": "Hit: one continuous easy run, talkable.",
     "aer_10000_r0_x1": "Hit: one continuous easy run, talkable.",
+    "aer_10500_r0_x1": "Hit: one continuous easy run, talkable.",
+    "aer_11000_r0_x1": "Hit: one continuous easy run, talkable.",
+    "aer_11500_r0_x1": "Hit: one continuous easy run, talkable.",
     "aer_12000_r0_x1": (
         "Hit: one continuous easy 12 km, still talkable, not a long threshold."
+    ),
+    "aer_12500_r0_x1": (
+        "Hit: one continuous easy 12.5 km, still talkable, not a long threshold."
+    ),
+    "aer_13000_r0_x1": (
+        "Hit: one continuous easy 13 km, still talkable, not a long threshold."
+    ),
+    "aer_13500_r0_x1": (
+        "Hit: one continuous easy 13.5 km, still talkable, not a long threshold."
+    ),
+    "aer_14000_r0_x1": (
+        "Hit: one continuous easy 14 km, still talkable, not a long threshold."
+    ),
+    "aer_14500_r0_x1": (
+        "Hit: one continuous easy 14.5 km, still talkable, not a long threshold."
+    ),
+    "aer_15000_r0_x1": (
+        "Hit: one continuous easy 15 km, still talkable, not a long threshold."
     ),
     "mv_60_r120_x10": (
         "Hit: fast reps from a rolling start. Form holds. Stop the set if form breaks."
@@ -516,9 +542,11 @@ def _assemble(
     hooks = dict(hooks or {})
     slots = _slots(phases)
     naturals = [_natural_volume(slot, menu) for slot in slots]
+    needs = _volume_needs(slots, menu)
     built: list[dict] = []
     prev_volume = None
     prev_hard = None
+    prev_long = None
     for index, slot in enumerate(slots):
         if index < len(locked) and not (rebuild_first and index == 0):
             ids = list(locked[index])
@@ -530,22 +558,52 @@ def _assemble(
             }
         else:
             nxt = naturals[index + 1] if index + 1 < len(naturals) else None
-            row = _build_week(
-                slot,
-                menu,
-                prev_volume,
-                prev_hard,
-                _future_peak(naturals, phases, index),
-                hooks.get(index, ""),
-                nxt,
-            )
+            # A shifted phase can ask for more quality than the cap allows.
+            # Step back one phase at a time until the week fits. The 10% rule
+            # wins over the phase move.
+            phase_try = slot["phase"]
+            hook_try = hooks.get(index, "")
+            need_try = needs[index]
+            row = None
+            while row is None:
+                attempt = dict(slot)
+                attempt["phase"] = phase_try
+                try:
+                    row = _build_week(
+                        attempt,
+                        menu,
+                        prev_volume,
+                        prev_hard,
+                        _future_peak(naturals, phases, index),
+                        hook_try,
+                        nxt,
+                        prev_long,
+                        need_try,
+                    )
+                except ValueError as exc:
+                    if str(exc) != "no week fits the 10% rule" or phase_try <= 1:
+                        raise
+                    phase_try -= 1
+                    hook_try = ""
+                    need_try = 0
         built.append(row)
         prev_volume = _work(row["ids"])
         prev_hard = _hard(row["ids"], menu)
+        prev_long = _long_in(row["ids"])
     return built
 
 
-def _build_week(slot, menu, prev_volume, prev_hard, peak, hook: str, nxt) -> dict:
+def _build_week(
+    slot,
+    menu,
+    prev_volume,
+    prev_hard,
+    peak,
+    hook: str,
+    nxt,
+    prev_long,
+    need: int,
+) -> dict:
     phase = slot["phase"]
     codes: set[str] = set()
     if hook in ("moved_back_one_phase", "advanced_one_phase"):
@@ -579,7 +637,18 @@ def _build_week(slot, menu, prev_volume, prev_hard, peak, hook: str, nxt) -> dic
         codes.add("ten_percent_easier_template")
     quality = _cap_quality(required, phase, menu)
     floor = _floor_for(peak)
-    chosen = _best(quality, phase, prev_volume, prev_hard, floor, menu)
+    base = _work(quality) + 3 * work_meters(_RECOVERY_ID)
+    chosen = _best(
+        quality,
+        phase,
+        prev_volume,
+        prev_hard,
+        floor,
+        menu,
+        prev_long,
+        base,
+        need,
+    )
     if hook == "harder_template":
         hardened = _harden(chosen, phase, menu, prev_volume, prev_hard)
         if hardened != chosen:
@@ -682,12 +751,19 @@ def _cap_quality(ids, phase, menu) -> list[str]:
 
 
 def _ease(ids, phase, menu, prev_volume, prev_hard, floor) -> list[str]:
-    """One easier step that keeps six sessions, two quality days, and the floor."""
+    """One easier step that keeps six sessions, two quality days, and the floor.
+
+    The long run moves one 500 m rung down. It does not jump back to 8 km,
+    and it does not go below 9.5 km.
+    """
     chosen = list(ids)
-    if _LONG_12 in chosen:
-        trial = [_LONG_8 if template_id == _LONG_12 else template_id for template_id in chosen]
-        if _work(trial) >= floor and _fits(trial, prev_volume, prev_hard, menu):
-            chosen = trial
+    long_run = _long_in(chosen)
+    if long_run is not None:
+        lower = _lower_long(long_run)
+        if lower != long_run and lower not in chosen:
+            trial = [lower if template_id == long_run else template_id for template_id in chosen]
+            if _work(trial) >= floor and _fits(trial, prev_volume, prev_hard, menu):
+                chosen = trial
     easier = {harder: prior for prior, harder in _HARDER.items()}
     for index, template_id in enumerate(list(chosen)):
         prior = easier.get(template_id)
@@ -704,42 +780,70 @@ def _ease(ids, phase, menu, prev_volume, prev_hard, floor) -> list[str]:
     return chosen
 
 
-def _best(required, phase, prev_volume, prev_hard, floor, menu) -> list[str]:
-    """Smallest six-session week that keeps both quality days and fits 10%."""
-    candidates = _candidates(required, phase)
+def _best(
+    required,
+    phase,
+    prev_volume,
+    prev_hard,
+    _floor,
+    menu,
+    prev_long,
+    base: int,
+    need: int,
+) -> list[str]:
+    """Six-session week that keeps both quality days and fits 10%.
+
+    The long run is the next 500 m step when that fits. A longer rung is
+    used only when the next week could not be placed at 9.5 km otherwise.
+    If the step would break the cap, last week's distance stays. Easing
+    walks down one rung at a time and stops at 9.5 km. The floor does not
+    stretch the long run: that would preload a later week onto this one.
+    """
+    candidates = _candidates(required, phase, prev_long, base, need)
     legal = [
         ids
         for ids in candidates
         if _fits(ids, prev_volume, prev_hard, menu)
         and not (_RACE_SHARPEN in ids and _RACE_SE in ids)
     ]
-    meeting = [ids for ids in legal if _work(ids) >= floor]
-    if meeting:
-        return min(meeting, key=_candidate_key)
-    if legal and floor > 0:
-        # Cannot reach the floor without breaking 10%. Take the closest.
-        return max(legal, key=lambda ids: (_work(ids), tuple(ids)))
-    if legal and floor <= 0:
-        return min(legal, key=_candidate_key)
-    raise ValueError("no week fits the 10% rule")
+    if not legal:
+        raise ValueError("no week fits the 10% rule")
+    return min(legal, key=_candidate_key)
 
 
-def _candidates(required: list[str], phase: int) -> list[list[str]]:
-    """Two quality sessions, three easy 5 km runs, and one long run."""
+def _candidates(
+    required: list[str],
+    phase: int,
+    prev_long: str | None,
+    base: int,
+    need: int,
+) -> list[list[str]]:
+    """Two quality sessions, three easy 5 km runs, and one long run.
+
+    The first candidate is the 500 m step, or a higher rung when the next
+    week needs it. The rest walk down to 9.5 km. Nothing above that target
+    is offered, so a blocked step cannot skip ahead.
+    """
     if phase >= 8:
         return []
+    target = _target_long(prev_long, base, need)
     found: list[list[str]] = []
     recovery = [_RECOVERY_ID, _RECOVERY_ID, _RECOVERY_ID]
-    for long_run in _LONG_RUNS:
-        found.append(list(required) + recovery + [long_run])
+    index = _LONG_INDEX[target]
+    while index >= 0:
+        found.append(list(required) + recovery + [_LONG_LADDER[index]])
+        index -= 1
     return found
 
 
 def _candidate_key(ids: list[str]) -> tuple:
     # aer_4000 is the day-after-hard row. Use it only when no other easy day fits.
+    # The longer legal long run wins: the step, else last week, else one
+    # rung down. A shorter rung is not preferred.
     recovery = 1 if "aer_4000_r0_x1" in ids else 0
-    long_penalty = 1 if _LONG_12 in ids else 0
-    return (recovery, _work(ids), len(ids), long_penalty, tuple(ids))
+    long_run = _long_in(ids)
+    progress = -work_meters(long_run) if long_run else 0
+    return (recovery, progress, len(ids), tuple(ids))
 
 
 def _trim_hard(required, phase, menu, prev_hard):
@@ -767,9 +871,10 @@ def _trim(ids, phase, menu, prev_volume, prev_hard):
             break
         ids.remove(victim)
         dropped = True
-    if phase < 8 and not any(template_id in _LONG_RUNS for template_id in ids):
-        if _fits(ids + [_LONG_8], prev_volume, prev_hard, menu):
-            ids.append(_LONG_8)
+    if phase < 8 and _long_in(ids) is None:
+        starter = _LONG_LADDER[0]
+        if starter not in ids and _fits(ids + [starter], prev_volume, prev_hard, menu):
+            ids.append(starter)
     return ids, dropped
 
 
@@ -979,17 +1084,89 @@ def _natural_ids(slot: dict, menu) -> tuple[list[str], set[str]]:
 
 
 def _natural_volume(slot: dict, menu) -> int:
-    """Volume of the week before a longer long run is added.
+    """Volume of the week before the long run steps up.
 
     Phases 1–7 count two quality sessions, three easy 5 km runs, and the
-    8 km long run. That is the floor the previous week has to support.
+    9.5 km long run. Later Saturday distance is decided week by week.
+    Putting 15 km in here would make the floor preload that distance
+    onto the early weeks.
     """
+    if slot["phase"] >= 8:
+        ids, _weighted = _natural_ids(slot, menu)
+        quality = _cap_quality(ids, slot["phase"], menu)
+        return _work(quality)
+    return _training_base(slot, menu) + work_meters(_LONG_LADDER[0])
+
+
+def _training_base(slot: dict, menu) -> int:
+    """Quality plus three easy 5 km runs. The Saturday long run is separate."""
     ids, _weighted = _natural_ids(slot, menu)
     quality = _cap_quality(ids, slot["phase"], menu)
-    meters = _work(quality)
-    if slot["phase"] < 8:
-        meters += 3 * work_meters(_RECOVERY_ID) + _LONG_METERS[_LONG_8]
-    return meters
+    return _work(quality) + 3 * work_meters(_RECOVERY_ID)
+
+
+def _volume_needs(slots: list[dict], menu) -> list[int]:
+    """Minimum volume each week must reach so the next week can exist.
+
+    A training week's minimum is the 9.5 km long run. The requirement
+    walks backward one week at a time, and only when the next training
+    week would otherwise rise more than 10%. It does not jump the first
+    week to 15 km to pay for a peak many weeks later.
+    """
+    needs: list[int] = []
+    for slot in slots:
+        if slot["phase"] >= 8:
+            needs.append(0)
+        else:
+            needs.append(_training_base(slot, menu) + work_meters(_LONG_LADDER[0]))
+    for index in range(len(slots) - 2, -1, -1):
+        if slots[index]["phase"] >= 8 or slots[index + 1]["phase"] >= 8:
+            continue
+        required = (needs[index + 1] * _RISE_DEN + _RISE_NUM - 1) // _RISE_NUM
+        if required > needs[index]:
+            needs[index] = required
+    return needs
+
+
+def _long_in(ids) -> str | None:
+    found = [template_id for template_id in ids if template_id in _LONG_INDEX]
+    if not found:
+        return None
+    return found[-1]
+
+
+def _step_long(prev_long: str | None) -> str:
+    """Next Saturday distance. The first training week is 9.5 km."""
+    if prev_long not in _LONG_INDEX:
+        return _LONG_LADDER[0]
+    index = _LONG_INDEX[prev_long]
+    return _LONG_LADDER[min(index + 1, len(_LONG_LADDER) - 1)]
+
+
+def _higher(template_id: str) -> str:
+    index = _LONG_INDEX[template_id]
+    return _LONG_LADDER[min(index + 1, len(_LONG_LADDER) - 1)]
+
+
+def _lower_long(template_id: str) -> str:
+    index = _LONG_INDEX.get(template_id)
+    if index is None:
+        return _LONG_LADDER[0]
+    return _LONG_LADDER[max(index - 1, 0)]
+
+
+def _target_long(prev_long: str | None, base: int, need: int) -> str:
+    """The 500 m step, or the shortest higher rung the next week requires."""
+    step = _step_long(prev_long)
+    if need <= base + work_meters(step):
+        return step
+    target = step
+    while base + work_meters(target) < need:
+        nxt = _higher(target)
+        if nxt == target:
+            return target
+        target = nxt
+    return target
 
 
 def _future_peak(naturals: list[int], phases: list[int], index: int) -> int:

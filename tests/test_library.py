@@ -74,6 +74,13 @@ def test_search_and_filters_use_stored_fields() -> None:
         raise AssertionError("phase 1 dropped a listed template")
     if "aer_12000_r0_x1" not in phase_1 or "aer_5000_r0_x1" not in phase_1:
         raise AssertionError("phase 1 dropped the long run or the easy day")
+    if "aer_9500_r0_x1" not in phase_1 or "aer_15000_r0_x1" not in phase_1:
+        raise AssertionError("phase 1 dropped a Saturday long run")
+    phase_7 = {row["id"] for row in filter_workouts(rows, phase=7)}
+    if "aer_9500_r0_x1" not in phase_7 or "aer_8000_r0_x1" in phase_7:
+        raise AssertionError("phase 7 kept 8 km or dropped 9.5 km")
+    if "aer_9500_r0_x1" in phase_ids or "aer_15000_r0_x1" in phase_ids:
+        raise AssertionError("phase 8 kept a long run")
     pyramid = "spd_py_150to300_r150_x5"
     if phases_for(pyramid):
         raise AssertionError("a template outside the phase lists gained a phase")

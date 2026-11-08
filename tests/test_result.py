@@ -110,7 +110,11 @@ def test_two_results_adapt_once() -> None:
     plan = sequence("2:02.9", START, "1:55.0", GOAL_DAY)
     once = adapt(plan, 1, "smashing")
     twice = adapt(once, 1, "smashing")
-    if _ids(once, 2) == _ids(twice, 2):
+    # Week 2 cannot become phase 3 yet: the 9.5 km floor is still more than
+    # 10% above week 1. A later week advances once the long run can support it.
+    if _ids(once, 2) != _ids(twice, 2):
+        raise AssertionError("week 2 advanced through the 10% rule")
+    if not any(_ids(once, week) != _ids(twice, week) for week in range(3, 48)):
         raise AssertionError("a second adapt on the same week did not move again")
     if _ids(once, 1) != _ids(plan, 1):
         raise AssertionError("adapt changed the judged week")

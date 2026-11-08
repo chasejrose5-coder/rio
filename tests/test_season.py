@@ -12,6 +12,9 @@ if str(ROOT) not in sys.path:
 
 from engines.prescribe import load_menu
 from engines.season import (
+    _best,
+    _ease,
+    _menu,
     adapt,
     phase_lengths,
     season_length_weeks,
@@ -22,7 +25,21 @@ from engines.season import (
 EXAM = ROOT / "tests" / "labeled_sessions.yml"
 START = date(2026, 4, 19)
 GOAL_DAY = date(2027, 3, 19)
-LONG_RUNS = {"aer_8000_r0_x1", "aer_12000_r0_x1"}
+LONG_LADDER = [
+    "aer_9500_r0_x1",
+    "aer_10000_r0_x1",
+    "aer_10500_r0_x1",
+    "aer_11000_r0_x1",
+    "aer_11500_r0_x1",
+    "aer_12000_r0_x1",
+    "aer_12500_r0_x1",
+    "aer_13000_r0_x1",
+    "aer_13500_r0_x1",
+    "aer_14000_r0_x1",
+    "aer_14500_r0_x1",
+    "aer_15000_r0_x1",
+]
+LONG_RUNS = set(LONG_LADDER)
 RECOVERY = "aer_5000_r0_x1"
 WEEK_DAYS = {
     "Sunday",
@@ -229,7 +246,9 @@ def test_plan_rules() -> None:
         previous_hard = hard
 
     if long_ids != LONG_RUNS:
-        raise AssertionError(f"long runs used were {long_ids}")
+        raise AssertionError(f"long runs used were {sorted(long_ids)}")
+    if "aer_8000_r0_x1" in long_ids:
+        raise AssertionError("8 km was used as a Saturday long run")
     if weeks[-1][-1]["template_id"] != "rr_800_r0_x1":
         raise AssertionError("the last session is not the 800")
     if "1:55.0" not in weeks[-1][-1]["target_outcome"]:
@@ -494,6 +513,123 @@ def test_quality_weights() -> None:
         raise AssertionError("the race recorded a quality-day weight")
 
 
+def _saturday(week: list[dict]) -> dict:
+    for session in week:
+        if session["day_of_week"] == "Saturday":
+            return session
+    raise AssertionError("Saturday is missing")
+
+
+def test_saturday_long_run_buildup() -> None:
+    """9.5 km, then 500 m a week, hold at 15 km. Phase 8 has no long run."""
+    menu = {template["id"] for template in load_menu()}
+    if not LONG_RUNS <= menu:
+        raise AssertionError("a Saturday long run is not on the frozen menu")
+    if work_meters("aer_9500_r0_x1") != 9500 or work_meters("aer_15000_r0_x1") != 15000:
+        raise AssertionError("work_meters did not read the long-run id")
+    plan = sequence("2:02.9", START, "1:55.0", GOAL_DAY)
+    weeks = _weeks(plan)
+    distances: list[int] = []
+    for number, week in enumerate(weeks, start=1):
+        phase = _phase(week)
+        saturday = _saturday(week) if any(session["day_of_week"] == "Saturday" for session in week) else None
+        if phase == 8:
+            if saturday and saturday["template_id"] in LONG_RUNS:
+                raise AssertionError(f"taper week {number} kept a long run")
+            continue
+        if saturday is None:
+            raise AssertionError(f"week {number} has no Saturday")
+        template_id = saturday["template_id"]
+        if template_id not in LONG_RUNS or template_id == "aer_8000_r0_x1":
+            raise AssertionError(f"week {number} Saturday is {template_id}")
+        if "weekly_aerobic_long_run" not in saturday["reason_codes"]:
+            raise AssertionError(f"week {number} long run has no reason")
+        outcome = saturday["target_outcome"]
+        if "talkable" not in outcome:
+            raise AssertionError(f"week {number} outcome is {outcome}")
+        meters = work_meters(template_id)
+        if meters >= 12000 and "not a long threshold" not in outcome:
+            raise AssertionError(f"week {number} outcome is {outcome}")
+        if meters < 12000 and "not a long threshold" in outcome:
+            raise AssertionError(f"week {number} outcome is {outcome}")
+        ids = _id_list(week)
+        if ids.count(template_id) != 1:
+            raise AssertionError(f"week {number} repeats {template_id}")
+        distances.append((meters, _volume(week)))
+    if distances[0][0] != 9500:
+        raise AssertionError(f"week 1 Saturday is {distances[0][0]} m")
+    for (previous, prev_volume), (current, volume) in zip(distances, distances[1:]):
+        if current - previous > 500:
+            raise AssertionError(f"the long run jumped from {previous} to {current}")
+        if current == previous + 500:
+            continue
+        if current == previous:
+            if current != 15000:
+                step = volume + 500
+                if step * 10 <= prev_volume * 11:
+                    raise AssertionError(f"held at {current} m without a 10% conflict")
+            continue
+        if current < previous:
+            if current < 9500:
+                raise AssertionError(f"the long run went below 9.5 km to {current}")
+            # One rung longer would break the cap. The drop is no bigger than that.
+            longer = volume + 500
+            if longer * 10 <= prev_volume * 11:
+                raise AssertionError(
+                    f"eased from {previous} to {current} when {current + 500} still fit"
+                )
+            continue
+        raise AssertionError(f"the long run moved from {previous} to {current}")
+    if all(meters != 15000 for meters, _volume in distances):
+        raise AssertionError("a full season never reached 15 km")
+    if distances[-1][0] != 15000:
+        raise AssertionError("the last training week did not hold 15 km")
+
+    wednesday = date(2026, 4, 22)
+    partial = sequence("2:02.9", wednesday, "1:55.0", GOAL_DAY)
+    opener = _weeks(partial)[0]
+    if _saturday(opener)["template_id"] != "aer_9500_r0_x1":
+        raise AssertionError("a mid-week start changed the first Saturday")
+
+    short = sequence("2:02.9", START, "1:55.0", START + timedelta(days=21))
+    short_weeks = _weeks(short)
+    if _phase(short_weeks[0]) >= 8:
+        raise AssertionError("a three-week season had no training week")
+    if _saturday(short_weeks[0])["template_id"] != "aer_9500_r0_x1":
+        raise AssertionError("a short season did not start at 9.5 km")
+    if any(session["template_id"] == "aer_15000_r0_x1" for week in short_weeks for session in week):
+        raise AssertionError("a three-week season jumped to 15 km")
+    for week in short_weeks:
+        if _phase(week) == 8 and any(session["template_id"] in LONG_RUNS for session in week):
+            raise AssertionError("the short taper kept a long run")
+
+
+def test_long_run_stays_or_steps_down_one_rung() -> None:
+    """A blocked step keeps last week. An ease moves 500 m, not back to 8 km."""
+    menu = _menu()
+    quality = ["spd_150_r150_x8", "mv_60_r120_x10"]
+    base = work_meters("spd_150_r150_x8") + work_meters("mv_60_r120_x10") + 3 * work_meters(RECOVERY)
+    # 10.5 km does not fit. 10 km does. A longer rung is not chosen.
+    kept = _best(quality, 1, 24600, 2, 0, menu, "aer_10000_r0_x1", base, 0)
+    if "aer_10500_r0_x1" in kept or "aer_12000_r0_x1" in kept or "aer_8000_r0_x1" in kept:
+        raise AssertionError(f"a blocked step jumped to {kept}")
+    if kept.count("aer_10000_r0_x1") != 1:
+        raise AssertionError(f"the week did not keep 10 km: {kept}")
+
+    week = quality + [RECOVERY, RECOVERY, RECOVERY, "aer_12000_r0_x1"]
+    eased = _ease(week, 1, menu, None, None, 0)
+    if "aer_11500_r0_x1" not in eased or "aer_12000_r0_x1" in eased:
+        raise AssertionError(f"ease did not step down 500 m: {eased}")
+    if "aer_8000_r0_x1" in eased or "aer_9500_r0_x1" in eased:
+        raise AssertionError(f"ease jumped down the ladder: {eased}")
+    held = _ease(week, 1, menu, None, None, 10**9)
+    if "aer_12000_r0_x1" not in held:
+        raise AssertionError("ease stepped down through the floor")
+    floor = _ease(quality + [RECOVERY, RECOVERY, RECOVERY, "aer_9500_r0_x1"], 1, menu, None, None, 0)
+    if "aer_9500_r0_x1" not in floor or "aer_8000_r0_x1" in floor:
+        raise AssertionError(f"ease went below 9.5 km: {floor}")
+
+
 def test_seventeen_week_season() -> None:
     goal = START + timedelta(days=17 * 7)
     plan = sequence("2:02.9", START, "1:55.0", goal)
@@ -582,6 +718,8 @@ if __name__ == "__main__":
     test_plan_rules()
     test_calendar_dates()
     test_quality_weights()
+    test_saturday_long_run_buildup()
+    test_long_run_stays_or_steps_down_one_rung()
     test_seventeen_week_season()
     test_short_season()
     test_adaptation()

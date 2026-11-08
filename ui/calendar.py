@@ -15,7 +15,21 @@ from datetime import date, timedelta
 
 # The words on a day. Race is the one race template, not every rr_ day.
 RACE_ID = "rr_800_r0_x1"
-LONG_IDS = ("aer_8000_r0_x1", "aer_12000_r0_x1")
+# Saturday long-run ids. 10 km stays Easy unless the week marks it as the
+# long run, because that id is also an easy hold.
+LONG_IDS = (
+    "aer_9500_r0_x1",
+    "aer_10500_r0_x1",
+    "aer_11000_r0_x1",
+    "aer_11500_r0_x1",
+    "aer_12000_r0_x1",
+    "aer_12500_r0_x1",
+    "aer_13000_r0_x1",
+    "aer_13500_r0_x1",
+    "aer_14000_r0_x1",
+    "aer_14500_r0_x1",
+    "aer_15000_r0_x1",
+)
 
 _MONTHS = (
     "January",
