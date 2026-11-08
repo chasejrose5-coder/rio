@@ -385,6 +385,15 @@ def _apply_bundle(bundle: dict) -> None:
             st.session_state["rio_intro_seen"] = profile.get("intro_seen") is True
         if "strava_prompt_seen" in profile:
             st.session_state["rio_strava_prompt_seen"] = profile.get("strava_prompt_seen") is True
+        from engines.pace import canonical_easy_pace
+
+        easy_text = canonical_easy_pace(profile.get("easy_pace"))
+        easy_unit = profile.get("easy_pace_unit")
+        if easy_text and easy_unit in ("mi", "km"):
+            st.session_state["rio_cloud_profile"]["easy_pace"] = easy_text
+            st.session_state["rio_cloud_profile"]["easy_pace_unit"] = easy_unit
+            st.session_state["rio_easy_pace"] = easy_text
+            st.session_state["rio_easy_pace_unit"] = easy_unit
     plans = bundle.get("plans") or []
     remembered = []
     for item in plans:

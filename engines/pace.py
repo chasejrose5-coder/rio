@@ -78,6 +78,14 @@ Pace display
     A continuous easy, aerobic, or long run is shown as pace, never as a
     total clock time. One mile is 1609.344 meters. The same distance and
     time always format the same way. Rep workouts keep the per-rep target.
+
+Athlete easy pace
+    When an easy pace is supplied, a continuous aer run uses that pace
+    for its target. The line is the pace they entered, such as
+    7:25 per mile, not a finish time and not 1.55 times the 800.
+    Quality families ignore it and keep their fractions. A call that
+    does not supply an easy pace still uses the aer fraction. That
+    fraction is not the athlete's pace.
 """
 
 from __future__ import annotations
@@ -119,6 +127,8 @@ STATUS_AHEAD = "ahead"
 STATUS_BEHIND = "behind"
 
 _MARK = re.compile(r"^(\d+):(\d{2}(?:\.\d+)?)$")
+_EASY = re.compile(r"^(\d{1,2}):([0-5]\d)$")
+_EASY_TRAIL = re.compile(r"^\d{1,2}:[0-5]\d\.0+$")
 _ID = re.compile(
     r"^(?P<family>[a-z]+)_(?:(?P<shape>py|up|dn)_)?(?P<start>\d+)"
     r"(?:to(?P<end>\d+))?_r(?P<rest>\d+)_x(?P<reps>\d+)$"
@@ -182,10 +192,14 @@ def correction_factor(
     goal_day: date,
     on: date,
     logs: list[PaceLog] | tuple[PaceLog, ...] | None,
+    easy_pace: object = None,
+    easy_unit: object = None,
 ) -> Decimal:
     """Share applied to the scheduled 800. 1 means the logs have not moved it.
 
     Only logs dated before `on` count. Each ISO week spends at most WEEKLY_CAP.
+    A saved easy pace is the target for a continuous aer log. Other families
+    stay on their fractions.
     """
     factor = Decimal(1)
     spent: dict[tuple[int, int], Decimal] = {}
@@ -193,7 +207,16 @@ def correction_factor(
     for entry in ordered:
         if entry.on >= on:
             continue
-        target = _log_target(entry, current, goal, start, goal_day, factor)
+        target = _log_target(
+            entry,
+            current,
+            goal,
+            start,
+            goal_day,
+            factor,
+            easy_pace=easy_pace,
+            easy_unit=easy_unit,
+        )
         if target is None or target <= 0:
             continue
         actual = _decimal(entry.actual_seconds)
@@ -233,11 +256,18 @@ def workout_times(
     goal_date: date,
     on: date,
     logs: list[PaceLog] | tuple[PaceLog, ...] | None = None,
+    easy_pace: object = None,
+    easy_unit: object = None,
 ) -> dict | None:
     """The line, the tolerance, and the block for one prescribed workout.
 
     None when the id is not a frozen rep recipe. The dict is plain numbers
     and strings so a page can print it without another rule.
+
+    easy_pace, when it is a pace such as 7:25, replaces the aer fraction
+    for a continuous easy or long run. The line is that pace. Quality
+    families keep their fractions. An empty pace marks that continuous
+    run unset so the aer fraction is not presented as the athlete's pace.
     """
     parsed = _parse_id(template_id)
     if parsed is None:
@@ -247,15 +277,36 @@ def workout_times(
     start_day = _as_date(start)
     goal_day = _as_date(goal_date)
     day = _as_date(on)
-    factor = correction_factor(current, goal, start_day, goal_day, day, logs)
+    factor = correction_factor(
+        current,
+        goal,
+        start_day,
+        goal_day,
+        day,
+        logs,
+        easy_pace=easy_pace,
+        easy_unit=easy_unit,
+    )
     scheduled = scheduled_seconds(current, goal, start_day, goal_day, day)
     effective = scheduled * factor
     family, shape, first, last, rest, reps = parsed
     distances = _distances(shape, first, last, reps)
     fraction = FAMILY_FRACTION[family]
+    rate = _easy_rate(family, shape, reps, easy_pace, easy_unit)
+    unset = (
+        easy_pace is not None
+        and family in CONTINUOUS_FAMILIES
+        and shape == ""
+        and reps == 1
+        and rate is None
+    )
+    span = _easy_span(easy_unit)
     rows = []
     for meters in distances:
-        raw = (Decimal(meters) * effective / _METERS) * fraction
+        if rate is not None:
+            raw = Decimal(meters) * rate / span
+        else:
+            raw = (Decimal(meters) * effective / _METERS) * fraction
         seconds = _tenths(raw)
         half = _tolerance_half(seconds)
         rows.append(
@@ -267,7 +318,7 @@ def workout_times(
             }
         )
     block = _block(rows, rest)
-    return {
+    result = {
         "line": _line(rows, rest),
         "tolerance": _tolerance_text(rows),
         "block": _clock(block),
@@ -279,6 +330,14 @@ def workout_times(
         "factor": factor,
         "status": status_for(factor),
     }
+    if rate is not None:
+        phrase = easy_pace_phrase(easy_pace, easy_unit)
+        result["easy_pace"] = phrase
+        result["line"] = phrase
+    elif unset:
+        result["easy_unset"] = True
+        result["line"] = ""
+    return result
 
 
 def project_800(
@@ -289,6 +348,8 @@ def project_800(
     goal_date: date,
     on: date,
     logs: list[PaceLog] | tuple[PaceLog, ...] | None = None,
+    easy_pace: object = None,
+    easy_unit: object = None,
 ) -> dict:
     """Scheduled 800, the log-corrected 800, and on track / ahead / behind."""
     current = parse_mark(current_mark)
@@ -296,7 +357,16 @@ def project_800(
     start_day = _as_date(start)
     goal_day = _as_date(goal_date)
     day = _as_date(on)
-    factor = correction_factor(current, goal, start_day, goal_day, day, logs)
+    factor = correction_factor(
+        current,
+        goal,
+        start_day,
+        goal_day,
+        day,
+        logs,
+        easy_pace=easy_pace,
+        easy_unit=easy_unit,
+    )
     scheduled = scheduled_seconds(current, goal, start_day, goal_day, day)
     return {
         "scheduled_seconds": scheduled,
@@ -310,9 +380,49 @@ def pace_unit(value: object) -> str:
     """mi or km. Anything else is per mile."""
     if isinstance(value, str):
         text = value.strip().lower().replace("_", " ")
-        if text in ("km", "per km", "kilometer", "kilometre", "/km"):
+        if text in ("km", "per km", "kilometer", "kilometre", "/km", "per kilometer"):
             return PACE_KM
     return PACE_MILE
+
+
+def parse_easy_pace(value: object) -> Decimal | None:
+    """Seconds in an easy pace such as 7:25. None when it is not one.
+
+    Minutes and seconds. A trailing .0 is ignored. Faster than 1:00 or
+    slower than 30:00 is not a pace this screen stores.
+    """
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if _EASY_TRAIL.fullmatch(text):
+        text = text.split(".", 1)[0]
+    found = _EASY.fullmatch(text)
+    if found is None:
+        return None
+    minutes = int(found.group(1))
+    seconds = int(found.group(2))
+    total = minutes * 60 + seconds
+    if total < 60 or total > 30 * 60:
+        return None
+    return Decimal(total)
+
+
+def canonical_easy_pace(value: object) -> str | None:
+    """7:25, or None when parse_easy_pace would refuse it."""
+    seconds = parse_easy_pace(value)
+    if seconds is None:
+        return None
+    total = int(seconds)
+    return f"{total // 60}:{total % 60:02d}"
+
+
+def easy_pace_phrase(pace: object, unit: object = PACE_MILE) -> str:
+    """7:25 per mile, or 4:36 per kilometer. Blank when the pace is not saved."""
+    text = canonical_easy_pace(pace)
+    if text is None:
+        return ""
+    label = "per mile" if pace_unit(unit) == PACE_MILE else "per kilometer"
+    return f"{text} {label}"
 
 
 def workout_recipe(template_id: object) -> dict | None:
@@ -423,10 +533,35 @@ def display_workout(bundle: dict | None, run: object, unit: object = PACE_MILE) 
 
 
 def _continuous_display(bundle: dict, run: dict, unit: str) -> dict:
-    row = bundle["reps"][0]
-    target = format_pace(row["meters"], row["seconds"], unit)
     meters, seconds = _effort(run)
     actual = format_pace(meters, seconds, unit) if meters is not None else ""
+    if bundle.get("easy_unset") is True:
+        detail = "Set your easy pace before this run."
+        if actual:
+            detail = f"{detail} Actual {actual}"
+        return {
+            "planned": "Set your easy pace",
+            "actual": actual or "—",
+            "detail": detail,
+            "laps": [],
+            "continuous": True,
+            "speed": False,
+        }
+    phrase = bundle.get("easy_pace")
+    if isinstance(phrase, str) and phrase.strip():
+        detail = f"Run at {phrase}"
+        if actual:
+            detail = f"{detail} · Actual {actual}"
+        return {
+            "planned": phrase,
+            "actual": actual or "—",
+            "detail": detail,
+            "laps": [],
+            "continuous": True,
+            "speed": False,
+        }
+    row = bundle["reps"][0]
+    target = format_pace(row["meters"], row["seconds"], unit)
     if not target:
         target = "—"
     detail = f"Target {target} · Actual {actual or '—'}"
@@ -592,6 +727,26 @@ def _pace_clock(seconds: Decimal, unit: str) -> str:
     return f"{total // 60}:{total % 60:02d} /{unit}"
 
 
+def _easy_rate(
+    family: str,
+    shape: str,
+    reps: int,
+    easy_pace: object,
+    easy_unit: object,
+) -> Decimal | None:
+    """Seconds per mile or per kilometer for a continuous aer run.
+
+    None for every quality family, and when the athlete has not saved a pace.
+    """
+    if family not in CONTINUOUS_FAMILIES or shape != "" or reps != 1:
+        return None
+    return parse_easy_pace(easy_pace)
+
+
+def _easy_span(unit: object) -> Decimal:
+    return METERS_PER_MILE if pace_unit(unit) == PACE_MILE else METERS_PER_KM
+
+
 def _log_target(
     entry: PaceLog,
     current: Decimal,
@@ -599,6 +754,8 @@ def _log_target(
     start: date,
     goal_day: date,
     factor: Decimal,
+    easy_pace: object = None,
+    easy_unit: object = None,
 ) -> Decimal | None:
     """The target this log is judged against, before the log is applied."""
     if entry.target_seconds is not None:
@@ -610,6 +767,14 @@ def _log_target(
     scheduled = scheduled_seconds(current, goal, start, goal_day, entry.on)
     effective = scheduled * factor
     distances = _distances(shape, first, last, reps)
+    rate = _easy_rate(family, shape, reps, easy_pace, easy_unit)
+    if rate is not None:
+        span = _easy_span(easy_unit)
+        total = sum(
+            (_tenths(Decimal(meters) * rate / span) for meters in distances),
+            Decimal(0),
+        )
+        return total / Decimal(len(distances))
     fraction = FAMILY_FRACTION[family]
     total = Decimal(0)
     for meters in distances:

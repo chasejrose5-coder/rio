@@ -19,6 +19,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from urllib.parse import quote
 
+from engines.pace import canonical_easy_pace
 from ui.accounts import normalize_email, normalize_name, password_ok
 from ui.cloud_session import SESSION_SECONDS, hosted_hash, hosted_sid, new_hosted_sid
 
@@ -187,6 +188,16 @@ class MemoryDirectory:
         user_id = self.user_id(access_token)
         if not self._keep_pace(user_id, unit):
             raise CloudAuthError("Pace units could not be saved.")
+
+    def save_easy_pace(self, access_token: object, pace: object, unit: object) -> None:
+        """Remember the easy pace on this athlete. The other account stays."""
+        user_id = self.user_id(access_token)
+        pair = stored_easy_pair(pace, unit)
+        user = self.users.get(user_id)
+        if pair is None or user is None:
+            raise CloudAuthError("Easy pace could not be saved.")
+        user["easy_pace"] = pair[0]
+        user["easy_pace_unit"] = pair[1]
 
     def save_intro_seen(self, access_token: object, seen: object) -> None:
         """Remember that this athlete dismissed the intro, or asked to see it again."""
@@ -666,10 +677,13 @@ class SupabaseDirectory:
         profile = profile or {}
         pace = _pace_from_metadata(record)
         intro = intro_seen_value(record)
+        easy = easy_pace_from_metadata(record)
         from ui.plan_strava import prompt_seen_value
 
         prompt = prompt_seen_value(record)
-        if isinstance(profile, dict) and (pace or intro is not None or prompt is not None):
+        if isinstance(profile, dict) and (
+            pace or intro is not None or prompt is not None or easy is not None
+        ):
             profile = dict(profile)
             if pace:
                 profile["pace_units"] = pace
@@ -677,6 +691,9 @@ class SupabaseDirectory:
                 profile["intro_seen"] = intro
             if prompt is not None:
                 profile["strava_prompt_seen"] = prompt
+            if easy is not None:
+                profile["easy_pace"] = easy[0]
+                profile["easy_pace_unit"] = easy[1]
         return {
             "profile": profile,
             "goal": goal or _blank_goal(),
@@ -728,6 +745,23 @@ class SupabaseDirectory:
             raise
         except Exception:
             raise CloudAuthError("Pace units could not be saved.") from None
+
+    def save_easy_pace(self, access_token: object, pace: object, unit: object) -> None:
+        """Store the easy pace on the auth user, next to pace units. No new table."""
+        pair = stored_easy_pair(pace, unit)
+        if pair is None:
+            raise CloudAuthError("Easy pace could not be saved.")
+        if not isinstance(access_token, str) or not access_token:
+            raise CloudAuthError("Sign in again.")
+        try:
+            self._auth_user_update(
+                access_token,
+                {"easy_pace": pair[0], "easy_pace_unit": pair[1]},
+            )
+        except CloudAuthError:
+            raise
+        except Exception:
+            raise CloudAuthError("Easy pace could not be saved.") from None
 
     def save_intro_seen(self, access_token: object, seen: object) -> None:
         """Store the intro flag on the auth user, next to pace units."""
@@ -1193,6 +1227,10 @@ def _public_user(user: dict) -> dict:
     pace = user.get("pace_units")
     if pace in ("mi", "km"):
         row["pace_units"] = pace
+    easy = stored_easy_pair(user.get("easy_pace"), user.get("easy_pace_unit"))
+    if easy is not None:
+        row["easy_pace"] = easy[0]
+        row["easy_pace_unit"] = easy[1]
     if isinstance(user.get("intro_seen"), bool):
         row["intro_seen"] = user["intro_seen"]
     if isinstance(user.get("strava_prompt_seen"), bool):
@@ -1214,6 +1252,22 @@ def _metadata_dict(user: object) -> dict | None:
     if isinstance(meta, dict):
         return meta
     return None
+
+
+def stored_easy_pair(pace: object, unit: object) -> tuple[str, str] | None:
+    """Canonical easy pace and mi or km, or None when either is unusable."""
+    text = canonical_easy_pace(pace)
+    if text is None or unit not in ("mi", "km"):
+        return None
+    return text, unit
+
+
+def easy_pace_from_metadata(user: object) -> tuple[str, str] | None:
+    """The easy pace on the auth user, when both the pace and the unit are stored."""
+    meta = _metadata_dict(user)
+    if meta is None:
+        return None
+    return stored_easy_pair(meta.get("easy_pace"), meta.get("easy_pace_unit"))
 
 
 def _pace_from_metadata(user: object) -> str | None:
