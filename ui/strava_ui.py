@@ -619,16 +619,10 @@ def load_into_session() -> None:
 
 
 def _zone_name() -> str:
-    """The zone from Settings. UTC when this session has not chosen one."""
-    try:
-        settings = st.session_state.get("rio_settings")
-    except Exception:
-        return "UTC"
-    if isinstance(settings, dict):
-        zone = settings.get("timezone")
-        if isinstance(zone, str) and zone:
-            return zone
-    return "UTC"
+    """The zone saved in Settings. A blank choice uses the Settings suggestion."""
+    from ui.settings import session_timezone
+
+    return session_timezone()
 
 
 def _local_when(when: int) -> str:

@@ -350,7 +350,7 @@ def test_a_reload_opens_home_when_a_plan_is_still_ahead() -> None:
     route = app[app.index("def _route_after_login(") : app.index("def _with_plan(")]
     if "has_active_plan(" not in route or '_nav_page("Home")' not in route or "_start_page" not in route:
         raise AssertionError("a reload does not choose Home or Start")
-    if "date.today()" not in route:
+    if "_athlete_today()" not in route:
         raise AssertionError("a reload does not use today")
     blob = opened + route
     if "probability" in blob.lower() or "readiness" in blob.lower():

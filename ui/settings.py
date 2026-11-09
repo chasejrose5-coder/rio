@@ -12,7 +12,8 @@ No model. No spend. No scores.
 from __future__ import annotations
 
 import re
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 _MONTHS = (
     "Jan",
@@ -141,6 +142,55 @@ def _browser_timezone() -> str | None:
     if isinstance(zone, str) and zone:
         return zone
     return None
+
+
+def chosen_timezone(saved: object = None, picked: object = None) -> str:
+    """The Settings zone. The selectbox wins, then the saved profile, then the suggestion."""
+    if isinstance(picked, str) and picked in TIME_ZONES:
+        return picked
+    if isinstance(saved, str) and saved in TIME_ZONES:
+        return saved
+    return suggested_timezone()
+
+
+def session_timezone() -> str:
+    """The zone on this account. A blank profile uses suggested_timezone()."""
+    saved = None
+    picked = None
+    try:
+        import streamlit as st
+
+        local = st.session_state.get("rio_local")
+        if isinstance(local, dict):
+            saved = local.get("timezone")
+        picked = st.session_state.get("settings-timezone")
+    except Exception:
+        saved = None
+        picked = None
+    return chosen_timezone(saved, picked)
+
+
+def local_today(zone: object = None, now: datetime | None = None) -> date:
+    """The calendar date in a time zone.
+
+    None reads the zone saved in Settings. A blank or unknown zone uses
+    suggested_timezone(). A naive instant is UTC, which is the Streamlit
+    Cloud clock. Sunday stays Sunday until midnight in the chosen zone.
+    """
+    if zone is None:
+        zone_name = session_timezone()
+    elif isinstance(zone, str) and zone in TIME_ZONES:
+        zone_name = zone
+    else:
+        zone_name = suggested_timezone()
+    moment = now if isinstance(now, datetime) else datetime.now(timezone.utc)
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+    try:
+        found = ZoneInfo(zone_name)
+    except Exception:
+        found = timezone.utc
+    return moment.astimezone(found).date()
 
 
 def start_on(day: date, behavior: object) -> date:
