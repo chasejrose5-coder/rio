@@ -184,7 +184,7 @@ Body:
 
 Body: `{"date": "", "outcome": "Ahead", "time": "1:12.4", "note": null}`.
 
-`outcome` is `Behind`, `On target`, or `Ahead`. `time` may be empty. `200` matches the result route, including `insight`. A time on a hard day adapts later weeks. Done with no time does not. `400` when the date or the time is unusable.
+`outcome` is `Behind`, `On target`, or `Ahead`. `time` may be empty. `missed: true` stores Couldn't finish: no time, no mark, and later weeks stay put. `200` matches the result route, including `insight`. A time on a hard day adapts later weeks. Done with no time does not. `400` when the date or the time is unusable.
 
 ### `POST /seasons/current/marks`
 

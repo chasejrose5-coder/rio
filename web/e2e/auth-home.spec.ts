@@ -7,7 +7,7 @@ const athlete = {
   role: "athlete",
   kind: "local",
   today: "2026-11-09",
-  prefs: {},
+  prefs: { easy_pace: "7:45", easy_pace_unit: "mi", intro_seen: true, no_watch: false },
 };
 
 const season = {
@@ -72,7 +72,7 @@ async function json(route: Route, body: unknown, status = 200) {
   await route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
 
-async function installApi(page: Page, options: { hosted?: boolean; season?: boolean }) {
+async function installApi(page: Page, options: { hosted?: boolean; season?: boolean; easyPace?: string }) {
   let signed = false;
   await page.route("**/*", async (route) => {
     const url = new URL(route.request().url());
@@ -83,7 +83,8 @@ async function installApi(page: Page, options: { hosted?: boolean; season?: bool
     const path = url.pathname;
     if (path === "/auth/me") {
       if (!signed) return json(route, { detail: "Sign in again." }, 401);
-      return json(route, athlete);
+      const pace = options.easyPace === undefined ? "7:45" : options.easyPace;
+      return json(route, { ...athlete, prefs: { ...athlete.prefs, easy_pace: pace, intro_seen: true } });
     }
     if (path === "/auth/google") {
       if (options.hosted) return json(route, { url: "https://example.test/google", redirect_uri: "http://localhost:3000/" });
@@ -156,4 +157,90 @@ test("sign-in without a current season opens Start", async ({ page }) => {
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page).toHaveURL(/\/start$/);
   await expect(page.getByText("Coming in the next step.")).toBeVisible();
+});
+
+test("a blank name says Enter a name", async ({ page }) => {
+  await installApi(page, { hosted: false, season: false });
+  await page.goto("/create-account");
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page.getByText("Enter a name.")).toBeVisible();
+});
+
+test("local forgot password returns to log in", async ({ page }) => {
+  await installApi(page, { hosted: false, season: false });
+  await page.goto("/forgot-password");
+  await expect(page).toHaveURL(/\/sign-in$/);
+});
+
+test("a new account walks easy pace, the intro, then Start", async ({ page }) => {
+  let signed = false;
+  let pace = "";
+  let intro = false;
+  const fresh = {
+    ...athlete,
+    display_name: "Bea",
+    email: "bea@example.com",
+    prefs: { easy_pace: "", intro_seen: null, no_watch: false },
+  };
+  await page.route("**/*", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.port !== "8000") {
+      await route.continue();
+      return;
+    }
+    const path = url.pathname;
+    const body = route.request().postDataJSON() as { easy_pace?: string; intro_seen?: boolean } | null;
+    if (path === "/auth/google") return json(route, { detail: "Accounts are not available." }, 503);
+    if (path === "/auth/sign-up") {
+      signed = true;
+      return json(route, { email: fresh.email, display_name: "Bea", kind: "local", confirm: false });
+    }
+    if (path === "/auth/me") {
+      if (!signed) return json(route, { detail: "Sign in again." }, 401);
+      return json(route, { ...fresh, prefs: { ...fresh.prefs, easy_pace: pace, intro_seen: intro ? true : null } });
+    }
+    if (path === "/settings" && route.request().method() === "PATCH") {
+      if (body?.easy_pace) pace = String(body.easy_pace);
+      if (body?.intro_seen === true) intro = true;
+      return json(route, fresh);
+    }
+    if (path === "/seasons/current") return json(route, { detail: "No current season." }, 404);
+    return json(route, { detail: "Not mocked." }, 404);
+  });
+  await page.goto("/create-account");
+  await expect(page.getByText("Saved on this machine.")).toBeVisible();
+  await page.getByLabel("Name").fill("Bea");
+  await page.getByLabel("Email").fill("bea@example.com");
+  await page.getByLabel("Password").fill("short");
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page.getByText("Use at least 8 characters.")).toBeVisible();
+  await page.getByLabel("Password").fill("correct-horse");
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page.getByRole("heading", { name: "Your easy pace" })).toBeVisible();
+  await page.getByLabel("Easy pace").fill("7:45");
+  await page.getByRole("button", { name: "Save easy pace" }).click();
+  await expect(page.getByRole("heading", { name: "Start here" })).toBeVisible();
+  await expect(page.getByText("Generate season plan.")).toBeVisible();
+  await page.getByRole("button", { name: "Done" }).click();
+  await expect(page).toHaveURL(/\/start$/);
+  await expect(page.getByText("Coming in the next step.")).toBeVisible();
+});
+
+test("an account with a season and no easy pace stops on easy pace", async ({ page }) => {
+  await installApi(page, { hosted: false, season: true, easyPace: "" });
+  await page.goto("/sign-in");
+  await page.getByLabel("Email").fill("ada@example.com");
+  await page.getByLabel("Password").fill("correct-horse");
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page.getByRole("heading", { name: "Your easy pace" })).toBeVisible();
+});
+
+test("start session uses today in the settings time zone", async ({ page }) => {
+  await installApi(page, { hosted: false, season: true });
+  await page.goto("/sign-in");
+  await page.getByLabel("Email").fill("ada@example.com");
+  await page.getByLabel("Password").fill("correct-horse");
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  await expect(page.getByRole("link", { name: "Start session" })).toHaveAttribute("href", "/session?date=2026-11-09");
 });

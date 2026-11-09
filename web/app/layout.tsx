@@ -3,8 +3,9 @@ import { AuthProvider } from "@/lib/auth";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "RIO",
+  title: "RIO · Runner Intelligence Owned",
   description: "Runner Intelligence Owned",
+  icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

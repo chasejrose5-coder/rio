@@ -68,6 +68,7 @@ class WatchlessBody(BaseModel):
     outcome: str = ""
     time: str = ""
     note: dict | None = None
+    missed: bool = False
 
 
 class MarkBody(BaseModel):
@@ -264,15 +265,25 @@ def post_result(body: ResultBody, request: Request, background: BackgroundTasks)
 def post_watchless(body: WatchlessBody, request: Request, background: BackgroundTasks) -> dict:
     who, resolved = _resolved(request)
     _current(request, who, resolved["today"])
-    season, changed, note_saved = commit_done(
-        who,
-        request.app.state.directory,
-        resolved["today"],
-        body.date,
-        body.outcome,
-        body.time,
-        body.note,
-    )
+    if body.missed:
+        from api.season_service import commit_missed
+
+        season, changed, note_saved = commit_missed(
+            who,
+            request.app.state.directory,
+            resolved["today"],
+            body.date,
+        )
+    else:
+        season, changed, note_saved = commit_done(
+            who,
+            request.app.state.directory,
+            resolved["today"],
+            body.date,
+            body.outcome,
+            body.time,
+            body.note,
+        )
     payload = _body(request, who, resolved, season, committed=changed, note_saved=note_saved)
     if changed:
         payload["insight"] = _queue_insight(background, request, who, resolved, season, body.date, body.time)

@@ -546,6 +546,24 @@ def commit_text(
     return season, changed, note_saved
 
 
+def commit_missed(principal: Principal, directory, today: date, day: str) -> tuple[OpenSeason, bool, bool | None]:
+    """Couldn't finish. No time, no mark, and later weeks stay put."""
+    from ui.no_watch import missed_session
+
+    season = open_season(principal, directory, today)
+    session = _session_on(season.plan, day)
+    if session is None:
+        raise ApiError(400, "That day is not in this season.")
+    row = missed_session(session)
+    if row is None:
+        raise ApiError(400, "That workout is not in this plan.")
+    previous = season.digest
+    season.actuals[str(session.get("date"))] = row
+    _refresh_digest(season)
+    _save(principal, directory, season, previous)
+    return season, True, None
+
+
 def commit_done(
     principal: Principal,
     directory,

@@ -89,6 +89,17 @@ function HomeBody() {
   const [home, setHome] = useState<HomeResponse | null>(null);
   const [error, setError] = useState("");
   const [offer, setOffer] = useState(false);
+  const [rise, setRise] = useState(false);
+
+  useEffect(() => {
+    const key = "rio-motion-page";
+    const previous = window.sessionStorage.getItem(key);
+    if (previous !== "home") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRise(true);
+      window.sessionStorage.setItem(key, "home");
+    }
+  }, []);
 
   async function load(justGenerated = false) {
     const body = await api.home(justGenerated);
@@ -107,7 +118,7 @@ function HomeBody() {
   return (
     <div className="page-home">
       <Nav />
-      <main className="rio-stagger">
+      <main className={rise ? "rio-stagger" : undefined}>
         {error ? <p className="rio-error">{error}</p> : null}
         {home ? <HomeMain home={home} offer={offer} onDismiss={() => setOffer(false)} reload={() => void load(false)} /> : null}
         <PhotoCredit onPhoto>Photo by Gaby Lopez on Pexels</PhotoCredit>
@@ -220,9 +231,12 @@ function HomeMain({
       <section className="rio-home-today">
         <p className="rio-index">{workoutIndex}</p>
         {season.next ? (
-          <Link className="rio-hit" href={`/session?date=${season.next.date || ""}`}>
-            <WorkoutFacts card={season.next} title={todayWorkout ? "Today's workout" : "Next workout"} />
-          </Link>
+          <>
+            <Link className="rio-hit" href={`/session?date=${season.next.date || ""}`}>
+              <WorkoutFacts card={season.next} title={todayWorkout ? "Today's workout" : "Next workout"} />
+            </Link>
+            {season.logging === "done" ? <Watchless card={season.next} onSaved={reload} /> : null}
+          </>
         ) : (
           <p className="rio-empty">No workout left in this plan.</p>
         )}
@@ -233,12 +247,14 @@ function HomeMain({
           <DayCard key={day.date} card={day} />
         ))}
       </div>
+      {!showedPhase ? <p className="rio-index rio-index-pad">03  /  Open</p> : null}
       <div className="rio-quick">
         <Link href="/plan">Plan</Link>
         <Link href="/activity">Activity</Link>
         <Link href="/library">Library</Link>
         <Link href="/more">More</Link>
       </div>
+      <Extras today={home.today} activities={season.activities} />
     </>
   );
 }
@@ -262,11 +278,12 @@ function roleWord(role: string | undefined): string {
 }
 
 function DayCard({ card }: { card: WorkoutCard }) {
+  const work = card.template_id ? card.label || "—" : "Rest day";
   const body = (
     <div className="rio-mini">
       <div className="rio-mini-dow">{card.day_of_week || "—"}</div>
       <div className="rio-mini-date">{card.shown_date || card.date}</div>
-      <div className="rio-mini-work">{card.label || "—"}</div>
+      <div className="rio-mini-work">{work}</div>
       {card.prescription?.line ? <p className="rio-pace-line">{card.prescription.line}</p> : null}
       {card.prescription?.tolerance ? <p className="rio-pace-range">Tolerance {card.prescription.tolerance}</p> : null}
       {card.prescription?.block ? <p className="rio-pace-block">Block {card.prescription.block}</p> : null}
@@ -314,6 +331,108 @@ function Insight({
       </button>
       {error ? <p className="rio-error">{error}</p> : null}
     </section>
+  );
+}
+
+function Extras({
+  today,
+  activities,
+}: {
+  today: string;
+  activities?: { date?: string; name?: string; id?: string; matched?: boolean }[];
+}) {
+  const oldest = shiftDate(today, -13);
+  const rows = (activities || []).filter(
+    (row) => row.matched === false && typeof row.date === "string" && row.date >= oldest && row.date <= today,
+  );
+  if (!rows.length) return null;
+  return (
+    <section className="rio-extras">
+      <p className="rio-mark-label">Extra sessions</p>
+      {rows.map((row) => (
+        <Link key={String(row.id || row.date)} className="rio-hit" href={`/session?activity=${row.id || ""}`}>
+          <div className="rio-daycard">
+            <div className="rio-mini-dow">{row.date ? weekday(row.date) : "Extra"}</div>
+            <div className="rio-mini-date">{row.date}</div>
+            <div className="rio-mini-work">{row.name || "Activity"}</div>
+          </div>
+        </Link>
+      ))}
+    </section>
+  );
+}
+
+function shiftDate(iso: string, days: number): string {
+  const day = new Date(`${iso}T12:00:00`);
+  day.setDate(day.getDate() + days);
+  return day.toISOString().slice(0, 10);
+}
+
+function weekday(iso: string): string {
+  return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][
+    new Date(`${iso}T12:00:00`).getDay()
+  ];
+}
+
+function isHard(card: WorkoutCard): boolean {
+  const day = card.day_of_week;
+  const id = card.template_id || "";
+  return (day === "Tuesday" || day === "Thursday") && Boolean(id) && !id.startsWith("aer_");
+}
+
+function Watchless({ card, onSaved }: { card: WorkoutCard; onSaved: () => void }) {
+  const [choice, setChoice] = useState("");
+  const [time, setTime] = useState("");
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState("");
+  const hard = isHard(card);
+  const day = card.date || "";
+
+  async function send(missed: boolean) {
+    setError("");
+    try {
+      await api.watchless({ date: day, outcome: choice, time, missed });
+      onSaved();
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : "That workout could not be saved.");
+    }
+  }
+
+  return (
+    <div className="rio-watchless">
+      {hard ? (
+        <div className="rio-done-choices">
+          {[
+            ["Behind", "Behind"],
+            ["On target", "On target"],
+            ["Ahead", "Ahead"],
+          ].map(([label, value]) => (
+            <button key={value} type="button" className={choice === value ? "rio-primary" : "rio-secondary"} onClick={() => setChoice(value)}>
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {open ? (
+        <>
+          <label htmlFor="done-time">Time</label>
+          <input id="done-time" placeholder="1:12.4" value={time} onChange={(event) => setTime(event.target.value)} />
+          <p className="rio-settings-note">Optional. One clock time, like 1:12.4. Leave it blank to finish without one.</p>
+        </>
+      ) : null}
+      <div className="rio-done-row">
+        <button type="button" className="rio-primary" onClick={() => void send(false)}>
+          Done
+        </button>
+        <button type="button" className="rio-secondary" onClick={() => void send(true)}>
+          Couldn&apos;t finish
+        </button>
+        <button type="button" className="rio-text-link" onClick={() => setOpen((value) => !value)}>
+          Add a time
+        </button>
+      </div>
+      {error ? <p className="rio-error">{error}</p> : null}
+    </div>
   );
 }
 

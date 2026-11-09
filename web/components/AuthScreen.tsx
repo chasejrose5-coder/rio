@@ -9,6 +9,26 @@ import { useAuth } from "@/lib/auth";
 
 const SIGNUP_FAILED = "The account could not be created.";
 
+function emailProblem(email: string): string {
+  const text = email.trim();
+  if (!text || text.split("@").length !== 2 || !text.split("@")[1]?.includes(".")) {
+    return "Enter an email address.";
+  }
+  return "";
+}
+
+function signInProblem(email: string, password: string): string {
+  return emailProblem(email) || (password ? "" : "Email or password does not match.");
+}
+
+function createProblem(name: string, email: string, password: string): string {
+  if (!name.trim() || !/[A-Za-z]/.test(name)) return "Enter a name.";
+  const mail = emailProblem(email);
+  if (mail) return mail;
+  if (password.length < 8) return "Use at least 8 characters.";
+  return "";
+}
+
 function AuthFrame({
   title,
   subtitle,
@@ -49,6 +69,7 @@ export function SignInScreen() {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [forgot, setForgot] = useState(false);
+  const [localFile, setLocalFile] = useState(false);
 
   useEffect(() => {
     const note = new URLSearchParams(window.location.search).get("note");
@@ -62,8 +83,10 @@ export function SignInScreen() {
 
   useEffect(() => {
     let live = true;
-    void api.googleConfigured().then((configured) => {
-      if (live) setForgot(configured);
+    void api.accountsHosted().then((hosted) => {
+      if (!live) return;
+      setForgot(hosted);
+      setLocalFile(!hosted);
     });
     return () => {
       live = false;
@@ -72,6 +95,11 @@ export function SignInScreen() {
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
+    const problem = signInProblem(email, password);
+    if (problem) {
+      setError(problem);
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -87,9 +115,15 @@ export function SignInScreen() {
 
   return (
     <AuthFrame title="Log in" subtitle="Use your email and password." error={error} notice={notice}>
-      <form onSubmit={onSubmit}>
+      {localFile ? (
+        <div className="rio-setup-card">
+          <p className="rio-mark-label">Accounts aren&apos;t set up yet</p>
+          <p className="rio-note">Sign-in will open here after accounts are connected.</p>
+        </div>
+      ) : null}
+      <form onSubmit={onSubmit} noValidate>
         <label htmlFor="email">Email</label>
-        <input id="email" name="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+        <input id="email" name="email" type="text" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
         <label htmlFor="password">Password</label>
         <input
           id="password"
@@ -98,7 +132,6 @@ export function SignInScreen() {
           autoComplete="current-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          required
         />
         <button className="rio-primary" type="submit" disabled={busy}>
           Log in
@@ -124,9 +157,25 @@ export function CreateAccountScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [localFile, setLocalFile] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    void api.accountsHosted().then((hosted) => {
+      if (live) setLocalFile(!hosted);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
+    const problem = createProblem(name, email, password);
+    if (problem) {
+      setError(problem);
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -146,11 +195,11 @@ export function CreateAccountScreen() {
 
   return (
     <AuthFrame title="Create account" error={error}>
-      <form onSubmit={onSubmit}>
+      <form onSubmit={onSubmit} noValidate>
         <label htmlFor="name">Name</label>
-        <input id="name" name="name" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} required />
+        <input id="name" name="name" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} />
         <label htmlFor="email">Email</label>
-        <input id="email" name="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+        <input id="email" name="email" type="text" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
         <label htmlFor="password">Password</label>
         <input
           id="password"
@@ -159,13 +208,12 @@ export function CreateAccountScreen() {
           autoComplete="new-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          required
         />
         <button className="rio-primary" type="submit" disabled={busy}>
           Create account
         </button>
       </form>
-      <p className="rio-settings-note">First name is enough. At least 8 characters.</p>
+      {localFile ? <p className="rio-settings-note">First name is enough. At least 8 characters. Saved on this machine.</p> : null}
       <Link className="rio-secondary" href="/sign-in">
         Back to log in
       </Link>
@@ -174,10 +222,26 @@ export function CreateAccountScreen() {
 }
 
 export function ForgotScreen() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    void api.accountsHosted().then((hosted) => {
+      if (!live) return;
+      if (!hosted) router.replace("/sign-in");
+      else setReady(true);
+    });
+    return () => {
+      live = false;
+    };
+  }, [router]);
+
+  if (!ready) return <p className="rio-wait">Loading</p>;
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -196,9 +260,9 @@ export function ForgotScreen() {
   return (
     <AuthFrame title="Forgot password" subtitle="We will email you a reset link." error={error}>
       {note ? <p className="rio-settings-note">{note}</p> : null}
-      <form onSubmit={onSubmit}>
+      <form onSubmit={onSubmit} noValidate>
         <label htmlFor="email">Email</label>
-        <input id="email" name="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+        <input id="email" name="email" type="text" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
         <button className="rio-primary" type="submit" disabled={busy}>
           Send reset email
         </button>
@@ -218,6 +282,10 @@ export function ResetScreen({ token }: { token: string }) {
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (password.length < 8) {
+      setError("Use at least 8 characters.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -232,7 +300,7 @@ export function ResetScreen({ token }: { token: string }) {
 
   return (
     <AuthFrame title="New password" error={error || (token ? "" : "That reset link is no longer valid.")}>
-      <form onSubmit={onSubmit}>
+      <form onSubmit={onSubmit} noValidate>
         <label htmlFor="password">New password</label>
         <input
           id="password"
@@ -241,7 +309,6 @@ export function ResetScreen({ token }: { token: string }) {
           autoComplete="new-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          required
         />
         <button className="rio-primary" type="submit" disabled={busy || !token}>
           Save password

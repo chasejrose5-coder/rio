@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 
 const NAV = [
@@ -20,24 +21,36 @@ const MORE = [
   { href: "/creators", label: "Creators" },
 ];
 
-export function Nav() {
+export function Nav({ active }: { active?: string }) {
   const path = usePathname();
   const router = useRouter();
   const { athlete, signOut } = useAuth();
-  const moreOpen = path === "/more" || MORE.some((item) => path === item.href);
+  const [arm, setArm] = useState(false);
+  const moreOpen = path === "/more" || MORE.some((item) => path === item.href) || active === "More";
   const admin = athlete?.role === "admin";
+  const today = athlete?.today;
+  const sessionHref = today ? `/session?date=${today}` : "/session";
+
+  useEffect(() => {
+    const key = "rio-nav-path";
+    const previous = window.sessionStorage.getItem(key);
+    // The underline grows once per page. A control on the same page does not replay it.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setArm(previous !== path);
+    window.sessionStorage.setItem(key, path);
+  }, [path]);
 
   return (
-    <header className="rio-nav">
+    <header className={arm ? "rio-nav rio-nav-arm" : "rio-nav"}>
       <div className="rio-nav-row">
         <Link className="rio-brand" href="/">
           RIO
         </Link>
         <nav className="rio-links" aria-label="Pages">
           {NAV.map((item) => {
-            const active = item.href === "/more" ? moreOpen : path === item.href;
+            const on = active ? item.label === active : item.href === "/more" ? moreOpen : path === item.href;
             return (
-              <Link key={item.href} href={item.href} className={active ? "is-active" : undefined} aria-current={active ? "page" : undefined}>
+              <Link key={item.href} href={item.href} className={on ? "is-active" : undefined} aria-current={on ? "page" : undefined}>
                 {item.label}
               </Link>
             );
@@ -47,7 +60,7 @@ export function Nav() {
               Admin
             </Link>
           ) : null}
-          <Link className="rio-start-session" href="/session">
+          <Link className="rio-start-session" href={sessionHref}>
             Start session
           </Link>
           <button
