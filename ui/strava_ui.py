@@ -270,7 +270,21 @@ def render_plan_prompt() -> bool:
             type="primary",
             key="rio-strava-connect",
         )
-    return st.button("Not now", key="rio-strava-not-now") is True
+    dismissed = st.button("Not now", key="rio-strava-not-now") is True
+    # Home's photo is dark here. The pill stays cream so the label can be read.
+    st.markdown(
+        "<style>"
+        '[class*="st-key-rio-strava-not-now"] button,'
+        '[class*="st-key-rio-strava-not-now"] [data-testid="stBaseButton-secondary"] {'
+        "background:#FFFCF7 !important;background-color:#FFFCF7 !important;"
+        "border:1px solid #DCD6CC !important;"
+        "border-radius:999px !important;color:#121110 !important;}"
+        '[class*="st-key-rio-strava-not-now"] button p,'
+        '[class*="st-key-rio-strava-not-now"] button span {color:#121110 !important;}'
+        "</style>",
+        unsafe_allow_html=True,
+    )
+    return dismissed
 
 
 def prepare_activity() -> None:

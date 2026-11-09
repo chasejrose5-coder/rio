@@ -22,6 +22,10 @@ PHOTOS = {
     "start-800.jpg": 200_000,
     "about.jpg": 500_000,
     "about-800.jpg": 180_000,
+    "home-aerial.jpg": 450_000,
+    "home-aerial-800.jpg": 180_000,
+    "plan-curve.jpg": 250_000,
+    "plan-curve-800.jpg": 80_000,
 }
 FONTS = (
     "inter-latin-400-normal.woff2",
@@ -56,6 +60,10 @@ def test_startup_css_serves_files_instead_of_embedding_them() -> None:
         raise AssertionError(asset_uri("start_line.jpg"))
     if asset_uri("about_stadium.jpg") != "/app/static/photos/about.jpg":
         raise AssertionError(asset_uri("about_stadium.jpg"))
+    if asset_uri("home_aerial.jpg") != "/app/static/photos/home-aerial.jpg":
+        raise AssertionError(asset_uri("home_aerial.jpg"))
+    if asset_uri("plan_curve.jpg") != "/app/static/photos/plan-curve.jpg":
+        raise AssertionError(asset_uri("plan_curve.jpg"))
 
 
 def test_static_files_are_smaller_copies() -> None:
