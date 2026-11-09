@@ -11,6 +11,7 @@ from __future__ import annotations
 from fastapi import APIRouter, BackgroundTasks, Request, Response
 from pydantic import BaseModel, Field
 
+from api.concurrency import require_digest
 from api.errors import ApiError
 from api.identity import (
     clear_session_cookie,
@@ -154,6 +155,18 @@ def _resolved(request: Request):
     return who, resolved
 
 
+def _current(request: Request, who, today):
+    """The open season, or None. A stale If-Match is refused before a write."""
+    try:
+        season = open_season(who, request.app.state.directory, today)
+    except ApiError as exc:
+        if exc.status != 404:
+            raise
+        season = None
+    require_digest(request, None if season is None else season.digest)
+    return season
+
+
 @health_router.get("/health")
 def health() -> dict:
     return {"ok": True}
@@ -210,6 +223,7 @@ def current_season(request: Request) -> dict:
 @season_router.post("")
 def create_season(body: GenerateBody, request: Request) -> dict:
     who, resolved = _resolved(request)
+    _current(request, who, resolved["today"])
     season = generate(who, request.app.state.directory, resolved["today"], body.model_dump())
     payload = _body(request, who, resolved, season, committed=True)
     from api.strava_flow import status as strava_status
@@ -227,6 +241,7 @@ def create_season(body: GenerateBody, request: Request) -> dict:
 @season_router.post("/current/results")
 def post_result(body: ResultBody, request: Request, background: BackgroundTasks) -> dict:
     who, resolved = _resolved(request)
+    _current(request, who, resolved["today"])
     season, changed, note_saved = commit_text(
         who,
         request.app.state.directory,
@@ -248,6 +263,7 @@ def post_result(body: ResultBody, request: Request, background: BackgroundTasks)
 @season_router.post("/current/watchless")
 def post_watchless(body: WatchlessBody, request: Request, background: BackgroundTasks) -> dict:
     who, resolved = _resolved(request)
+    _current(request, who, resolved["today"])
     season, changed, note_saved = commit_done(
         who,
         request.app.state.directory,
@@ -268,6 +284,7 @@ def post_watchless(body: WatchlessBody, request: Request, background: Background
 @season_router.post("/current/marks")
 def post_mark(body: MarkBody, request: Request) -> dict:
     who, resolved = _resolved(request)
+    _current(request, who, resolved["today"])
     season, changed = commit_week(
         who,
         request.app.state.directory,
@@ -281,6 +298,7 @@ def post_mark(body: MarkBody, request: Request) -> dict:
 @season_router.post("/current/notes")
 def post_note(body: NoteBody, request: Request) -> dict:
     who, resolved = _resolved(request)
+    _current(request, who, resolved["today"])
     season = remember_note(
         who,
         request.app.state.directory,
@@ -295,8 +313,22 @@ def post_note(body: NoteBody, request: Request) -> dict:
 @season_router.post("/current/clear")
 def clear_marks(body: ConfirmBody, request: Request) -> dict:
     who, resolved = _resolved(request)
+    _current(request, who, resolved["today"])
     season = clear_current(who, request.app.state.directory, resolved["today"], body.confirm)
     return _body(request, who, resolved, season, committed=True)
+
+
+@season_router.post("/reset")
+def reset_plan(body: ConfirmBody, request: Request) -> dict:
+    """Delete every stored season. The account stays. confirm must be true."""
+    if body.confirm is not True:
+        raise ApiError(400, "Confirm to reset the plan.")
+    who, resolved = _resolved(request)
+    _current(request, who, resolved["today"])
+    from api.account_flow import reset_seasons_for
+
+    reset_seasons_for(who, request.app.state.directory)
+    return {"reset": True}
 
 
 @season_router.get("/past")

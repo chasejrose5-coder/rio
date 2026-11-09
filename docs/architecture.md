@@ -149,7 +149,7 @@ Does not write SQLite, even though `db/schema.sql` has `classifications` and `le
 
 Writes one paragraph. This is the only file that may call a model.
 
-Reads a classification (`explain`), or a template id plus prescription reason codes plus the four `goal.yml` fields (`explain_prescription`), or a template id plus reason codes (`explain_decision`). Reads environment variables `RIO_EXPLAIN_API_KEY`, `RIO_EXPLAIN_MODEL`, and `RIO_EXPLAIN_BASE_URL`. Optional price variables are `RIO_EXPLAIN_INPUT_USD_PER_MILLION` and `RIO_EXPLAIN_OUTPUT_USD_PER_MILLION`. Optional `RIO_EXPLAIN_SPEND_PATH` moves the spend file. Otherwise spend is `data/explain_spend.json`.
+Reads a classification (`explain`), or a template id plus prescription reason codes plus the four `goal.yml` fields (`explain_prescription`), or a template id plus reason codes (`explain_decision`). Reads environment variables `RIO_EXPLAIN_API_KEY`, `RIO_EXPLAIN_MODEL`, and `RIO_EXPLAIN_BASE_URL`. Optional price variables are `RIO_EXPLAIN_INPUT_USD_PER_MILLION` and `RIO_EXPLAIN_OUTPUT_USD_PER_MILLION`. Optional `RIO_EXPLAIN_SPEND_PATH` pins the spend file. Otherwise, when the service role is configured and migration 011 is present, spend is the `explain_spend` row. Before that SQL, or when the path is set, spend is `data/explain_spend.json`.
 
 Writes one paragraph under 60 words. When the API settings are missing, the call fails, the paragraph fails its checks, or the spend cap would break, the original restatement is returned. A successful call reserves a worst-case cost, then replaces it with the call's cost. The cap is $25, stored as microdollars. Default prices are $150 and $600 per million tokens so the record reaches $25 before a typical invoice does.
 

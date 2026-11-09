@@ -140,6 +140,68 @@ class MemoryDirectory:
         user["password"] = password
         self.resets.pop(str(token), None)
 
+    def change_password(self, access_token: object, current: object, new: object) -> None:
+        """Replace the password after the current one matches. The token stays."""
+        user_id = self.user_id(access_token)
+        user = self.users.get(user_id)
+        if user is None or not isinstance(current, str) or not password_ok(current) or user["password"] != current:
+            raise CloudAuthError("Password does not match.")
+        if not password_ok(new) or not isinstance(new, str):
+            raise CloudAuthError("Use at least 8 characters.")
+        user["password"] = new
+
+    def change_email(self, access_token: object, password: object, new_email: object) -> str:
+        """Move this athlete to another email. profiles.email is this stand-in's email field."""
+        user_id = self.user_id(access_token)
+        user = self.users.get(user_id)
+        if user is None or not isinstance(password, str) or not password_ok(password) or user["password"] != password:
+            raise CloudAuthError("Password does not match.")
+        target = normalize_email(new_email)
+        if target is None:
+            raise CloudAuthError("Enter an email address.")
+        if target == user["email"]:
+            return target
+        if target in self.by_email:
+            raise CloudAuthError("An account with that email already exists.")
+        self.by_email.pop(user["email"], None)
+        user["email"] = target
+        self.by_email[target] = user_id
+        for row in self.hosted.values():
+            if isinstance(row, dict) and row.get("user_id") == user_id:
+                row["email"] = target
+        return target
+
+    def reset_seasons(self, access_token: object) -> None:
+        """Drop every stored season. The account, name, and settings stay."""
+        user_id = self.user_id(access_token)
+        self.plans[user_id] = []
+        self.results[user_id] = []
+        bag = getattr(self, "api_season_state", None)
+        if isinstance(bag, dict):
+            bag.pop(user_id, None)
+
+    def read_goal_override(self, access_token: object, key: object) -> str | None:
+        """The Profile goal for this season key. It is not the stored season."""
+        user = self.users.get(self.user_id(access_token))
+        if user is None or not isinstance(key, str) or not key:
+            return None
+        overrides = user.get("goal_overrides")
+        if not isinstance(overrides, dict):
+            return None
+        found = overrides.get(key)
+        return found if isinstance(found, str) else None
+
+    def write_goal_override(self, access_token: object, key: object, goal: object) -> None:
+        """Remember a Profile goal. Plans, marks, and actuals are not written."""
+        user_id = self.user_id(access_token)
+        user = self.users.get(user_id)
+        if user is None or not isinstance(key, str) or not key or not isinstance(goal, str):
+            raise CloudAuthError("goal_time is not an 800 time")
+        current = user.get("goal_overrides")
+        overrides = dict(current) if isinstance(current, dict) else {}
+        overrides[key] = goal
+        user["goal_overrides"] = overrides
+
     def user_id(self, access_token: object) -> str:
         if not isinstance(access_token, str):
             raise CloudAuthError("Sign in again.")
@@ -690,6 +752,115 @@ class SupabaseDirectory:
             raise
         except Exception as exc:
             raise CloudAuthError("That reset link is no longer valid.") from exc
+
+    def change_password(self, access_token: object, current: object, new: object) -> None:
+        """Check the current password, then set the new one on this auth user.
+
+        profiles is not written. The signed-in role cannot change another athlete.
+        """
+        if not isinstance(access_token, str) or not access_token:
+            raise CloudAuthError("Sign in again.")
+        if not isinstance(current, str) or not password_ok(current):
+            raise CloudAuthError("Password does not match.")
+        if not password_ok(new) or not isinstance(new, str):
+            raise CloudAuthError("Use at least 8 characters.")
+        user = self.verified_user(access_token)
+        email = user.get("email") if isinstance(user, dict) else None
+        if not isinstance(email, str) or not email:
+            raise CloudAuthError("Sign in again.")
+        try:
+            self.sign_in(email, current)
+        except CloudAuthError as exc:
+            raise CloudAuthError("Password does not match.") from exc
+        try:
+            client = self._user_client(access_token)
+            client.auth.update_user({"password": new})
+        except CloudAuthError:
+            raise
+        except Exception as exc:
+            raise CloudAuthError("This account could not be saved.") from exc
+
+    def change_email(self, access_token: object, password: object, new_email: object) -> str:
+        """Ask auth to change the email. profiles.email stays locked by migration 005.
+
+        The signed-in client is not granted an update of that column. A project
+        with secure email change sends a confirmation and keeps the old address
+        until that mail is confirmed.
+        """
+        if not isinstance(access_token, str) or not access_token:
+            raise CloudAuthError("Sign in again.")
+        target = normalize_email(new_email)
+        if target is None:
+            raise CloudAuthError("Enter an email address.")
+        if not isinstance(password, str) or not password_ok(password):
+            raise CloudAuthError("Password does not match.")
+        user = self.verified_user(access_token)
+        email = user.get("email") if isinstance(user, dict) else None
+        if not isinstance(email, str) or not email:
+            raise CloudAuthError("Sign in again.")
+        if target == normalize_email(email):
+            return email
+        try:
+            self.sign_in(email, password)
+        except CloudAuthError as exc:
+            raise CloudAuthError("Password does not match.") from exc
+        try:
+            client = self._user_client(access_token)
+            client.auth.update_user({"email": target})
+        except CloudAuthError:
+            raise
+        except Exception as exc:
+            raise CloudAuthError("This account could not be saved.") from exc
+        return target
+
+    def reset_seasons(self, access_token: object) -> None:
+        """Delete this athlete's plans, results, and season state. The profile stays.
+
+        season_state is migration 009. A missing table does not put the plans back.
+        """
+        try:
+            client = self._user_client(access_token)
+            user_id = self._token_user(client, access_token)
+            client.table("results").delete().eq("user_id", user_id).execute()
+            client.table("plans").delete().eq("user_id", user_id).execute()
+            try:
+                client.table("season_state").delete().eq("user_id", user_id).execute()
+            except Exception:
+                return
+        except CloudAuthError:
+            raise
+        except Exception as exc:
+            raise CloudAuthError("This account could not be saved.") from exc
+
+    def read_goal_override(self, access_token: object, key: object) -> str | None:
+        """The Profile goal on user_metadata. The plans row is not read."""
+        if not isinstance(key, str) or not key:
+            return None
+        user = self._auth_user(access_token)
+        meta = _metadata_dict(user) or {}
+        overrides = meta.get("goal_overrides")
+        if not isinstance(overrides, dict):
+            return None
+        found = overrides.get(key)
+        return found if isinstance(found, str) else None
+
+    def write_goal_override(self, access_token: object, key: object, goal: object) -> None:
+        """Merge one Profile goal onto user_metadata. The season is not rebuilt."""
+        if not isinstance(access_token, str) or not access_token:
+            raise CloudAuthError("Sign in again.")
+        if not isinstance(key, str) or not key or not isinstance(goal, str):
+            raise CloudAuthError("goal_time is not an 800 time")
+        user = self._auth_user(access_token)
+        meta = _metadata_dict(user) or {}
+        current = meta.get("goal_overrides")
+        overrides = dict(current) if isinstance(current, dict) else {}
+        overrides[key] = goal
+        try:
+            self._auth_user_update(access_token, {"goal_overrides": overrides})
+        except CloudAuthError:
+            raise
+        except Exception as exc:
+            raise CloudAuthError("goal_time is not an 800 time") from exc
 
     def load_bundle(self, access_token: object) -> dict:
         try:

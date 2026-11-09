@@ -6,7 +6,7 @@ Auth, unless a route says otherwise, is the `rio_hosted` cookie set by `POST /au
 
 A missing or expired cookie is `401` `{"detail": "Sign in again."}`.
 
-Errors from the app are `{"detail": "<sentence>"}`. A body that is not the shape below is `422` from the framework. `400` is a rejected value. `404` is a missing season, day, or job. `409` is a conflict (Strava already connected, or deleting the current season). `429` is the Strava rate limit. `503` is Strava not configured, or migration 010 not applied.
+Errors from the app are `{"detail": "<sentence>"}`. A body that is not the shape below is `422` from the framework. `400` is a rejected value. `403` is a page this login is not allowed to open. `404` is a missing season, day, or job. `409` is a conflict (Strava already connected, or deleting the current season). `412` is a stale `If-Match` digest. `429` is a rate limit (Strava, or too many sign-up or sign-in attempts). `503` is Strava or Google not configured, or migration 010 not applied.
 
 The browser origin that may call the API with credentials is `RIO_FRONTEND_ORIGIN` (default `http://localhost:3000`). A wildcard is refused.
 
@@ -90,9 +90,69 @@ Cookie. `200` `{"ok": true}` and the cookie is cleared.
 
 Cookie. `200` is `athlete`.
 
+### `POST /auth/sign-up`
+
+No cookie. Body: `{"email": "", "password": "", "name": ""}`.
+
+`200` when the account is created and a session exists. The cookie is set, the same way sign-in sets it. The body is `{"email": "", "display_name": "", "kind": "hosted", "confirm": false}`. `kind` is `local` when this process has no Supabase directory.
+
+`200` `{"confirm": true, "message": "Check your email to confirm your account, then log in."}` when the project creates the user and returns no session. The cookie is not set. The Streamlit login screen still hides that sentence and shows "The account could not be created." The API returns the directory’s outcome so the new client can show the inbox screen.
+
+`400` for a bad email, a bad name, a short password, or an email that already has an account. `429` when sign-up is rate limited. The body never includes a token or a seal.
+
+### `POST /auth/forgot-password`
+
+No cookie. Body: `{"email": ""}`.
+
+`200` `{"ok": true, "message": "Check your email for the reset link."}`. An address with no account gets the same body. The reset token is not in the JSON. `400` when the text is not an email, or when this process is the local account file (that file has no mail). `400` when the reset mail could not be sent.
+
+### `POST /auth/reset-password`
+
+No cookie. Body: `{"token": "", "password": ""}`. `token` is the `token_hash` from the reset link, the same value Streamlit reads.
+
+`200` `{"ok": true, "message": "Password updated. Log in with the new one."}`. `400` when the token is no longer valid, the password is shorter than 8 characters, or this process is the local account file.
+
+### `POST /auth/password`
+
+Cookie. Body: `{"current_password": "", "new_password": ""}`.
+
+`200` `{"ok": true, "message": "Password updated."}`. The cookie stays. A local account is sealed again under that same cookie. `400` when the current password does not match or the new one is too short. `401` when the cookie is missing.
+
+### `POST /auth/email`
+
+Cookie. Body: `{"email": "", "password": ""}`.
+
+`200` `{"ok": true, "email": "", "message": ""}`. A local account moves to the new email and the message is `Email updated.` A hosted account asks auth to change the address. `profiles.email` is not written. Migration 005 keeps that column locked for the signed-in role. On the in-memory directory the message is `Email updated.` On Supabase the message is `Check your email to confirm the new address.` because secure email change can keep the old address until that mail is confirmed. `400` when the password does not match, the email is unusable, or another account already has it.
+
+### `POST /auth/delete`
+
+Cookie. Body: `{"confirm": false, "email": "", "password": ""}`.
+
+`confirm` must be true. `400` `{"detail": "Confirm to delete this account."}` otherwise. The cookie is cleared on success. `200` `{"deleted": true}`.
+
+A hosted delete matches Settings: the checkbox is enough. The signed-in client deletes that athlete’s rows. The service role is used only to delete the auth user, which is what Streamlit already does. Row level security still applies to the row deletes.
+
+A local delete matches Settings too: `email` must be this account’s email, and `password` must match. `400` when either does not.
+
+### `GET /auth/google`
+
+No cookie. `200` `{"url": "", "redirect_uri": ""}`. `url` is `directory.google_url` for `redirect_uri`. `503` when this process has no directory.
+
+`RIO_GOOGLE_REDIRECT_URI` is that redirect. When it is unset, the redirect is the Streamlit callback (`RIO_APP_URL` + `/`, or `http://localhost:8501/`). `ui/cloud_ui.py` still builds its own link with `app_url() + "/"` and the button stays hidden (`SHOW_GOOGLE_SIGN_IN` is false). Set the variable to this API’s callback when the new site should receive the return.
+
+### `GET /auth/google/callback?code=&flow=`
+
+No cookie. The provider redirect is a top-level GET.
+
+JSON, when `X-RIO-Response: json` is set: `200` sets the cookie and returns `{"email": "", "display_name": "", "kind": "hosted", "redirect_uri": ""}`. `400` when the code or the PKCE flow does not check out. A code can be used once.
+
+Without that header the response is `302` to `{RIO_FRONTEND_ORIGIN}/?google=connected`, or `?google=error` when the code does not check out. The cookie is set on the success redirect.
+
 ## Seasons
 
 All of these need the cookie. Today follows the Settings time zone. Easy pace, pace units, and no-watch are not passed into `sequence()` or `adapt()`.
+
+A write may send `If-Match` with the `digest` from the season it loaded. Quotes around the digest are ignored. When the header is missing, the later write still wins. When it is present and it is not the current digest, the write is `412` `{"detail": "This season changed in another tab. Reload it and try again."}` and nothing is saved. This covers generate, results, Done, marks, notes, clear, reset, Strava sync, and `POST /insights/digest`. Notes are not part of the digest. A stale tab is still refused before the note is saved.
 
 ### `GET /seasons/current`
 
@@ -135,6 +195,10 @@ Body: `{"week": 1, "choice": "on_track"}`. `choice` is `on_track`, `not_hitting`
 Body: `{"date": "", "note": {}, "viewed": false}`.
 
 `200` is `season` plus `note_saved: true`. This is the Got it write (`viewed: true`) and a hand-saved note. It does not call the model. `400` when the date is not in the season or the note is the wrong shape (including a lap list, Strava, GPS, or a score).
+
+### `POST /seasons/reset`
+
+Body: `{"confirm": true}`. `200` `{"reset": true}`. Every stored season is removed. The account, the name, and the settings stay. `confirm` must be true. `400` otherwise. A stale `If-Match` is `412` and the seasons stay.
 
 ### `POST /seasons/current/clear`
 
@@ -349,7 +413,15 @@ A workout is `id`, `description`, `capacity`, `family`, `phases` (ints). `q` mat
 }
 ```
 
-`ready` is false and `fields` is empty when there is no season. The four Start values are the season. The goal-time override the Profile page keeps in the browser is not stored here and does not rebuild the season. The client may keep it under `profile_key`. Easy pace is saved with `PATCH /settings`.
+`ready` is false and `fields` is empty when there is no season. The four Start values are the season. `goal_time` is the season’s goal and does not change when Profile saves another time. `goal_override` is that saved time, or `null`. `shown_goal` is the override when there is one, otherwise `goal_time`. The Goal 800m time in `fields` is `shown_goal`. Saving it does not call `sequence()` or `adapt()`. Easy pace is saved with `PATCH /settings`.
+
+Streamlit still keeps this override in the browser under `email + profile_key`. It does not read the API’s copy. A local API save is a sealed record, `rio.api.goal.v1`, and the plan key is written again afterward so Streamlit still opens the plan. A hosted save is `goal_overrides` on auth user metadata. `plans` is not written.
+
+### `PUT /profile/goal`
+
+Cookie. Body: `{"goal_time": "1:54.0"}`.
+
+`200` is the profile object, with `goal_override` set. The season digest is unchanged. `400` `{"detail": "goal_time is not an 800 time"}` when the text is not an 800 time. `404` when there is no current season. `401` when the cookie is missing.
 
 ### `GET /sessions/{date}`
 
@@ -385,17 +457,89 @@ Cookie. Send only the fields to change. `200` is `athlete`.
 
 Hosted pace, time zone, no-watch, easy pace, intro, and the Strava prompt are the same auth metadata the Streamlit Settings page writes. Date format, start date, confirm-adapt, show-ids, compact, and the nickname are saved on the account as well. The Streamlit page does not read those extra fields, so the live app is unchanged.
 
+## Admin
+
+Admin is the login whose email is `RIO_ADMIN_EMAIL`. Any other cookie is `403` `{"detail": "That page is for the admin account."}`. A missing cookie is `401`. The test season is a different athlete. Loading it does not write the signed-in plan.
+
+### `GET /admin/accounts`
+
+`200` `{"available": true, "accounts": [{"email": "", "display_name": "", "role": "athlete"}]}`. `available` is false when the server key is missing, which is the Streamlit "isn't available on this server yet" line. Passwords and tokens are not included. A local file returns the same shape with `role` `athlete`.
+
+### `POST /admin/test-season`
+
+`200` `{"loaded": true, "created": true, "runs": 0, "name": "TEST Athlete"}`. This is `load_test_season`. `400` when it cannot be saved, including a local file with no directory, and when this login is the TEST athlete.
+
+### `GET /admin/test-season`
+
+`200` `{"loaded": false}` when that athlete has no plan. Otherwise `loaded`, `name`, `inputs` (the four strings), `runs`, and `plan`. This is the read-only preview. It does not replace the caller’s season.
+
+### `DELETE /admin/test-season`
+
+Body: `{"confirm": true}`. `200` `{"deleted": true, "message": "TEST Athlete was removed."}` or `deleted: false` when that athlete is already gone. `confirm` must be true. `400` otherwise.
+
+### `GET /admin/hero`
+
+`200` `{"photos": [{"id": "", "file": "", "credit": "", "source": "", "enabled": true}]}`. The file is `ui/hero_config.py`’s JSON, the same file the Streamlit editor writes.
+
+### `PUT /admin/hero`
+
+Body: `{"photos": [{"id": "", "enabled": true, "credit": ""}]}`. The id list must be the startup set, each once. `200` is the hero object plus `saved: true`. `400` when a credit or an id is unusable.
+
+## Fixtures
+
+The Last Session, Next, Decisions, Ledger, and Goal pages. Admin only, same as `_fixture_allowed`. They call `classify`, `prescribe`, `accept`, and `Ledger`. They do not call the model. Prose is still `POST /insights/explain`.
+
+### `GET /fixtures`
+
+`200` `{"fixtures": ["easy", "race_800"]}`. The names are the stems in `tests/fixtures`.
+
+### `POST /fixtures/classify`
+
+Body: `{"name": "race_800"}` or `{"payload": {}}`. `payload` is a session object, the same shape `classify` already takes.
+
+`200` `{"family": "", "reason_codes": [], "confidence": "", "ontology_version": "v0.1", "source": ""}`. `source` is present when the fixture or the payload has one. `400` when neither name nor payload is sent, or the session cannot be classified. `404` when the name is not a fixture.
+
+### `POST /fixtures/prescribe`
+
+Body: `{"name": "race_800"}`. `200`:
+
+```json
+{"name": "race_800", "on": "2026-11-09", "limiting_capacities": "unknown", "rows": [], "ontology_version": "v0.1"}
+```
+
+`on` is today. Each row is a `prescribe` row (`template_id`, `parameters`, `reason_codes`, `prescribed_on`). The ledger is not kept. `400` when the name is missing or the rules refuse it.
+
+### `POST /fixtures/accept`
+
+Body: `{"name": "race_800"}`. A missing name uses `race_800`, the fixture `accept_fixture_prescription` uses. The day is that fixture’s clock (`2026-10-17`), not today, because acceptance refuses a placeholder of today.
+
+`200` `{"name": "race_800.yml", "on": "2026-10-17", "row": {}}`. `row` is the planned acceptance (`template_id`, `parameters`, `placeholder_date`, `ontology_version`, `source`, `reason_codes`). The file is written in a temporary directory and thrown away. The checked-in files in `tests/fixtures/planned` are not replaced.
+
+### `GET /fixtures/ledger`
+
+`200` `{"as_of": "2026-11-09", "entries": [], "emerging": [], "decaying": []}`. `as_of` is today. Entries are the four fixture deposits, the same tables the Ledger page shows.
+
+### `GET /fixtures/goal`
+
+`200` the four `goal.yml` fields: `current_mark`, `target_time`, `target_date`, `limiting_capacities`. `unknown` stays `unknown`.
+
+## Explain spend
+
+`RIO_EXPLAIN_SPEND_PATH` still selects the JSON file. Tests set it. Leave it unset in production.
+
+When it is unset and the service role is configured, reserve and settle call `public.explain_spend` (migration 011). One row, id `global`. The cap stays `SPEND_CAP_MICRO_USD` in `engines/explain.py` and is passed into the function. A missing table or function uses the JSON file for that call, so Streamlit keeps working before the SQL runs. After it runs, Streamlit and this API share the row and do not also add to the file.
+
+If the file already has a balance, the first shared reserve copies that balance up with `adopt_explain_spend` when the row is still lower. It does not add the file on top of a higher row.
+
 ## Left before step 3
 
-The Next.js app can be built against the routes above. These are not routes yet:
+The Next.js app can be built against the routes above. These are still not API routes:
 
-- Create account, forgot password, reset password, change password, change email, and delete account.
-- Reset plan (delete every stored season and keep the account).
-- The Profile goal-time override. It stays in the browser under `profile_key` and does not rebuild the season.
-- `If-Match` on the season digest. The digest is returned. Two tabs can still both save, and the later write wins.
-- Admin, the test season, the hero rotation, and Google sign-in.
-- Classify, prescribe, accept, the ledger, and the goal fixture page. The explain rephrase is `POST /insights/explain`.
-- About, Creators, photos, and the startup splash. They are static and are not API routes.
-- The explain spend cap is still the local JSON file (`RIO_EXPLAIN_SPEND_PATH`, otherwise `data/explain_spend.json`). Streamlit and this API should not keep two separate counters if both call the model.
+- About, Creators, photos, and the startup splash. They are static. The hero order is `GET /admin/hero`. The splash itself is not.
+- The Streamlit Google button and the "check your email" screen stay hidden. The API routes for both are above.
+- Confirm-before-adapt stays on the client. `confirm_adapt` is a setting. The API applies the mark on POST.
+- Workout and digest jobs still live in this process. A restart loses a job that had not finished. A saved note remains on the season.
 
 Jay runs `supabase/migrations/010_strava_oauth.sql` in the SQL editor before a hosted Strava connect. It is safe to run again. Row level security is on, and only the service role is granted the table. The index is `strava_oauth_pkey` on `user_id` and `strava_oauth_expires_at` on `expires_at`. The trigger is `strava_oauth_touch_updated_at`. Migrations 005 through 009 are already applied. The Streamlit callback does not use this table.
+
+Jay runs `supabase/migrations/011_explain_spend.sql` when this API and Streamlit should share one spend counter. It does not have to run before the merge. Until it has been run, both keep the JSON file. It is safe to run again. Row level security is on, and only the service role is granted the table and `reserve_explain_spend`, `settle_explain_spend`, and `adopt_explain_spend`. The primary key index is `explain_spend_pkey` on `id`. The trigger is `explain_spend_touch_updated_at`. There is no index beyond the primary key. The Streamlit app does not need a code change for the file to keep working before that SQL, or for the row to be used after it.

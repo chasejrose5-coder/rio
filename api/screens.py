@@ -24,7 +24,7 @@ from ui.dashboard import current_week, dashboard_view
 from ui.insights import no_plan_copy, phase_story
 from ui.library import filter_workouts, library_rows
 from ui.no_watch import next_open_workout
-from ui.profile import profile_fields, profile_key
+from ui.profile import profile_fields, profile_key, shown_goal
 from ui.progress import progress_weeks
 from ui.settings import TIME_ZONES
 
@@ -259,7 +259,7 @@ def activity_view(season, today: date, prefs: dict, easy_pace: str, easy_unit: s
     }
 
 
-def profile_view(season, resolved: dict) -> dict:
+def profile_view(season, resolved: dict, override: str | None = None) -> dict:
     prefs = resolved["prefs"]
     easy = {
         "easy_pace": resolved["easy_pace"],
@@ -267,13 +267,26 @@ def profile_view(season, resolved: dict) -> dict:
         "easy_pace_phrase": resolved["easy_pace_phrase"],
     }
     if season is None:
-        return {"ready": False, "fields": [], "profile_key": "", "goal_time": "", **easy, "prefs": prefs}
-    fields = profile_fields(season.inputs[0], season.inputs[1], season.inputs[2], season.inputs[3])
+        return {
+            "ready": False,
+            "fields": [],
+            "profile_key": "",
+            "goal_time": "",
+            "goal_override": None,
+            "shown_goal": "",
+            **easy,
+            "prefs": prefs,
+        }
+    key = profile_key(season.inputs)
+    shown = shown_goal(season.inputs[2], override)
+    fields = profile_fields(season.inputs[0], season.inputs[1], shown, season.inputs[3])
     return {
         "ready": True,
         "fields": [{"label": label, "value": value} for label, value in fields],
-        "profile_key": profile_key(season.inputs),
+        "profile_key": key,
         "goal_time": season.inputs[2],
+        "goal_override": override,
+        "shown_goal": shown,
         "inputs": {
             "current_time": season.inputs[0],
             "start_date": season.inputs[1],

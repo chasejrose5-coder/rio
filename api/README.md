@@ -32,6 +32,8 @@ When the Supabase URL or anon key is missing, sign-in uses the local account fil
 
 `GET /auth/me` returns the signed-in athlete. `POST /auth/sign-out` drops the server session and clears the cookie. The cookie lasts the rest of the original 24 hours. Refreshing the Supabase token does not extend it.
 
+`POST /auth/sign-up` creates an account and sets the same cookie when a session comes back. `POST /auth/forgot-password` and `POST /auth/reset-password` are the reset mail. `POST /auth/password` and `POST /auth/email` change this account. `POST /auth/delete` requires `confirm: true`. `GET /auth/google` and `GET /auth/google/callback` are Google sign-in. `RIO_GOOGLE_REDIRECT_URI` defaults to the Streamlit callback.
+
 ## Seasons
 
 All of these require the cookie.
@@ -45,7 +47,10 @@ All of these require the cookie.
 | `POST` | `/seasons/current/marks` | One week mark: `week` and `choice` (`on_track`, `not_hitting`, or `smashing`). |
 | `POST` | `/seasons/current/notes` | Save a note for a date. This does not call the model. |
 | `GET` | `/seasons/past` | Seasons whose goal date is before today. |
+| `POST` | `/seasons/reset` | Delete every stored season. `confirm` must be true. The account stays. |
 | `DELETE` | `/seasons/past` | Delete one past season. `confirm` must be true. A current season is refused. The response lists the same stats as the confirm panel. |
+
+A season write can send `If-Match` with the digest it loaded. A mismatch is `412` and nothing is saved. A missing header still lets the later write win.
 
 Today is the calendar date in the Settings time zone (`local_today`). Pace units, the no-watch preference, and the easy pace are read with the same helpers as Settings and included on the athlete and on the season. `logging` is `done` when no-watch is on and `times` otherwise. The easy pace is not passed into `sequence()` or `adapt()`.
 

@@ -13,7 +13,10 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from api.account_routes import router as account_router
+from api.admin_routes import router as admin_router
 from api.errors import ApiError
+from api.fixture_routes import router as fixture_router
 from api.insight_routes import router as insight_router
 from api.routes import auth_router, health_router, season_router
 from api.screen_routes import router as screen_router
@@ -60,12 +63,15 @@ def create_app(
         CORSMiddleware,
         allow_origins=[settings.frontend_origin],
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "If-Match", "X-RIO-Response"],
     )
     app.include_router(health_router)
     app.include_router(auth_router)
+    app.include_router(account_router)
     app.include_router(season_router)
+    app.include_router(admin_router)
+    app.include_router(fixture_router)
     app.include_router(strava_router)
     app.include_router(insight_router)
     app.include_router(screen_router)
