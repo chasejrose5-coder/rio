@@ -1,13 +1,14 @@
 # routes.py — thin HTTP handlers. The season work is in season_service.
 
-"""Sign-in, the current athlete, and the season routes from step 2a.
+"""Sign-in, the current athlete, and the season routes.
 
-Strava and the insight model are not on this app.
+Strava, insights, and the screen reads live in their own routers.
+A result is saved before any insight task is scheduled.
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Request, Response
 from pydantic import BaseModel, Field
 
 from api.errors import ApiError
@@ -19,8 +20,9 @@ from api.identity import (
     sign_in_local,
     sign_out,
 )
-from api.prefs import prefs_payload
+from api.prefs import athlete_payload
 from api.season_service import (
+    clear_current,
     commit_done,
     commit_text,
     commit_week,
@@ -86,6 +88,10 @@ class DeleteBody(BaseModel):
     confirm: bool = False
 
 
+class ConfirmBody(BaseModel):
+    confirm: bool = False
+
+
 def _principal(request: Request):
     settings = request.app.state.settings
     raw = request.cookies.get(settings.cookie_name)
@@ -98,6 +104,43 @@ def _principal(request: Request):
     if who is None:
         raise ApiError(401, "Sign in again.")
     return who
+
+
+def _queue_insight(background: BackgroundTasks, request: Request, who, resolved, season, day: str, detail: str) -> dict:
+    """Pending when a hard day can take a note. The plan is already saved."""
+    from api.insight_flow import after_result
+
+    skipped = {"status": "skipped", "date": day, "id": ""}
+    session = next(
+        (
+            item
+            for item in season.plan.get("sessions") or []
+            if isinstance(item, dict) and str(item.get("date") or "") == day
+        ),
+        None,
+    )
+    actual = season.actuals.get(day) if isinstance(season.actuals, dict) else None
+    mark = str(actual.get("mark") or "") if isinstance(actual, dict) else ""
+    if not isinstance(session, dict) or not mark:
+        return skipped
+    return after_result(
+        background,
+        request.app,
+        who,
+        request.app.state.directory,
+        resolved["today"],
+        season,
+        session,
+        mark,
+        detail,
+    )
+
+
+def _body(request: Request, who, resolved: dict, season, **kwargs) -> dict:
+    from api.strava_flow import attach_activities
+
+    attach_activities(request.app, who, season)
+    return season_payload(season, resolved, **kwargs)
 
 
 def _resolved(request: Request):
@@ -154,35 +197,35 @@ def log_out(request: Request, response: Response) -> dict:
 @auth_router.get("/me")
 def me(request: Request) -> dict:
     who, resolved = _resolved(request)
-    prefs = prefs_payload(resolved)
-    today = prefs.pop("today")
-    return {
-        "id": who.user_id,
-        "email": who.email,
-        "display_name": who.display_name,
-        "role": who.role,
-        "kind": who.kind,
-        "today": today,
-        "prefs": prefs,
-    }
+    return athlete_payload(who, resolved)
 
 
 @season_router.get("/current")
 def current_season(request: Request) -> dict:
     who, resolved = _resolved(request)
     season = open_season(who, request.app.state.directory, resolved["today"])
-    return season_payload(season, resolved)
+    return _body(request, who, resolved, season)
 
 
 @season_router.post("")
 def create_season(body: GenerateBody, request: Request) -> dict:
     who, resolved = _resolved(request)
     season = generate(who, request.app.state.directory, resolved["today"], body.model_dump())
-    return season_payload(season, resolved, committed=True)
+    payload = _body(request, who, resolved, season, committed=True)
+    from api.strava_flow import status as strava_status
+    from ui.plan_strava import should_offer_strava
+
+    connected = strava_status(request.app, who)["connected"]
+    payload["strava_offer"] = should_offer_strava(
+        just_generated=True,
+        connected=connected,
+        dismissed=resolved.get("strava_prompt_seen") is True,
+    )
+    return payload
 
 
 @season_router.post("/current/results")
-def post_result(body: ResultBody, request: Request) -> dict:
+def post_result(body: ResultBody, request: Request, background: BackgroundTasks) -> dict:
     who, resolved = _resolved(request)
     season, changed, note_saved = commit_text(
         who,
@@ -194,11 +237,16 @@ def post_result(body: ResultBody, request: Request) -> dict:
         body.intervals,
         body.note,
     )
-    return season_payload(season, resolved, committed=changed, note_saved=note_saved)
+    payload = _body(request, who, resolved, season, committed=changed, note_saved=note_saved)
+    if changed:
+        payload["insight"] = _queue_insight(background, request, who, resolved, season, body.date, body.text)
+    else:
+        payload["insight"] = {"status": "skipped", "date": body.date, "id": ""}
+    return payload
 
 
 @season_router.post("/current/watchless")
-def post_watchless(body: WatchlessBody, request: Request) -> dict:
+def post_watchless(body: WatchlessBody, request: Request, background: BackgroundTasks) -> dict:
     who, resolved = _resolved(request)
     season, changed, note_saved = commit_done(
         who,
@@ -209,7 +257,12 @@ def post_watchless(body: WatchlessBody, request: Request) -> dict:
         body.time,
         body.note,
     )
-    return season_payload(season, resolved, committed=changed, note_saved=note_saved)
+    payload = _body(request, who, resolved, season, committed=changed, note_saved=note_saved)
+    if changed:
+        payload["insight"] = _queue_insight(background, request, who, resolved, season, body.date, body.time)
+    else:
+        payload["insight"] = {"status": "skipped", "date": body.date, "id": ""}
+    return payload
 
 
 @season_router.post("/current/marks")
@@ -222,7 +275,7 @@ def post_mark(body: MarkBody, request: Request) -> dict:
         body.week,
         body.choice,
     )
-    return season_payload(season, resolved, committed=changed)
+    return _body(request, who, resolved, season, committed=changed)
 
 
 @season_router.post("/current/notes")
@@ -236,7 +289,14 @@ def post_note(body: NoteBody, request: Request) -> dict:
         body.note,
         body.viewed,
     )
-    return season_payload(season, resolved, note_saved=True)
+    return _body(request, who, resolved, season, note_saved=True)
+
+
+@season_router.post("/current/clear")
+def clear_marks(body: ConfirmBody, request: Request) -> dict:
+    who, resolved = _resolved(request)
+    season = clear_current(who, request.app.state.directory, resolved["today"], body.confirm)
+    return _body(request, who, resolved, season, committed=True)
 
 
 @season_router.get("/past")

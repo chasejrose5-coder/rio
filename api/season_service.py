@@ -459,6 +459,30 @@ def generate(principal: Principal, directory, today: date, payload: dict) -> Ope
     return season
 
 
+def clear_current(principal: Principal, directory, today: date, confirm: bool) -> OpenSeason:
+    """Rebuild the season from the four inputs. Marks, actuals, and bases go.
+
+    Notes stay. Strava rows stay in their table and come back on the next read.
+    """
+    if confirm is not True:
+        raise ApiError(400, "Confirm before clearing marks and actuals.")
+    season = open_season(principal, directory, today)
+    try:
+        plan = sequence(*season.inputs)
+    except ValueError as exc:
+        raise ApiError(400, str(exc)) from exc
+    previous = season.digest
+    season.plan = plan
+    season.marks = {}
+    season.actuals = {}
+    season.activities = []
+    season.bases = {}
+    season.base_source = "empty"
+    _refresh_digest(season)
+    _save(principal, directory, season, previous)
+    return season
+
+
 def _commit_fields(season: OpenSeason, outcome) -> bool:
     if outcome.error:
         raise ApiError(400, outcome.error)
@@ -688,6 +712,7 @@ def season_payload(season: OpenSeason, resolved: dict, *, committed: bool | None
         "quality_base_weeks": sorted(int(week) for week in season.bases),
         "quality_base_source": source,
         "quality_base_stored": stored,
+        "activities": season.activities if isinstance(season.activities, list) else [],
     }
     if committed is not None:
         body["committed"] = committed

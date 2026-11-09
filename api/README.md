@@ -49,7 +49,7 @@ All of these require the cookie.
 
 Today is the calendar date in the Settings time zone (`local_today`). Pace units, the no-watch preference, and the easy pace are read with the same helpers as Settings and included on the athlete and on the season. `logging` is `done` when no-watch is on and `times` otherwise. The easy pace is not passed into `sequence()` or `adapt()`.
 
-The plan write finishes before a note is stored. `complete_insight` is not called on these routes. A note that is the wrong shape is left out and the plan stays saved.
+The plan write finishes before a note is stored. A result or Done save does not wait on the model. When the day can take a note, the response includes `insight.status` of `pending`, and `GET /insights/workout/{date}` returns the note after the model finishes. A note that is the wrong shape is left out and the plan stays saved.
 
 ## Quality base and notes
 
@@ -69,6 +69,16 @@ That is the order `auto_adapt` already uses. A later week is not adapted twice.
 
 Local accounts store the same JSON in a sealed record, `rio.api.state.v1`, which is not a plan key. The plan key is written after it so Streamlit still opens the plan. If the sealed record cannot hold every base, the bases are left empty and the next request rebuilds them in the order above.
 
-## Not in this step
+## Strava
 
-Strava OAuth and sync, and any route that calls the insight model, are step 2b. There is no Next.js app here.
+`GET /strava/connect` stores a nonce on the server and returns the authorize URL. `GET /strava/callback` accepts the code only when that nonce matches. Tokens are written with the service role and are not in the JSON.
+
+`RIO_STRAVA_REDIRECT_URI` is the redirect this process sends. When it is unset, the redirect is the Streamlit callback (`RIO_APP_URL` + `/`), so that registration keeps working. The new site sets the variable when its own callback is registered.
+
+`POST /strava/sync` with `{"scope": "recent"}` or `{"scope": "all"}` imports runs. Marks from that import use the stored quality base. A failed import does not move `last_sync_at`. When Strava is not connected, the same route uses the Intervals fallback.
+
+Run `supabase/migrations/010_strava_oauth.sql` before a hosted connect. The Streamlit app does not read that table.
+
+## The rest of the routes
+
+`docs/migration/api-contract.md` lists every route, the request and response, and who can call it. There is no Next.js app here.

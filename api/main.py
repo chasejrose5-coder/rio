@@ -14,8 +14,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from api.errors import ApiError
+from api.insight_routes import router as insight_router
 from api.routes import auth_router, health_router, season_router
+from api.screen_routes import router as screen_router
 from api.settings import load_settings
+from api.strava_routes import router as strava_router
 from ui.accounts import accounts_path
 from ui.activities import load_local_env
 from ui.cloud_config import cloud_settings
@@ -42,16 +45,30 @@ def create_app(
     app.state.directory = directory
     app.state.accounts_path = accounts if accounts is not None else accounts_path()
     app.state.local_sessions = {}
+    app.state.oauth_nonces = {}
+    app.state.insight_jobs = {}
+    app.state.insight_dates = {}
+    from ui.strava import RateGate
+    from ui.strava_store import MemoryStrava
+
+    app.state.memory_strava = MemoryStrava()
+    app.state.strava_service_key = "memory-service"
+    app.state.strava_gate = RateGate()
+    app.state.strava_post = None
+    app.state.strava_get = None
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[settings.frontend_origin],
         allow_credentials=True,
-        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type"],
     )
     app.include_router(health_router)
     app.include_router(auth_router)
     app.include_router(season_router)
+    app.include_router(strava_router)
+    app.include_router(insight_router)
+    app.include_router(screen_router)
 
     @app.exception_handler(ApiError)
     def _api_error(_request: Request, exc: ApiError) -> JSONResponse:
