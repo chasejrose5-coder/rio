@@ -98,6 +98,17 @@ def has_active_plan(keys: object, today: date) -> bool:
     return False
 
 
+def landing_target(keys: object, today: date) -> str:
+    """Home when a stored season is still current. Otherwise Start.
+
+    Current means the same thing as has_active_plan: a goal date of today
+    or later. No season, or a season that has already ended, is Start.
+    """
+    if has_active_plan(keys, today):
+        return "Home"
+    return "Start"
+
+
 def entry_fields(inputs: tuple[str, str, str, str]) -> list[tuple[str, str]]:
     """Start date, goal date, and goal time, as stored."""
     return [

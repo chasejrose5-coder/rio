@@ -133,6 +133,7 @@ from ui.past_seasons import (
     has_active_plan,
     inputs_from_key,
     is_past_season,
+    landing_target,
     season_entries,
     season_summary,
     summary_record,
@@ -1482,13 +1483,20 @@ def _open_restored_session(was_signed_in: bool) -> None:
 
 
 def _route_after_login() -> None:
-    """Home when a stored plan's goal date is today or later. Otherwise Start."""
+    """Home when a stored plan's goal date is today or later. Otherwise Start.
+
+    The keys are every season on this account, including a hosted login.
+    Today is the calendar date in the Settings time zone. A goal date
+    before that day, or no season at all, opens Start.
+    """
     st.session_state.pop("rio_enter", None)
     page = _start_page
     who = _account_identity()
     if who is not None:
-        keys = record_keys(accounts_path(), who[0], who[1], KEY_PREFIX)
-        if has_active_plan(keys, _athlete_today()) or _has_current_season():
+        _load_local()
+        keys = _stored_season_keys()
+        today = _athlete_today()
+        if has_active_plan(keys, today) and landing_target(keys, today) == "Home":
             home = _nav_page("Home")
             if home is not None:
                 page = home
@@ -7210,7 +7218,18 @@ st.markdown(
     '<style>@import url("' + _APP_CSS_HREF + '");</style>',
     unsafe_allow_html=True,
 )
-_start_page = st.Page(_with_plan(page_start), title="Start", default=True)
+# Root URL, a refresh of that URL, and the first page after sign-in.
+# A season whose goal date is today or later, in the Settings time zone,
+# opens Home. No season, or a season that has already ended, opens Start.
+# Start keeps its own path when Home is the root, so the nav item still opens it.
+_load_local()
+_home_first = landing_target(_stored_season_keys(), _athlete_today()) == "Home"
+if _home_first:
+    _start_page = st.Page(_with_plan(page_start), title="Start", url_path="start")
+    _root_home = st.Page(_with_plan(page_dashboard), title="Home", default=True)
+else:
+    _start_page = st.Page(_with_plan(page_start), title="Start", default=True)
+    _root_home = None
 _session_page = st.Page(_with_plan(page_session), title="Session", url_path="session")
 _HOME_PAGE = _start_page
 _SESSION_PAGE = _session_page
@@ -7250,6 +7269,8 @@ _routed = [
     *(page for _, page in _MORE_PAGES),
     *(page for _, page in _KEPT_PAGES),
 ]
+if _root_home is not None:
+    _routed.insert(0, _root_home)
 if _admin_page not in _routed:
     _routed.append(_admin_page)
 st.navigation(
