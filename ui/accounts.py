@@ -519,6 +519,53 @@ def delete_records(path: Path, email: object, secret: object, prefix: object) ->
         _save(path, store)
 
 
+def delete_exact(path: Path, email: object, secret: object, keys: object) -> None:
+    """Remove these records. Every other key on this account stays."""
+    if not isinstance(keys, (list, tuple)) or not keys:
+        raise AccountError("This season could not be deleted.")
+    wanted: list[str] = []
+    for key in keys:
+        if not _key_ok(key):
+            raise AccountError("This season could not be deleted.")
+        if key not in wanted:
+            wanted.append(key)
+    seal = _secret_bytes(secret)
+    if seal is None or not isinstance(email, str):
+        raise AccountError("This season could not be deleted.")
+    with _LOCK:
+        store = _load(path)
+        account = store["accounts"].get(email)
+        if not isinstance(account, dict):
+            raise AccountError("This season could not be deleted.")
+        opened = _open_bundle(account.get("records"), seal)
+        if opened is None:
+            raise AccountError("This season could not be deleted.")
+        records, last = opened
+        kept = {key: value for key, value in records.items() if key not in wanted}
+        if len(kept) == len(records):
+            return
+        if last not in kept:
+            last = ""
+        account["records"] = _seal_records(kept, seal, last)
+        _save(path, store)
+
+
+def delete_past_season(path: Path, email: object, secret: object, inputs: object, today: object) -> None:
+    """Remove one past season and the profile stored with those four inputs.
+
+    A current season is left as it is. Another season's records stay.
+    """
+    from datetime import date
+
+    from ui.past_seasons import is_past_season
+    from ui.plan_store import storage_key
+    from ui.profile import profile_key
+
+    if type(today) is not date or not is_past_season(inputs, today):
+        raise AccountError("The current season can't be deleted.")
+    delete_exact(path, email, secret, [storage_key(inputs), profile_key(inputs)])
+
+
 def _local_view(account: dict) -> dict:
     raw_name = account.get("name")
     name = raw_name.strip() if isinstance(raw_name, str) else ""
