@@ -1507,12 +1507,15 @@ def _with_plan(page):
         _load_shared_plan()
         _link_preview_note()
         if _easy_pace_gate():
+            _contact_footer()
             return
         if _intro_gate():
+            _contact_footer()
             return
         _pull_for(page.__name__)
         _sync_browser_store()
         page()
+        _contact_footer()
 
     wrapped.__name__ = page.__name__
     return wrapped
@@ -4301,15 +4304,118 @@ def _show_stored_insight(session: dict | None = None) -> None:
                 st.rerun()
 
 
+_HOME_ON_PHOTO_CSS = """
+<style>
+/* Sent with the Home photo so these beat a cached stylesheet.
+   The same rules are in ui/static/app.css. */
+.rio-index { color: #F4F1EC !important; }
+[class*="st-key-rio-home-today"] .rio-index,
+.rio-card .rio-index,
+.rio-soft-card .rio-index,
+.rio-daycard .rio-index,
+.rio-mini .rio-index { color: #121110 !important; }
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-left: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0.15rem 0 0.2rem !important;
+}
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] details {
+  background: #FFFCF7 !important;
+  background-color: #FFFCF7 !important;
+  border: 1px solid #DCD6CC !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 22px rgba(18, 17, 16, 0.045) !important;
+  color: #121110 !important;
+}
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] summary {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-radius: 16px !important;
+  color: #121110 !important;
+  font-family: Inter, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-size: 0.92rem !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
+  padding: 0.95rem 1.15rem !important;
+}
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] summary:hover,
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] summary:focus,
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] summary:focus-visible {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #121110 !important;
+}
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] summary p,
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] summary [data-testid="stMarkdownContainer"],
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] summary [data-testid="stMarkdownContainer"] p,
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] summary [data-testid="stMarkdownContainer"] span {
+  color: #121110 !important;
+  font-family: Inter, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-size: 0.92rem !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
+  margin: 0 !important;
+}
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] summary svg {
+  fill: #6E6A64 !important;
+  color: #6E6A64 !important;
+}
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpanderDetails"] {
+  background: transparent !important;
+  border-top: 1px solid #DCD6CC !important;
+  padding: 0.15rem 1.15rem 1rem !important;
+  color: #121110 !important;
+}
+</style>
+"""
+
+
 def _paint_home_photo() -> None:
     """Aerial finish behind Home. The shade is the one photo pages already use."""
     uri = theme.static_url(theme.HOME_PHOTO)
     st.markdown(theme.fullscreen_css(uri), unsafe_allow_html=True)
     st.markdown(theme.home_on_photo_css(uri), unsafe_allow_html=True)
+    st.markdown(_HOME_ON_PHOTO_CSS, unsafe_allow_html=True)
+    st.markdown('<div class="rio-on-photo" hidden></div>', unsafe_allow_html=True)
 
 
 def _home_credit() -> None:
     st.markdown(theme.credit_html(theme.HOME_CREDIT), unsafe_allow_html=True)
+
+
+_CONTACT_EMAIL = "chasejrose5@gmail.com"
+
+
+def _contact_footer() -> None:
+    """Muted line under the page. Photo credits stay where each page put them.
+
+    The rules also live in app.css. This tag covers the startup page, which
+    stops before that stylesheet is sent.
+    """
+    address = _esc(_CONTACT_EMAIL)
+    st.markdown(
+        '<style>'
+        '.rio-contact{margin:0.35rem auto 1.75rem !important;padding:0 !important;'
+        'background:transparent !important;border:none !important;box-shadow:none !important;'
+        'color:#6E6A64 !important;font-size:0.78rem !important;font-weight:400 !important;'
+        'line-height:1.4 !important;text-align:center;position:relative;z-index:6;}'
+        '.rio-contact a{color:#6E6A64 !important;font-weight:500;text-decoration:underline;'
+        'text-underline-offset:0.12em;}'
+        '.stApp:has(.rio-on-photo) .rio-contact,.stApp:has(.rio-page-shade) .rio-contact,'
+        '.stApp:has(.rio-startup-shade) .rio-contact{color:rgba(244,241,236,0.82) !important;}'
+        '.stApp:has(.rio-on-photo) .rio-contact a,.stApp:has(.rio-page-shade) .rio-contact a,'
+        '.stApp:has(.rio-startup-shade) .rio-contact a{color:#F4F1EC !important;}'
+        '.stApp:has(.rio-startup-credit) .rio-contact{position:fixed;left:0;right:0;'
+        'bottom:3.15rem;z-index:5;margin:0 auto !important;}'
+        '</style>'
+        '<p class="rio-contact">Questions or feedback? Email '
+        f'<a href="mailto:{address}">{address}</a></p>',
+        unsafe_allow_html=True,
+    )
 
 
 def page_dashboard() -> None:
@@ -6009,12 +6115,13 @@ def page_settings() -> None:
                 st.rerun()
 
     with st.container(key="rio-settings-logging"):
-        st.markdown('<p class="rio-mark-label">Logging</p>', unsafe_allow_html=True)
-        no_watch = st.toggle("I don't use a watch", key="settings-no-watch")
-        st.markdown(
-            '<p class="rio-settings-note">Complete workouts with Done instead of entering splits.</p>',
-            unsafe_allow_html=True,
-        )
+        with st.expander("Logging", expanded=False):
+            st.markdown(_label("Logging"), unsafe_allow_html=True)
+            no_watch = st.toggle("I don't use a watch", key="settings-no-watch")
+            st.markdown(
+                '<p class="rio-settings-note">Complete workouts with Done instead of entering splits.</p>',
+                unsafe_allow_html=True,
+            )
 
     with st.container(key="rio-settings-prefs"):
         with st.expander("Preferences", expanded=False):
@@ -6819,6 +6926,7 @@ def _render_create_account() -> None:
             unsafe_allow_html=True,
         )
     st.markdown(theme.credit_html(theme.LOGIN_CREDIT), unsafe_allow_html=True)
+    _contact_footer()
     if back:
         _open_auth("login")
     if not create:
@@ -6837,6 +6945,7 @@ def _render_login() -> None:
         from ui.cloud_ui import render_cloud_auth
 
         render_cloud_auth(_auth_backdrop, _auth_notice, _page_hero)
+        _contact_footer()
         return
     if _auth_screen() == "create":
         _render_create_account()
@@ -6866,6 +6975,7 @@ def _render_login() -> None:
         with st.container(key="rio-auth-switch"):
             create = st.button("Create account", key="rio-open-create", width="stretch")
     st.markdown(theme.credit_html(theme.LOGIN_CREDIT), unsafe_allow_html=True)
+    _contact_footer()
     if create:
         _open_auth("create")
     if not log_in:
@@ -6896,9 +7006,11 @@ if (
     and st.query_params.get("skip") != "1"
 ):
     if render_startup():
+        _contact_footer()
         acknowledge_startup(st.session_state)
         st.query_params["skip"] = "1"
         st.rerun()
+    _contact_footer()
     st.stop()
 _restore_session()
 _open_restored_session(_session_was_open)

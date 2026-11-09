@@ -3210,18 +3210,6 @@ html,
 }
 
 /* Done-only logging. Brand orange is the fill. Behind keeps the darker orange as text. */
-[class*="st-key-rio-settings-logging"] {
-  background: #FFFCF7 !important;
-  border: 1px solid #DCD6CC !important;
-  box-shadow: 0 8px 22px rgba(18, 17, 16, 0.045) !important;
-}
-[class*="st-key-rio-settings-logging"] [data-testid="stMarkdownContainer"] p.rio-mark-label {
-  color: #E25A32 !important;
-  padding-top: 0.15rem !important;
-}
-[class*="st-key-rio-settings-logging"] [data-testid="stMarkdownContainer"] p.rio-settings-note {
-  color: #6E6A64 !important;
-}
 [class*="st-key-rio-watchless"] {
   margin-top: 0.85rem !important;
 }
@@ -3291,4 +3279,115 @@ html,
 [class*="st-key-rio-done-time"] button p,
 [class*="st-key-rio-done-time"] button span {
   color: #6E6A64 !important;
+}
+
+/* Home section labels on the aerial. The orange dash stays on ::before.
+   The same label inside a cream card keeps the ink color. */
+.stApp:has(.rio-home-hero) .rio-index {
+  color: #F4F1EC !important;
+}
+.stApp:has(.rio-home-hero) [class*="st-key-rio-home-today"] .rio-index,
+.stApp:has(.rio-home-hero) .rio-card .rio-index,
+.stApp:has(.rio-home-hero) .rio-soft-card .rio-index,
+.stApp:has(.rio-home-hero) .rio-daycard .rio-index,
+.stApp:has(.rio-home-hero) .rio-mini .rio-index {
+  color: #121110 !important;
+}
+
+/* The phase sentence matches the cream cards beside it. Other expanders stay. */
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-left: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0.15rem 0 0.2rem !important;
+}
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] details {
+  background: #FFFCF7 !important;
+  background-color: #FFFCF7 !important;
+  border: 1px solid #DCD6CC !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 22px rgba(18, 17, 16, 0.045) !important;
+  color: #121110 !important;
+}
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] summary {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-radius: 16px !important;
+  color: #121110 !important;
+  font-family: Inter, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-size: 0.92rem !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
+  padding: 0.95rem 1.15rem !important;
+}
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] summary:hover,
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] summary:focus,
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] summary:focus-visible {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #121110 !important;
+}
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] summary p,
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] summary [data-testid="stMarkdownContainer"],
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] summary [data-testid="stMarkdownContainer"] p,
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] summary [data-testid="stMarkdownContainer"] span {
+  color: #121110 !important;
+  font-family: Inter, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-size: 0.92rem !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
+  margin: 0 !important;
+}
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] summary svg {
+  fill: #6E6A64 !important;
+  color: #6E6A64 !important;
+}
+.stApp [class*="st-key-rio-this-week"] [data-testid="stExpanderDetails"] {
+  background: transparent !important;
+  border-top: 1px solid #DCD6CC !important;
+  padding: 0.15rem 1.15rem 1rem !important;
+  color: #121110 !important;
+}
+
+/* Shared contact line. Muted like the photo credit. Light on a photo page. */
+.rio-contact {
+  margin: 0.35rem auto 1.75rem !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #6E6A64 !important;
+  font-size: 0.78rem !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  text-align: center;
+  position: relative;
+  z-index: 6;
+}
+.rio-contact a {
+  color: #6E6A64 !important;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+.stApp:has(.rio-on-photo) .rio-contact,
+.stApp:has(.rio-page-shade) .rio-contact,
+.stApp:has(.rio-startup-shade) .rio-contact {
+  color: rgba(244, 241, 236, 0.82) !important;
+}
+.stApp:has(.rio-on-photo) .rio-contact a,
+.stApp:has(.rio-page-shade) .rio-contact a,
+.stApp:has(.rio-startup-shade) .rio-contact a {
+  color: #F4F1EC !important;
+}
+.stApp:has(.rio-startup-credit) .rio-contact {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 3.15rem;
+  z-index: 5;
+  margin: 0 auto !important;
 }
