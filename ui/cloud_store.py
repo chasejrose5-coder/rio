@@ -225,6 +225,16 @@ class MemoryDirectory:
             raise CloudAuthError("The Strava prompt could not be saved.")
         user["strava_prompt_seen"] = seen
 
+    def save_no_watch(self, access_token: object, enabled: object) -> None:
+        """Remember Done-only logging on this athlete. The other account stays."""
+        user_id = self.user_id(access_token)
+        if not isinstance(enabled, bool):
+            raise CloudAuthError("Logging could not be saved.")
+        user = self.users.get(user_id)
+        if user is None:
+            raise CloudAuthError("Logging could not be saved.")
+        user["no_watch"] = enabled
+
     def _keep_zone(self, user_id: str, zone: object) -> bool:
         from ui.settings import TIME_ZONES
 
@@ -696,11 +706,17 @@ class SupabaseDirectory:
         intro = intro_seen_value(record)
         easy = easy_pace_from_metadata(record)
         zone = _zone_from_metadata(record)
+        watch = no_watch_value(record)
         from ui.plan_strava import prompt_seen_value
 
         prompt = prompt_seen_value(record)
         if isinstance(profile, dict) and (
-            pace or intro is not None or prompt is not None or easy is not None or zone
+            pace
+            or intro is not None
+            or prompt is not None
+            or easy is not None
+            or zone
+            or watch is not None
         ):
             profile = dict(profile)
             if pace:
@@ -714,6 +730,8 @@ class SupabaseDirectory:
                 profile["easy_pace_unit"] = easy[1]
             if zone:
                 profile["timezone"] = zone
+            if watch is not None:
+                profile["no_watch"] = watch
         return {
             "profile": profile,
             "goal": goal or _blank_goal(),
@@ -823,6 +841,19 @@ class SupabaseDirectory:
             raise
         except Exception:
             raise CloudAuthError("The Strava prompt could not be saved.") from None
+
+    def save_no_watch(self, access_token: object, enabled: object) -> None:
+        """Store Done-only logging on the auth user, next to pace units. No new table."""
+        if not isinstance(enabled, bool):
+            raise CloudAuthError("Logging could not be saved.")
+        if not isinstance(access_token, str) or not access_token:
+            raise CloudAuthError("Sign in again.")
+        try:
+            self._auth_user_update(access_token, {"no_watch": enabled})
+        except CloudAuthError:
+            raise
+        except Exception:
+            raise CloudAuthError("Logging could not be saved.") from None
 
     def save_bundle(self, access_token: object, bundle: object) -> None:
         if not isinstance(bundle, dict):
@@ -1275,6 +1306,8 @@ def _public_user(user: dict) -> dict:
         row["intro_seen"] = user["intro_seen"]
     if isinstance(user.get("strava_prompt_seen"), bool):
         row["strava_prompt_seen"] = user["strava_prompt_seen"]
+    if isinstance(user.get("no_watch"), bool):
+        row["no_watch"] = user["no_watch"]
     return row
 
 
@@ -1340,6 +1373,14 @@ def intro_seen_value(user: object) -> bool | None:
     if meta is None or "intro_seen" not in meta:
         return None
     return meta.get("intro_seen") is True
+
+
+def no_watch_value(user: object) -> bool | None:
+    """True or False when Done-only logging is stored. None when it is absent."""
+    meta = _metadata_dict(user)
+    if meta is None or "no_watch" not in meta:
+        return None
+    return meta.get("no_watch") is True
 
 
 def _log_store(action: str, exc: BaseException) -> None:

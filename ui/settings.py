@@ -76,6 +76,7 @@ DEFAULTS = {
     "start_date": "today",
     "reminders": False,
     "recap": False,
+    "no_watch": False,
     "theme": "dark",
 }
 
@@ -112,6 +113,7 @@ def normalize(raw: object) -> dict:
         "start_date": start_date if start_date in ("today", "sunday") else DEFAULTS["start_date"],
         "reminders": reminders,
         "recap": recap,
+        "no_watch": found.get("no_watch") is True,
         "theme": "dark",
     }
 

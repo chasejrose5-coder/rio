@@ -390,6 +390,12 @@ def _apply_bundle(bundle: dict) -> None:
             settings["pace_units"] = pace
             st.session_state["rio_settings"] = settings
             st.session_state["rio_pace_saved"] = pace
+        if "no_watch" in profile:
+            current = st.session_state.get("rio_settings")
+            settings = dict(current) if isinstance(current, dict) else {}
+            settings["no_watch"] = profile.get("no_watch") is True
+            st.session_state["rio_settings"] = settings
+            st.session_state["rio_no_watch_saved"] = settings["no_watch"]
         if "intro_seen" in profile:
             st.session_state["rio_intro_seen"] = profile.get("intro_seen") is True
         if "strava_prompt_seen" in profile:

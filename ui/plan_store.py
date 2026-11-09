@@ -244,6 +244,8 @@ def _clean_actual(value: object) -> dict | None:
     template_id = template_id.strip()
     if not template_id or len(template_id) > _ID_LIMIT:
         return None
+    if value.get("completed") is True or value.get("missed") is True:
+        return _clean_logged(value, template_id)
     mark = value.get("mark")
     if mark not in MARKS:
         return None
@@ -262,6 +264,46 @@ def _clean_actual(value: object) -> dict | None:
     slots = _slots(value.get("slots"))
     if slots is not None:
         row["slots"] = slots
+    intervals = _intervals_ref(value.get("intervals"))
+    if intervals is not None:
+        row["intervals"] = intervals
+    return row
+
+
+def _clean_logged(value: dict, template_id: str) -> dict | None:
+    """A Done or a miss. A completion can stand with no time and no mark.
+
+    An empty time stays empty. A mark is kept only when it is one of the
+    three already stored. Slots are per-rep and stay off a single clock time
+    unless that time was already stored with them.
+    """
+    text = value.get("text")
+    if not isinstance(text, str):
+        text = ""
+    text = text.strip()[:_TEXT_LIMIT]
+    numbers = _number_list(value.get("numbers"))
+    if numbers is None:
+        numbers = []
+    if value.get("missed") is True and value.get("completed") is not True:
+        return {
+            "missed": True,
+            "numbers": [],
+            "template_id": template_id,
+            "text": "",
+        }
+    row: dict = {
+        "completed": True,
+        "numbers": numbers,
+        "template_id": template_id,
+        "text": text,
+    }
+    mark = value.get("mark")
+    if mark in MARKS:
+        row["mark"] = mark
+    if numbers:
+        slots = _slots(value.get("slots"))
+        if slots is not None:
+            row["slots"] = slots
     intervals = _intervals_ref(value.get("intervals"))
     if intervals is not None:
         row["intervals"] = intervals
