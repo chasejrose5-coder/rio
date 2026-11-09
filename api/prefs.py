@@ -1,0 +1,102 @@
+# prefs.py — time zone, pace, no-watch, and easy pace from the account.
+
+"""The same helpers the settings page uses. Nothing here is passed to adapt.
+
+units follows pace the way the shell does: per kilometer shows kilometers,
+and per mile shows miles. Today is local_today in the saved zone.
+"""
+
+from __future__ import annotations
+
+from datetime import date
+
+from api.identity import Principal
+from engines.pace import canonical_easy_pace, easy_pace_phrase
+from ui.accounts import read_local
+from ui.cloud_store import stored_easy_pair
+from ui.settings import chosen_timezone, local_today, normalize
+
+
+def _easy_from(pace: object, unit: object) -> tuple[str, str] | None:
+    pair = stored_easy_pair(pace, unit)
+    if pair is not None:
+        return pair
+    text = canonical_easy_pace(pace)
+    if text and unit in ("mi", "km"):
+        return text, unit
+    return None
+
+
+def account_prefs(principal: Principal, directory) -> dict:
+    """Saved settings, the zone, today's date, and the easy pace."""
+    raw: dict = {}
+    zone = None
+    easy = None
+    profile: dict = {}
+    if principal.kind == "hosted" and directory is not None and isinstance(principal.token, str):
+        from services.season_store import load_hosted_season
+
+        bundle = load_hosted_season(directory, principal.token)
+        found = bundle.get("profile") if isinstance(bundle, dict) else None
+        profile = found if isinstance(found, dict) else {}
+        zone = profile.get("timezone")
+        pace = profile.get("pace_units")
+        if pace in ("mi", "km"):
+            raw["pace_units"] = pace
+        if "no_watch" in profile:
+            raw["no_watch"] = profile.get("no_watch") is True
+        easy = _easy_from(profile.get("easy_pace"), profile.get("easy_pace_unit"))
+        principal.display_name = str(profile.get("display_name") or principal.display_name)
+        principal.role = str(profile.get("role") or principal.role or "athlete")
+        if profile.get("id"):
+            principal.user_id = str(profile.get("id"))
+        if profile.get("email"):
+            principal.email = str(profile.get("email"))
+    elif principal.accounts_path is not None:
+        local = read_local(principal.accounts_path, principal.email) or {}
+        settings = local.get("settings")
+        if isinstance(settings, dict):
+            raw = dict(settings)
+        zone = local.get("timezone")
+        easy = _easy_from(local.get("easy_pace"), local.get("easy_pace_unit"))
+        if isinstance(local.get("name"), str) and local.get("name"):
+            principal.display_name = str(local.get("name"))
+    prefs = normalize(raw)
+    # The shell shows distance in the pace unit the athlete picked.
+    prefs["units"] = "km" if prefs.get("pace_units") == "km" else "miles"
+    timezone = chosen_timezone(zone, None)
+    today = local_today(timezone)
+    phrase = ""
+    easy_pace = ""
+    easy_unit = prefs["pace_units"] if prefs.get("pace_units") in ("mi", "km") else "mi"
+    if easy is not None:
+        easy_pace, easy_unit = easy
+        phrase = easy_pace_phrase(easy_pace, easy_unit)
+    return {
+        "prefs": prefs,
+        "timezone": timezone,
+        "today": today,
+        "easy_pace": easy_pace,
+        "easy_pace_unit": easy_unit,
+        "easy_pace_phrase": phrase,
+        "profile": profile,
+    }
+
+
+def prefs_payload(resolved: dict) -> dict:
+    prefs = resolved["prefs"]
+    today = resolved["today"]
+    return {
+        "timezone": resolved["timezone"],
+        "pace_units": prefs["pace_units"],
+        "no_watch": prefs["no_watch"] is True,
+        "easy_pace": resolved["easy_pace"],
+        "easy_pace_unit": resolved["easy_pace_unit"],
+        "easy_pace_phrase": resolved["easy_pace_phrase"],
+        "units": prefs["units"],
+        "date_format": prefs["date_format"],
+        "start_date": prefs["start_date"],
+        "confirm_adapt": prefs["confirm_adapt"] is True,
+        "today": today.isoformat() if isinstance(today, date) else "",
+        "logging": "done" if prefs.get("no_watch") is True else "times",
+    }

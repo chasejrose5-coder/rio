@@ -16,6 +16,8 @@ The service role bypasses those policies. The app uses it only on the server, an
 
 `008_delete_past_season.sql` deletes one past season and the results tied to it, in one transaction, for the signed-in athlete. A goal date of today or later is refused. Run it after 007. It is safe to run again. Until it has been run, the app deletes those same rows one by one.
 
+`009_season_state.sql` stores the quality base and the workout notes for one season. The plan row is unchanged. A signed-in athlete can read only their own rows. Run it after 008. It is safe to run again. It also updates `delete_past_season` so deleting a past season removes that row. Until it has been run, the API rebuilds a missing quality base from the stored marks, earliest week first. The Streamlit app does not read this table.
+
 After the SQL:
 
 1. Authentication, URL configuration. Site URL: `https://riotraining.streamlit.app`. Redirect URLs: `https://riotraining.streamlit.app` and `https://riotraining.streamlit.app/**`. For a laptop, also add `http://localhost:8501` and `http://localhost:8501/**`.
