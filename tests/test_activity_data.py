@@ -651,8 +651,10 @@ def test_the_page_lists_matched_activities_and_does_not_spend() -> None:
     ):
         if name not in block:
             raise AssertionError(f"{name} does not pull on open")
-    pull_for = app[app.index("def _pull_for(") : app.index("\ndef _with_plan(")]
-    if 'st.session_state.get("activity-refresh") is True' not in pull_for:
+    pull_shell = app[app.index("def _pull_for(") : app.index("\ndef _with_plan(")]
+    pull_for = (ROOT / "services" / "activity_pull.py").read_text(encoding="utf-8")
+    pull_for = pull_for[pull_for.index("def run_activity_pull(") :]
+    if 'st.session_state.get("activity-refresh") is True' not in pull_shell:
         raise AssertionError("refresh does not read activities again")
     branches = pull_for.split("if refresh:", 1)[1]
     history, recent = branches.split("else:", 1)

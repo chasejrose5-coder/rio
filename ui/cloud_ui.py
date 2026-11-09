@@ -253,43 +253,24 @@ def persist_cloud_season() -> None:
     """Write the season already in this session onto the signed-in user."""
     if st.session_state.get("rio_test_preview"):
         return
+    from services.season_store import save_hosted_season
+
     token = st.session_state.get("rio_cloud_access")
     directory = current_directory()
     inputs = st.session_state.get("season_inputs")
     plan = st.session_state.get("season_plan")
-    if directory is None or not isinstance(token, str) or not isinstance(plan, dict):
-        return
-    if not isinstance(inputs, (list, tuple)) or len(inputs) != 4:
-        return
-    goal = {
-        "event": "800m",
-        "current_mark": str(inputs[0]),
-        "goal_time": str(inputs[2]),
-        "goal_date": str(inputs[3]),
-    }
     actuals = st.session_state.get("season_actuals")
     marks = st.session_state.get("season_marks") or {}
-    digest = season_digest(inputs, plan, marks, actuals if isinstance(actuals, dict) else {})
-    if digest == st.session_state.get("rio_cloud_saved_hash"):
-        return
     try:
-        directory.save_bundle(
+        digest = save_hosted_season(
+            directory,
             token,
-            {
-                "goal": goal,
-                "plans": [
-                    {
-                        "current_time": str(inputs[0]),
-                        "start_date": str(inputs[1]),
-                        "goal_time": str(inputs[2]),
-                        "goal_date": str(inputs[3]),
-                        "plan": plan,
-                        "marks": marks,
-                        "actuals": actuals if isinstance(actuals, dict) else {},
-                    }
-                ],
-                "profile": {"display_name": st.session_state.get("rio_cloud_name") or ""},
-            },
+            inputs=inputs,
+            plan=plan,
+            marks=marks,
+            actuals=actuals if isinstance(actuals, dict) else {},
+            display_name=st.session_state.get("rio_cloud_name") or "",
+            saved_hash=st.session_state.get("rio_cloud_saved_hash"),
         )
     except CloudAuthError as exc:
         st.session_state["rio_save_error"] = str(exc)
@@ -298,7 +279,8 @@ def persist_cloud_season() -> None:
         except Exception:
             pass
         return
-    st.session_state["rio_cloud_saved_hash"] = digest
+    if digest is not None:
+        st.session_state["rio_cloud_saved_hash"] = digest
 
 
 def delete_signed_in_account() -> None:

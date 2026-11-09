@@ -421,6 +421,8 @@ def test_quality_session_prefills_from_the_file() -> None:
     apply = _function(app, "_apply_result")
     choice = _function(app, "_intervals_choice")
     boxes = _function(app, "_time_box")
+    service = (ROOT / "services" / "season_commit.py").read_text(encoding="utf-8")
+    commit_body = _function(service, "commit_result")
     if "quality_fill(" not in choice or "Intervals file" not in choice:
         raise AssertionError("a quality session cannot open an Intervals file")
     if "file_just_opened(" not in result or "fit_slots(" not in result:
@@ -429,9 +431,9 @@ def test_quality_session_prefills_from_the_file() -> None:
         raise AssertionError("the time boxes are locked")
     if "_apply_result(" not in result or "intervals=source" not in result:
         raise AssertionError("filled times do not go through the result path")
-    if "judge(" not in apply or "_adapt_from_result(" not in commit:
+    if "commit_session_result(" not in commit or "judge(" not in apply or "adapt_from_result(" not in commit_body:
         raise AssertionError("judge() or adapt() was bypassed")
-    if 'row["intervals"]' not in commit or '"intervals"' not in apply:
+    if 'row["intervals"]' not in commit_body or '"intervals"' not in apply:
         raise AssertionError("the file is not stored with the actuals")
     if "_quality_day(session)" not in page or "_render_result(" not in page:
         raise AssertionError("quality days lost the result boxes")

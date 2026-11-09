@@ -236,7 +236,8 @@ def test_admin_page_keeps_the_gate() -> None:
     if "rio_test_preview" not in pull:
         raise AssertionError("a preview still pulls")
     store = app[app.index("def _sync_browser_store(") : app.index("def _load_shared_plan(")]
-    if "rio_test_preview" not in store or "write_record(" not in store:
+    local = (ROOT / "services" / "season_store.py").read_text(encoding="utf-8")
+    if "rio_test_preview" not in store or "save_local_season(" not in store or "write_record(" not in local:
         raise AssertionError("a preview still saves")
     cloud = (ROOT / "ui" / "cloud_ui.py").read_text(encoding="utf-8")
     persist = cloud[cloud.index("def persist_cloud_season(") : cloud.index("\ndef ", cloud.index("def persist_cloud_season(") + 1)]

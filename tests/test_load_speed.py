@@ -259,11 +259,14 @@ def test_intervals_pull_and_explain_run_once_per_session() -> None:
         raise AssertionError("refresh did not pull")
     app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
     pull = app[app.index("def _pull_for(") : app.index("\ndef _open_restored_session(")]
+    service = (ROOT / "services" / "activity_pull.py").read_text(encoding="utf-8")
     if 'st.session_state.get("activity-refresh") is True' not in pull:
         raise AssertionError("refresh no longer reads activities")
-    if "pull_again(" not in pull or "rio_intervals_pulled" not in pull:
+    if "rio_intervals_pulled" not in pull or "run_activity_pull(" not in pull:
         raise AssertionError("the pull is not once per session")
-    if '"load"' not in pull or "sync_recent(" not in pull or "sync_all(" not in pull:
+    if "pull_again(" not in service or '"load"' not in service:
+        raise AssertionError("the pull is not once per session")
+    if "sync_recent(" not in service or "sync_all(" not in service:
         raise AssertionError("the pull lost a branch")
     asked: list[str] = []
 

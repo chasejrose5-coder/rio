@@ -34,12 +34,11 @@ from engines.pace import (
     workout_times,
 )
 from engines.prescribe import PARAMETER_KEYS, load_menu, prescribe
-from engines.season import adapt, sequence
+from engines.season import sequence
 from ui.about import about_sections
 from ui.calendar import month_title, month_weeks, opening_month, plan_months
 from ui.library import filter_workouts, library_rows
 from ui.activities import (
-    PullError,
     activity_by_id,
     load_local_env,
     activity_window,
@@ -59,7 +58,6 @@ from ui.activity_data import (
     session_rows,
     weekly_completed_meters,
 )
-from ui.auto_adapt import auto_adapt
 from ui.last_session import (
     IntervalsFileError,
     activity_by_ref,
@@ -102,7 +100,6 @@ from ui.accounts import (
     change_password,
     create_account,
     delete_account,
-    delete_records,
     hey,
     issue_session,
     last_key,
@@ -115,13 +112,10 @@ from ui.accounts import (
     shown_name,
     write_easy_pace,
     write_local,
-    write_record,
 )
 from ui.plan_store import (
-    dump_record,
     export_season,
     inputs_ok,
-    load_record,
     plan_inputs,
     query_values,
     storage_key,
@@ -154,6 +148,28 @@ from ui.progress import (
     volume_chart,
 )
 from ui.result import filled_times, goal_seconds, judge, result_box_count
+from services.activity_pull import run_activity_pull
+from services.season_commit import (
+    apply_activity_marks,
+    commit_mark as commit_week_mark,
+    commit_result as commit_session_result,
+    commit_watchless_mark,
+    intervals_ref,
+    quality_day,
+    stored_slot,
+)
+from services.season_store import (
+    LocalSeasonError,
+    delete_local_plans,
+    filter_plan_rows,
+    filter_saved_inputs,
+    load_local_season,
+    remove_past_season,
+    same_season,
+    save_cleared_marks,
+    save_hosted_season,
+    save_local_season,
+)
 
 FIXTURES_DIR = ROOT / "tests" / "fixtures"
 
@@ -1271,15 +1287,17 @@ def _restore_session() -> None:
 def _restore_record(key: str) -> None:
     """Read this account's marks and actuals once, before an empty plan is drawn."""
     who = _account_identity()
-    body = None if who is None else read_record(accounts_path(), who[0], who[1], key)
-    if not isinstance(body, str):
+    try:
+        if who is None:
+            raise LocalSeasonError("This account could not be opened.")
+        marks, actuals, activities = load_local_season(accounts_path(), who[0], who[1], key)
+    except LocalSeasonError:
         st.markdown(_css(), unsafe_allow_html=True)
         st.markdown(
             '<p class="rio-error">This account could not be opened.</p>',
             unsafe_allow_html=True,
         )
         st.stop()
-    marks, actuals, activities = load_record(body)
     st.session_state["season_marks"] = marks
     st.session_state["season_actuals"] = actuals
     st.session_state["season_activities"] = activities
@@ -1306,16 +1324,14 @@ def _sync_browser_store() -> None:
         _restore_record(key)
         return
     try:
-        write_record(
+        save_local_season(
             accounts_path(),
             who[0],
             who[1],
             key,
-            dump_record(
-                st.session_state.get("season_marks"),
-                st.session_state.get("season_actuals"),
-                st.session_state.get("season_activities"),
-            ),
+            st.session_state.get("season_marks"),
+            st.session_state.get("season_actuals"),
+            st.session_state.get("season_activities"),
         )
     except AccountError:
         st.markdown(_css(), unsafe_allow_html=True)
@@ -1407,57 +1423,50 @@ def _pull_for(page_name: str) -> None:
         return
     if page_name == "page_past_seasons":
         return
-    plan = st.session_state.get("season_plan")
-    if not isinstance(plan, dict):
-        return
-    refresh = page_name == "page_activity" and st.session_state.get("activity-refresh") is True
-    from ui.load_gate import pull_again
+    from ui.strava_ui import restore_rows, strava_connected, strava_gate_pending
 
-    if not pull_again(refresh, st.session_state.get("rio_intervals_pulled") is True):
-        from ui.strava_ui import restore_rows
+    def _today():
+        return _athlete_today()
 
-        restore_rows()
-        return
-    opened = page_name in _PULL_PAGES
-    if not refresh and not opened and st.session_state.get("activities_loaded"):
-        return
-    trigger = page_name if opened else "load"
-    if not refresh and st.session_state.get("activities_trigger") == trigger:
-        return
-    sessions = plan.get("sessions")
-    if not isinstance(sessions, list):
-        sessions = []
-    from ui.strava_ui import strava_connected, strava_gate_pending
+    def _activities():
+        return st.session_state.get("season_activities")
 
-    if not refresh and strava_gate_pending():
-        return
-    if not strava_connected():
-        try:
-            if refresh:
-                updated = sync_all(
-                    sessions,
-                    st.session_state.get("season_activities"),
-                    _athlete_today(),
-                )
-            else:
-                updated = sync_recent(
-                    sessions,
-                    st.session_state.get("season_activities"),
-                    _athlete_today(),
-                )
-        except PullError as exc:
-            st.session_state["activities_notice"] = str(exc)
-        else:
-            st.session_state["season_activities"] = updated
-            st.session_state.pop("activities_notice", None)
-            if opened:
-                _apply_activity_marks(plan)
-    from ui.strava_ui import restore_rows
+    def _notice(text: str) -> None:
+        st.session_state["activities_notice"] = text
 
-    restore_rows()
-    st.session_state["activities_trigger"] = trigger
-    st.session_state["activities_loaded"] = True
-    st.session_state["rio_intervals_pulled"] = True
+    def _clear_notice() -> None:
+        st.session_state.pop("activities_notice", None)
+
+    def _set_activities(updated) -> None:
+        st.session_state["season_activities"] = updated
+
+    def _loaded(trigger: str) -> None:
+        st.session_state["activities_trigger"] = trigger
+        st.session_state["activities_loaded"] = True
+        st.session_state["rio_intervals_pulled"] = True
+
+    run_activity_pull(
+        page_name=page_name,
+        test_preview=bool(st.session_state.get("rio_test_preview")),
+        refresh=page_name == "page_activity" and st.session_state.get("activity-refresh") is True,
+        already_pulled=st.session_state.get("rio_intervals_pulled") is True,
+        activities_loaded=st.session_state.get("activities_loaded"),
+        activities_trigger=st.session_state.get("activities_trigger"),
+        plan=st.session_state.get("season_plan"),
+        activities=_activities,
+        today=_today,
+        strava_connected=strava_connected,
+        strava_gate_pending=strava_gate_pending,
+        sync_all=sync_all,
+        sync_recent=sync_recent,
+        restore_rows=restore_rows,
+        on_notice=_notice,
+        clear_notice=_clear_notice,
+        on_activities=_set_activities,
+        _apply_activity_marks=_apply_activity_marks,
+        on_loaded=_loaded,
+        pull_pages=_PULL_PAGES,
+    )
 
 
 def _open_restored_session(was_signed_in: bool) -> None:
@@ -2474,39 +2483,9 @@ def _session_link(session: dict, kind: str, *, first: bool = False) -> None:
         )
 
 
-_PLAN_KEYS = (
-    "week_number",
-    "day_of_week",
-    "date",
-    "template_id",
-    "reason_codes",
-    "target_outcome",
-)
-
-
 def _quality_day(session: dict) -> bool:
     """Tuesday and Thursday work. Recovery and the long run stay closed."""
-    if str(session.get("day_of_week")) not in ("Tuesday", "Thursday"):
-        return False
-    template_id = str(session.get("template_id") or "")
-    return bool(template_id) and not template_id.startswith("aer_")
-
-
-def _plan_for_adapt(plan: dict) -> dict:
-    """The six session fields adapt() checks. Result numbers stay off this copy."""
-    sessions = []
-    for session in plan["sessions"]:
-        row = {}
-        for key in _PLAN_KEYS:
-            value = session[key]
-            row[key] = list(value) if key == "reason_codes" else value
-        sessions.append(row)
-    return {
-        "ontology_version": plan.get("ontology_version"),
-        "season_length_weeks": plan.get("season_length_weeks"),
-        "start_date": plan.get("start_date"),
-        "sessions": sessions,
-    }
+    return quality_day(session)
 
 
 def _actuals() -> dict:
@@ -2641,66 +2620,36 @@ def _render_logged_activity(row: dict) -> None:
     _card(*parts)
 
 
-def _attach_actuals(plan: dict) -> None:
-    """Write stored numbers onto sessions that still use that template."""
-    stored = _actuals()
-    by_date = {session["date"]: session for session in plan["sessions"]}
-    for day in list(stored):
-        saved = stored[day]
-        session = by_date.get(day)
-        if (
-            not isinstance(saved, dict)
-            or session is None
-            or session.get("template_id") != saved.get("template_id")
-        ):
-            stored.pop(day, None)
-            continue
-        numbers = saved.get("numbers")
-        if isinstance(numbers, list) and numbers:
-            session["actual"] = list(numbers)
-
-
-def _week_mark(plan: dict, week: int) -> str | None:
-    """not_hitting wins, then smashing. Same order adapt() uses for a list.
-
-    A Done choice with no clock time is not a timed effort.
-    """
-    from ui.no_watch import timed_mark
-
-    found = []
-    stored = _actuals()
-    for session in plan["sessions"]:
-        if session.get("week_number") != week or not _quality_day(session):
-            continue
-        saved = stored.get(session.get("date"))
-        if not isinstance(saved, dict) or saved.get("template_id") != session.get("template_id"):
-            continue
-        mark = timed_mark(saved)
-        if mark in _MARKS:
-            found.append(mark)
-    if not found:
-        return None
-    if "not_hitting" in found:
-        return "not_hitting"
-    if "smashing" in found:
-        return "smashing"
-    return "on_track"
-
-
-def _adapt_from_result(plan: dict, week: int, outcome: str) -> dict:
-    """One adapt for this week, from the plan before this week's results."""
+def _quality_bases() -> dict:
+    """The plans from before each week's adapt. Created on first use."""
     bases = st.session_state.get("season_quality_base")
     if not isinstance(bases, dict):
         bases = {}
         st.session_state["season_quality_base"] = bases
-    if week not in bases:
-        bases[week] = _plan_for_adapt(plan)
-    for later in list(bases):
-        if later > week:
-            del bases[later]
-    updated = adapt(bases[week], week, outcome)
-    _attach_actuals(updated)
-    return updated
+    return bases
+
+
+def _finish_commit(outcome, session: dict | None) -> None:
+    """Write a committed plan, or show the adapt error on this run."""
+    if outcome.error:
+        st.markdown(
+            f'<p class="rio-error">{_esc(outcome.error)}</p>',
+            unsafe_allow_html=True,
+        )
+        return
+    if not outcome.committed or outcome.plan is None or outcome.marks is None:
+        return
+    _clear_adapt()
+    st.session_state["season_marks"] = outcome.marks
+    st.session_state["season_plan"] = outcome.plan
+    if outcome.note_mark is not None and session is not None:
+        _remember_workout_note(
+            outcome.plan,
+            session,
+            outcome.note_mark,
+            outcome.note_detail or "",
+        )
+    st.rerun()
 
 
 def _goal_mark_seconds() -> float | None:
@@ -2723,22 +2672,12 @@ def _format_numbers(numbers: list) -> str:
 
 
 def _stored_slot(value: object) -> float | None:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        return None
-    number = round(float(value), 2)
-    if number <= 0:
-        return None
-    return number
+    return stored_slot(value)
 
 
 def _intervals_ref(value: object) -> str | None:
     """Activity id or filename kept with the actual. The record allows 120 characters."""
-    if not isinstance(value, str):
-        return None
-    text = value.strip()
-    if not text or len(text) > 120:
-        return None
-    return text
+    return intervals_ref(value)
 
 
 def _boxes_blank(keys: list[str]) -> bool:
@@ -2819,53 +2758,18 @@ def _commit_result(
     intervals: str | None = None,
 ) -> None:
     """Store the numbers and call adapt once. Empty or invalid text does nothing."""
-    if not text:
-        return
-    judged = judge(session.get("template_id"), text, _goal_mark_seconds())
-    if judged is None:
-        return
-    day = str(session["date"])
-    week = session["week_number"]
-    stored = _actuals()
-    previous = stored.get(day)
-    row = {
-        "text": text,
-        "numbers": list(judged["numbers"]),
-        "mark": judged["mark"],
-        "template_id": session.get("template_id"),
-    }
-    if isinstance(slots, list):
-        row["slots"] = [_stored_slot(item) for item in slots]
-    ref = _intervals_ref(intervals)
-    if ref is not None:
-        row["intervals"] = ref
-    stored[day] = row
-    mark = _week_mark(plan, week)
-    if mark is None:
-        if previous is None:
-            stored.pop(day, None)
-        else:
-            stored[day] = previous
-        return
-    try:
-        updated = _adapt_from_result(plan, week, mark)
-    except ValueError as exc:
-        if previous is None:
-            stored.pop(day, None)
-        else:
-            stored[day] = previous
-        st.markdown(
-            f'<p class="rio-error">{_esc(exc)}</p>',
-            unsafe_allow_html=True,
-        )
-        return
-    _clear_adapt()
-    marks = dict(st.session_state.get("season_marks") or {})
-    marks[week] = mark
-    st.session_state["season_marks"] = marks
-    st.session_state["season_plan"] = updated
-    _remember_workout_note(updated, session, str(row["mark"]), text)
-    st.rerun()
+    outcome = commit_session_result(
+        plan,
+        session,
+        text,
+        slots,
+        intervals,
+        _actuals(),
+        st.session_state.get("season_marks"),
+        _quality_bases(),
+        _goal_mark_seconds(),
+    )
+    _finish_commit(outcome, session)
 
 
 def _apply_result(
@@ -3109,37 +3013,15 @@ def _watchless_choices(stem: str, picked: object) -> None:
 
 def _commit_watchless_mark(plan: dict, session: dict, row: dict) -> None:
     """Store a typed quality time and adapt, the same way a result does."""
-    day = str(session["date"])
-    week = session["week_number"]
-    stored = _actuals()
-    previous = stored.get(day)
-    stored[day] = row
-    mark = _week_mark(plan, week)
-    if mark is None:
-        if previous is None:
-            stored.pop(day, None)
-        else:
-            stored[day] = previous
-        return
-    try:
-        updated = _adapt_from_result(plan, week, mark)
-    except ValueError as exc:
-        if previous is None:
-            stored.pop(day, None)
-        else:
-            stored[day] = previous
-        st.markdown(
-            f'<p class="rio-error">{_esc(exc)}</p>',
-            unsafe_allow_html=True,
-        )
-        return
-    _clear_adapt()
-    marks = dict(st.session_state.get("season_marks") or {})
-    marks[week] = mark
-    st.session_state["season_marks"] = marks
-    st.session_state["season_plan"] = updated
-    _remember_workout_note(updated, session, str(row.get("mark") or mark), str(row.get("text") or ""))
-    st.rerun()
+    outcome = commit_watchless_mark(
+        plan,
+        session,
+        row,
+        _actuals(),
+        st.session_state.get("season_marks"),
+        _quality_bases(),
+    )
+    _finish_commit(outcome, session)
 
 
 def _store_watchless(plan: dict, session: dict, row: dict, generation: int) -> None:
@@ -3268,46 +3150,35 @@ def _apply_activity_marks(plan: dict) -> None:
     A day that already has a mark is left as stored. The key is not read
     here. Nothing is sent to a model.
     """
-    bases = st.session_state.get("season_quality_base")
-    if not isinstance(bases, dict):
-        bases = {}
-        st.session_state["season_quality_base"] = bases
-    try:
-        updated, actuals, week_marks = auto_adapt(
-            plan,
-            _stored_activities(),
-            _actuals(),
-            _goal_mark_seconds(),
-            bases,
-        )
-    except ValueError as exc:
-        st.session_state["activities_notice"] = str(exc)
+    outcome = apply_activity_marks(
+        plan,
+        _stored_activities(),
+        _actuals(),
+        _goal_mark_seconds(),
+        _quality_bases(),
+        st.session_state.get("season_marks"),
+    )
+    if outcome.notice:
+        st.session_state["activities_notice"] = outcome.notice
         return
-    if not week_marks:
+    if not outcome.applied or outcome.plan is None or outcome.marks is None:
         return
-    st.session_state["season_actuals"] = actuals
-    marks = dict(st.session_state.get("season_marks") or {})
-    marks.update(week_marks)
-    st.session_state["season_marks"] = marks
-    st.session_state["season_plan"] = updated
+    st.session_state["season_actuals"] = outcome.actuals
+    st.session_state["season_marks"] = outcome.marks
+    st.session_state["season_plan"] = outcome.plan
 
 
 def _commit_mark(plan: dict, week_number: int, choice: str) -> None:
     """One mark for this week. Later weeks are what adapt() returns."""
-    try:
-        updated = _adapt_from_result(plan, week_number, choice)
-    except ValueError as exc:
-        st.markdown(
-            f'<p class="rio-error">{_esc(exc)}</p>',
-            unsafe_allow_html=True,
-        )
-        return
-    _clear_adapt()
-    marks = dict(st.session_state.get("season_marks") or {})
-    marks[week_number] = choice
-    st.session_state["season_marks"] = marks
-    st.session_state["season_plan"] = updated
-    st.rerun()
+    outcome = commit_week_mark(
+        plan,
+        week_number,
+        choice,
+        _actuals(),
+        st.session_state.get("season_marks"),
+        _quality_bases(),
+    )
+    _finish_commit(outcome, None)
 
 
 def _render_mark(plan: dict, week_number: int, generation: int) -> None:
@@ -5761,13 +5632,7 @@ def _clear_season_marks() -> None:
     st.session_state["rio_store_loaded"] = True
     st.session_state["season_generation"] = int(st.session_state.get("season_generation") or 0) + 1
     try:
-        write_record(
-            accounts_path(),
-            who[0],
-            who[1],
-            storage_key(inputs),
-            dump_record({}, {}, []),
-        )
+        save_cleared_marks(accounts_path(), who[0], who[1], inputs)
     except AccountError as exc:
         st.session_state["rio_settings_error"] = str(exc)
         st.rerun()
@@ -5783,7 +5648,7 @@ def _reset_saved_plan() -> None:
     if who is None:
         return
     try:
-        delete_records(accounts_path(), who[0], who[1], KEY_PREFIX)
+        delete_local_plans(accounts_path(), who[0], who[1])
     except AccountError as exc:
         st.session_state["rio_settings_error"] = str(exc)
         st.rerun()
@@ -6879,32 +6744,13 @@ def _past_summary_html(inputs: tuple[str, str, str, str]) -> str:
 
 def _forget_deleted_season(inputs: tuple[str, str, str, str]) -> None:
     """Drop the season from this session so a later save does not write it back."""
-    rows = st.session_state.get("rio_cloud_plan_rows")
-    if isinstance(rows, list):
-        kept_rows = []
-        for row in rows:
-            if not isinstance(row, dict):
-                continue
-            ident = (
-                str(row.get("current_time") or ""),
-                str(row.get("start_date") or ""),
-                str(row.get("goal_time") or ""),
-                str(row.get("goal_date") or ""),
-            )
-            if ident == inputs:
-                continue
-            kept_rows.append(row)
+    kept_rows = filter_plan_rows(st.session_state.get("rio_cloud_plan_rows"), inputs)
+    if kept_rows is not None:
         st.session_state["rio_cloud_plan_rows"] = kept_rows
-    stored = st.session_state.get("rio_cloud_season_inputs")
-    if isinstance(stored, list):
-        kept = []
-        for item in stored:
-            if isinstance(item, (list, tuple)) and tuple(str(part) for part in item) == inputs:
-                continue
-            kept.append(item)
-        st.session_state["rio_cloud_season_inputs"] = kept
-    current = st.session_state.get("season_inputs")
-    if isinstance(current, (list, tuple)) and tuple(str(part) for part in current) == inputs:
+    kept_inputs = filter_saved_inputs(st.session_state.get("rio_cloud_season_inputs"), inputs)
+    if kept_inputs is not None:
+        st.session_state["rio_cloud_season_inputs"] = kept_inputs
+    if same_season(st.session_state.get("season_inputs"), inputs):
         for key in (
             "season_activities",
             "season_actuals",
@@ -6932,22 +6778,24 @@ def _commit_past_delete(inputs: tuple[str, str, str, str]) -> None:
         return
     if st.session_state.get("rio_past_delete") != inputs:
         return
+    who = _account_identity()
+    hosted = _hosted_account()
+    directory = None
+    if hosted:
+        from ui.cloud_store import current_directory
+
+        directory = current_directory()
     try:
-        if _hosted_account():
-            from ui.cloud_store import current_directory
-
-            token = st.session_state.get("rio_cloud_access")
-            directory = current_directory()
-            if directory is None or not isinstance(token, str):
-                raise CloudAuthError("Sign in again.")
-            directory.delete_season(token, inputs, today)
-        else:
-            from ui.accounts import delete_past_season
-
-            who = _account_identity()
-            if who is None:
-                raise AccountError("Sign in again.")
-            delete_past_season(accounts_path(), who[0], who[1], inputs, today)
+        remove_past_season(
+            hosted=hosted,
+            directory=directory,
+            token=st.session_state.get("rio_cloud_access"),
+            path=accounts_path(),
+            email=None if who is None else who[0],
+            secret=None if who is None else who[1],
+            inputs=inputs,
+            today=today,
+        )
     except (AccountError, CloudAuthError) as exc:
         st.session_state["rio_past_delete_error"] = str(exc)
         st.rerun()
