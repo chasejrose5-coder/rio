@@ -3208,3 +3208,87 @@ html,
   .rio-week-chip span { font-size: 0.66rem; }
   .rio-phase-progress { gap: 0.45rem 0.55rem; }
 }
+
+/* Done-only logging. Brand orange is the fill. Behind keeps the darker orange as text. */
+[class*="st-key-rio-settings-logging"] {
+  background: #FFFCF7 !important;
+  border: 1px solid #DCD6CC !important;
+  box-shadow: 0 8px 22px rgba(18, 17, 16, 0.045) !important;
+}
+[class*="st-key-rio-settings-logging"] [data-testid="stMarkdownContainer"] p.rio-mark-label {
+  color: #E25A32 !important;
+  padding-top: 0.15rem !important;
+}
+[class*="st-key-rio-settings-logging"] [data-testid="stMarkdownContainer"] p.rio-settings-note {
+  color: #6E6A64 !important;
+}
+[class*="st-key-rio-watchless"] {
+  margin-top: 0.85rem !important;
+}
+[class*="st-key-rio-done-go"] button,
+[class*="st-key-rio-done-go"] [data-testid="stBaseButton-primary"] {
+  background: #E25A32 !important;
+  border: 1px solid #E25A32 !important;
+  border-radius: 12px !important;
+  color: #FFFFFF !important;
+  min-height: 2.85rem !important;
+  font-weight: 700 !important;
+}
+[class*="st-key-rio-done-go"] button p,
+[class*="st-key-rio-done-go"] button span {
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+}
+[class*="st-key-rio-done-go"] button:hover,
+[class*="st-key-rio-done-go"] [data-testid="stBaseButton-primary"]:hover {
+  background: #C94A25 !important;
+  border-color: #C94A25 !important;
+  color: #FFFFFF !important;
+}
+[class*="st-key-rio-done-target"] button,
+[class*="st-key-rio-done-ahead"] button,
+[class*="st-key-rio-done-quiet"] button,
+[class*="st-key-rio-done-behind"] button {
+  background: #FFFCF7 !important;
+  border: 1px solid #DCD6CC !important;
+  border-radius: 12px !important;
+  color: #121110 !important;
+  min-height: 2.7rem !important;
+  font-weight: 600 !important;
+}
+[class*="st-key-rio-done-target"] [data-testid="stBaseButton-primary"],
+[class*="st-key-rio-done-ahead"] [data-testid="stBaseButton-primary"] {
+  background: #E25A32 !important;
+  border-color: #E25A32 !important;
+  color: #FFFFFF !important;
+}
+[class*="st-key-rio-done-target"] [data-testid="stBaseButton-primary"] p,
+[class*="st-key-rio-done-ahead"] [data-testid="stBaseButton-primary"] p,
+[class*="st-key-rio-done-target"] [data-testid="stBaseButton-primary"] span,
+[class*="st-key-rio-done-ahead"] [data-testid="stBaseButton-primary"] span {
+  color: #FFFFFF !important;
+}
+[class*="st-key-rio-done-behind"] button,
+[class*="st-key-rio-done-behind"] button p,
+[class*="st-key-rio-done-behind"] button span,
+[class*="st-key-rio-done-behind"] [data-testid="stBaseButton-primary"],
+[class*="st-key-rio-done-behind"] [data-testid="stBaseButton-primary"] p,
+[class*="st-key-rio-done-behind"] [data-testid="stBaseButton-primary"] span {
+  color: #C2461F !important;
+}
+[class*="st-key-rio-done-behind"] [data-testid="stBaseButton-primary"] {
+  background: #F6E7E1 !important;
+  border-color: #E25A32 !important;
+}
+[class*="st-key-rio-done-time"] button {
+  background: transparent !important;
+  border: none !important;
+  color: #6E6A64 !important;
+  min-height: 2rem !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}
+[class*="st-key-rio-done-time"] button p,
+[class*="st-key-rio-done-time"] button span {
+  color: #6E6A64 !important;
+}

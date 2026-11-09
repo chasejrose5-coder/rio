@@ -945,6 +945,8 @@ _ACCOUNT_SESSION = (
     "settings-start",
     "settings-timezone",
     "settings-pace",
+    "settings-no-watch",
+    "rio_no_watch_saved",
     "settings-units",
     "settings-clear-marks-ok",
     "rio_login_email",
@@ -1692,6 +1694,7 @@ def _prefs() -> dict:
         ("settings-start", "start_date"),
         ("settings-reminders", "reminders"),
         ("settings-recap", "recap"),
+        ("settings-no-watch", "no_watch"),
     )
     for key, name in widget:
         if key in st.session_state:
@@ -1699,6 +1702,11 @@ def _prefs() -> dict:
     prefs = normalize_prefs(raw)
     prefs["units"] = "km" if prefs.get("pace_units") == "km" else "miles"
     return prefs
+
+
+def _no_watch() -> bool:
+    """True when this athlete finishes a workout with Done instead of splits."""
+    return _prefs().get("no_watch") is True
 
 
 def _easy_pace_gate() -> bool:
@@ -2640,7 +2648,12 @@ def _attach_actuals(plan: dict) -> None:
 
 
 def _week_mark(plan: dict, week: int) -> str | None:
-    """not_hitting wins, then smashing. Same order adapt() uses for a list."""
+    """not_hitting wins, then smashing. Same order adapt() uses for a list.
+
+    A Done choice with no clock time is not a timed effort.
+    """
+    from ui.no_watch import timed_mark
+
     found = []
     stored = _actuals()
     for session in plan["sessions"]:
@@ -2649,7 +2662,7 @@ def _week_mark(plan: dict, week: int) -> str | None:
         saved = stored.get(session.get("date"))
         if not isinstance(saved, dict) or saved.get("template_id") != session.get("template_id"):
             continue
-        mark = saved.get("mark")
+        mark = timed_mark(saved)
         if mark in _MARKS:
             found.append(mark)
     if not found:
@@ -3042,6 +3055,198 @@ def _render_result(plan: dict, session: dict, generation: int) -> None:
                 slots if isinstance(slots, list) else None,
                 intervals if isinstance(intervals, str) else None,
             )
+
+
+def _watchless_summary(saved: dict) -> None:
+    """Completed, the choice, and a typed time. A blank time is not filled in."""
+    from ui.no_watch import OUTCOME_LABEL
+
+    parts = ["Completed"]
+    label = OUTCOME_LABEL.get(str(saved.get("mark") or ""))
+    if label:
+        parts.append(label)
+    text = str(saved.get("text") or "").strip()
+    if text:
+        parts.append(text)
+    st.markdown(
+        f'<p class="rio-week-meta">{_esc(" · ".join(parts))}</p>',
+        unsafe_allow_html=True,
+    )
+
+
+def _watchless_choices(stem: str, picked: object) -> None:
+    """Behind, On target, Ahead. The selected one is the stored quality mark."""
+    from ui.no_watch import CHOICES
+
+    names = {"not_hitting": "behind", "on_track": "target", "smashing": "ahead"}
+    columns = st.columns(3, gap="small")
+    for column, (label, mark) in zip(columns, CHOICES, strict=True):
+        name = names[mark]
+        with column:
+            with st.container(key=f"rio-done-{name}"):
+                if st.button(
+                    label,
+                    key=f"{stem}-{name}",
+                    type="primary" if picked == mark else "secondary",
+                    width="stretch",
+                ):
+                    st.session_state[f"{stem}-choice"] = mark
+                    st.rerun()
+
+
+def _commit_watchless_mark(plan: dict, session: dict, row: dict) -> None:
+    """Store a typed quality time and adapt, the same way a result does."""
+    day = str(session["date"])
+    week = session["week_number"]
+    stored = _actuals()
+    previous = stored.get(day)
+    stored[day] = row
+    mark = _week_mark(plan, week)
+    if mark is None:
+        if previous is None:
+            stored.pop(day, None)
+        else:
+            stored[day] = previous
+        return
+    try:
+        updated = _adapt_from_result(plan, week, mark)
+    except ValueError as exc:
+        if previous is None:
+            stored.pop(day, None)
+        else:
+            stored[day] = previous
+        st.markdown(
+            f'<p class="rio-error">{_esc(exc)}</p>',
+            unsafe_allow_html=True,
+        )
+        return
+    _clear_adapt()
+    marks = dict(st.session_state.get("season_marks") or {})
+    marks[week] = mark
+    st.session_state["season_marks"] = marks
+    st.session_state["season_plan"] = updated
+    _remember_workout_note(updated, session, str(row.get("mark") or mark), str(row.get("text") or ""))
+    st.rerun()
+
+
+def _store_watchless(plan: dict, session: dict, row: dict, generation: int) -> None:
+    """Save Done or Couldn't finish. A time on a hard day can change later weeks."""
+    from ui.no_watch import timed_mark
+
+    day = str(session["date"])
+    if timed_mark(row) and _quality_day(session):
+        if _prefs()["confirm_adapt"]:
+            _hold_adapt(
+                {
+                    "kind": "watchless",
+                    "day": day,
+                    "week": session["week_number"],
+                    "row": row,
+                    "generation": generation,
+                }
+            )
+            return
+        _commit_watchless_mark(plan, session, row)
+        return
+    stored = _actuals()
+    stored[day] = row
+    if row.get("completed") is True and row.get("mark") in _MARKS and _quality_day(session):
+        _remember_workout_note(plan, session, str(row.get("mark") or ""), str(row.get("text") or ""))
+    st.rerun()
+
+
+def _render_watchless(plan: dict, session: dict, generation: int) -> None:
+    """Done finishes the workout. Hard days also take behind, on target, or ahead.
+
+    Add a time is one optional clock time. Couldn't finish does not complete
+    the day and does not store a time. Splits stay off this path.
+    """
+    from ui.no_watch import finish_session, missed_session, quality_day
+
+    day = str(session.get("date") or "")
+    saved = _actuals().get(day)
+    same = isinstance(saved, dict) and saved.get("template_id") == session.get("template_id")
+    if same and saved.get("completed") is True:
+        _watchless_summary(saved)
+        return
+    stem = f"rio-done-{generation}-{day}"
+    hard = quality_day(session)
+    with st.container(key=f"rio-watchless-{day}"):
+        if same and saved.get("missed") is True:
+            st.markdown(
+                '<p class="rio-settings-note">Couldn\'t finish. Done still completes this workout.</p>',
+                unsafe_allow_html=True,
+            )
+        if hard:
+            _watchless_choices(stem, st.session_state.get(f"{stem}-choice"))
+        open_key = f"{stem}-open"
+        time_text = ""
+        if st.session_state.get(open_key) is True:
+            time_text = st.text_input("Time", key=f"{stem}-clock", placeholder="1:12.4")
+            st.markdown(
+                '<p class="rio-settings-note">Optional. One clock time, like 1:12.4. '
+                "Leave it blank to finish without one.</p>",
+                unsafe_allow_html=True,
+            )
+        done = False
+        miss = False
+        add = False
+        if hard:
+            with st.container(key="rio-done-go"):
+                done = st.button("Done", key=f"{stem}-done", type="primary", width="stretch")
+            quiet, extra = st.columns(2, gap="small")
+            with quiet:
+                with st.container(key="rio-done-quiet"):
+                    miss = st.button("Couldn't finish", key=f"{stem}-miss", width="stretch")
+            with extra:
+                with st.container(key="rio-done-time"):
+                    add = st.button("Add a time", key=f"{stem}-add", width="stretch")
+        else:
+            primary, quiet = st.columns(2, gap="small")
+            with primary:
+                with st.container(key="rio-done-go"):
+                    done = st.button("Done", key=f"{stem}-done", type="primary", width="stretch")
+            with quiet:
+                with st.container(key="rio-done-quiet"):
+                    miss = st.button("Couldn't finish", key=f"{stem}-miss", width="stretch")
+            with st.container(key="rio-done-time"):
+                add = st.button("Add a time", key=f"{stem}-add", width="stretch")
+        if add:
+            st.session_state[open_key] = st.session_state.get(open_key) is not True
+            st.rerun()
+        if miss:
+            row = missed_session(session)
+            if row is not None:
+                _store_watchless(plan, session, row, generation)
+            return
+        if done:
+            result = finish_session(
+                session,
+                st.session_state.get(f"{stem}-choice"),
+                time_text,
+            )
+            if not result["ok"] or not isinstance(result.get("row"), dict):
+                st.markdown(
+                    f'<p class="rio-error">{_esc(result.get("error") or "Enter one time, like 1:12.4, or leave it blank.")}</p>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                _store_watchless(plan, session, result["row"], generation)
+    pending = _adapt_pending()
+    if (
+        isinstance(pending, dict)
+        and pending.get("kind") == "watchless"
+        and pending.get("day") == day
+        and pending.get("generation") == generation
+        and isinstance(pending.get("row"), dict)
+    ):
+        answer = _confirm_adapt(
+            "this workout",
+            f"adapt-confirm-done-{generation}-{day}",
+            f"adapt-cancel-done-{generation}-{day}",
+        )
+        if answer == "confirm":
+            _commit_watchless_mark(plan, session, pending["row"])
 
 
 def _apply_activity_marks(plan: dict) -> None:
@@ -4209,19 +4414,32 @@ def page_dashboard() -> None:
             unsafe_allow_html=True,
         )
         showed_phase = _render_this_week(plan, goal, sessions)
+        shown = workout
+        if _no_watch():
+            from ui.no_watch import next_open_workout
+
+            shown = next_open_workout(sessions, _athlete_today(), _actuals())
         if showed_phase:
-            workout_index = "02  /  Today's workout" if _on_today(workout) else "02  /  Next workout"
+            workout_index = "02  /  Today's workout" if _on_today(shown) else "02  /  Next workout"
             upcoming_index = "03  /  Next 3 days"
         else:
-            workout_index = "01  /  Today's workout" if _on_today(workout) else "01  /  Next workout"
+            workout_index = "01  /  Today's workout" if _on_today(shown) else "01  /  Next workout"
             upcoming_index = "02  /  Next 3 days"
         with st.container(key="rio-home-today"):
             st.markdown(
                 f'<p class="rio-index rio-index-pad">{workout_index}</p>',
                 unsafe_allow_html=True,
             )
-            if isinstance(workout, dict):
-                _track_hero(workout)
+            if isinstance(shown, dict):
+                _track_hero(shown)
+                if _no_watch():
+                    full = _session_on(plan, str(shown.get("date") or ""))
+                    if isinstance(full, dict):
+                        _render_watchless(
+                            plan,
+                            full,
+                            int(st.session_state.get("season_generation") or 0),
+                        )
             else:
                 st.markdown(_track_stage(None), unsafe_allow_html=True)
                 st.markdown(
@@ -4921,8 +5139,11 @@ def page_session() -> None:
         )
     )
     _card(*parts)
-    if _quality_day(session):
-        _render_result(plan, session, int(st.session_state.get("season_generation") or 0))
+    generation = int(st.session_state.get("season_generation") or 0)
+    if _no_watch():
+        _render_watchless(plan, session, generation)
+    elif _quality_day(session):
+        _render_result(plan, session, generation)
     _show_stored_insight(session)
 
 
@@ -5256,6 +5477,7 @@ def _setting_widgets(prefs: dict) -> None:
         "settings-start": prefs["start_date"],
         "settings-reminders": prefs["reminders"],
         "settings-recap": prefs["recap"],
+        "settings-no-watch": prefs.get("no_watch") is True,
     }
     for key, value in seed.items():
         if key not in st.session_state:
@@ -5308,6 +5530,32 @@ def _save_hosted_pace(unit: str) -> None:
     except Exception:
         return
     st.session_state["rio_pace_saved"] = unit
+
+
+def _save_hosted_no_watch(enabled: bool) -> None:
+    """Store Done-only logging on the signed-in athlete. A local account uses settings."""
+    if st.session_state.get("rio_test_preview"):
+        return
+    if st.session_state.get("rio_account_secret") != "cloud":
+        return
+    enabled = enabled is True
+    if "rio_no_watch_saved" not in st.session_state and enabled is False:
+        return
+    if st.session_state.get("rio_no_watch_saved") is enabled:
+        return
+    token = st.session_state.get("rio_cloud_access")
+    if not isinstance(token, str) or not token:
+        return
+    from ui.cloud_store import current_directory
+
+    directory = current_directory()
+    if directory is None or not hasattr(directory, "save_no_watch"):
+        return
+    try:
+        directory.save_no_watch(token, enabled)
+    except Exception:
+        return
+    st.session_state["rio_no_watch_saved"] = enabled
 
 
 def _persist_local(name: object, preferred: object, timezone: object, settings: dict) -> None:
@@ -5760,6 +6008,14 @@ def page_settings() -> None:
                 st.session_state["rio_settings_note"] = "Password updated."
                 st.rerun()
 
+    with st.container(key="rio-settings-logging"):
+        st.markdown('<p class="rio-mark-label">Logging</p>', unsafe_allow_html=True)
+        no_watch = st.toggle("I don't use a watch", key="settings-no-watch")
+        st.markdown(
+            '<p class="rio-settings-note">Complete workouts with Done instead of entering splits.</p>',
+            unsafe_allow_html=True,
+        )
+
     with st.container(key="rio-settings-prefs"):
         with st.expander("Preferences", expanded=False):
             st.markdown(_label("Preferences"), unsafe_allow_html=True)
@@ -5976,6 +6232,7 @@ def page_settings() -> None:
             "start_date": start_date,
             "reminders": reminders,
             "recap": recap,
+            "no_watch": no_watch,
             "notifications": bool(reminders or recap),
         }
     )
@@ -5984,6 +6241,7 @@ def page_settings() -> None:
     st.session_state["rio_settings"] = stored
     _persist_local(name, preferred, timezone, stored)
     _save_hosted_pace(stored.get("pace_units") or "mi")
+    _save_hosted_no_watch(stored.get("no_watch") is True)
 
 
 def _with_plan_credit(html: str) -> str:

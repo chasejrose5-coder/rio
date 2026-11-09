@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from engines.season import adapt
 from ui.last_session import fit_slots
+from ui.no_watch import timed_mark
 from ui.plan_store import MARKS
 from ui.result import filled_times, goal_seconds, judge, result_box_count
 
@@ -192,7 +193,7 @@ def _week_outcome(plan: dict, actuals: dict, week: int) -> str | None:
         saved = actuals.get(session.get("date"))
         if not isinstance(saved, dict) or saved.get("template_id") != session.get("template_id"):
             continue
-        mark = saved.get("mark")
+        mark = timed_mark(saved)
         if mark in MARKS:
             found.append(mark)
     if not found:

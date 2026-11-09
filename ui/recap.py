@@ -87,6 +87,10 @@ def _saved(session: dict, actuals: dict) -> dict | None:
 
 
 def _is_completed(row: dict) -> bool:
+    if row.get("missed") is True and row.get("completed") is not True:
+        return False
+    if row.get("completed") is True:
+        return True
     numbers = row.get("numbers")
     if isinstance(numbers, list) and any(not isinstance(item, bool) for item in numbers):
         return True
