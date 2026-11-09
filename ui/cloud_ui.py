@@ -492,6 +492,13 @@ def _consume_callback() -> None:
         st.rerun()
 
 
+def _paint_login_credit() -> None:
+    """The floodlight photo's credit. The name was stored with the file."""
+    from ui.theme import LOGIN_CREDIT, credit_html
+
+    st.markdown(credit_html(LOGIN_CREDIT), unsafe_allow_html=True)
+
+
 def _render_sign_in(backdrop, notice, hero) -> None:
     backdrop()
     with st.container(key="rio-auth-card"):
@@ -512,6 +519,7 @@ def _render_sign_in(backdrop, notice, hero) -> None:
         _google_button("rio-google")
         forgot = st.button("Forgot password?", key="rio-forgot", type="tertiary")
         create = st.button("Create account", key="rio-open-create", width="stretch")
+    _paint_login_credit()
     if forgot:
         st.session_state["rio_auth_screen"] = "forgot"
         st.rerun()
@@ -549,6 +557,7 @@ def _render_sign_up(backdrop, notice, hero) -> None:
             submitted = st.form_submit_button("Create account", type="primary", width="stretch")
         _google_button("rio-google-create")
         back = st.button("Back to log in", key="rio-back-login", width="stretch")
+    _paint_login_credit()
     if back:
         st.session_state["rio_auth_screen"] = "login"
         st.rerun()
@@ -579,6 +588,7 @@ def _render_confirm(backdrop, notice, hero) -> None:
         notice()
         st.markdown(SIGNUP_CONFIRM)
         back = st.button("Back to log in", key="rio-confirm-back", width="stretch")
+    _paint_login_credit()
     if back:
         st.session_state["rio_auth_screen"] = "login"
         st.rerun()
@@ -596,6 +606,7 @@ def _render_forgot(backdrop, notice, hero) -> None:
             email = st.text_input("Email", key="rio_cloud_forgot_email", autocomplete="email")
             submitted = st.form_submit_button("Send reset email", type="primary", width="stretch")
         back = st.button("Back to log in", key="rio-forgot-back", width="stretch")
+    _paint_login_credit()
     if back:
         st.session_state["rio_auth_screen"] = "login"
         st.rerun()
@@ -627,6 +638,7 @@ def _render_reset(backdrop, notice, hero) -> None:
                 autocomplete="new-password",
             )
             submitted = st.form_submit_button("Save password", type="primary", width="stretch")
+    _paint_login_credit()
     if not submitted:
         return
     directory = _directory_or_notice()

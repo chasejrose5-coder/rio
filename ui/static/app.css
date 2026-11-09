@@ -2308,33 +2308,32 @@ html { color-scheme: light; }
 
 :root { --rio-ease: cubic-bezier(0.22, 1, 0.36, 1); }
 @keyframes rio-rise {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 @keyframes rio-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 @keyframes rio-underline {
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
 }
 [data-testid="stMainBlockContainer"] {
-  animation: rio-fade 520ms var(--rio-ease) both;
+  animation: rio-fade 200ms var(--rio-ease) both;
 }
 .rio-hero h1,
 .rio-display,
 .rio-stat-tile,
 .rio-lib-row,
-.rio-mini {
-  animation: rio-rise 520ms var(--rio-ease) both;
+.rio-mini,
+[class*="st-key-rio-plan-view-"] {
+  animation: rio-rise 200ms var(--rio-ease) both;
 }
-.rio-stat-tile:nth-child(1) { animation-delay: 0ms; }
-.rio-stat-tile:nth-child(2) { animation-delay: 40ms; }
-.rio-stat-tile:nth-child(3) { animation-delay: 80ms; }
-.rio-stat-tile:nth-child(4),
-.rio-lib-row:nth-child(n+4) { animation-delay: 120ms; }
-.rio-lib-row:nth-child(n+6) { animation-delay: 200ms; }
+.rio-stat-tile,
+.rio-lib-row {
+  animation-delay: 0ms;
+}
 [class*="st-key-rio-nav"],
 [class*="st-key-rio-auth-card"],
 [class*="st-key-rio-goal-card"],
@@ -2348,7 +2347,7 @@ html { color-scheme: light; }
 }
 .rio-about-banner,
 .rio-startup-shade {
-  animation: rio-fade 600ms var(--rio-ease) both;
+  animation: rio-fade 200ms var(--rio-ease) both;
 }
 .stButton > button,
 .stDownloadButton > button,
@@ -2388,7 +2387,7 @@ html { color-scheme: light; }
   background: #E25A32;
   transform: scaleX(0);
   transform-origin: left center;
-  transition: transform 420ms var(--rio-ease);
+  transition: transform 200ms var(--rio-ease);
   pointer-events: none;
 }
 [class*="st-key-rio-tab-"] [data-testid="stPageLink-NavLink"]:hover::after,
@@ -2398,7 +2397,7 @@ html { color-scheme: light; }
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"]::after,
 [class*="st-key-rio-sub-"][class*="-is-active"] [data-testid="stPageLink-NavLink"]::after {
   transform: scaleX(1);
-  animation: rio-underline 420ms var(--rio-ease) both;
+  animation: rio-underline 200ms var(--rio-ease) both;
 }
 [class*="st-key-rio-brand"] [data-testid="stPageLink-NavLink"]::after,
 [class*="st-key-rio-start-session"] [data-testid="stPageLink-NavLink"]::after,
@@ -2407,10 +2406,10 @@ html { color-scheme: light; }
   animation: none !important;
 }
 [data-testid="stTabs"] [data-baseweb="tab-highlight"] {
-  transition: all 420ms var(--rio-ease) !important;
+  transition: transform 200ms var(--rio-ease), opacity 200ms var(--rio-ease) !important;
 }
 [data-testid="stTabs"] [data-baseweb="tab-panel"] {
-  animation: rio-fade 320ms var(--rio-ease) both;
+  animation: rio-fade 200ms var(--rio-ease) both;
 }
 [data-stale="true"] {
   opacity: 1 !important;
@@ -2423,6 +2422,20 @@ html { color-scheme: light; }
     transition-duration: 0.01ms !important;
     transition-delay: 0s !important;
     scroll-behavior: auto !important;
+  }
+  [data-testid="stMainBlockContainer"],
+  .rio-hero h1,
+  .rio-display,
+  .rio-stat-tile,
+  .rio-lib-row,
+  .rio-mini,
+  .rio-about-banner,
+  .rio-startup-shade,
+  [data-testid="stTabs"] [data-baseweb="tab-panel"],
+  [class*="st-key-rio-plan-view-"] {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
@@ -3258,15 +3271,15 @@ html,
 }
 [class*="st-key-rio-done-behind"] button,
 [class*="st-key-rio-done-behind"] button p,
-[class*="st-key-rio-done-behind"] button span,
+[class*="st-key-rio-done-behind"] button span {
+  color: #121110 !important;
+}
 [class*="st-key-rio-done-behind"] [data-testid="stBaseButton-primary"],
 [class*="st-key-rio-done-behind"] [data-testid="stBaseButton-primary"] p,
 [class*="st-key-rio-done-behind"] [data-testid="stBaseButton-primary"] span {
-  color: #C2461F !important;
-}
-[class*="st-key-rio-done-behind"] [data-testid="stBaseButton-primary"] {
-  background: #F6E7E1 !important;
-  border-color: #E25A32 !important;
+  background: #C2461F !important;
+  border-color: #C2461F !important;
+  color: #FFFFFF !important;
 }
 [class*="st-key-rio-done-time"] button {
   background: transparent !important;
@@ -3344,6 +3357,56 @@ html,
 .stApp [class*="st-key-rio-this-week"] [data-testid="stExpander"] summary svg {
   fill: #6E6A64 !important;
   color: #6E6A64 !important;
+}
+/* The expander chevron is a Material ligature. When that font does not apply,
+   the icon name shows as words. Draw the arrow instead. */
+[data-testid="stExpander"] [data-testid="stIconMaterial"] {
+  font-size: 0 !important;
+  color: transparent !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  width: 1.15rem !important;
+  height: 1.15rem !important;
+  min-width: 1.15rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  position: relative !important;
+  line-height: 0 !important;
+}
+[data-testid="stExpander"] [data-testid="stIconMaterial"]::before {
+  content: "";
+  box-sizing: border-box;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 2px solid #6E6A64;
+  border-bottom: 2px solid #6E6A64;
+  transform: rotate(-45deg);
+  display: block;
+}
+[data-testid="stExpander"] details[open] > summary [data-testid="stIconMaterial"]::before {
+  transform: rotate(45deg);
+}
+[class*="st-key-rio-strava-settings"] [data-testid="stPageLink-NavLink"] {
+  display: inline-flex !important;
+  width: auto !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0.15rem 0 !important;
+  color: #A63C1A !important;
+  font-weight: 600 !important;
+  text-decoration: underline !important;
+  text-underline-offset: 0.16em;
+  box-shadow: none !important;
+}
+[class*="st-key-rio-strava-settings"] [data-testid="stPageLink-NavLink"] span,
+[class*="st-key-rio-strava-settings"] [data-testid="stPageLink-NavLink"] p {
+  color: #A63C1A !important;
+  font-weight: 600 !important;
+  text-decoration: underline !important;
+  text-underline-offset: 0.16em;
 }
 .stApp [class*="st-key-rio-this-week"] [data-testid="stExpanderDetails"] {
   background: transparent !important;

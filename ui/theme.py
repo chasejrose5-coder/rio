@@ -57,6 +57,9 @@ LOGIN_PHOTO = "login_floodlights.jpg"
 START_PHOTO = "start_line.jpg"
 ABOUT_PHOTO = "about_stadium.jpg"
 CHASE_PHOTO = "chase_blocks.jpg"
+# login_floodlights.jpg and this credit were added together in 0c4818c
+# by the repo owner. The repo does not store a Pexels URL for this file.
+# chase_blocks.jpg has no photographer on record, so it stays uncredited.
 LOGIN_CREDIT = "Photo by Steve Pancrate on Pexels"
 START_CREDIT = "Photo by Bohdan Hyrovych on Pexels"
 ABOUT_CREDIT = "Photo by Botond Dobozi on Pexels"
@@ -232,6 +235,9 @@ html, body, .stApp {{
   background-position: center center !important;
   background-repeat: no-repeat !important;
   background-attachment: fixed !important;
+}}
+@media (max-width: 800px), (hover: none) and (pointer: coarse) {{
+  .stApp {{ background-attachment: scroll !important; }}
 }}
 [data-testid="stAppViewContainer"],
 [data-testid="stMain"],
@@ -497,19 +503,35 @@ def shade_html() -> str:
     return '<div class="rio-page-shade" aria-hidden="true"></div>'
 
 
+def _layered_image(uri: str) -> str:
+    """WebP first, the JPEG still named so a test can find it."""
+    if isinstance(uri, str) and uri.endswith(".jpg"):
+        return image_set(uri[:-4] + ".webp", uri)
+    return _image(uri)
+
+
 def home_on_photo_css(uri: str) -> str:
     """Cream cards stay solid on the Home aerial. Type on the photo stays light.
 
     The shade is a background layer, the same wash photo pages use, so it
-    darkens the aerial and not the cards.
+    darkens the aerial and not the cards. Fixed attachment stays on desktop.
+    Phones and touch screens scroll, or the aerial paints as a blank field.
     """
-    image = _image(uri)
+    image = _layered_image(uri)
     mobile = ""
     if isinstance(uri, str) and uri.endswith(".jpg") and not uri.endswith("-800.jpg"):
+        stem = uri[:-4]
         mobile = f"""
 @media (max-width: 1200px) {{
   .stApp {{
-    background-image: {SHADE}, {_image(uri[:-4] + "-800.jpg")} !important;
+    background-image: {SHADE}, {image_set(stem + "-800.webp", stem + "-800.jpg")} !important;
+  }}
+}}
+@media (max-width: 600px) {{
+  .stApp {{
+    background-image: {SHADE}, {image_set(stem + "-480.webp", stem + "-480.jpg")} !important;
+    background-attachment: scroll, scroll !important;
+    background-position: center 28%, center 28% !important;
   }}
 }}
 """
@@ -521,6 +543,24 @@ def home_on_photo_css(uri: str) -> str:
   background-size: cover, cover !important;
   background-position: center center, center center !important;
   background-attachment: fixed, fixed !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+}}
+@media (max-width: 1200px), (hover: none) and (pointer: coarse) {{
+  .stApp {{
+    background-attachment: scroll, scroll !important;
+    background-size: cover, cover !important;
+    background-position: center 32%, center 32% !important;
+  }}
+}}
+.stApp:has(.rio-on-photo) .rio-photo-credit {{
+  background: #121110 !important;
+  color: #F4F1EC !important;
+  border: 1px solid rgba(244, 241, 236, 0.45) !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+  padding: 0.45rem 0.95rem !important;
 }}
 .rio-hero {{
   background: transparent !important;
@@ -627,12 +667,16 @@ def home_on_photo_css(uri: str) -> str:
 
 def plan_hero_css(uri: str) -> str:
     """The Plan hero keeps its dark type. The track sits under the same shade."""
-    image = _image(uri)
+    image = _layered_image(uri)
     mobile = ""
     if isinstance(uri, str) and uri.endswith(".jpg") and not uri.endswith("-800.jpg"):
+        stem = uri[:-4]
         mobile = f"""
 @media (max-width: 1200px) {{
-  .rio-hero {{ background-image: {_image(uri[:-4] + "-800.jpg")} !important; }}
+  .rio-hero {{
+    background-image: {image_set(stem + "-800.webp", stem + "-800.jpg")} !important;
+    background-attachment: scroll !important;
+  }}
 }}
 """
     return f"""
@@ -645,6 +689,11 @@ def plan_hero_css(uri: str) -> str:
   background-size: cover !important;
   background-position: center center !important;
   background-repeat: no-repeat !important;
+  background-attachment: scroll !important;
+  min-height: 11rem;
+}}
+@media (max-width: 800px), (hover: none) and (pointer: coarse) {{
+  .rio-hero {{ background-attachment: scroll !important; }}
 }}
 .rio-hero::before {{
   content: "";
@@ -693,33 +742,32 @@ def motion_rules() -> str:
     return f"""
 :root {{ --rio-ease: {EASE}; }}
 @keyframes rio-rise {{
-  from {{ opacity: 0; transform: translateY(12px); }}
-  to {{ opacity: 1; transform: none; }}
+  from {{ opacity: 0; transform: translate3d(0, 8px, 0); }}
+  to {{ opacity: 1; transform: translate3d(0, 0, 0); }}
 }}
 @keyframes rio-fade {{
-  from {{ opacity: 0; }}
-  to {{ opacity: 1; }}
+  from {{ opacity: 0; transform: translate3d(0, 8px, 0); }}
+  to {{ opacity: 1; transform: translate3d(0, 0, 0); }}
 }}
 @keyframes rio-underline {{
   from {{ transform: scaleX(0); }}
   to {{ transform: scaleX(1); }}
 }}
 [data-testid="stMainBlockContainer"] {{
-  animation: rio-fade 520ms var(--rio-ease) both;
+  animation: rio-fade 200ms var(--rio-ease) both;
 }}
 .rio-hero h1,
 .rio-display,
 .rio-stat-tile,
 .rio-lib-row,
-.rio-mini {{
-  animation: rio-rise 520ms var(--rio-ease) both;
+.rio-mini,
+[class*="st-key-rio-plan-view-"] {{
+  animation: rio-rise 200ms var(--rio-ease) both;
 }}
-.rio-stat-tile:nth-child(1) {{ animation-delay: 0ms; }}
-.rio-stat-tile:nth-child(2) {{ animation-delay: 40ms; }}
-.rio-stat-tile:nth-child(3) {{ animation-delay: 80ms; }}
-.rio-stat-tile:nth-child(4),
-.rio-lib-row:nth-child(n+4) {{ animation-delay: 120ms; }}
-.rio-lib-row:nth-child(n+6) {{ animation-delay: 200ms; }}
+.rio-stat-tile,
+.rio-lib-row {{
+  animation-delay: 0ms;
+}}
 [class*="st-key-rio-nav"],
 [class*="st-key-rio-auth-card"],
 [class*="st-key-rio-goal-card"],
@@ -733,7 +781,7 @@ def motion_rules() -> str:
 }}
 .rio-about-banner,
 .rio-startup-shade {{
-  animation: rio-fade 600ms var(--rio-ease) both;
+  animation: rio-fade 200ms var(--rio-ease) both;
 }}
 .stButton > button,
 .stDownloadButton > button,
@@ -773,7 +821,7 @@ def motion_rules() -> str:
   background: {ACCENT};
   transform: scaleX(0);
   transform-origin: left center;
-  transition: transform 420ms var(--rio-ease);
+  transition: transform 200ms var(--rio-ease);
   pointer-events: none;
 }}
 [class*="st-key-rio-tab-"] [data-testid="stPageLink-NavLink"]:hover::after,
@@ -783,7 +831,7 @@ def motion_rules() -> str:
 [class*="st-key-rio-tab-"][class*="-is-active"] [data-testid="stPageLink-NavLink"]::after,
 [class*="st-key-rio-sub-"][class*="-is-active"] [data-testid="stPageLink-NavLink"]::after {{
   transform: scaleX(1);
-  animation: rio-underline 420ms var(--rio-ease) both;
+  animation: rio-underline 200ms var(--rio-ease) both;
 }}
 [class*="st-key-rio-brand"] [data-testid="stPageLink-NavLink"]::after,
 [class*="st-key-rio-start-session"] [data-testid="stPageLink-NavLink"]::after,
@@ -792,10 +840,10 @@ def motion_rules() -> str:
   animation: none !important;
 }}
 [data-testid="stTabs"] [data-baseweb="tab-highlight"] {{
-  transition: all 420ms var(--rio-ease) !important;
+  transition: transform 200ms var(--rio-ease), opacity 200ms var(--rio-ease) !important;
 }}
 [data-testid="stTabs"] [data-baseweb="tab-panel"] {{
-  animation: rio-fade 320ms var(--rio-ease) both;
+  animation: rio-fade 200ms var(--rio-ease) both;
 }}
 [data-stale="true"] {{
   opacity: 1 !important;
@@ -808,6 +856,20 @@ def motion_rules() -> str:
     transition-duration: 0.01ms !important;
     transition-delay: 0s !important;
     scroll-behavior: auto !important;
+  }}
+  [data-testid="stMainBlockContainer"],
+  .rio-hero h1,
+  .rio-display,
+  .rio-stat-tile,
+  .rio-lib-row,
+  .rio-mini,
+  .rio-about-banner,
+  .rio-startup-shade,
+  [data-testid="stTabs"] [data-baseweb="tab-panel"],
+  [class*="st-key-rio-plan-view-"] {{
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }}
 }}
 """
@@ -825,7 +887,6 @@ def motion_hold_css() -> str:
 .rio-mini,
 .rio-about-banner,
 .rio-startup-shade,
-[data-testid="stTabs"] [data-baseweb="tab-panel"],
 [class*="st-key-rio-auth-card"],
 [class*="st-key-rio-goal-card"],
 [class*="st-key-rio-auth-card"] h1,

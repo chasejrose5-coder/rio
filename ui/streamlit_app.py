@@ -5462,7 +5462,12 @@ def page_activity() -> None:
         )
         for _label_text, _settings_page in _MORE_PAGES:
             if _label_text == "Settings":
-                st.page_link(_settings_page, label="Connect Strava in Settings")
+                with st.container(key="rio-strava-settings"):
+                    st.page_link(
+                        _settings_page,
+                        label="Connect Strava in Settings",
+                        icon="",
+                    )
     from ui.strava_ui import strava_connected as _strava_ready
 
     if _strava_ready():
@@ -6462,15 +6467,16 @@ def page_plan() -> None:
     _plan_weeks(start, goal, length, sessions)
     saved = _MARK_PREFIX
     try:
-        if choice == "This week":
-            _MARK_PREFIX = "plan-week"
-            _nest(page_weekly)
-        elif choice == "Full season":
-            _MARK_PREFIX = "plan-season"
-            _nest(page_season)
-        else:
-            _MARK_PREFIX = "plan-week"
-            _nest(page_calendar)
+        with st.container(key=f"rio-plan-view-{choice.lower().replace(' ', '-')}"):
+            if choice == "This week":
+                _MARK_PREFIX = "plan-week"
+                _nest(page_weekly)
+            elif choice == "Full season":
+                _MARK_PREFIX = "plan-season"
+                _nest(page_season)
+            else:
+                _MARK_PREFIX = "plan-week"
+                _nest(page_calendar)
     finally:
         _MARK_PREFIX = saved
 
