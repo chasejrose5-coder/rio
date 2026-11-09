@@ -45,6 +45,9 @@ def account_prefs(principal: Principal, directory) -> dict:
             raw["pace_units"] = pace
         if "no_watch" in profile:
             raw["no_watch"] = profile.get("no_watch") is True
+        for key in ("date_format", "start_date", "confirm_adapt", "show_ids", "compact"):
+            if key in profile:
+                raw[key] = profile[key]
         easy = _easy_from(profile.get("easy_pace"), profile.get("easy_pace_unit"))
         principal.display_name = str(profile.get("display_name") or principal.display_name)
         principal.role = str(profile.get("role") or principal.role or "athlete")
@@ -61,6 +64,28 @@ def account_prefs(principal: Principal, directory) -> dict:
         easy = _easy_from(local.get("easy_pace"), local.get("easy_pace_unit"))
         if isinstance(local.get("name"), str) and local.get("name"):
             principal.display_name = str(local.get("name"))
+    intro_seen = None
+    strava_prompt_seen = False
+    preferred = ""
+    if principal.kind == "hosted":
+        if "intro_seen" in profile:
+            intro_seen = profile.get("intro_seen") is True
+        if "strava_prompt_seen" in profile:
+            strava_prompt_seen = profile.get("strava_prompt_seen") is True
+        if isinstance(profile.get("preferred"), str):
+            preferred = profile["preferred"]
+    else:
+        if isinstance(raw.get("intro_seen"), bool):
+            intro_seen = raw["intro_seen"]
+        if "strava_prompt_seen" in raw:
+            strava_prompt_seen = raw.get("strava_prompt_seen") is True
+        local_preferred = raw.get("preferred") if principal.accounts_path is None else None
+        if principal.accounts_path is not None:
+            local_row = read_local(principal.accounts_path, principal.email) or {}
+            if isinstance(local_row.get("preferred"), str):
+                preferred = local_row["preferred"]
+        elif isinstance(local_preferred, str):
+            preferred = local_preferred
     prefs = normalize(raw)
     # The shell shows distance in the pace unit the athlete picked.
     prefs["units"] = "km" if prefs.get("pace_units") == "km" else "miles"
@@ -80,6 +105,9 @@ def account_prefs(principal: Principal, directory) -> dict:
         "easy_pace_unit": easy_unit,
         "easy_pace_phrase": phrase,
         "profile": profile,
+        "intro_seen": intro_seen,
+        "strava_prompt_seen": strava_prompt_seen,
+        "preferred": preferred,
     }
 
 
@@ -99,4 +127,22 @@ def prefs_payload(resolved: dict) -> dict:
         "confirm_adapt": prefs["confirm_adapt"] is True,
         "today": today.isoformat() if isinstance(today, date) else "",
         "logging": "done" if prefs.get("no_watch") is True else "times",
+        "intro_seen": resolved.get("intro_seen"),
+        "strava_prompt_seen": resolved.get("strava_prompt_seen") is True,
+        "preferred": resolved.get("preferred") or "",
+    }
+
+
+def athlete_payload(principal: Principal, resolved: dict) -> dict:
+    """The signed-in athlete. The same shape as GET /auth/me."""
+    prefs = prefs_payload(resolved)
+    today = prefs.pop("today")
+    return {
+        "id": principal.user_id,
+        "email": principal.email,
+        "display_name": principal.display_name,
+        "role": principal.role,
+        "kind": principal.kind,
+        "today": today,
+        "prefs": prefs,
     }

@@ -238,22 +238,29 @@ def test_week_marks_match_the_adapt_contract() -> None:
             raise AssertionError(body["quality_base_weeks"])
 
 
-def test_a_result_matches_the_judge_contract_and_does_not_call_the_model(monkeypatch) -> None:
-    called = {"count": 0}
-
-    def _refuse(_payload):
-        called["count"] += 1
-        raise AssertionError("the result route called the model")
-
-    monkeypatch.setattr("engines.explain.complete_insight", _refuse)
+def test_a_result_matches_the_judge_contract_and_does_not_wait_on_the_model(monkeypatch) -> None:
+    """The judged mark is stored even when the model fails. The model sees that save."""
+    called = {"count": 0, "saved_first": False}
+    directory = MemoryDirectory()
+    client = _sign_up(directory)
+    generated = _generate(client)
     golden = _golden()
     judged = next(row for row in golden["judge"] if row["text"] == "57.5" and row["result"] is not None)
-    client = _sign_up(MemoryDirectory())
-    generated = _generate(client)
     matches = [session for session in generated["plan"]["sessions"] if session["template_id"] == judged["template_id"]]
     if not matches:
         raise AssertionError("the contract template is not in the generated season")
     day = matches[0]["date"]
+
+    def _spy(_payload):
+        called["count"] += 1
+        user_id = directory.by_email["ada@example.com"]
+        called["saved_first"] = any(
+            isinstance(row, dict) and day in (row.get("actuals") or {})
+            for row in directory.plans.get(user_id) or []
+        )
+        return None
+
+    monkeypatch.setattr("engines.explain.complete_insight", _spy)
     response = client.post(
         "/seasons/current/results",
         json={"date": day, "text": judged["text"], "note": {"headline": "no"}},
@@ -261,8 +268,10 @@ def test_a_result_matches_the_judge_contract_and_does_not_call_the_model(monkeyp
     if response.status_code != 200:
         raise AssertionError(response.text)
     body = response.json()
-    if called["count"] != 0:
-        raise AssertionError("complete_insight ran")
+    if called["count"] and called["saved_first"] is not True:
+        raise AssertionError("the model ran before the plan was saved")
+    if body["insight"]["status"] not in ("pending", "skipped"):
+        raise AssertionError(body["insight"])
     saved = body["actuals"][day]
     if saved["mark"] != judged["result"]["mark"] or saved["numbers"] != judged["result"]["numbers"]:
         raise AssertionError(saved)
