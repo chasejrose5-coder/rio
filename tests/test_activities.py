@@ -41,7 +41,9 @@ PLANNED = [
 def _function(source: str, name: str) -> str:
     marker = f"def {name}("
     start = source.index(marker)
-    nxt = source.index("\ndef ", start + len(marker))
+    nxt = source.find("\ndef ", start + len(marker))
+    if nxt < 0:
+        return source[start:]
     return source[start:nxt]
 
 
@@ -507,8 +509,12 @@ def test_pull_uses_the_adapter_and_does_not_spend() -> None:
         if name not in block:
             raise AssertionError(f"{name} does not open a pull")
     wrapper = _function(app, "_with_plan")
-    pull_for = _function(app, "_pull_for")
-    if 'st.session_state.get("activity-refresh") is True' not in pull_for:
+    pull_shell = _function(app, "_pull_for")
+    pull_for = _function(
+        (ROOT / "services" / "activity_pull.py").read_text(encoding="utf-8"),
+        "run_activity_pull",
+    )
+    if 'st.session_state.get("activity-refresh") is True' not in pull_shell:
         raise AssertionError("refresh does not read activities again")
     branches = pull_for.split("if refresh:", 1)[1]
     history, recent = branches.split("else:", 1)
@@ -516,7 +522,7 @@ def test_pull_uses_the_adapter_and_does_not_spend() -> None:
         raise AssertionError("refresh does not read every activity")
     if "sync_recent(" not in recent:
         raise AssertionError("opening a live page does not read the last 14 days")
-    if "_pull_for(" not in wrapper or "sync_recent(" not in pull_for:
+    if "_pull_for(" not in wrapper or "run_activity_pull(" not in pull_shell or "sync_recent=" not in pull_shell:
         raise AssertionError("opening a page does not pull")
     if wrapper.index("_pull_for(") > wrapper.index("_sync_browser_store("):
         raise AssertionError("matches are written before the pull")
@@ -524,7 +530,10 @@ def test_pull_uses_the_adapter_and_does_not_spend() -> None:
         raise AssertionError("the first page does not pull")
     restore = _function(app, "_restore_record")
     store = _function(app, "_sync_browser_store")
+    local = (ROOT / "services" / "season_store.py").read_text(encoding="utf-8")
     if "season_activities" not in restore or "season_activities" not in store:
+        raise AssertionError("a reload drops the matches")
+    if "read_record(" not in local or "write_record(" not in local:
         raise AssertionError("a reload drops the matches")
     if "list_activities" in app or "fetch_activity" in app or "urlopen" in app:
         raise AssertionError("the page calls the live API directly")

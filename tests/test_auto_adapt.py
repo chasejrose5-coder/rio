@@ -58,7 +58,9 @@ def _ids(plan: dict, week: int) -> list[str]:
 def _function(source: str, name: str) -> str:
     marker = f"def {name}("
     start = source.index(marker)
-    nxt = source.index("\ndef ", start + len(marker))
+    nxt = source.find("\ndef ", start + len(marker))
+    if nxt < 0:
+        return source[start:]
     return source[start:nxt]
 
 
@@ -311,16 +313,25 @@ def test_live_pages_pull_recent_and_judge() -> None:
     ):
         if name not in block:
             raise AssertionError(f"{name} does not pull on open")
-    pull = _function(app, "_pull_for")
-    apply = _function(app, "_apply_activity_marks")
+    pull_shell = _function(app, "_pull_for")
+    pull = _function(
+        (ROOT / "services" / "activity_pull.py").read_text(encoding="utf-8"),
+        "run_activity_pull",
+    )
+    apply = _function(
+        (ROOT / "services" / "season_commit.py").read_text(encoding="utf-8"),
+        "apply_activity_marks",
+    )
     if pull.count("_apply_activity_marks(") != 1:
         raise AssertionError("a live page does not judge a match once")
     if "if opened:" not in pull or "_apply_activity_marks(plan)" not in pull:
         raise AssertionError("opening a live page does not judge")
     if 'if page_name == "page_activity":\n            _apply_activity_marks(plan)' in pull:
         raise AssertionError("only activity data judges a match")
-    if 'st.session_state.get("activity-refresh") is True' not in pull:
+    if 'st.session_state.get("activity-refresh") is True' not in pull_shell:
         raise AssertionError("refresh does not read activities again")
+    if "run_activity_pull(" not in pull_shell:
+        raise AssertionError("opening a live page does not judge")
     branches = pull.split("if refresh:", 1)[1]
     history, recent = branches.split("else:", 1)
     if "sync_all(" not in history or "sync_recent(" not in recent:
