@@ -183,6 +183,12 @@ class MemoryDirectory:
                 self.users[user_id]["display_name"] = name.strip()
             self._keep_pace(user_id, profile.get("pace_units"))
 
+    def save_timezone(self, access_token: object, zone: object) -> None:
+        """Remember the Settings time zone. The other account stays."""
+        user_id = self.user_id(access_token)
+        if not self._keep_zone(user_id, zone):
+            raise CloudAuthError("Time zone could not be saved.")
+
     def save_pace_units(self, access_token: object, unit: object) -> None:
         """Remember per mile or per km on this athlete. The other account stays."""
         user_id = self.user_id(access_token)
@@ -218,6 +224,17 @@ class MemoryDirectory:
         if user is None:
             raise CloudAuthError("The Strava prompt could not be saved.")
         user["strava_prompt_seen"] = seen
+
+    def _keep_zone(self, user_id: str, zone: object) -> bool:
+        from ui.settings import TIME_ZONES
+
+        if not isinstance(zone, str) or zone not in TIME_ZONES:
+            return False
+        user = self.users.get(user_id)
+        if user is None:
+            return False
+        user["timezone"] = zone
+        return True
 
     def _keep_pace(self, user_id: str, unit: object) -> bool:
         if unit not in ("mi", "km"):
@@ -678,11 +695,12 @@ class SupabaseDirectory:
         pace = _pace_from_metadata(record)
         intro = intro_seen_value(record)
         easy = easy_pace_from_metadata(record)
+        zone = _zone_from_metadata(record)
         from ui.plan_strava import prompt_seen_value
 
         prompt = prompt_seen_value(record)
         if isinstance(profile, dict) and (
-            pace or intro is not None or prompt is not None or easy is not None
+            pace or intro is not None or prompt is not None or easy is not None or zone
         ):
             profile = dict(profile)
             if pace:
@@ -694,6 +712,8 @@ class SupabaseDirectory:
             if easy is not None:
                 profile["easy_pace"] = easy[0]
                 profile["easy_pace_unit"] = easy[1]
+            if zone:
+                profile["timezone"] = zone
         return {
             "profile": profile,
             "goal": goal or _blank_goal(),
@@ -732,6 +752,21 @@ class SupabaseDirectory:
             plans = pool.submit(_plans)
             results = pool.submit(_results)
             return profile.result(), goal.result(), plans.result(), results.result()
+
+    def save_timezone(self, access_token: object, zone: object) -> None:
+        """Store the Settings time zone on the auth user. No new table."""
+        from ui.settings import TIME_ZONES
+
+        if not isinstance(zone, str) or zone not in TIME_ZONES:
+            raise CloudAuthError("Time zone could not be saved.")
+        if not isinstance(access_token, str) or not access_token:
+            raise CloudAuthError("Sign in again.")
+        try:
+            self._auth_user_update(access_token, {"timezone": zone})
+        except CloudAuthError:
+            raise
+        except Exception:
+            raise CloudAuthError("Time zone could not be saved.") from None
 
     def save_pace_units(self, access_token: object, unit: object) -> None:
         """Store per mile or per km on the auth user. No new table."""
@@ -1227,6 +1262,11 @@ def _public_user(user: dict) -> dict:
     pace = user.get("pace_units")
     if pace in ("mi", "km"):
         row["pace_units"] = pace
+    from ui.settings import TIME_ZONES
+
+    zone = user.get("timezone")
+    if isinstance(zone, str) and zone in TIME_ZONES:
+        row["timezone"] = zone
     easy = stored_easy_pair(user.get("easy_pace"), user.get("easy_pace_unit"))
     if easy is not None:
         row["easy_pace"] = easy[0]
@@ -1268,6 +1308,19 @@ def easy_pace_from_metadata(user: object) -> tuple[str, str] | None:
     if meta is None:
         return None
     return stored_easy_pair(meta.get("easy_pace"), meta.get("easy_pace_unit"))
+
+
+def _zone_from_metadata(user: object) -> str | None:
+    """The Settings time zone on the auth user, when it is one this app lists."""
+    from ui.settings import TIME_ZONES
+
+    meta = _metadata_dict(user)
+    if meta is None:
+        return None
+    zone = meta.get("timezone")
+    if isinstance(zone, str) and zone in TIME_ZONES:
+        return zone
+    return None
 
 
 def _pace_from_metadata(user: object) -> str | None:

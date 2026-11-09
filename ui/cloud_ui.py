@@ -374,6 +374,15 @@ def _apply_bundle(bundle: dict) -> None:
         st.session_state["rio_cloud_role"] = st.session_state["rio_cloud_profile"]["role"]
         if profile.get("display_name"):
             st.session_state["rio_cloud_name"] = profile.get("display_name")
+        from ui.settings import TIME_ZONES
+
+        zone = profile.get("timezone")
+        if isinstance(zone, str) and zone in TIME_ZONES:
+            local = st.session_state.get("rio_local")
+            current = dict(local) if isinstance(local, dict) else {}
+            if current.get("timezone") not in TIME_ZONES:
+                current["timezone"] = zone
+                st.session_state["rio_local"] = current
         pace = profile.get("pace_units")
         if pace in ("mi", "km"):
             current = st.session_state.get("rio_settings")

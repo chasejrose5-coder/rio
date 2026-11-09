@@ -56,7 +56,7 @@ def test_start_uses_the_defaults_and_stays_editable() -> None:
     app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
     page = app[app.index("def page_start(") : app.index("def _session_activity(")]
     form = page[: page.index('st.button("Generate"')]
-    if "start_form_defaults(" not in form or "date.today()" not in form:
+    if "start_form_defaults(" not in form or "_athlete_today()" not in form:
         raise AssertionError("Start does not default the dates")
     if "_seed_start_form(" in form or "season_inputs" in form:
         raise AssertionError("Start copied a previous goal or time")

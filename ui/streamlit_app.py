@@ -84,6 +84,7 @@ from ui.settings import (
     distance_heading,
     distance_number,
     format_date,
+    local_today,
     normalize as normalize_prefs,
     start_on,
     suggested_timezone,
@@ -1424,13 +1425,13 @@ def _pull_for(page_name: str) -> None:
                 updated = sync_all(
                     sessions,
                     st.session_state.get("season_activities"),
-                    date.today(),
+                    _athlete_today(),
                 )
             else:
                 updated = sync_recent(
                     sessions,
                     st.session_state.get("season_activities"),
-                    date.today(),
+                    _athlete_today(),
                 )
         except PullError as exc:
             st.session_state["activities_notice"] = str(exc)
@@ -1475,7 +1476,7 @@ def _route_after_login() -> None:
     who = _account_identity()
     if who is not None:
         keys = record_keys(accounts_path(), who[0], who[1], KEY_PREFIX)
-        if has_active_plan(keys, date.today()) or _has_current_season():
+        if has_active_plan(keys, _athlete_today()) or _has_current_season():
             home = _nav_page("Home")
             if home is not None:
                 page = home
@@ -2036,6 +2037,14 @@ def _date_text(value: object) -> str:
     return format_date(value, _prefs()["date_format"])
 
 
+def _athlete_today() -> date:
+    """Today in the time zone saved in Settings.
+
+    A blank zone uses suggested_timezone(), the same fallback Settings uses.
+    """
+    return local_today()
+
+
 def _copy(text: object) -> str:
     """Distance words for the chosen units. Reps stay in meters."""
     return display_training(text, _prefs()["units"])
@@ -2145,7 +2154,7 @@ def _next_session_day() -> str | None:
     if not days:
         return None
     days.sort()
-    today = date.today().isoformat()
+    today = _athlete_today().isoformat()
     for day in days:
         if day >= today:
             return day
@@ -3185,7 +3194,7 @@ def page_start() -> None:
     st.markdown(theme.fullscreen_css(theme.static_url(theme.START_PHOTO)), unsafe_allow_html=True)
     st.markdown(theme.shade_html(), unsafe_allow_html=True)
     _render_nav("")
-    current_default, start_default, goal_default, goal_day_default = start_form_defaults(date.today())
+    current_default, start_default, goal_default, goal_day_default = start_form_defaults(_athlete_today())
     start_default = start_on(start_default, _prefs()["start_date"])
     with st.container(key="rio-goal-card"):
         st.markdown(
@@ -3280,7 +3289,7 @@ def _plan_weeks(start: date, goal: date, length: int, sessions: list) -> None:
         length=length,
         sessions=sessions,
         marks=marks if isinstance(marks, dict) else {},
-        today=date.today(),
+        today=_athlete_today(),
         distances=with_matched_distances(
             loaded_distances(sessions, actuals if isinstance(actuals, dict) else {}),
             _stored_activities(),
@@ -3528,7 +3537,7 @@ def _pace_status_label() -> str:
             goal_mark=goal_mark,
             start=start,
             goal_date=goal_day,
-            on=date.today(),
+            on=_athlete_today(),
             logs=logs,
             **pace_kwargs(),
         )
@@ -3637,7 +3646,7 @@ def _track_fact(label: str, value: str) -> str:
 
 def _on_today(workout: object) -> bool:
     """True when the stored session date is today."""
-    return isinstance(workout, dict) and str(workout.get("date") or "") == date.today().isoformat()
+    return isinstance(workout, dict) and str(workout.get("date") or "") == _athlete_today().isoformat()
 
 
 def _track_stage(workout: dict | None) -> str:
@@ -3766,7 +3775,7 @@ def _upcoming_days(sessions: list, today: date, count: int = 3) -> list:
 def _phase_timeline(start: date, length: int, sessions: list) -> str:
     """One cell per week. The number is the phase already stored on that week."""
     grouped = dict(_weeks(sessions))
-    current = _week_containing(start, length, date.today())
+    current = _week_containing(start, length, _athlete_today())
     cells = []
     for number in range(1, length + 1):
         phase = _phase_number(grouped.get(number, []))
@@ -3969,7 +3978,7 @@ def _render_this_week(plan: dict, goal: date, sessions: list) -> bool:
         try:
             from ui.dashboard import current_week
 
-            week = current_week(start=date.fromisoformat(start_text), length=length, today=date.today())
+            week = current_week(start=date.fromisoformat(start_text), length=length, today=_athlete_today())
         except ValueError:
             week = None
     rows = [
@@ -4018,7 +4027,7 @@ def _remember_workout_note(plan: dict, session: dict, mark: str, detail: str) ->
         goal = date.fromisoformat(str(inputs[3]))
     except ValueError:
         return
-    remaining = (goal - date.today()).days
+    remaining = (goal - _athlete_today()).days
     if remaining < 0:
         remaining = 0
     name = str(st.session_state.get("rio_cloud_name") or "")
@@ -4156,7 +4165,7 @@ def page_dashboard() -> None:
         length=length,
         sessions=sessions,
         marks=marks if isinstance(marks, dict) else {},
-        today=date.today(),
+        today=_athlete_today(),
     )
     workout = view.get("next")
     headline = _home_headline(view.get("days_remaining"), _season_goal_text())
@@ -4206,7 +4215,7 @@ def page_dashboard() -> None:
                     '<p class="rio-empty">No workout left in this plan.</p>',
                     unsafe_allow_html=True,
                 )
-    upcoming = _upcoming_days(sessions, date.today(), 3)
+    upcoming = _upcoming_days(sessions, _athlete_today(), 3)
     if upcoming:
         st.markdown(
             f'<p class="rio-index rio-index-pad">{upcoming_index}</p>',
@@ -4216,7 +4225,7 @@ def page_dashboard() -> None:
             for session in upcoming:
                 _session_link(session, "mini")
     _quick_links(index=None if showed_phase else "03  /  Open")
-    oldest, newest = activity_window(date.today())
+    oldest, newest = activity_window(_athlete_today())
     _render_extras(extras_between(_stored_activities(), oldest, newest))
 
 
@@ -4310,7 +4319,7 @@ def page_calendar() -> None:
     titles = [month_title(item) for item in months]
     key = f"calendar-month-{generation}"
     if key not in st.session_state or st.session_state.get(key) not in titles:
-        st.session_state[key] = month_title(opening_month(months, date.today()))
+        st.session_state[key] = month_title(opening_month(months, _athlete_today()))
     month = months[titles.index(st.session_state[key])]
     with hero:
         st.markdown(
@@ -4319,7 +4328,7 @@ def page_calendar() -> None:
         )
         with st.container(key="rio-pick-month", gap=None):
             st.selectbox("Month", titles, key=key)
-    weeks = month_weeks(month.year, month.month, sessions, today=date.today())
+    weeks = month_weeks(month.year, month.month, sessions, today=_athlete_today())
     with st.container(key="rio-cal", gap="small"):
         with st.container(key="rio-cal-head", gap=None):
             heads = st.columns(7, gap="small")
@@ -4491,7 +4500,7 @@ def page_progress() -> None:
         length=length,
         sessions=sessions,
         marks=marks if isinstance(marks, dict) else {},
-        today=date.today(),
+        today=_athlete_today(),
         distances=with_matched_distances(
             loaded_distances(sessions, actuals if isinstance(actuals, dict) else {}),
             _stored_activities(),
@@ -4502,7 +4511,7 @@ def page_progress() -> None:
             _page_hero(
                 "Progress",
                 "SYNTHETIC / DEMO",
-                f"{_date_text(start)} — {_date_text(goal)} · {days_label(days_remaining(goal, date.today()))}",
+                f"{_date_text(start)} — {_date_text(goal)} · {days_label(days_remaining(goal, _athlete_today()))}",
             ),
             unsafe_allow_html=True,
         )
@@ -4588,7 +4597,7 @@ def page_weekly() -> None:
 
     generation = int(st.session_state.get("season_generation") or 0)
     numbers = list(range(1, length + 1))
-    default = _week_containing(start, length, date.today())
+    default = _week_containing(start, length, _athlete_today())
     key = f"weekly-week-{generation}"
     picked = st.session_state.get(key, default)
     if isinstance(picked, bool) or not isinstance(picked, int) or picked not in numbers:
@@ -5150,7 +5159,7 @@ def page_activity() -> None:
     )
     if cards:
         st.markdown(_activity_figures(meters, points, units), unsafe_allow_html=True)
-        st.markdown(activity_style() + summary_html(week_summary(cards, date.today(), pace)), unsafe_allow_html=True)
+        st.markdown(activity_style() + summary_html(week_summary(cards, _athlete_today(), pace)), unsafe_allow_html=True)
     elif strava_connected():
         st.markdown(
             '<div class="rio-card rio-card-tight">'
@@ -5165,7 +5174,7 @@ def page_activity() -> None:
     volume_shown = False
     heart_shown = False
     if volume_values:
-        highlight = _week_containing(start, length, date.today()) - 1
+        highlight = _week_containing(start, length, _athlete_today()) - 1
         end = min(len(volume_values), max(highlight, 0) + 1)
         shown_meters = volume_values[:end]
         captions = [display_distance(f"{value:,} m", volume_units) for value in shown_meters]
@@ -5182,7 +5191,7 @@ def page_activity() -> None:
     if axis:
         st.markdown(axis, unsafe_allow_html=True)
         heart_shown = True
-    for group in group_weeks(cards, date.today()):
+    for group in group_weeks(cards, _athlete_today()):
         with st.expander(group["title"], expanded=group["open"]):
             body = "".join(card_html(card) for card in group["cards"])
             st.markdown(body or '<p class="rio-empty">No runs this week.</p>', unsafe_allow_html=True)
@@ -5312,9 +5321,23 @@ def _persist_local(name: object, preferred: object, timezone: object, settings: 
             "timezone": timezone if isinstance(timezone, str) else "",
             "settings": dict(settings),
         }
+        from ui.cloud_store import current_directory
         from ui.cloud_ui import persist_cloud_season
 
         persist_cloud_season()
+        token = st.session_state.get("rio_cloud_access")
+        directory = current_directory()
+        if (
+            directory is not None
+            and hasattr(directory, "save_timezone")
+            and isinstance(token, str)
+            and token
+            and isinstance(timezone, str)
+        ):
+            try:
+                directory.save_timezone(token, timezone)
+            except Exception:
+                pass
         return
     try:
         saved = write_local(
@@ -5992,7 +6015,7 @@ def page_plan() -> None:
         unsafe_allow_html=True,
     )
     phase = _phase_number(
-        dict(_weeks(sessions)).get(_week_containing(start, length, date.today()), [])
+        dict(_weeks(sessions)).get(_week_containing(start, length, _athlete_today()), [])
     )
     note = ""
     if phase != "—":
