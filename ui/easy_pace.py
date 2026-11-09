@@ -51,6 +51,8 @@ def render_easy_pace(*, current: str = "") -> tuple[str, str] | None:
     if "easy-pace-unit" not in st.session_state:
         st.session_state["easy-pace-unit"] = found[1] if found is not None else "mi"
     st.markdown(_css() + _card(current), unsafe_allow_html=True)
+    # The card and the fields share one full-width stack. Profile's form below
+    # is already full width, and this block matches it.
     notice = st.session_state.pop("rio_easy_pace_error", None)
     if isinstance(notice, str) and notice.strip():
         st.markdown(
@@ -104,9 +106,11 @@ def _css() -> str:
     return f"""
 <style>
 .rio-easy {{
-  max-width: 36rem;
-  margin: 0.85rem 0 0.4rem;
-  padding: 1.15rem 1.25rem 0.35rem;
+  max-width: none;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0.85rem 0 0.85rem;
+  padding: 1.15rem 1.25rem 1rem;
   background: {SURFACE};
   border: 1px solid {HAIRLINE};
   border-radius: 18px;
@@ -137,9 +141,13 @@ def _css() -> str:
 }}
 .rio-easy-body {{ margin: 0 0 0.65rem !important; }}
 .rio-easy-now {{ margin: 0 0 0.35rem !important; color: {TEXT} !important; }}
-.rio-easy-hint {{ margin: -0.35rem 0 0.65rem !important; }}
-[class*="st-key-rio-easy"] {{
-  max-width: 36rem !important;
+.rio-easy-hint {{
+  margin: 0.7rem 0 1rem !important;
+}}
+[class*="st-key-rio-easy-pace"] {{
+  width: 100% !important;
+  max-width: none !important;
+  margin-top: 0.35rem !important;
 }}
 </style>
 """

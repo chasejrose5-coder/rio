@@ -49,18 +49,22 @@ SEEN_KEY = "rio_startup_seen"
 PHOTO_PATH = Path(__file__).resolve().parent / "assets" / "startup_track.jpg"
 
 _HTML = """
+<link rel="preload" as="image" href="app/static/photos/startup-track-800.webp" type="image/webp" media="(max-width: 1200px)">
+<link rel="preload" as="image" href="app/static/photos/startup-track-1200.webp" type="image/webp" media="(min-width: 1201px)">
+<div class="rio-splash-photo" aria-hidden="true"></div>
 <div class="rio-startup-shade" aria-hidden="true"></div>
-<section class="rio-startup-copy">
-  <p class="rio-brand-mark">RIO</p>
-  <p class="rio-brand-owned">Runner Intelligence Owned</p>
-  <h1 class="rio-startup-headline">Your Race, Your Plan, Your Result</h1>
-  <p class="rio-reason-line">Every rep has a reason</p>
-  <blockquote class="rio-founder-quote">
+<section class="rio-startup-copy rio-splash-stage" style="min-height:28rem">
+  <p class="rio-brand-mark" style="min-height:4.4rem">RIO</p>
+  <p class="rio-brand-owned" style="min-height:1.6rem">Runner Intelligence Owned</p>
+  <h1 class="rio-startup-headline" style="min-height:4.4rem">Your Race, Your Plan, Your Result</h1>
+  <p class="rio-reason-line" style="min-height:1.8rem">Every rep has a reason</p>
+  <blockquote class="rio-founder-quote" style="min-height:7.5rem">
     <p class="rio-founder-words">“Most plans tell you what to run. RIO shows you why, and adjusts when the season doesn't go to script.”</p>
     <p class="rio-founder-by">— Chase Rose, Founder</p>
   </blockquote>
   <!-- rio-startup-statement data-placeholder="personal-creator-statement" Placeholder Personal creator statement HEADLINE_TEXT STATEMENT_TEXT -->
   <p class="rio-startup-credit">CREDIT_TEXT</p>
+  <div class="rio-splash-button-slot" aria-hidden="true"></div>
 </section>
 """
 
@@ -113,6 +117,14 @@ header {{
   descent-override: 22.52%;
   line-gap-override: 0%;
 }}
+@font-face {{
+  font-family: "Manrope Fallback";
+  src: local("Arial");
+  size-adjust: 105%;
+  ascent-override: 96%;
+  descent-override: 24%;
+  line-gap-override: 0%;
+}}
 .rio-startup-copy,
 .rio-startup-copy h1,
 .rio-startup-copy p {{
@@ -132,14 +144,42 @@ header {{
   border-radius: 0;
   box-shadow: none;
 }}
+.rio-splash-photo {{
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  aspect-ratio: 16 / 9;
+  pointer-events: none;
+  background-color: #2A1B1B;
+  background-image: image-set(
+    url("app/static/photos/startup-track-1200.webp") type("image/webp"),
+    url("app/static/photos/startup-track.jpg") type("image/jpeg")
+  );
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}}
+@media (max-width: 1200px) {{
+  .rio-splash-photo {{
+    aspect-ratio: 16 / 9;
+    background-image: image-set(
+      url("app/static/photos/startup-track-800.webp") type("image/webp"),
+      url("app/static/photos/startup-track-800.jpg") type("image/jpeg")
+    );
+  }}
+}}
 .rio-brand-mark {{
   margin: 0 0 0.2rem !important;
   color: #F4F1EC !important;
-  font-family: {DISPLAY} !important;
+  font-family: {DISPLAY}, "Manrope Fallback", Arial, sans-serif !important;
   font-weight: 800 !important;
   font-size: clamp(88px, 18vw, 176px) !important;
   letter-spacing: -0.065em !important;
   line-height: 0.78 !important;
+  min-height: 4.4rem;
 }}
 .rio-brand-owned {{
   margin: 0 0 1.35rem !important;
@@ -153,8 +193,9 @@ header {{
 .rio-startup-headline {{
   margin: 0 0 0.7rem !important;
   color: #F4F1EC !important;
-  font-family: {DISPLAY} !important;
+  font-family: {DISPLAY}, "Manrope Fallback", Arial, sans-serif !important;
   max-width: 14ch;
+  min-height: 4.4rem;
   font-size: clamp(36px, 5.4vw, 72px) !important;
   font-weight: 800 !important;
   letter-spacing: -0.045em !important;
@@ -174,6 +215,7 @@ header {{
 .rio-founder-quote {{
   margin: 0 !important;
   max-width: 38rem;
+  min-height: 7.5rem;
   padding: 0 !important;
   border: 0 !important;
   border-left: 0 !important;
@@ -187,9 +229,23 @@ header {{
   opacity: 1 !important;
   animation: none !important;
 }}
-[data-testid="stMainBlockContainer"]:has(.rio-founder-words) {{
-  animation: none !important;
-  opacity: 1 !important;
+/* The fade stays on the main container, and it waits until the reserved
+   boxes have had a frame to settle. Opacity and transform only. */
+[data-testid="stMainBlockContainer"]:has(.rio-splash-stage) {{
+  opacity: 0;
+  transform: translate3d(0, 0, 0);
+  animation: rio-fade 220ms var(--rio-ease) 120ms forwards !important;
+}}
+[data-testid="stMainBlockContainer"]:has(.rio-splash-stage).rio-settled {{
+  animation-delay: 0ms !important;
+}}
+@media (prefers-reduced-motion: reduce) {{
+  [data-testid="stMainBlockContainer"]:has(.rio-splash-stage),
+  [data-testid="stMainBlockContainer"]:has(.rio-splash-stage).rio-settled {{
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }}
 }}
 .rio-founder-by {{
   margin: 0.45rem 0 0 !important;
@@ -263,19 +319,38 @@ header {{
   text-align: center;
   pointer-events: none;
 }}
+.rio-splash-button-slot {{
+  width: 11.5rem;
+  height: 2.8rem;
+  min-height: 2.8rem;
+  margin-top: 1.35rem;
+}}
 [class*="st-key-rio-startup-continue"] {{
   position: relative !important;
   z-index: 6 !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: flex-start !important;
-  width: 100% !important;
+  width: 11.5rem !important;
+  height: 2.8rem !important;
+  min-height: 2.8rem !important;
   background: transparent !important;
-  margin-top: 1.35rem !important;
+  margin-top: -2.8rem !important;
 }}
 [class*="st-key-rio-startup-continue"] button,
 [class*="st-key-rio-startup-continue"] [data-testid="stBaseButton-primary"] {{
+  width: 11.5rem !important;
   min-width: 11.5rem !important;
+  height: 2.8rem !important;
+  min-height: 2.8rem !important;
+}}
+[data-testid="stHtml"]:has(script) {{
+  position: absolute !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
 }}
 """
 
@@ -334,9 +409,23 @@ def startup_css(photo_uri: str | None = None) -> str:
     )
 
 
+_SETTLE_JS = """
+<script>
+(function () {
+  function go() {
+    var nodes = document.querySelectorAll('[data-testid="stMainBlockContainer"]');
+    for (var i = 0; i < nodes.length; i++) nodes[i].classList.add("rio-settled");
+  }
+  requestAnimationFrame(function () { requestAnimationFrame(go); });
+})();
+</script>
+"""
+
+
 def render_startup() -> bool:
     """Draw the page. True when Continue was pressed."""
-    st.markdown(startup_css(), unsafe_allow_html=True)
-    st.markdown(startup_html(), unsafe_allow_html=True)
+    # One fragment so the reserved boxes and the photo exist on the first layout.
+    st.markdown(startup_css() + startup_html(), unsafe_allow_html=True)
+    st.html(_SETTLE_JS, unsafe_allow_javascript=True)
     with st.container(key="rio-startup-continue"):
         return bool(st.button(CONTINUE_LABEL, type="primary"))
