@@ -126,7 +126,17 @@ from ui.plan_store import (
     query_values,
     storage_key,
 )
-from ui.past_seasons import KEY_PREFIX, entry_fields, has_active_plan, inputs_from_key, season_entries
+from ui.past_seasons import (
+    KEY_PREFIX,
+    confirm_deletes,
+    entry_fields,
+    has_active_plan,
+    inputs_from_key,
+    is_past_season,
+    season_entries,
+    season_summary,
+    summary_record,
+)
 from ui.profile import (
     clean_goal,
     dump_goal,
@@ -6714,17 +6724,192 @@ def _open_past(inputs: tuple[str, str, str, str], *, first: bool) -> None:
             )
 
 
+def _past_body(inputs: tuple[str, str, str, str]) -> dict | None:
+    """The stored body for this season. A missing body is None."""
+    if _hosted_account():
+        from ui.plan_store import row_for_inputs
+
+        return summary_record(row_for_inputs(st.session_state.get("rio_cloud_plan_rows"), inputs))
+    who = _account_identity()
+    if who is None:
+        return None
+    raw = read_record(accounts_path(), who[0], who[1], storage_key(inputs))
+    if not isinstance(raw, str) or not raw.strip():
+        return None
+    import json
+
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+    return summary_record(parsed)
+
+
+def _past_summary_html(inputs: tuple[str, str, str, str]) -> str:
+    """The confirm panel. Each line is a fact already stored."""
+    facts = []
+    for label, value in season_summary(inputs, _past_body(inputs)):
+        shown = value
+        if label == "Season" and " – " in value:
+            start, end = value.split(" – ", 1)
+            shown = f"{_date_text(start)} – {_date_text(end)}"
+        facts.append(
+            f'<div class="rio-past-stat">'
+            f'<div class="rio-past-k">{_esc(label)}</div>'
+            f'<div class="rio-past-v">{_esc(shown)}</div>'
+            "</div>"
+        )
+    body = "".join(facts)
+    return (
+        '<div class="rio-past-confirm">'
+        '<p class="rio-past-confirm-title">Delete this season?</p>'
+        f"{body}"
+        '<p class="rio-past-confirm-note">This permanently deletes this season'
+        " and the workouts stored with it. It can't be undone.</p>"
+        "</div>"
+    )
+
+
+def _forget_deleted_season(inputs: tuple[str, str, str, str]) -> None:
+    """Drop the season from this session so a later save does not write it back."""
+    rows = st.session_state.get("rio_cloud_plan_rows")
+    if isinstance(rows, list):
+        kept_rows = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            ident = (
+                str(row.get("current_time") or ""),
+                str(row.get("start_date") or ""),
+                str(row.get("goal_time") or ""),
+                str(row.get("goal_date") or ""),
+            )
+            if ident == inputs:
+                continue
+            kept_rows.append(row)
+        st.session_state["rio_cloud_plan_rows"] = kept_rows
+    stored = st.session_state.get("rio_cloud_season_inputs")
+    if isinstance(stored, list):
+        kept = []
+        for item in stored:
+            if isinstance(item, (list, tuple)) and tuple(str(part) for part in item) == inputs:
+                continue
+            kept.append(item)
+        st.session_state["rio_cloud_season_inputs"] = kept
+    current = st.session_state.get("season_inputs")
+    if isinstance(current, (list, tuple)) and tuple(str(part) for part in current) == inputs:
+        for key in (
+            "season_activities",
+            "season_actuals",
+            "season_inputs",
+            "season_marks",
+            "season_plan",
+            "season_quality_base",
+        ):
+            st.session_state.pop(key, None)
+        st.session_state["rio_store_loaded"] = True
+        st.session_state.pop("rio_cloud_saved_hash", None)
+    found = plan_inputs(st.query_params)
+    if found == inputs:
+        for name in ("current_time", "start_date", "goal_time", "goal_date"):
+            if name in st.query_params:
+                del st.query_params[name]
+
+
+def _commit_past_delete(inputs: tuple[str, str, str, str]) -> None:
+    """Delete one past season after the confirm button. Nothing else is removed."""
+    from ui.cloud_store import CloudAuthError
+
+    today = _athlete_today()
+    if not confirm_deletes(st.session_state.get("rio_past_delete"), True, today):
+        return
+    if st.session_state.get("rio_past_delete") != inputs:
+        return
+    try:
+        if _hosted_account():
+            from ui.cloud_store import current_directory
+
+            token = st.session_state.get("rio_cloud_access")
+            directory = current_directory()
+            if directory is None or not isinstance(token, str):
+                raise CloudAuthError("Sign in again.")
+            directory.delete_season(token, inputs, today)
+        else:
+            from ui.accounts import delete_past_season
+
+            who = _account_identity()
+            if who is None:
+                raise AccountError("Sign in again.")
+            delete_past_season(accounts_path(), who[0], who[1], inputs, today)
+    except (AccountError, CloudAuthError) as exc:
+        st.session_state["rio_past_delete_error"] = str(exc)
+        st.rerun()
+    _forget_deleted_season(inputs)
+    st.session_state.pop("rio_past_delete", None)
+    st.session_state.pop("rio_past_delete_error", None)
+    st.session_state["rio_past_deleted"] = "Season deleted."
+    st.rerun()
+
+
+def _past_confirm(inputs: tuple[str, str, str, str]) -> None:
+    """The confirm panel. Cancel leaves the season stored."""
+    token = _past_token(inputs)
+    st.markdown(_past_summary_html(inputs), unsafe_allow_html=True)
+    problem = st.session_state.get("rio_past_delete_error")
+    if isinstance(problem, str) and problem.strip():
+        st.markdown(f'<p class="rio-error">{_esc(problem.strip())}</p>', unsafe_allow_html=True)
+    with st.container(key=f"rio-past-confirm-{token}"):
+        delete, cancel = st.columns(2, gap="small")
+        with delete:
+            pressed = st.button(
+                "Delete permanently",
+                key=f"rio-past-confirm-btn-{token}",
+                type="primary",
+                width="stretch",
+            )
+        with cancel:
+            dismissed = st.button("Cancel", key=f"rio-past-cancel-{token}", width="stretch")
+    if dismissed:
+        st.session_state.pop("rio_past_delete", None)
+        st.session_state.pop("rio_past_delete_error", None)
+        st.rerun()
+    if confirm_deletes(st.session_state.get("rio_past_delete"), pressed, _athlete_today()):
+        _commit_past_delete(inputs)
+
+
+def _past_entry(inputs: tuple[str, str, str, str], *, first: bool, today: date) -> None:
+    """One stored season. Delete is offered only when the goal date is past."""
+    _open_past(inputs, first=first)
+    if not is_past_season(inputs, today):
+        return
+    token = _past_token(inputs)
+    with st.container(key=f"rio-past-delete-{token}"):
+        if st.button("Delete season", key=f"rio-past-delete-btn-{token}"):
+            st.session_state["rio_past_delete"] = inputs
+            st.session_state.pop("rio_past_delete_error", None)
+            st.rerun()
+    if st.session_state.get("rio_past_delete") == inputs:
+        _past_confirm(inputs)
+
+
 def page_past_seasons() -> None:
     """Seasons this account already stored.
 
     Each row is a start date, a goal date, and a goal time from a plan key
     on this account. Choosing a row opens that season from those four
-    inputs. Nothing here builds a season. No prose, so this page does not
-    spend.
+    inputs. A past season can be deleted after a confirm step. The current
+    season cannot. Nothing here builds a season. No prose, so this page
+    does not spend.
     """
     hero, _controls = _open("Past seasons")
     with hero:
         st.markdown(_page_hero("Past seasons", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
+    notice = st.session_state.pop("rio_past_deleted", None)
+    if isinstance(notice, str) and notice.strip():
+        st.markdown(
+            f'<p class="rio-past-deleted">{_esc(notice.strip())}</p>',
+            unsafe_allow_html=True,
+        )
     found = _stored_season_keys()
     if found is None:
         st.markdown(
@@ -6739,9 +6924,13 @@ def page_past_seasons() -> None:
             unsafe_allow_html=True,
         )
         return
+    today = _athlete_today()
+    pending = st.session_state.get("rio_past_delete")
+    if pending is not None and not is_past_season(pending, today):
+        st.session_state.pop("rio_past_delete", None)
     with st.container(key="rio-past-list"):
         for index, inputs in enumerate(rows):
-            _open_past(inputs, first=index == 0)
+            _past_entry(inputs, first=index == 0, today=today)
 
 
 def _auth_screen() -> str:

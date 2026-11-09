@@ -299,6 +299,23 @@ class MemoryDirectory:
         for token in dead:
             self.sessions.pop(token, None)
 
+    def delete_season(self, access_token: object, inputs: object, today: object) -> None:
+        """Remove one past season for the signed-in athlete. Other athletes stay."""
+        from datetime import date
+
+        from ui.past_seasons import is_past_season, without_season
+
+        if type(today) is not date or not is_past_season(inputs, today):
+            raise CloudAuthError("The current season can't be deleted.")
+        user_id = self.user_id(access_token)
+        plans, results = without_season(
+            self.plans.get(user_id) or [],
+            self.results.get(user_id) or [],
+            inputs,
+        )
+        self.plans[user_id] = plans
+        self.results[user_id] = results
+
     def find_user_by_email(self, email: object, service_key: object) -> str | None:
         """The user id for this email. The server key is required. No mail is sent."""
         if not isinstance(service_key, str) or not service_key.strip():
@@ -920,6 +937,22 @@ class SupabaseDirectory:
             _log_store("delete", exc)
             raise CloudAuthError("This account could not be removed on the server.") from exc
 
+    def delete_season(self, access_token: object, inputs: object, today: object) -> None:
+        """Remove one past season for this token. The service key is not used."""
+        from datetime import date
+
+        from ui.past_seasons import is_past_season
+
+        if type(today) is not date or not is_past_season(inputs, today):
+            raise CloudAuthError("The current season can't be deleted.")
+        try:
+            self._delete_season(access_token, inputs, today)
+        except CloudAuthError:
+            raise
+        except Exception as exc:
+            _log_store("delete-season", exc)
+            raise CloudAuthError("This season could not be deleted.") from exc
+
     def _delete_user(self, access_token: object, service_key: object) -> None:
         client = self._user_client(access_token)
         user_id = self._token_user(client, access_token)
@@ -932,6 +965,53 @@ class SupabaseDirectory:
             self._client(service_key).auth.admin.delete_user(user_id)
         except Exception as exc:
             raise CloudAuthError("This account could not be removed on the server.") from exc
+
+    def _delete_season(self, access_token: object, inputs: tuple, today: object) -> None:
+        """One transaction when the database function is there. Otherwise the same deletes."""
+        client = self._user_client(access_token)
+        user_id = self._token_user(client, access_token)
+        try:
+            client.rpc(
+                "delete_past_season",
+                {
+                    "p_current_time": inputs[0],
+                    "p_start_date": inputs[1],
+                    "p_goal_time": inputs[2],
+                    "p_goal_date": inputs[3],
+                    "p_today": today.isoformat(),
+                },
+            ).execute()
+        except Exception as exc:
+            if not _missing_delete_season(exc):
+                raise
+            self._delete_season_rows(client, user_id, inputs)
+            return
+        return
+
+    def _delete_season_rows(self, client, user_id: str, inputs: tuple) -> None:
+        """Delete this athlete's season row and the results tied to it."""
+        from ui.past_seasons import without_season
+
+        plans = _rows(client.table("plans").select("*").eq("user_id", user_id).execute())
+        results = _rows(client.table("results").select("*").eq("user_id", user_id).execute())
+        _kept_plans, kept_results = without_season(plans, results, inputs)
+        kept_ids = {id(item) for item in kept_results}
+        removed = [item for item in results if id(item) not in kept_ids]
+        for result in removed:
+            ident = result.get("id")
+            if not ident:
+                continue
+            client.table("results").delete().eq("user_id", user_id).eq("id", str(ident)).execute()
+        (
+            client.table("plans")
+            .delete()
+            .eq("user_id", user_id)
+            .eq("current_time", inputs[0])
+            .eq("start_date", inputs[1])
+            .eq("goal_time", inputs[2])
+            .eq("goal_date", inputs[3])
+            .execute()
+        )
 
     def find_user_by_email(self, email: object, service_key: object) -> str | None:
         """The profile id for this email, read with the server key."""
@@ -1662,6 +1742,18 @@ def _missing_plan_key(exc: BaseException) -> bool:
     """True when the season unique index has not been created yet."""
     text = _exc_text(exc)
     return "42p10" in text or "no unique" in text or "no matching" in text or "on conflict" in text
+
+
+def _missing_delete_season(exc: BaseException) -> bool:
+    """True when delete_past_season has not been created yet."""
+    text = _exc_text(exc)
+    if "42883" in text or "pgrst202" in text:
+        return True
+    if "delete_past_season" in text and (
+        "does not exist" in text or "could not find" in text or "schema cache" in text
+    ):
+        return True
+    return False
 
 
 def _save_plan(client, saved: dict) -> None:
