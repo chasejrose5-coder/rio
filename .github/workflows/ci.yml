@@ -17,3 +17,21 @@ jobs:
       - run: pytest -q
       - run: python -m pip_audit -r requirements.txt
       - run: python -m pip_audit -r api/requirements.txt
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
