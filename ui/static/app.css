@@ -3292,3 +3292,108 @@ html,
 [class*="st-key-rio-done-time"] button span {
   color: #6E6A64 !important;
 }
+
+/* Past-season delete. Cream card. Brand orange on the row control.
+   The darker orange sits only behind the confirm button's text. */
+[class*="st-key-rio-past-delete-"] {
+  margin: -0.15rem 0 0.85rem !important;
+}
+[class*="st-key-rio-past-delete-"] button,
+[class*="st-key-rio-past-delete-"] [data-testid="stBaseButton-secondary"] {
+  background: #FFFCF7 !important;
+  border: 1px solid #E25A32 !important;
+  border-radius: 999px !important;
+  color: #E25A32 !important;
+  min-height: 2.3rem !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}
+[class*="st-key-rio-past-delete-"] button p,
+[class*="st-key-rio-past-delete-"] button span {
+  color: #E25A32 !important;
+  font-weight: 600 !important;
+}
+[class*="st-key-rio-past-delete-"] button:hover,
+[class*="st-key-rio-past-delete-"] button:active {
+  background: #FDF3EF !important;
+  border-color: #E25A32 !important;
+  color: #E25A32 !important;
+  transform: none !important;
+}
+.rio-past-confirm {
+  background: #FFFCF7;
+  border: 1px solid #DADADA;
+  border-radius: 18px;
+  box-shadow: 0 12px 32px rgba(14, 14, 14, 0.05);
+  padding: 1rem 1.05rem 0.9rem;
+  margin: 0.15rem 0 0.75rem;
+}
+.rio-past-confirm-title {
+  margin: 0 0 0.8rem !important;
+  color: #121110 !important;
+  font-size: 1.05rem !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em;
+}
+.rio-past-stat {
+  padding: 0.45rem 0;
+  border-top: 1px solid #E7E1D8;
+}
+.rio-past-confirm .rio-past-k {
+  color: #6B6B6B;
+}
+.rio-past-confirm .rio-past-v {
+  margin-top: 0.16rem;
+  color: #0E0E0E;
+}
+.rio-past-confirm-note {
+  margin: 0.85rem 0 0 !important;
+  color: #6E6A64 !important;
+  font-size: 0.92rem !important;
+  line-height: 1.45 !important;
+}
+.rio-past-deleted {
+  background: #FFFCF7;
+  border: 1px solid #DADADA;
+  border-radius: 18px;
+  box-shadow: 0 12px 32px rgba(14, 14, 14, 0.05);
+  margin: 0.35rem 0 0.9rem !important;
+  padding: 0.75rem 1rem !important;
+  color: #121110 !important;
+}
+[class*="st-key-rio-past-confirm-"] {
+  margin: 0.35rem 0 0.9rem !important;
+}
+[class*="st-key-rio-past-confirm-"] button,
+[class*="st-key-rio-past-confirm-"] [data-testid="stBaseButton-secondary"] {
+  background: #FFFCF7 !important;
+  border: 1px solid #0E0E0E !important;
+  border-radius: 999px !important;
+  color: #0E0E0E !important;
+  min-height: 2.4rem !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}
+[class*="st-key-rio-past-confirm-"] button p,
+[class*="st-key-rio-past-confirm-"] button span {
+  color: inherit !important;
+  font-weight: 600 !important;
+}
+[class*="st-key-rio-past-confirm-"] button[kind="primary"],
+[class*="st-key-rio-past-confirm-"] [data-testid="stBaseButton-primary"] {
+  background: #C2461F !important;
+  border-color: #C2461F !important;
+  color: #FFFFFF !important;
+}
+[class*="st-key-rio-past-confirm-"] button[kind="primary"] p,
+[class*="st-key-rio-past-confirm-"] button[kind="primary"] span,
+[class*="st-key-rio-past-confirm-"] [data-testid="stBaseButton-primary"] p,
+[class*="st-key-rio-past-confirm-"] [data-testid="stBaseButton-primary"] span {
+  color: #FFFFFF !important;
+}
+[class*="st-key-rio-past-confirm-"] button[kind="primary"]:hover,
+[class*="st-key-rio-past-confirm-"] [data-testid="stBaseButton-primary"]:hover {
+  background: #A63C1A !important;
+  border-color: #A63C1A !important;
+  color: #FFFFFF !important;
+}
