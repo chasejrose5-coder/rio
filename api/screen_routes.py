@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from api.errors import ApiError
 from api.prefs import athlete_payload, prefs_payload
 from api.routes import _resolved
+from api.goals import read_override, write_override
 from api.screens import (
     activity_view,
     apply_settings,
@@ -26,6 +27,10 @@ from api.season_service import open_season
 from api.strava_flow import attach_activities, status
 
 router = APIRouter(tags=["screens"])
+
+
+class GoalBody(BaseModel):
+    goal_time: str
 
 
 class SettingsBody(BaseModel):
@@ -101,11 +106,38 @@ def activities(request: Request) -> dict:
     return body
 
 
+def _profile(request: Request, who, resolved, season) -> dict:
+    key = ""
+    if season is not None:
+        from ui.profile import profile_key
+
+        key = profile_key(season.inputs)
+    override = read_override(who, request.app.state.directory, key) if key else None
+    return profile_view(season, resolved, override)
+
+
 @router.get("/profile")
 def profile(request: Request) -> dict:
     who, resolved = _resolved(request)
     season = _open(request, who, resolved["today"])
-    return profile_view(season, resolved)
+    return _profile(request, who, resolved, season)
+
+
+@router.put("/profile/goal")
+def put_goal(body: GoalBody, request: Request) -> dict:
+    """Save the Profile goal. The season digest does not change."""
+    who, resolved = _resolved(request)
+    season = _open(request, who, resolved["today"])
+    if season is None:
+        raise ApiError(404, "No current season.")
+    from ui.profile import profile_key
+
+    before = season.digest
+    write_override(who, request.app.state.directory, profile_key(season.inputs), body.goal_time)
+    again = open_season(who, request.app.state.directory, resolved["today"])
+    if again.digest != before:
+        raise ApiError(400, "The season was changed.")
+    return _profile(request, who, resolved, again)
 
 
 @router.get("/sessions/{day}")

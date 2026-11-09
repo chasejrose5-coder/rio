@@ -84,6 +84,9 @@ def strava_disconnect(request: Request) -> dict:
 @router.post("/sync")
 def strava_sync(body: SyncBody, request: Request) -> dict:
     who, resolved = _resolved(request)
+    from api.routes import _current
+
+    _current(request, who, resolved["today"])
     season = open_season(who, request.app.state.directory, resolved["today"])
     outcome = sync(
         request.app,

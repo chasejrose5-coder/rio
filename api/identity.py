@@ -132,6 +132,16 @@ def sign_in_local(app, path: Path, email: str, password: str) -> tuple[str, int,
     return sid, issued, {"email": cleaned, "display_name": name, "user_id": cleaned, "role": "athlete"}
 
 
+def update_local_session(app, sid: str, **fields: object) -> None:
+    """Replace seal or email on this cookie. The cookie id stays."""
+    row = _local_sessions(app).get(hosted_hash(sid))
+    if not isinstance(row, dict):
+        return
+    for key, value in fields.items():
+        if isinstance(value, str):
+            row[key] = value
+
+
 def sign_out(app, directory, sid: str | None) -> None:
     if not isinstance(sid, str) or not sid:
         return

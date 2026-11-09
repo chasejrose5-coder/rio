@@ -124,7 +124,10 @@ def get_workout(day: str, request: Request) -> dict:
 
 @router.post("/digest")
 def post_digest(body: DigestBody, request: Request, background: BackgroundTasks) -> dict:
-    who, _resolved_view = _resolved(request)
+    who, resolved = _resolved(request)
+    from api.routes import _current
+
+    _current(request, who, resolved["today"])
     reject_score(body.model_dump())
     if not weekly_inputs_ok(body.payload):
         raise ApiError(400, "That week is not ready for a digest.")

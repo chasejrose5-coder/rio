@@ -686,53 +686,33 @@ def _micro_from_tokens(usage: dict, price_in: float, price_out: float) -> int | 
 
 
 def _spend_path() -> Path:
-    override = os.environ.get("RIO_EXPLAIN_SPEND_PATH", "").strip()
-    if override:
-        return Path(override)
-    return Path(__file__).resolve().parent.parent / "data" / "explain_spend.json"
+    from engines.spend import spend_path
+
+    return spend_path()
 
 
 def _read_spend(path: Path) -> int | None:
     """Recorded microdollars. None when the record cannot be trusted."""
-    if not path.exists():
-        return 0
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-        value = payload["micro_usd"]
-    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):
-        return None
-    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-        return None
-    return value
+    from engines.spend import read_spend
+
+    return read_spend(path)
 
 
 def _write_spend(path: Path, micro: int) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(".json.tmp")
-    temporary.write_text(
-        json.dumps({"micro_usd": int(micro)}),
-        encoding="utf-8",
-    )
-    temporary.replace(path)
+    from engines.spend import write_spend
+
+    write_spend(path, micro)
 
 
 def _reserve_spend(worst: int) -> bool:
-    """Hold worst-case cost before a call. False when the $25 cap would break."""
-    if worst < 0:
-        return False
-    path = _spend_path()
-    spent = _read_spend(path)
-    if spent is None or spent >= SPEND_CAP_MICRO_USD:
-        return False
-    if worst == 0:
-        return True
-    if spent + worst > SPEND_CAP_MICRO_USD:
-        return False
-    try:
-        _write_spend(path, spent + worst)
-    except OSError:
-        return False
-    return True
+    """Hold worst-case cost before a call. False when the $25 cap would break.
+
+    The shared row is used when migration 011 is present and this process is
+    not pinned to RIO_EXPLAIN_SPEND_PATH. Otherwise the JSON file is used.
+    """
+    from engines.spend import reserve_spend
+
+    return reserve_spend(worst)
 
 
 # Reduced fields for one hard day. Raw activities, laps, and tokens are not keys.
@@ -965,16 +945,6 @@ def weekly_digest(payload: object) -> dict | None:
 
 def _settle_spend(reserved: int, actual: int) -> None:
     """Replace a reservation with the cost of the call that just finished."""
-    if actual < 0:
-        actual = reserved
-    path = _spend_path()
-    spent = _read_spend(path)
-    if spent is None:
-        return
-    updated = spent - reserved + actual
-    if updated < 0:
-        updated = 0
-    try:
-        _write_spend(path, updated)
-    except OSError:
-        return
+    from engines.spend import settle_spend
+
+    settle_spend(reserved, actual)

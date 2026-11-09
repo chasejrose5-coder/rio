@@ -20,6 +20,8 @@ The service role bypasses those policies. The app uses it only on the server, an
 
 `010_strava_oauth.sql` stores the Strava OAuth nonce on the server. The service role is the only role granted the table. Run it after 009. It is safe to run again. Until it has been run, a hosted API connect cannot start. The Streamlit callback does not read this table.
 
+`011_explain_spend.sql` stores the explain spend counter in one row. The service role is the only role granted the table and the functions. Run it after 010. It is safe to run again. It does not have to run before a deploy. Until it has been run, Streamlit and the API keep the JSON file. After it has been run, a process that is not pinned to `RIO_EXPLAIN_SPEND_PATH` uses the row.
+
 After the SQL:
 
 1. Authentication, URL configuration. Site URL: `https://riotraining.streamlit.app`. Redirect URLs: `https://riotraining.streamlit.app` and `https://riotraining.streamlit.app/**`. For a laptop, also add `http://localhost:8501` and `http://localhost:8501/**`.
