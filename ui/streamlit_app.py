@@ -3399,7 +3399,6 @@ def _track_svg() -> str:
         f"A {outer:.2f} {outer:.2f} 0 0 1 {lx:.2f} {cy - outer:.2f} Z"
     )
     band = (
-        f'<path fill="#000" d="{infield}"/>'
         f'<path fill="currentColor" fill-rule="evenodd" d="{shell} {infield}"/>'
     )
     lines = []
@@ -4088,6 +4087,17 @@ def _show_stored_insight(session: dict | None = None) -> None:
                 st.rerun()
 
 
+def _paint_home_photo() -> None:
+    """Aerial finish behind Home. The shade is the one photo pages already use."""
+    uri = theme.static_url(theme.HOME_PHOTO)
+    st.markdown(theme.fullscreen_css(uri), unsafe_allow_html=True)
+    st.markdown(theme.home_on_photo_css(uri), unsafe_allow_html=True)
+
+
+def _home_credit() -> None:
+    st.markdown(theme.credit_html(theme.HOME_CREDIT), unsafe_allow_html=True)
+
+
 def page_dashboard() -> None:
     """The plan Start stored, as of today.
 
@@ -4108,6 +4118,7 @@ def page_dashboard() -> None:
     hero = st.container(gap=None)
     with chrome:
         st.markdown(_css("Home"), unsafe_allow_html=True)
+        _paint_home_photo()
         _render_nav("Home")
     _maybe_strava_prompt()
     named = _display_name()
@@ -4134,6 +4145,7 @@ def page_dashboard() -> None:
                 )
         if not error:
             _season_prompt()
+        _home_credit()
         return
 
     length = plan.get("season_length_weeks")
@@ -4147,6 +4159,7 @@ def page_dashboard() -> None:
                 unsafe_allow_html=True,
             )
         st.markdown('<p class="rio-empty">—</p>', unsafe_allow_html=True)
+        _home_credit()
         return
 
     marks = st.session_state.get("season_marks")
@@ -4218,6 +4231,7 @@ def page_dashboard() -> None:
     _quick_links(index=None if showed_phase else "03  /  Open")
     oldest, newest = activity_window(date.today())
     _render_extras(extras_between(_stored_activities(), oldest, newest))
+    _home_credit()
 
 
 _CAL_DOW = ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
@@ -5212,11 +5226,12 @@ def page_activity() -> None:
 def _season_prompt() -> None:
     """The way onto Start when this account has no season yet."""
     if _start_page is not None:
-        st.page_link(
-            _start_page,
-            label="Generate season plan",
-            query_params=_link_params(),
-        )
+        with st.container(key="rio-season-prompt"):
+            st.page_link(
+                _start_page,
+                label="Generate season plan",
+                query_params=_link_params(),
+            )
     return
 
 
@@ -5948,6 +5963,14 @@ def page_settings() -> None:
     _save_hosted_pace(stored.get("pace_units") or "mi")
 
 
+def _with_plan_credit(html: str) -> str:
+    """The track credit sits in the Plan hero, on the photo."""
+    credit = theme.credit_html(theme.PLAN_CREDIT)
+    if "</header>" in html:
+        return html.replace("</header>", credit + "</header>", 1)
+    return html + credit
+
+
 def page_plan() -> None:
     """Season length, phase weeks, the month, and the schedule.
 
@@ -5956,19 +5979,25 @@ def page_plan() -> None:
     """
     global _MARK_PREFIX
     st.markdown(_css("Plan"), unsafe_allow_html=True)
+    st.markdown(theme.plan_hero_css(theme.static_url(theme.PLAN_PHOTO)), unsafe_allow_html=True)
     _render_nav("Plan")
     plan, start, goal, error = _stored_season()
     if plan is None or start is None or goal is None:
         if error:
             st.markdown(
-                '<header class="rio-hero">'
-                ''
-                "<h1>Plan</h1>"
-                f'<p class="rio-error">{_esc(error)}</p></header>',
+                _with_plan_credit(
+                    '<header class="rio-hero">'
+                    ''
+                    "<h1>Plan</h1>"
+                    f'<p class="rio-error">{_esc(error)}</p></header>'
+                ),
                 unsafe_allow_html=True,
             )
         else:
-            st.markdown(_page_hero("Plan", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
+            st.markdown(
+                _with_plan_credit(_page_hero("Plan", "SYNTHETIC / DEMO")),
+                unsafe_allow_html=True,
+            )
             _season_prompt()
         return
     length = plan.get("season_length_weeks")
@@ -5976,14 +6005,19 @@ def page_plan() -> None:
     if not isinstance(sessions, list):
         sessions = []
     if isinstance(length, bool) or not isinstance(length, int) or length <= 0:
-        st.markdown(_page_hero("Plan", "SYNTHETIC / DEMO"), unsafe_allow_html=True)
+        st.markdown(
+            _with_plan_credit(_page_hero("Plan", "SYNTHETIC / DEMO")),
+            unsafe_allow_html=True,
+        )
         st.markdown('<p class="rio-empty">—</p>', unsafe_allow_html=True)
         return
     st.markdown(
-        _page_hero(
-            _length_text(length),
-            "SYNTHETIC / DEMO",
-            f"{_date_text(start)} — {_date_text(goal)}",
+        _with_plan_credit(
+            _page_hero(
+                _length_text(length),
+                "SYNTHETIC / DEMO",
+                f"{_date_text(start)} — {_date_text(goal)}",
+            )
         ),
         unsafe_allow_html=True,
     )
@@ -6222,6 +6256,7 @@ def _render_hero_editor() -> None:
         photo = by_id.get(photo_id)
         if photo is None:
             continue
+        st.markdown(theme.credit_html(str(photo["credit"])), unsafe_allow_html=True)
         st.checkbox(
             "Show on the startup page",
             key=f"hero-on-{photo_id}",

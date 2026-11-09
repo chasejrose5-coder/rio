@@ -60,6 +60,14 @@ CHASE_PHOTO = "chase_blocks.jpg"
 LOGIN_CREDIT = "Photo by Steve Pancrate on Pexels"
 START_CREDIT = "Photo by Bohdan Hyrovych on Pexels"
 ABOUT_CREDIT = "Photo by Botond Dobozi on Pexels"
+# Photo by Gaby Lopez on Pexels.
+# https://www.pexels.com/photo/birds-eye-view-of-athletics-stadium-18588227/
+HOME_PHOTO = "home_aerial.jpg"
+HOME_CREDIT = "Photo by Gaby Lopez on Pexels"
+# Photo by Jan van der Wolf on Pexels.
+# https://www.pexels.com/photo/bend-of-athletic-track-19190279/
+PLAN_PHOTO = "plan_curve.jpg"
+PLAN_CREDIT = "Photo by Jan van der Wolf on Pexels"
 
 _CARD = (
     f"background: {CARD_FILL} !important;"
@@ -93,6 +101,8 @@ _PHOTO_STATIC = {
     "start_line.jpg": "photos/start.jpg",
     "about_stadium.jpg": "photos/about.jpg",
     "chase_blocks.jpg": "photos/chase-blocks.jpg",
+    "home_aerial.jpg": "photos/home-aerial.jpg",
+    "plan_curve.jpg": "photos/plan-curve.jpg",
 }
 _STATIC_ROOT = "app/static/"
 
@@ -485,6 +495,179 @@ def primary_button_css(selector: str) -> str:
 def shade_html() -> str:
     """Light overlay for a full-screen photo. Clicks pass through."""
     return '<div class="rio-page-shade" aria-hidden="true"></div>'
+
+
+def home_on_photo_css(uri: str) -> str:
+    """Cream cards stay solid on the Home aerial. Type on the photo stays light.
+
+    The shade is a background layer, the same wash photo pages use, so it
+    darkens the aerial and not the cards.
+    """
+    image = _image(uri)
+    mobile = ""
+    if isinstance(uri, str) and uri.endswith(".jpg") and not uri.endswith("-800.jpg"):
+        mobile = f"""
+@media (max-width: 1200px) {{
+  .stApp {{
+    background-image: {SHADE}, {_image(uri[:-4] + "-800.jpg")} !important;
+  }}
+}}
+"""
+    return f"""
+<style>
+.stApp {{
+  background-color: #121110 !important;
+  background-image: {SHADE}, {image} !important;
+  background-size: cover, cover !important;
+  background-position: center center, center center !important;
+  background-attachment: fixed, fixed !important;
+}}
+.rio-hero {{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}}
+.rio-hero .rio-error {{
+  color: {INVERSE} !important;
+}}
+.rio-stat-row {{
+  border-top-color: rgba(244, 241, 236, 0.22) !important;
+  border-bottom-color: rgba(244, 241, 236, 0.22) !important;
+}}
+.rio-stat-tile {{
+  background: transparent !important;
+  background-color: transparent !important;
+  border-right-color: rgba(244, 241, 236, 0.22) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}}
+.rio-stat-tile .rio-stat-value {{
+  color: {INVERSE} !important;
+}}
+.rio-stat-tile .rio-mark-label {{
+  color: rgba(244, 241, 236, 0.72) !important;
+}}
+.rio-mark-label {{
+  color: rgba(244, 241, 236, 0.78) !important;
+}}
+.rio-empty {{
+  color: rgba(244, 241, 236, 0.78) !important;
+}}
+.rio-soft-card,
+[class*="st-key-rio-home-today"],
+[class*="st-key-rio-this-week"] [data-testid="stExpander"],
+[class*="st-key-rio-insight-"],
+[class*="st-key-rio-next3"] .rio-mini,
+[class*="st-key-rio-next3"] .rio-daycard,
+.rio-daycard,
+.rio-card {{
+  background: {SURFACE} !important;
+  background-color: {SURFACE} !important;
+  border: 1px solid {HAIRLINE} !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 22px rgba(18, 17, 16, 0.045) !important;
+  color: {TEXT} !important;
+}}
+.rio-card .rio-note,
+.rio-card h2,
+.rio-daycard-dow,
+.rio-daycard-work,
+.rio-track-fact-value,
+.rio-track-day {{
+  color: {TEXT} !important;
+}}
+.rio-soft-card .rio-mark-label,
+[class*="st-key-rio-home-today"] .rio-mark-label,
+[class*="st-key-rio-this-week"] .rio-mark-label,
+[class*="st-key-rio-insight-"] .rio-mark-label,
+[class*="st-key-rio-next3"] .rio-mark-label,
+.rio-daycard .rio-mark-label,
+.rio-card .rio-mark-label,
+.rio-track-facts .rio-mark-label,
+.rio-soft-card .rio-empty,
+[class*="st-key-rio-home-today"] .rio-empty,
+.rio-card .rio-empty,
+.rio-glossary.rio-soft-card p,
+.rio-daycard-date {{
+  color: {MUTED} !important;
+}}
+[class*="st-key-rio-quick"] [data-testid="stPageLink-NavLink"],
+[class*="st-key-rio-season-prompt"] [data-testid="stPageLink-NavLink"] {{
+  background: {SURFACE} !important;
+  background-color: {SURFACE} !important;
+  border: 1px solid {HAIRLINE} !important;
+  border-radius: 999px !important;
+}}
+[class*="st-key-rio-quick"] [data-testid="stPageLink-NavLink"] span,
+[class*="st-key-rio-quick"] [data-testid="stPageLink-NavLink"] p,
+[class*="st-key-rio-season-prompt"] [data-testid="stPageLink-NavLink"] span,
+[class*="st-key-rio-season-prompt"] [data-testid="stPageLink-NavLink"] p {{
+  color: {TEXT} !important;
+}}
+[class*="st-key-rio-strava-not-now"] button,
+[class*="st-key-rio-strava-not-now"] [data-testid="stBaseButton-secondary"] {{
+  background: {SURFACE} !important;
+  background-color: {SURFACE} !important;
+  border: 1px solid {HAIRLINE} !important;
+  border-radius: 999px !important;
+  color: {TEXT} !important;
+}}
+[class*="st-key-rio-strava-not-now"] button p,
+[class*="st-key-rio-strava-not-now"] button span {{
+  color: {TEXT} !important;
+}}
+.rio-photo-credit {{
+  position: relative !important;
+  z-index: 6 !important;
+}}
+{mobile}
+</style>
+"""
+
+
+def plan_hero_css(uri: str) -> str:
+    """The Plan hero keeps its dark type. The track sits under the same shade."""
+    image = _image(uri)
+    mobile = ""
+    if isinstance(uri, str) and uri.endswith(".jpg") and not uri.endswith("-800.jpg"):
+        mobile = f"""
+@media (max-width: 1200px) {{
+  .rio-hero {{ background-image: {_image(uri[:-4] + "-800.jpg")} !important; }}
+}}
+"""
+    return f"""
+<style>
+.rio-hero {{
+  position: relative !important;
+  isolation: isolate !important;
+  background-color: #121110 !important;
+  background-image: {image} !important;
+  background-size: cover !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+}}
+.rio-hero::before {{
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  --rio-legacy-shade: {LEGACY_SHADE};
+  background: {SHADE};
+}}
+.rio-hero > * {{
+  position: relative !important;
+  z-index: 1 !important;
+}}
+.rio-hero .rio-photo-credit {{
+  margin: 1.15rem 0 0 !important;
+}}
+.rio-hero .rio-error {{
+  color: {INVERSE} !important;
+}}
+{mobile}
+</style>
+"""
 
 
 def credit_html(text: str, *, fixed: bool = False) -> str:

@@ -54,6 +54,8 @@ def test_served_urls_are_relative_and_survive_a_prefix() -> None:
         "start_line.jpg": "app/static/photos/start.jpg",
         "about_stadium.jpg": "app/static/photos/about.jpg",
         "chase_blocks.jpg": "app/static/photos/chase-blocks.jpg",
+        "home_aerial.jpg": "app/static/photos/home-aerial.jpg",
+        "plan_curve.jpg": "app/static/photos/plan-curve.jpg",
     }
     for name, href in photos.items():
         if static_url(name) != href or static_url(name).startswith("/"):
