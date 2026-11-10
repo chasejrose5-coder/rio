@@ -1719,7 +1719,10 @@ def _as_date(value, name: str) -> date:
         if text.endswith("Z"):
             text = text[:-1]
         if _ISO_DAY.fullmatch(text):
-            return date.fromisoformat(text)
+            try:
+                return date.fromisoformat(text)
+            except ValueError:
+                raise ValueError(f"{name} is not a calendar date") from None
         if "T" in text:
             return datetime.fromisoformat(text).date()
     raise ValueError(f"{name} is not a calendar date")

@@ -608,10 +608,78 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   border-radius: 16px;
   color: var(--ink);
 }
+.page-start {
+  min-height: 100dvh;
+  background-color: #121110;
+  background-image: var(--shade), image-set(url("/photos/start-1200.webp") type("image/webp"), url("/photos/start.jpg") type("image/jpeg"));
+  background-size: cover, cover;
+  background-position: center, center;
+  background-attachment: fixed, fixed;
+  color: var(--paper);
+}
+.page-start main { padding: 0 5vw 3.5rem; }
+.rio-goal-card {
+  position: relative;
+  z-index: 2;
+  max-width: 46rem;
+  margin: 1.5rem auto 0;
+  padding: 1.35rem 1.4rem 1.25rem;
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid #dadada;
+  border-radius: 18px;
+  box-shadow: 0 12px 32px rgba(14, 14, 14, 0.05);
+}
+.rio-start-hero { padding: 0.15rem 0 0.85rem; }
+.rio-start-hero h1 {
+  font-family: var(--display);
+  font-size: clamp(2.4rem, 4vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+}
+.rio-start-hero .rio-range { margin: 0.45rem 0 0; color: var(--muted); line-height: 1.45; }
+.rio-start-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem 1.1rem; }
+.rio-start-field label { display: block; margin: 0 0 0.3rem; color: var(--muted); font-size: 0.75rem; }
+.rio-start-field input {
+  display: block;
+  width: 100%;
+  min-height: 2.8rem;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.45rem 0.75rem;
+  font-size: 1rem;
+}
+.rio-start-field input:focus { border-color: #c94a25; outline: none; }
+.rio-field-help { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.78rem; line-height: 1.4; }
+.rio-goal-card .rio-primary { width: 100%; }
+.page-start .rio-error { color: #b42318; }
+.rio-link-note {
+  position: relative;
+  z-index: 2;
+  max-width: 46rem;
+  margin: 1.2rem auto 0;
+  padding: 1rem 1.15rem;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+.rio-link-note p { margin: 0; line-height: 1.45; }
+.rio-link-note .rio-secondary { width: auto; min-width: 10rem; margin-top: 0.75rem; }
 @media (max-width: 1200px) {
   .rio-splash {
     background-image: var(--shade), image-set(url("/photos/startup-track-800.webp") type("image/webp"), url("/photos/startup-track-800.jpg") type("image/jpeg"));
   }
+  .page-start {
+    background-image: var(--shade), image-set(url("/photos/start-800.webp") type("image/webp"), url("/photos/start-800.jpg") type("image/jpeg"));
+    background-attachment: scroll, scroll;
+  }
+}
+@media (max-width: 700px) {
+  .rio-start-grid { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

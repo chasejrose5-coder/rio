@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "playwright test"
+    "test:unit": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/start-form.test.ts",
+    "test": "npm run test:unit && playwright test"
   },
   "dependencies": {
     "next": "16.4.6",

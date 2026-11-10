@@ -126,18 +126,31 @@ def _refresh_digest(season: OpenSeason) -> None:
 
 
 def parse_inputs(payload: dict) -> tuple[str, str, str, str]:
-    """The four Start fields, or a 400 when one of them is unusable."""
-    found = plan_inputs(
-        {
-            "current_time": payload.get("current_time"),
-            "start_date": payload.get("start_date"),
-            "goal_time": payload.get("goal_time"),
-            "goal_date": payload.get("goal_date"),
-        }
-    )
-    if found is None:
-        raise ApiError(400, "Enter a current time, a start date, a goal time, and a goal date.")
-    return found
+    """The four Start fields. A present string is named by sequence().
+
+    plan_inputs accepts a usable season. Four strings that are not a usable
+    season are still returned, so sequence() can say which field failed.
+    A missing field, or one longer than the link limit, stays the short prompt.
+    """
+    raw = {
+        "current_time": payload.get("current_time"),
+        "start_date": payload.get("start_date"),
+        "goal_time": payload.get("goal_time"),
+        "goal_date": payload.get("goal_date"),
+    }
+    found = plan_inputs(raw)
+    if found is not None:
+        return found
+    parts: list[str] = []
+    for name in ("current_time", "start_date", "goal_time", "goal_date"):
+        value = raw[name]
+        if not isinstance(value, str):
+            raise ApiError(400, "Enter a current time, a start date, a goal time, and a goal date.")
+        text = value.strip()
+        if len(text) > 40:
+            raise ApiError(400, "Enter a current time, a start date, a goal time, and a goal date.")
+        parts.append(text)
+    return (parts[0], parts[1], parts[2], parts[3])
 
 
 def _session_on(plan: dict, day: str) -> dict | None:

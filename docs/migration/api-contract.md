@@ -160,7 +160,7 @@ A write may send `If-Match` with the `digest` from the season it loaded. Quotes 
 
 ### `POST /seasons`
 
-Body is `inputs`. `200` is `season` plus `committed: true` and `strava_offer` (bool). `strava_offer` is true only when this generate just succeeded, Strava is not connected, and the athlete has not dismissed the prompt. `400` when an input is unusable. A plan that contains `probability` or `readiness_score` is rejected by `sequence()`.
+Body is `inputs`. `200` is `season` plus `committed: true` and `strava_offer` (bool). `strava_offer` is true only when this generate just succeeded, Strava is not connected, and the athlete has not dismissed the prompt. `400` when an input is unusable. When all four strings are present, `detail` is the sentence from `sequence()`: "current_time is not an 800 time", "goal_time is not an 800 time", "goal_date is before start_date", "start_date is not a calendar date", or "goal_date is not a calendar date". A missing field stays "Enter a current time, a start date, a goal time, and a goal date." Nothing is stored on `400`. A plan that contains `probability` or `readiness_score` is rejected by `sequence()`.
 
 ### `POST /seasons/current/results`
 
