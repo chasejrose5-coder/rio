@@ -32,7 +32,7 @@ Step 3 owners:
 | 3.3 | Start session and Session. |
 | 3.4 | Activity, Last Session laps, and the Strava callback. PR #66. |
 | 3.5 | Library. PR #67. |
-| 3.6 | Profile. |
+| 3.6 | Profile and the More menu. PR #68. |
 | 3.7 | Settings. |
 | 3.8 | Seasons and past seasons. |
 | 3.9 | About and Creators. Locked copy. This step does not rewrite them. |
@@ -43,9 +43,9 @@ Step 3 owners:
 | | |
 | --- | --- |
 | Total items | 188 |
-| Done | 117 |
-| Partial | 23 |
-| Not started | 48 |
+| Done | 122 |
+| Partial | 22 |
+| Not started | 44 |
 | API line starts with `MISSING` | 46 |
 | of which `MISSING (static)` | 46 |
 | of which `MISSING (data)` | 0 |
@@ -70,7 +70,7 @@ These are the differences that matter for "nothing is lost." Item rows below rep
 12. **Gap 12. Forgot password is gated on the wrong-shaped check, and the URL is always there.** The link shows when `GET /auth/google` returns 200 and hides on 503. That lines up with hosted versus the local file, which is what the plan asks. Opening `/forgot-password` directly still draws the form. On the local file the API returns 400 because that file has no mail. Streamlit has no forgot screen at all in local mode.
 13. **Gap 13. Landing is unreadable in the commit, and create-account is untested.** `Gate` calls `landingPath` from the missing `web/lib/landing.ts`. The e2e only checks sign-in: current season → `/home`, no season → `/start`. `GET /seasons/current` already 404s when every goal date is before today (`api/season_service.py` `open_season`), so that split can match Streamlit if `landingPath` sends 404 to `/start` and 200 to `/home`. The test never uses a goal date of today, and it never walks intro or easy pace.
 14. **Gap 14. Empty fields use the browser, not RIO's sentence.** Login and create mark the inputs `required`. An empty submit can stop on the browser bubble. Streamlit submits and shows "Enter a name.", "Enter an email address.", or "Use at least 8 characters."
-15. **Gap 15. Later pages are still placeholders.** More, Profile, Past seasons, Admin, and About and Creators still say "Coming in the next step." Library is the step 3.5 page. Activity and Last Session are the step 3.4 pages. Settings shows the Strava block; the rest of Settings is still the next step. Plan is step 3.2. Session is step 3.3.
+15. **Gap 15. Later pages are still placeholders.** Past seasons, Admin, and About and Creators still say "Coming in the next step." Profile is the step 3.6 page, and More is its menu. Library is the step 3.5 page. Activity and Last Session are the step 3.4 pages. Settings shows the Strava block; the rest of Settings is still the next step. Plan is step 3.2. Session is step 3.3.
 16. **Gap 16. Motion.** Home staggers its blocks by 200ms (`web/app/globals.css` `.rio-stagger`). The splash fade, the nav underline that does not replay on the same page, and the hold that skips a same-page rerun are not there.
 
 ## Routes main still calls "not built"
@@ -1247,7 +1247,8 @@ The four Start values, plus easy pace. Saving a goal time does not rebuild the s
 **Now:** `_easy_pace_section`; `ui/easy_pace.py` `render_easy_pace`
 **API:** `PATCH /settings` `easy_pace` and `easy_pace_unit`. Read from `GET /profile` `easy_pace_phrase`.
 **Step 3:** 3.6. The first-run gate is 3.1 (E1).
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/profile.spec.ts` "the four values, a saved goal, a bad time, and a new easy pace" and `tests/test_api_step3_profile.py` `test_changing_easy_pace_updates_the_phrase_and_leaves_the_plan`. Home's easy run uses the new phrase. The season digest does not change.
 **Verify:** Change 7:25 per mile to 5:00 per kilometer. Home's easy run uses the new phrase. The season's workouts do not rebuild.
 
 ### R2. No season
@@ -1256,7 +1257,8 @@ The four Start values, plus easy pace. Saving a goal time does not rebuild the s
 **Now:** `page_profile`
 **API:** `GET /profile` `ready: false` and `fields: []`
 **Step 3:** 3.6
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/profile.spec.ts` "no season shows easy pace and the way to Start" and `tests/test_api_step3_profile.py` `test_profile_without_a_season_has_no_start_fields`.
 **Verify:** New account after the gates. Easy pace is there. The four Start fields are not.
 
 ### R3. The four values
@@ -1265,7 +1267,8 @@ The four Start values, plus easy pace. Saving a goal time does not rebuild the s
 **Now:** `page_profile`; `ui/profile.py` `profile_fields`, `shown_goal`
 **API:** `GET /profile` `fields`, `inputs`, `goal_time`
 **Step 3:** 3.6
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/profile.spec.ts` "the four values, a saved goal, a bad time, and a new easy pace" and `tests/test_api_step3_profile.py` `test_saving_a_goal_does_not_rebuild_and_a_bad_time_is_refused`. Dates use the saved format. A blank value is "—".
 **Verify:** Current 800, start date, and goal date match Start and are not editable. A blank value prints "—".
 
 ### R4. Save goal time
@@ -1274,7 +1277,8 @@ The four Start values, plus easy pace. Saving a goal time does not rebuild the s
 **Now:** `page_profile`; `ui/profile.py` `clean_goal`, `dump_goal`
 **API:** `PR #61: PUT /profile/goal` body `{goal_time}`. `400` with that sentence. `404` with no season. The season digest does not change. On main's contract this override is not a route yet (it lived only in the browser under `profile_key`).
 **Step 3:** 3.6
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/profile.spec.ts` "the four values, a saved goal, a bad time, and a new easy pace" and `tests/test_api_step3_profile.py` `test_saving_a_goal_does_not_rebuild_and_a_bad_time_is_refused`. Home's goal stays the season goal. A bad time is "goal_time is not an 800 time".
 **Verify:** Save 1:54.0. Home still shows the season's goal in the big "days to" line. Profile shows 1:54.0. Reload keeps it. The plan's sessions do not change.
 
 ---
@@ -1504,8 +1508,8 @@ Locked copy. Step 3.9 does not rewrite it. About shows the short paragraphs. The
 **Now:** `_render_subnav`, `page_more`, `_MORE_BLURB`
 **API:** MISSING (static)
 **Step 3:** PR #61 drew the subnav. The More page body is not in the plan as its own step; it is the index for 3.6–3.9 and 3.8.
-**Status:** partial
-**Gap:** Gap 15. `/more` is "Coming in the next step." The subnav links are real and go to placeholders.
+**Status:** done
+**Evidence:** `web/e2e/profile.spec.ts` "the More menu lists the five pages". Past seasons, Settings, About, and Creators still open their current routes. Profile opens the profile page.
 **Verify:** More shows five cards with those blurbs, and each opens its page. The subtitle matches.
 
 ---
@@ -1723,7 +1727,7 @@ Screen-specific sentences are on their items (T8, W2, Y3, M3, U1, Settings G10).
 **API:** `GET /seasons/current` `404` "No current season." `GET /home` `copy` when `season` is null.
 **Step 3:** Each page's step. Home's version is done in PR #61 (H2).
 **Status:** partial
-**Gap:** Home, Plan, Session, and Activity send a person with no season to Start. Library loads the menu with no season, so it has no prompt. Profile and Settings export are still later steps.
+**Gap:** Home, Plan, Session, Activity, and Profile send a person with no season to Start. Profile shows "Generate a season on Start." and the link "Generate season plan". Library loads the menu with no season, so it has no prompt. Settings export is still a later step.
 **Verify:** On each of those pages, with no season, the person can get to Start. They never see a blank plan.
 
 ### X2. An em dash for an empty value
@@ -1733,7 +1737,7 @@ Screen-specific sentences are on their items (T8, W2, Y3, M3, U1, Settings G10).
 **API:** The season and screen routes use "—" in labels the contract already names (`next_days.label`, focus, phase).
 **Step 3:** Each page's step
 **Status:** partial
-**Gap:** Home, Plan, Session, and Activity use "—" for an empty value. A rest day on Home stays "Rest day" (H10). Library uses "—" for a missing name or capacity, and "No workouts." when a search matches nothing (M3). Profile and the later pages are still open.
+**Gap:** Home, Plan, Session, and Activity use "—" for an empty value. A rest day on Home stays "Rest day" (H10). Library uses "—" for a missing name or capacity, and "No workouts." when a search matches nothing (M3). Profile uses "—" for a blank Start value (`tests/test_api_step3_profile.py` `test_a_blank_start_value_is_an_em_dash` and `web/e2e/profile.spec.ts`). The later pages are still open.
 **Verify:** A missing focus tile is "—". A rest day is not.
 
 ### X3. Intervals file body
@@ -1901,7 +1905,7 @@ The live app keeps a signed token for one day. Refreshing does not extend it. Lo
 **API:** MISSING (static)
 **Step 3:** Each page's step. Home's stagger is the partial stand-in.
 **Status:** partial
-**Gap:** Gap 16. Home staggers children. It does not suppress the animation on a same-page reload. Library fades once and its rows rise about 8px; a filter on that page does not replay it. Profile and the later pages are still open.
+**Gap:** Gap 16. Home staggers children. It does not suppress the animation on a same-page reload. Library, Profile, and More fade once and their blocks rise about 8px. A save on Profile does not replay it. The later pages are still open.
 **Verify:** Open Home, then refresh Home. The second time does not replay the rise. Open Plan from Home. Plan fades once.
 
 ### A3. Nav underline
