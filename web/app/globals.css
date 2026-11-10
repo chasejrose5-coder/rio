@@ -1677,14 +1677,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.15fr) auto;
   column-gap: 1.25rem;
   align-items: end;
-  padding: 0.95rem 1.05rem;
-  background: #fffcf7;
-  border: 1px solid #dadada;
-  border-radius: 18px;
-  box-shadow: 0 12px 32px rgba(14, 14, 14, 0.05);
+  padding: 0.85rem 0.9rem;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   color: #121110;
 }
-.page-past .rio-past-row:hover { background: #f7f7f7; }
+.page-past .rio-past-row:hover { transform: translateY(-2px); }
 .page-past .rio-stagger .rio-past-row { animation: rio-rise 200ms var(--ease) both; }
 .page-past .rio-past-k {
   display: block;
@@ -1745,16 +1745,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   line-height: 1.45;
 }
 .page-past .rio-past-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
   margin-top: 0.85rem;
 }
 .page-past .rio-past-actions .rio-primary,
 .page-past .rio-past-actions .rio-secondary {
   width: 100%;
-  margin-top: 0;
+  min-width: 0;
+  margin: 0;
   min-height: 2.4rem;
+  border-radius: 999px;
 }
 .page-past .rio-past-actions .rio-primary {
   background: #c2461f;

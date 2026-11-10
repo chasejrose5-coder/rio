@@ -147,7 +147,7 @@ function PastSeasonsBody() {
                       ))}
                       <p className="rio-past-confirm-note">{DELETE_NOTE}</p>
                       {confirmError ? <p className="rio-error">{confirmError}</p> : null}
-                      <div className="rio-past-actions">
+                      <div className="rio-done-row rio-past-actions">
                         <button type="button" className="rio-primary" disabled={busy} onClick={() => void remove(row)}>
                           Delete permanently
                         </button>
