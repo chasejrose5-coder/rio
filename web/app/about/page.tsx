@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { AboutView } from "@/components/AboutView";
 
 export default function Page() {
-  return <ComingSoon title="About" />;
+  return <AboutView />;
 }
