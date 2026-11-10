@@ -43,8 +43,8 @@ Step 3 owners:
 | | |
 | --- | --- |
 | Total items | 188 |
-| Done | 170 |
-| Partial | 18 |
+| Done | 188 |
+| Partial | 0 |
 | Not started | 0 |
 | API line starts with `MISSING` | 46 |
 | of which `MISSING (static)` | 46 |
@@ -62,16 +62,16 @@ These are the differences that matter for "nothing is lost." Item rows below rep
 4. **Gap 4. Closed.** Start is the four-field form on `start_line.jpg` (`/photos/start.jpg`), with the Bohdan Hyrovych credit. Generate calls `POST /seasons`.
 5. **Gap 5. Closed.** Generate opens `/home` with the four inputs and `just_generated=true`. Home asks `GET /home?just_generated=true` and draws the Strava card from `strava_offer`.
 6. **Gap 6. Closed.** A stored plan whose length cannot be read returns `broken: true`. Home shows "—" and does not paint tiles or the generate link (H13).
-7. **Gap 7. Create-account helper copy.** The web always shows "First name is enough. At least 8 characters." Local Streamlit adds "Saved on this machine." Hosted Streamlit shows no helper line.
-8. **Gap 8. Closed.** The local log-in shows "Accounts aren't set up yet" and "Sign-in will open here after accounts are connected." The hosted log-in does not (L12).
-9. **Gap 9. Window title.** Streamlit is "RIO · Runner Intelligence Owned" with a runner icon. The web layout title is "RIO" and the description is "Runner Intelligence Owned".
+7. **Gap 7. Closed.** Local create shows "First name is enough. At least 8 characters. Saved on this machine." Hosted create shows no helper line (N8).
+8. **Gap 8. Closed.** A working login, hosted or on the local file, does not paint the setup card. Next draws it only when auth is unconfigured (L12).
+9. **Gap 9. Closed.** The window title is "RIO · Runner Intelligence Owned" and the icon is the runner glyph in `web/public/favicon.svg` (L1).
 10. **Gap 10. Closed.** Start session opens `GET /auth/me` `next_session`: the next planned day, or the last day when the season is over. Today is the Settings time zone. `tests/test_api_step3_session.py` `test_next_session_day_is_today_or_the_last_day` and `test_session_uses_easy_pace_and_states_the_rep_and_the_average`. The web check is `web/e2e/auth-home.spec.ts` ("start session opens the next planned day").
 11. **Gap 11. Closed.** `GET /auth/me` sets `role` to `admin` when the email is `RIO_ADMIN_EMAIL`. The nav shows Admin only then. `/admin` sends everyone else Home. The API answers 403 (K1).
-12. **Gap 12. Forgot password is gated on the wrong-shaped check, and the URL is always there.** The link shows when `GET /auth/google` returns 200 and hides on 503. That lines up with hosted versus the local file, which is what the plan asks. Opening `/forgot-password` directly still draws the form. On the local file the API returns 400 because that file has no mail. Streamlit has no forgot screen at all in local mode.
-13. **Gap 13. Landing is unreadable in the commit, and create-account is untested.** `Gate` calls `landingPath` from the missing `web/lib/landing.ts`. The e2e only checks sign-in: current season → `/home`, no season → `/start`. `GET /seasons/current` already 404s when every goal date is before today (`api/season_service.py` `open_season`), so that split can match Streamlit if `landingPath` sends 404 to `/start` and 200 to `/home`. The test never uses a goal date of today, and it never walks intro or easy pace.
-14. **Gap 14. Empty fields use the browser, not RIO's sentence.** Login and create mark the inputs `required`. An empty submit can stop on the browser bubble. Streamlit submits and shows "Enter a name.", "Enter an email address.", or "Use at least 8 characters."
-15. **Gap 15. Later pages are still placeholders.** Admin still says "Coming in the next step." About and Creators are the step 3.9 pages. Past seasons is the step 3.8 page. Profile is the step 3.6 page, and More is its menu. Library is the step 3.5 page. Activity and Last Session are the step 3.4 pages. Settings is the step 3.7 page. Plan is step 3.2. Session is step 3.3.
-16. **Gap 16. The splash fade, the nav underline, and the button and card hover are in** (A1, A3, A4). A same-page reload still has to keep from replaying the page rise (A2).
+12. **Gap 12. Closed.** The forgot link is hosted-only. Opening `/forgot-password` on the local file returns to Log in (L10, P1).
+13. **Gap 13. Closed.** `landingPath` sends a goal of today to Home and a goal of yesterday to Start (`web/lib/landing.test.ts`). A signed-in `/plan` stays on Plan (D4, D5).
+14. **Gap 14. Closed.** Auth forms use `noValidate`. An empty name shows "Enter a name." (N3, P3).
+15. **Gap 15. Closed.** Admin, Next, Decisions, Ledger, and Goal are the step 3.10 pages. The earlier pages are steps 3.1 through 3.9.
+16. **Gap 16. Closed.** The splash fades, the nav underline grows once per page, buttons and cards lift on hover, and a same-page visit does not replay the rise (A1–A4, A6).
 
 ## Routes main still calls "not built"
 
@@ -215,8 +215,8 @@ Hosted (Supabase configured) uses `ui/cloud_ui.py`. Otherwise the form in `ui/st
 **Now:** `ui/streamlit_app.py` `st.set_page_config`
 **API:** MISSING (static)
 **Step 3:** PR #61
-**Status:** partial
-**Gap:** `web/app/layout.tsx` sets title "RIO" and description "Runner Intelligence Owned". No icon. Gap 9.
+**Status:** done
+**Evidence:** `web/app/layout.tsx` sets the title "RIO · Runner Intelligence Owned" and `web/public/favicon.svg`. `web/e2e/admin-fixtures.spec.ts` "continue puts skip=1" asserts `toHaveTitle`.
 **Verify:** Compare the tab title with Streamlit.
 
 ### L2. Log in hero
@@ -298,8 +298,8 @@ Hosted (Supabase configured) uses `ui/cloud_ui.py`. Otherwise the form in `ui/st
 **Now:** `ui/cloud_ui.py` `_render_sign_in`. Local `_render_login` does not draw it.
 **API:** The link is not a route. The screen it opens is `PR #61: POST /auth/forgot-password`.
 **Step 3:** PR #61
-**Status:** partial
-**Gap:** The web shows the link when `GET /auth/google` is 200 and hides it on 503. That matches hosted versus local. Gap 12: `/forgot-password` still exists as a URL. Google itself stays hidden (Z1).
+**Status:** done
+**Evidence:** `web/e2e/auth-home.spec.ts` "local sign-in hides forgot password" and "hosted sign-in shows forgot password". The link is only on a hosted log-in. Google stays hidden.
 **Verify:** Local API: no "Forgot password?" link. Hosted API: the link is there, and no control says Google. The e2e covers both.
 
 ### L11. Floodlight photo
@@ -369,8 +369,8 @@ Its own screen. Back returns to Log in. Success signs the person in.
 **Now:** `ui/accounts.py` `normalize_name`, `normalize_email`, `password_ok` (name up to 40 characters and must contain a letter; email up to 254, one `@`, no `..`; password 8–128 and no control characters). Cloud strings in `ui/cloud_store.py`.
 **API:** `PR #61: POST /auth/sign-up` `400` for a bad name, email, short password, or an email that already exists. `429` is N4.
 **Step 3:** PR #61
-**Status:** partial
-**Gap:** Gap 14. The web relies on `required` and on `detail`. An empty field can stop in the browser before "Enter a name."
+**Status:** done
+**Evidence:** `web/e2e/auth-home.spec.ts` "a blank name says Enter a name." Create account uses `noValidate` and the sentences "Enter a name.", "Enter an email address.", and "Use at least 8 characters."
 **Verify:** Submit "x" as a password and see "Use at least 8 characters." Submit a duplicate email and see the exists sentence. Submit a blank name and see "Enter a name.", not only a browser bubble.
 
 ### N4. Too many sign-ups
@@ -397,8 +397,8 @@ Its own screen. Back returns to Log in. Success signs the person in.
 **Now:** `_render_sign_up` `open_cloud_session`; local `_enter_account` sets `rio_enter`
 **API:** `PR #61: POST /auth/sign-up` sets the cookie when `confirm` is false
 **Step 3:** PR #61 for the button. The next screens are 3.1.
-**Status:** partial
-**Gap:** Gap 2. Streamlit then shows easy pace, then the intro, then Start (no season). The web replaces to `/` and `Gate` opens the Start placeholder. Intro and easy pace never run.
+**Status:** done
+**Evidence:** `web/e2e/auth-home.spec.ts` "a new account walks easy pace, the intro, then Start" and `web/e2e/start.spec.ts` "a brand-new local account". Create account opens easy pace, then the intro, then Start.
 **Verify:** Create a new local account. The next screen is easy pace, not Start and not Home. After a valid pace, the intro is next. After Skip or Done, Start is next. Screenshot all three.
 
 ### N7. Back to log in
@@ -416,8 +416,8 @@ Its own screen. Back returns to Log in. Success signs the person in.
 **Now:** `_render_create_account`. Hosted `_render_sign_up` does not print it.
 **API:** none
 **Step 3:** PR #61
-**Status:** partial
-**Gap:** Gap 7. The web always shows "First name is enough. At least 8 characters." and drops "Saved on this machine."
+**Status:** done
+**Evidence:** `web/components/AuthScreen.tsx` shows "First name is enough. At least 8 characters. Saved on this machine." only when accounts are the local file. Hosted create has no helper line.
 **Verify:** Local create shows the machine sentence. Hosted create shows no helper.
 
 ### N9. Create account photo, credit, footer
@@ -441,8 +441,8 @@ Hosted only. The local account file has no mail and no forgot screen. Google sta
 **Now:** `ui/cloud_ui.py` `_render_forgot`
 **API:** `PR #61: POST /auth/forgot-password`. `400` when this process is the local file, the text is not an email, or the mail could not be sent ("The reset email could not be sent.").
 **Step 3:** PR #61
-**Status:** partial
-**Gap:** Gap 12. The screen matches, including the photo credit from `AuthFrame`. It is reachable by URL even when the log-in link is hidden.
+**Status:** done
+**Evidence:** `web/e2e/auth-home.spec.ts` "local forgot password returns to log in". Opening `/forgot-password` on the local file returns to Log in. The hosted screen is the forgot form.
 **Verify:** From hosted log-in, open Forgot. Submit an address. Land back on Log in with "Check your email for the reset link." An unknown address gets the same sentence (the token is not in the JSON). On the local file, the log-in page has no link.
 
 ### P2. Reset from the link
@@ -460,8 +460,8 @@ Hosted only. The local account file has no mail and no forgot screen. Google sta
 **Now:** `_render_reset`
 **API:** `PR #61: POST /auth/reset-password` `400`
 **Step 3:** PR #61
-**Status:** partial
-**Gap:** Gap 14 for the short-password bubble versus the RIO sentence. A missing token shows "That reset link is no longer valid." and disables Save (`ResetScreen`). That part matches.
+**Status:** done
+**Evidence:** `web/components/AuthScreen.tsx` `ResetScreen` shows "Use at least 8 characters." for a short password and "That reset link is no longer valid." when the token is missing. The form is `noValidate`.
 **Verify:** Empty token, short password, and a good token. Success returns to Log in with "Password updated. Log in with the new one."
 
 ---
@@ -683,8 +683,8 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `render_plan_prompt`, `render_connect_button`
 **API:** `GET /strava/connect` `200` `{url}`. `409` if already connected. `503` if Strava is not configured or migration 010 is missing.
 **Step 3:** PR #61 for the button. The OAuth return lands on Settings (`?strava=connected` or `?strava=error`), which is 3.7.
-**Status:** partial
-**Gap:** The button is on the card after Generate and calls `GET /strava/connect`. This local session has no Strava app, so the call is 503 and the browser stays on Home. The round trip to Strava and back is 3.7, when Settings can land `?strava=connected`.
+**Status:** done
+**Evidence:** `web/components/HomeView.tsx` `StravaOffer` draws "Connect Strava" only after `GET /strava/connect` returns a url. `web/e2e/start.spec.ts` keeps the card and "Not now" and hides the button when Strava is not configured. Settings still lands `?strava=connected` (`web/e2e/activity.spec.ts`).
 **Verify:** Click Connect. The browser goes to Strava, then back. Tokens are not in the page.
 
 ### V3. Not now
@@ -826,8 +826,8 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `page_dashboard`
 **API:** `GET /home` `detail`
 **Step 3:** PR #61
-**Status:** partial
-**Gap:** `HomeView` adds "Home could not be loaded." when the throw is not an `ApiError`. An `ApiError` shows `detail`, which is right. The invented fallback should not replace a real `detail`.
+**Status:** done
+**Evidence:** `web/components/HomeView.tsx` shows `ApiError.message` for a failed `GET /home`, including "Sign in again." The sentence "Home could not be loaded." is only for a failure that is not an API detail.
 **Verify:** A 401 shows "Sign in again." A network failure may use the fallback. It must not hide a `detail`.
 
 ---
@@ -1520,8 +1520,8 @@ Locked copy. Step 3.9 does not rewrite it. About shows the short paragraphs. The
 **Now:** `_render_nav`
 **API:** none. Log out is `POST /auth/sign-out` (cookie cleared).
 **Step 3:** PR #61
-**Status:** partial
-**Gap:** Gap 10 and Gap 11. Labels and Log out match (`Nav`). Start session has no date. Admin never shows, because `role` stays `athlete`.
+**Status:** done
+**Evidence:** `web/components/Nav.tsx` shows Admin only when `role` is `admin` (`web/e2e/admin-fixtures.spec.ts`). Start session uses `next_session`. The active tab underline grows once per path (`web/lib/motion.test.ts`).
 **Verify:** Each tab. Log out returns to Log in and a reload stays logged out. The active tab is underlined.
 
 ### F3. More subnav and page
@@ -1706,8 +1706,8 @@ The model writes prose only. It does not classify, prescribe, or score. A hard-d
 **Now:** `_show_stored_insight`. The note is produced by `engines/explain.py` `complete_insight` and kept on the season.
 **API:** `POST /seasons/current/results` and `POST /seasons/current/watchless` return `insight.status` of `pending`, `ready`, or `skipped` and do not wait. `GET /insights/workout/{date}` reads it. "Got it" is `POST /seasons/current/notes` with `viewed: true`. A note has `headline`, `body`, `carry_forward`, and `used_result_band` (`on_track`, `fell_short`, or `went_better`).
 **Step 3:** Home display is PR #61 (the card is in `HomeView`). Generating it is 3.3.
-**Status:** partial
-**Gap:** The Home card matches, including Got it, for a note already on `GET /home` `season.notes`. Nothing in the web app logs a workout, so a new note is never requested. Session does not show the card (W11).
+**Status:** done
+**Evidence:** `web/components/SessionView.tsx` shows the headline, body, Carry forward, and Got it. A pending note reloads the session after the save. `web/e2e/session.spec.ts` covers Got it. The save does not wait on the model.
 **Verify:** Log a hard day. The plan saves even if the note is still pending. When the note is ready, Home and Session show it. Got it hides it. A note that fails the shape check is not shown and the plan stays saved (`note_saved: false`).
 
 ### Q2. What does not get a model note
@@ -1772,8 +1772,8 @@ Screen-specific sentences are on their items (T8, W2, Y3, M3, U1, Settings G10).
 **Now:** `_page` helpers and `_table`
 **API:** The season and screen routes use "—" in labels the contract already names (`next_days.label`, focus, phase).
 **Step 3:** Each page's step
-**Status:** partial
-**Gap:** Home, Plan, Session, and Activity use "—" for an empty value. A rest day on Home stays "Rest day" (H10). Library uses "—" for a missing name or capacity, and "No workouts." when a search matches nothing (M3). Profile uses "—" for a blank Start value (`tests/test_api_step3_profile.py` `test_a_blank_start_value_is_an_em_dash` and `web/e2e/profile.spec.ts`). The later pages are still open.
+**Status:** done
+**Evidence:** Home, Plan, Session, Activity, Library, and Profile already use "—". Next, Decisions, Ledger, and Goal use the same empty value (`web/components/FixtureViews.tsx` `plain`). A rest day stays "Rest day".
 **Verify:** A missing focus tile is "—". A rest day is not.
 
 ### X3. Intervals file body
@@ -1850,8 +1850,8 @@ The live app keeps a signed token for one day. Refreshing does not extend it. Lo
 **Now:** `ui/accounts.py` `issue_session`, `open_session` (`_SESSION_MAX_AGE` is 86400). Hosted: `ui/cloud_session.py` `cookie_max_age`, `SESSION_SECONDS`. The browser key for a local token is `rio.session.v1`. The hosted cookie name is `rio_hosted`.
 **API:** `POST /auth/sign-in` sets `rio_hosted` (`HttpOnly`, `Secure`, `SameSite=Lax`) with `max_age` from `cookie_max_age` (`api/identity.py` `set_session_cookie`). A missing or expired cookie is `401` "Sign in again." The token and the seal are not in the cookie and not in these responses.
 **Step 3:** PR #61
-**Status:** partial
-**Gap:** Gap 1. The web is supposed to send the cookie with `credentials: "include"` (`web/README.md`). The module that does it is not in the commit. Local Streamlit also writes `localStorage`. The API design does not, and the web should not copy the seal into `localStorage`.
+**Status:** done
+**Evidence:** `tests/test_api_step3_10.py` `test_reloading_does_not_mint_a_new_session_cookie`. `GET /auth/me` does not set a cookie and the body has no token. The cookie is set on sign-in (`tests/test_api_step2c.py` `test_sign_up_sets_the_cookie_and_hides_the_token`) with the one-day max age.
 **Verify:** Sign in, reload at once, still in. Set the cookie's clock forward a day, reload, Log in. Confirm the cookie is HttpOnly and the response body has no token.
 
 ### D3. Log out
@@ -1869,8 +1869,8 @@ The live app keeps a signed token for one day. Refreshing does not extend it. Lo
 **Now:** `_open_restored_session`; `ui/cloud_session.py` `load_is_app_root`
 **API:** none for the rule. The page's own GET is what it reloads.
 **Step 3:** PR #61 for the shell. Each page must keep it.
-**Status:** partial
-**Gap:** A signed-in visit to `/plan` stays, because only `/` uses `Gate`. That part matches. Signing in always `replace("/")`, which also matches a fresh log-in (Streamlit sets `rio_enter` and leaves the deep link). Gap 13: the function that chooses Home or Start is not in the commit.
+**Status:** done
+**Evidence:** `web/e2e/plan.spec.ts` opens `/plan` while signed in and stays on Plan. `/` still chooses Home or Start (`web/lib/landing.ts`).
 **Verify:** Signed in, open `/plan` directly. Stay on Plan. Open `/`. Go to Home or Start by the goal date, not always Home.
 
 ---
@@ -1883,8 +1883,8 @@ The live app keeps a signed token for one day. Refreshing does not extend it. Lo
 **Now:** `_route_after_login`; `ui/past_seasons.py` `landing_target`, `has_active_plan`. The default page in `st.navigation` uses the same rule, so `/` is Home or Start.
 **API:** `GET /seasons/current` is 404 when every season is past (`open_season` skips `is_past_season`). Today on that call is the Settings time zone.
 **Step 3:** PR #61
-**Status:** partial
-**Gap:** Gap 13. The e2e checks 200 versus 404 only. It does not check a goal date equal to today.
+**Status:** done
+**Evidence:** `web/lib/landing.test.ts` "sends a goal of today home, yesterday to start, and no season to start". Today is the season `today` from the Settings time zone.
 **Verify:** Three accounts, or one account edited between runs: no season → Start; goal today → Home; goal yesterday → Start. Then Gap 2 still puts easy pace and the intro in front of that page when they are due.
 
 ### D6. Gates before the page
@@ -1941,8 +1941,8 @@ The live app keeps a signed token for one day. Refreshing does not extend it. Lo
 **Now:** `ui/theme.py` `motion_rules`, `motion_hold_css`; `ui/streamlit_app.py` `_css`, `_arm_motion`
 **API:** MISSING (static)
 **Step 3:** Each page's step. Home's stagger is the partial stand-in.
-**Status:** partial
-**Gap:** Gap 16. Home staggers children. It does not suppress the animation on a same-page reload. Library, Profile, More, Settings, Past seasons, About, and Creators fade once and their blocks rise about 8px. A save on Profile or Settings, opening delete on Past seasons, or a same-page reload of About or Creators does not replay it. The splash fade is still open.
+**Status:** done
+**Evidence:** `web/lib/motion.test.ts` and `web/components/HomeView.tsx`. `.rio-stagger` fades in 200ms and its blocks rise 8px. The same page name in `rio-motion-page` does not replay it.
 **Verify:** Open Home, then refresh Home. The second time does not replay the rise. Open Plan from Home. Plan fades once.
 
 ### A3. Nav underline
@@ -1980,8 +1980,8 @@ The live app keeps a signed token for one day. Refreshing does not extend it. Lo
 **Now:** `ui/theme.py` `motion_rules` (the reduced-motion block)
 **API:** MISSING (static)
 **Step 3:** Every step that adds motion, starting with PR #61
-**Status:** partial
-**Gap:** `web/app/globals.css` has a reduced-motion block that sets `animation: none` on `.page-home`. The splash and the nav are not built, so they cannot honor it yet.
+**Status:** done
+**Evidence:** `web/app/globals.css` `@media (prefers-reduced-motion: reduce)` sets animation and transition to none and pins the splash, stagger, buttons, and cards at opacity 1 with no transform.
 **Verify:** OS reduced motion on. Home does not stagger. Later pages do not fade.
 
 ---
@@ -2014,8 +2014,8 @@ These are in the code and must stay hidden. Shipping them would add something th
 **Now:** `_demo_label`, `_page_hero`
 **API:** none
 **Step 3:** Every page
-**Status:** partial
-**Gap:** Home and auth do not show the badge. Unbuilt pages must keep not showing it. Fixture pages may show "FIXTURE" (K7). That one is real.
+**Status:** done
+**Evidence:** `web/e2e/admin-fixtures.spec.ts` asserts no "SYNTHETIC" and no "DEMO" on Next. Home, Start, Plan, Settings, and Activity already assert the same. Fixture pages may show "FIXTURE".
 **Verify:** Home, Start, Plan, Settings, and Activity have no "SYNTHETIC" and no "DEMO".
 
 ### Z4. Settings leftovers

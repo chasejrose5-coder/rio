@@ -304,9 +304,13 @@ function ResultForm({ session, onSaved }: { session: SessionResponse; onSaved: (
     if (previewing()) return;
     setError("");
     try {
-      await api.postResult({ date: session.date, text, slots, intervals }, session.digest);
+      const saved = await api.postResult({ date: session.date, text, slots, intervals }, session.digest);
       setPending(null);
       onSaved();
+      if (saved.insight?.status === "pending") {
+        window.setTimeout(onSaved, 700);
+        window.setTimeout(onSaved, 1600);
+      }
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : "That result could not be saved.");
     }

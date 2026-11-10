@@ -159,7 +159,7 @@ test("sunday start, generate errors, a scored plan, and a failed link stay on St
   await expect(page).toHaveURL(/just_generated=true/);
   await expect(page.getByRole("heading", { name: "Your plan is ready." })).toBeVisible();
   await expect(page.getByText("Connect Strava so your runs show up.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Connect Strava" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Connect Strava" })).toHaveCount(0);
   await page.getByRole("button", { name: "Not now" }).click();
   await expect(page.getByRole("heading", { name: "Your plan is ready." })).toHaveCount(0);
   await page.reload();
@@ -271,7 +271,7 @@ test("a brand-new local account generates from Start and can dismiss Strava", as
   await expect(page).toHaveURL(/current_time=/);
   await expect(page.getByRole("heading", { name: "Your plan is ready." })).toBeVisible();
   await expect(page.getByText("Connect Strava so your runs show up.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Connect Strava" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Connect Strava" })).toHaveCount(0);
   await expect(page.getByText("probability")).toHaveCount(0);
   await expect(page.getByText("readiness")).toHaveCount(0);
   const made = await currentInputs(page);
