@@ -349,6 +349,34 @@ export type LibraryResponse = {
   families: { id: string; label: string }[];
 };
 
+export type ProfileField = {
+  label: string;
+  value: string;
+};
+
+export type ProfileResponse = {
+  ready: boolean;
+  fields: ProfileField[];
+  profile_key?: string;
+  goal_time?: string;
+  goal_override?: string | null;
+  shown_goal?: string;
+  inputs?: {
+    current_time?: string;
+    start_date?: string;
+    goal_time?: string;
+    goal_date?: string;
+  };
+  easy_pace?: string;
+  easy_pace_unit?: string;
+  easy_pace_phrase?: string;
+  prefs?: {
+    date_format?: string;
+    compact?: boolean;
+    [key: string]: unknown;
+  };
+};
+
 export type AuthResult = {
   email: string;
   display_name: string;

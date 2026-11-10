@@ -2,6 +2,7 @@ import type {
   ActivitiesResponse,
   Athlete,
   LibraryResponse,
+  ProfileResponse,
   AuthResult,
   CurrentSeason,
   HomeResponse,
@@ -144,6 +145,14 @@ export const api = {
   },
 
   activities: () => request<ActivitiesResponse>("/activities"),
+
+  profile: () => request<ProfileResponse>("/profile"),
+
+  saveGoal: (goalTime: string) =>
+    request<ProfileResponse>("/profile/goal", {
+      method: "PUT",
+      body: JSON.stringify({ goal_time: goalTime }),
+    }),
 
   library: (query?: { q?: string; family?: string; phase?: number }) => {
     const params = new URLSearchParams();

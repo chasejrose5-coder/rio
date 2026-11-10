@@ -1293,3 +1293,135 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   .page-library .rio-library-filters { grid-template-columns: 1fr; }
   .page-library .rio-lib-row { flex-direction: column; align-items: flex-start; }
 }
+
+.page-profile, .page-more {
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100dvh;
+}
+.page-profile main, .page-more main { padding: 0 5vw 3.5rem; }
+.page-profile .rio-hero, .page-more .rio-hero {
+  background: #121110;
+  color: #f4f1ec;
+  margin: 0 -5vw;
+  padding: 2.78rem 5vw 2.2rem;
+}
+.page-profile .rio-hero h1, .page-more .rio-hero h1 {
+  margin: 0.1rem 0 0;
+  color: #f4f1ec;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(2.6rem, 6.05vw, 5.55rem);
+  letter-spacing: -0.04em;
+  line-height: 0.92;
+  max-width: 16ch;
+}
+.page-profile .rio-range, .page-more .rio-range {
+  margin: 0.55rem 0 0;
+  color: #d7d2cb;
+  font-size: 1.05rem;
+  line-height: 1.4;
+}
+.page-profile.is-compact .rio-hero, .page-more.is-compact .rio-hero { padding: 1.35rem 5vw 0.85rem; }
+.page-profile.is-compact .rio-hero h1, .page-more.is-compact .rio-hero h1 { font-size: 2.35rem; margin-top: 0.35rem; }
+.page-profile.is-compact .rio-card, .page-profile.is-compact .rio-profile-group, .page-profile.is-compact .rio-profile-race {
+  padding: 0.85rem 1.1rem 0.7rem;
+  margin-bottom: 0.7rem;
+}
+.page-profile .rio-hero .rio-error { color: #f4f1ec; margin: 0.8rem 0 0; }
+.page-profile .rio-error, .page-more .rio-error { color: #8c3a2f; margin: 0.85rem 0 0; }
+.page-profile .rio-empty, .page-profile .rio-wait, .page-profile .rio-contact,
+.page-more .rio-empty, .page-more .rio-wait, .page-more .rio-contact { color: #3c3a36; }
+.page-profile .rio-easy { max-width: none; width: 100%; margin-top: 1.15rem; }
+.page-profile .rio-easy-kicker { color: #9a3412; }
+.page-profile .rio-easy-body, .page-profile .rio-easy-hint, .page-profile .rio-soft-help, .page-profile .rio-profile-hint,
+.page-profile .rio-settings-note, .page-more .rio-note {
+  color: #3c3a36;
+}
+.page-profile .rio-easy-now { margin: 0; color: #121110; }
+.page-profile .rio-easy-form label, .page-profile .rio-easy-form legend,
+.page-profile .rio-profile-edit label, .page-profile .rio-k, .page-profile .rio-mark-label,
+.page-more .rio-mark-label {
+  color: #3c3a36;
+}
+.page-profile .rio-easy-form input[type="text"],
+.page-profile .rio-easy-form input:not([type="radio"]),
+.page-profile .rio-profile-edit input {
+  max-width: 22rem;
+  background: #fff;
+  color: #121110;
+}
+.page-profile .rio-easy-form input::placeholder, .page-profile .rio-profile-edit input::placeholder {
+  color: #3c3a36;
+  opacity: 1;
+}
+.page-profile .rio-easy-form fieldset label, .page-profile .rio-profile-edit label {
+  color: #121110;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.page-profile .rio-profile-lead {
+  margin: 1.15rem 0 0.85rem;
+  max-width: 38rem;
+  color: #121110;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+.page-profile .rio-profile-group { margin: 0 0 0.9rem; padding: 1rem 1.15rem 0.85rem; }
+.page-profile .rio-soft-help, .page-profile .rio-profile-hint {
+  margin: 0 0 0.55rem;
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+.page-profile .rio-profile-hint { margin: 0.35rem 0 0.15rem; }
+.page-profile .rio-profile-race {
+  max-width: 40rem;
+  padding: 1rem 1.15rem 1.05rem;
+  margin: 0 0 1.4rem;
+}
+.page-profile .rio-profile-edit { max-width: 22rem; margin-top: 0.15rem; }
+.page-profile .rio-profile-edit .rio-primary, .page-profile .rio-easy-form .rio-primary { width: 100%; min-width: 0; }
+.page-profile .rio-fields { margin-top: 0.1rem; }
+.page-profile .rio-field {
+  display: grid;
+  grid-template-columns: 11.5rem minmax(0, 1fr);
+  column-gap: 1.35rem;
+  align-items: baseline;
+  padding: 0.78rem 0;
+}
+.page-profile .rio-field + .rio-field { border-top: 1px solid #dcd6cc; }
+.page-profile .rio-k {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.35;
+}
+.page-profile .rio-v { color: #121110; font-size: 0.95rem; font-weight: 600; line-height: 1.45; overflow-wrap: anywhere; }
+.page-profile .rio-mark-label, .page-more .rio-mark-label {
+  display: block;
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.page-profile .rio-settings-note { margin: 0.45rem 0 0; font-size: 0.92rem; line-height: 1.4; }
+.page-profile .rio-season-prompt a { color: #121110; }
+.page-more .rio-more-list { margin-top: 1.15rem; }
+.page-more .rio-more-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 0.85rem;
+  padding: 1rem 1.15rem;
+  color: #121110;
+}
+.page-more .rio-more-row:hover { background: #ede8e1; }
+.page-more .rio-more-copy { display: flex; flex-direction: column; gap: 0.28rem; min-width: 0; }
+.page-more .rio-note { margin: 0; font-size: 0.95rem; line-height: 1.4; }
+.page-more .rio-more-chevron { color: #3c3a36; font-size: 1.25rem; line-height: 1; }
+@media (max-width: 720px) {
+  .page-profile .rio-field { grid-template-columns: 1fr; row-gap: 0.22rem; }
+}
