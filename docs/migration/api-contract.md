@@ -372,8 +372,9 @@ These are the reads and writes Home, Plan, Activity, Library, Profile, Settings,
 | `month_title` | The month name |
 | `calendar` | Sunday–Saturday weeks. Each day is `date`, `in_month`, `day`, `label`, `template_id`, `today`. |
 | `weeks` | One row per season week: `week`, `phase`, `status`, `days_remaining`, `meters`, `volume` |
+| `sessions` | One presented day per stored session. Same fields as the stored day, plus `label`, `shown_date`, `target`, `facts`, and `prescription` (`line`, `tolerance`, `block`). The line is the time per rep, or `Run at …` for an easy or long run. An unset easy pace is `Set your easy pace before this run.` Speed days leave `block` blank. Scores are omitted. |
 
-The session list itself is `plan.sessions` on `GET /seasons/current`. `400` when `month` is not `YYYY-MM`. `404` when there is no current season.
+`sessions` is the same presentation Home already builds for one card, applied to every day so Plan can show the pace line without a second route and without a client-side pace formula. The stored list is still `plan.sessions` on `GET /seasons/current`. `meters` counts matched WORK distance already on the season. A day with no match is 0. Template meters are not used. `400` when `month` is present and is not `YYYY-MM`. An omitted month is the month that contains today. `404` when there is no current season.
 
 ### `GET /activities`
 
@@ -389,8 +390,9 @@ The session list itself is `plan.sessions` on `GET /seasons/current`. `400` when
 | `summary` | This week's distance, run count, and status counts |
 | `weekly_meters` | Completed meters for each plan week |
 | `heart` | `[{"date": "", "bpm": 0}]` |
+| `notice` | `null` when the activity pull succeeded, or when Strava is connected (Intervals is skipped). Otherwise the `PullError` text from the same pull Plan runs. A missing Intervals key is `RIO_INTERVALS_API_KEY is not set. …`. The page prints "Strava isn't connected" only when that text contains "is not set" or "not configured". Any other notice prints "Runs could not be loaded. Try Refresh in a moment." |
 
-`404` when there is no current season. Refresh is `POST /strava/sync`.
+`404` when there is no current season. Refresh is `POST /strava/sync`. The read does not add an environment variable. A key already in the process is the one the pull uses.
 
 ### `GET /library?q=&family=&phase=`
 

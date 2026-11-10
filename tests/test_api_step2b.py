@@ -629,3 +629,76 @@ def test_local_settings_use_the_account_file(tmp_path: Path) -> None:
     stored = read_local(path, email) or {}
     if stored.get("settings", {}).get("no_watch") is not True or stored.get("preferred") != "Loc":
         raise AssertionError(stored)
+
+
+def test_activities_notice_follows_the_plan_pull(monkeypatch) -> None:
+    """The card is the missing-key pull. A connected Strava account does not pull."""
+    from datetime import date
+
+    from ui.activities import PullError
+
+    monkeypatch.delenv("RIO_INTERVALS_API_KEY", raising=False)
+    from api.screens import intervals_pull
+
+    _rows, notice = intervals_pull(False, [], [], date(2026, 11, 10))
+    if not isinstance(notice, str) or "is not set" not in notice:
+        raise AssertionError(notice)
+    kept, quiet = intervals_pull(True, [], [{"date": "2026-11-10"}], date(2026, 11, 10))
+    if quiet is not None or kept != [{"date": "2026-11-10"}]:
+        raise AssertionError((quiet, kept))
+
+    _directory, client = _signed("activities-notice@example.com")
+    _generate(client)
+    found = client.get("/activities")
+    if found.status_code != 200 or "is not set" not in (found.json().get("notice") or ""):
+        raise AssertionError(found.text)
+
+    def boom(*_args, **_kwargs):
+        raise PullError("Intervals.icu returned 429")
+
+    monkeypatch.setattr("ui.activities.sync_recent", boom)
+    _rows, other = intervals_pull(False, [], [], date(2026, 11, 10))
+    if other != "Intervals.icu returned 429":
+        raise AssertionError(other)
+
+
+def test_plan_pace_lines_and_month() -> None:
+    """Plan days carry the same pace line Home shows. A bad month is refused."""
+    _directory, client = _signed("plan-pace@example.com")
+    missing = client.get("/plan")
+    if missing.status_code != 404:
+        raise AssertionError(missing.text)
+    _generate(client)
+    saved = client.patch("/settings", json={"easy_pace": "7:45", "easy_pace_unit": "mi"})
+    if saved.status_code != 200:
+        raise AssertionError(saved.text)
+    plan = client.get("/plan")
+    if plan.status_code != 200:
+        raise AssertionError(plan.text)
+    body = plan.json()
+    sessions = body.get("sessions") or []
+    if not sessions or not body.get("weeks") or not body.get("calendar"):
+        raise AssertionError("plan did not return the season")
+    easy = next(row for row in sessions if str(row.get("template_id") or "").startswith("aer_"))
+    line = (easy.get("prescription") or {}).get("line")
+    if line != "Run at 7:45 per mile":
+        raise AssertionError(line)
+    if (easy.get("prescription") or {}).get("block"):
+        raise AssertionError("an easy run used a block clock")
+    if "1.55" in line:
+        raise AssertionError(line)
+    rep = next(row for row in sessions if "@" in str((row.get("prescription") or {}).get("line") or ""))
+    rep_line = rep["prescription"]["line"]
+    if " m @" not in rep_line or "probability" in rep or "readiness" in rep:
+        raise AssertionError(rep_line)
+    speed = next((row for row in sessions if str(row.get("template_id") or "").startswith(("spd_", "mv_"))), None)
+    if speed is not None and (speed.get("prescription") or {}).get("block"):
+        raise AssertionError("a speed day showed the block clock")
+    if any(row.get("meters") for row in body["weeks"]):
+        raise AssertionError("a new season invented meters")
+    refused = client.get("/plan", params={"month": "nope"})
+    if refused.status_code != 400:
+        raise AssertionError(refused.text)
+    bad_day = client.get("/plan", params={"month": "2026-13"})
+    if bad_day.status_code != 400:
+        raise AssertionError(bad_day.text)

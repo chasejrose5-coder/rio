@@ -18,6 +18,7 @@ from api.screens import (
     activity_view,
     apply_settings,
     home_view,
+    intervals_pull,
     library_view,
     plan_view,
     profile_view,
@@ -81,6 +82,7 @@ def home(request: Request, just_generated: bool = False) -> dict:
 def plan(request: Request, month: str | None = None) -> dict:
     who, resolved = _resolved(request)
     season = open_season(who, request.app.state.directory, resolved["today"])
+    attach_activities(request.app, who, season)
     return plan_view(season, resolved["today"], prefs_payload(resolved), month)
 
 
@@ -94,6 +96,17 @@ def library(request: Request, q: str = "", family: str = "", phase: int | None =
 def activities(request: Request) -> dict:
     who, resolved = _resolved(request)
     season = open_season(who, request.app.state.directory, resolved["today"])
+    found = status(request.app, who)
+    sessions = season.plan.get("sessions") if isinstance(season.plan, dict) else []
+    if not isinstance(sessions, list):
+        sessions = []
+    # Strava connected: Intervals is not called. Otherwise the same pull Plan uses.
+    season.activities, notice = intervals_pull(
+        found["connected"] is True,
+        sessions,
+        season.activities,
+        resolved["today"],
+    )
     attach_activities(request.app, who, season)
     body = activity_view(
         season,
@@ -102,7 +115,8 @@ def activities(request: Request) -> dict:
         resolved["easy_pace"],
         resolved["easy_pace_unit"],
     )
-    body["strava"] = status(request.app, who)
+    body["strava"] = found
+    body["notice"] = notice
     return body
 
 

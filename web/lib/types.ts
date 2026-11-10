@@ -108,6 +108,87 @@ export type CurrentSeason = {
     goal_time: string;
     goal_date: string;
   };
+  digest?: string;
+  marks?: Record<string, string>;
+  actuals?: Record<
+    string,
+    {
+      template_id?: string;
+      completed?: boolean;
+      missed?: boolean;
+      numbers?: unknown[];
+      slots?: unknown[];
+      mark?: string;
+    }
+  >;
+};
+
+export type PlanSession = {
+  date: string;
+  shown_date?: string;
+  day_of_week?: string;
+  week_number?: number;
+  template_id?: string;
+  label?: string;
+  target?: string;
+  reason_codes?: string[];
+  prescription?: Prescription | null;
+};
+
+export type PlanWeek = {
+  week: number;
+  phase: string;
+  status: string | null;
+  days_remaining: number | null;
+  meters: number;
+  volume: string;
+};
+
+export type PlanDay = {
+  date: string;
+  in_month: boolean;
+  day: number;
+  label: string;
+  template_id: string;
+  today: boolean;
+};
+
+export type PlanResponse = {
+  inputs: CurrentSeason["inputs"];
+  digest: string;
+  marks: Record<string, string>;
+  prefs: Athlete["prefs"] & {
+    units?: string;
+    confirm_adapt?: boolean;
+    today?: string;
+    easy_pace_phrase?: string;
+    date_format?: string;
+  };
+  months: string[];
+  month: string;
+  month_title: string;
+  calendar: PlanDay[][];
+  weeks: PlanWeek[];
+  sessions: PlanSession[];
+};
+
+export type ActivityRow = {
+  date?: string;
+  shown_date?: string;
+  name?: string;
+  label?: string;
+  meters?: number | null;
+  work?: string;
+  hr?: string;
+  heart_rate?: number | null;
+  extra?: boolean;
+  id?: string;
+};
+
+export type ActivitiesResponse = {
+  rows: ActivityRow[];
+  all: ActivityRow[];
+  notice?: string | null;
 };
 
 export type SeasonWrite = {
