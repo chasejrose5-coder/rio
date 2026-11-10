@@ -7,6 +7,8 @@ None of these call the model. Settings does not rebuild the season.
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
@@ -51,6 +53,28 @@ class SettingsBody(BaseModel):
     compact: bool | None = None
 
 
+def _preview(request: Request):
+    """The TEST season when the page asked for it. None on a normal read."""
+    if request.query_params.get("preview") != "test":
+        return None
+    from api.admin_routes import preview_season
+
+    found = preview_season(request)
+    if found is None:
+        raise ApiError(404, "Load the test season first.")
+    return found
+
+
+def _stamp(body: dict, runs: int) -> dict:
+    body["preview"] = {
+        "active": True,
+        "banner": "TEST Athlete · read only. This login is not changed.",
+        "runs": runs,
+        "status": f"TEST season · {runs} runs",
+    }
+    return body
+
+
 def _open(request: Request, who, today):
     try:
         season = open_season(who, request.app.state.directory, today)
@@ -65,6 +89,29 @@ def _open(request: Request, who, today):
 @router.get("/home")
 def home(request: Request, just_generated: bool = False) -> dict:
     who, resolved = _resolved(request)
+    preview = _preview(request)
+    if preview is not None:
+        season, runs = preview
+        body = home_view(
+            replace(who, display_name="TEST Athlete"),
+            request.app.state.directory,
+            resolved["today"],
+            season,
+            connected=False,
+            strava={"connected": False, "configured": False, "athlete_name": "", "last_sync_at": None},
+            just_generated=False,
+        )
+        from ui.accounts import hey
+
+        body["hello"] = hey("TEST Athlete")
+        body["strava_offer"] = False
+        athlete = body.get("athlete")
+        if isinstance(athlete, dict):
+            athlete["display_name"] = "TEST Athlete"
+            prefs = athlete.get("prefs")
+            if isinstance(prefs, dict):
+                athlete["prefs"] = {**prefs, "preferred": ""}
+        return _stamp(body, runs)
     season = _open(request, who, resolved["today"])
     found = status(request.app, who)
     return home_view(
@@ -106,6 +153,11 @@ def plan(
     goal_date: str | None = None,
 ) -> dict:
     who, resolved = _resolved(request)
+    preview = _preview(request)
+    if preview is not None:
+        season, runs = preview
+        body = plan_view(season, resolved["today"], prefs_payload(resolved), month)
+        return _stamp(body, runs)
     named = _named_season(
         who,
         request.app.state.directory,
@@ -130,6 +182,25 @@ def library(request: Request, q: str = "", family: str = "", phase: int | None =
 @router.get("/activities")
 def activities(request: Request) -> dict:
     who, resolved = _resolved(request)
+    preview = _preview(request)
+    if preview is not None:
+        season, runs = preview
+        body = activity_view(
+            season,
+            resolved["today"],
+            resolved["prefs"],
+            resolved["easy_pace"],
+            resolved["easy_pace_unit"],
+        )
+        body["strava"] = {
+            "configured": False,
+            "connected": False,
+            "athlete_name": "",
+            "last_sync_at": None,
+            "count": runs,
+        }
+        body["notice"] = None
+        return _stamp(body, runs)
     season = open_season(who, request.app.state.directory, resolved["today"])
     found = status(request.app, who)
     sessions = season.plan.get("sessions") if isinstance(season.plan, dict) else []
@@ -192,7 +263,11 @@ def put_goal(body: GoalBody, request: Request) -> dict:
 @router.get("/sessions/{day}")
 def one_session(day: str, request: Request) -> dict:
     who, resolved = _resolved(request)
-    season = open_season(who, request.app.state.directory, resolved["today"])
+    preview = _preview(request)
+    if preview is not None:
+        season, _runs = preview
+    else:
+        season = open_season(who, request.app.state.directory, resolved["today"])
     found = session_view(season, day, resolved)
     if found is None:
         raise ApiError(404, "That day is not in this season.")

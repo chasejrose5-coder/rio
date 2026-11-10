@@ -18,6 +18,8 @@ export default defineConfig({
         RIO_SUPABASE_SERVICE_ROLE_KEY: "",
         RIO_FRONTEND_ORIGIN: "http://localhost:3000",
         RIO_ACCOUNTS_PATH: "/tmp/rio-playwright-accounts.json",
+        RIO_ADMIN_EMAIL: "admin@example.com",
+        RIO_HERO_PATH: "/tmp/rio-playwright-hero.json",
         NEXT_PUBLIC_RIO_API_URL: "http://localhost:8000",
       },
     },

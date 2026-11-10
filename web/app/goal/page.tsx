@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { GoalView } from "@/components/FixtureViews";
 
 export default function Page() {
-  return <ComingSoon title="Goal" />;
+  return <GoalView />;
 }

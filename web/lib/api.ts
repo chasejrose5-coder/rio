@@ -7,7 +7,10 @@ import type {
   CurrentSeason,
   HomeResponse,
   LapTable,
+  LedgerBody,
   PastSeasonsResponse,
+  FixturePrescription,
+  PlannedRow,
   PlanResponse,
   ResultWrite,
   SeasonWrite,
@@ -29,6 +32,21 @@ export function apiBase(): string {
   return raw.replace(/\/$/, "");
 }
 
+const PREVIEW_KEY = "rio_test_preview";
+
+export function previewing(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.sessionStorage.getItem(PREVIEW_KEY) === "1";
+}
+
+export function startPreview(): void {
+  window.sessionStorage.setItem(PREVIEW_KEY, "1");
+}
+
+export function stopPreview(): void {
+  window.sessionStorage.removeItem(PREVIEW_KEY);
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
@@ -38,6 +56,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       headers: {
         ...(init?.body ? { "Content-Type": "application/json" } : {}),
         ...(init?.headers ?? {}),
+        ...(init?.method && init.method !== "GET" && previewing() && !path.startsWith("/auth/sign-out")
+          ? { "X-RIO-Preview": "test" }
+          : {}),
       },
     });
   } catch {
@@ -147,8 +168,12 @@ export const api = {
     }
   },
 
-  home: (justGenerated = false) =>
-    request<HomeResponse>(`/home?just_generated=${justGenerated ? "true" : "false"}`),
+  home: (justGenerated = false) => {
+    const params = new URLSearchParams();
+    params.set("just_generated", justGenerated ? "true" : "false");
+    if (previewing()) params.set("preview", "test");
+    return request<HomeResponse>(`/home?${params.toString()}`);
+  },
 
   dismissStrava: () =>
     request<Athlete>("/settings", {
@@ -182,6 +207,7 @@ export const api = {
       params.set("goal_time", inputs.goal_time);
       params.set("goal_date", inputs.goal_date);
     }
+    if (previewing()) params.set("preview", "test");
     const suffix = params.toString();
     return request<PlanResponse>(`/plan${suffix ? `?${suffix}` : ""}`);
   },
@@ -200,7 +226,7 @@ export const api = {
       { method: "DELETE", body: JSON.stringify(body) },
     ),
 
-  activities: () => request<ActivitiesResponse>("/activities"),
+  activities: () => request<ActivitiesResponse>(previewing() ? "/activities?preview=test" : "/activities"),
 
   profile: () => request<ProfileResponse>("/profile"),
 
@@ -226,7 +252,10 @@ export const api = {
       headers: digest ? { "If-Match": digest } : {},
     }),
 
-  session: (date: string) => request<SessionResponse>(`/sessions/${encodeURIComponent(date)}`),
+  session: (date: string) =>
+    request<SessionResponse>(
+      `/sessions/${encodeURIComponent(date)}${previewing() ? "?preview=test" : ""}`,
+    ),
 
   postResult: (
     body: { date: string; text: string; slots?: (number | null)[] | null; intervals?: string | null },
@@ -248,6 +277,41 @@ export const api = {
   fixtureNames: () => request<{ fixtures: string[] }>("/fixtures"),
 
   fixtureSession: (name: string) => request<LapTable>(`/fixtures/session?name=${encodeURIComponent(name)}`),
+
+  adminAccounts: () =>
+    request<{ available: boolean; accounts: { email: string; display_name: string; role: string }[] }>("/admin/accounts"),
+
+  testSeason: () =>
+    request<{ loaded: boolean; name?: string; inputs?: string[]; runs?: number; plan?: Record<string, unknown> }>(
+      "/admin/test-season",
+    ),
+
+  loadTestSeason: () =>
+    request<{ loaded: boolean; created: boolean; runs: number; name: string }>("/admin/test-season", { method: "POST" }),
+
+  deleteTestSeason: (confirm: boolean) =>
+    request<{ deleted: boolean; message: string }>("/admin/test-season", {
+      method: "DELETE",
+      body: JSON.stringify({ confirm }),
+    }),
+
+  hero: () =>
+    request<{ photos: { id: string; file: string; credit: string; source: string; enabled: boolean }[] }>("/admin/hero"),
+
+  saveHero: (photos: { id: string; enabled: boolean; credit: string }[]) =>
+    request<{ saved: boolean; photos: { id: string; file: string; credit: string; source: string; enabled: boolean }[] }>(
+      "/admin/hero",
+      { method: "PUT", body: JSON.stringify({ photos }) },
+    ),
+
+  prescribe: (name: string) =>
+    request<FixturePrescription>("/fixtures/prescribe", { method: "POST", body: JSON.stringify({ name }) }),
+
+  plannedRows: () => request<{ rows: PlannedRow[] }>("/fixtures/planned"),
+
+  ledger: () => request<LedgerBody>("/fixtures/ledger"),
+
+  goalFixture: () => request<Record<string, unknown>>("/fixtures/goal"),
 
   stravaStatus: () => request<StravaStatus>("/strava/status"),
 

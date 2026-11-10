@@ -502,7 +502,9 @@ Body: `{"confirm": true}`. `200` `{"deleted": true, "message": "TEST Athlete was
 
 ### `PUT /admin/hero`
 
-Body: `{"photos": [{"id": "", "enabled": true, "credit": ""}]}`. The id list must be the startup set, each once. `200` is the hero object plus `saved: true`. `400` when a credit or an id is unusable.
+Body: `{"photos": [{"id": "", "enabled": true, "credit": ""}]}`. The id list must be the startup set, each once. `200` is the hero object plus `saved: true`. `400` when a credit or an id is unusable. `RIO_HERO_PATH`, when set, is the JSON file. Unset, the file stays `ui/assets/hero_rotation.json`. The splash does not read this file.
+
+`GET /home`, `GET /plan`, `GET /activities`, and `GET /sessions/{day}` accept `preview=test` for the admin. That read uses the TEST athlete and does not replace the caller's season. A missing test season is 404 "Load the test season first." A write that sends `X-RIO-Preview: test` is 400 "This login is not changed.", except `POST /auth/sign-out`. `GET /home` adds `broken: true` when a stored plan has no usable length. The page shows "—" and no tiles.
 
 ## Fixtures
 
@@ -538,7 +540,7 @@ Body: `{"name": "race_800"}`. `200`:
 {"name": "race_800", "on": "2026-11-09", "limiting_capacities": "unknown", "rows": [], "ontology_version": "v0.1"}
 ```
 
-`on` is today. Each row is a `prescribe` row (`template_id`, `parameters`, `reason_codes`, `prescribed_on`). The ledger is not kept. `400` when the name is missing or the rules refuse it.
+`on` is today in the Settings time zone. Each row is a `prescribe` row (`template_id`, `parameters`, `reason_codes`, `prescribed_on`) plus `prose` (the rules paragraph from `explain_prescription`) and `parameter_rows`. `banner` is `FIXTURE` when the fixture says so. The ledger is not kept. `400` when the name is missing or the rules refuse it. The paragraph does not mention the spend cap.
 
 ### `POST /fixtures/accept`
 
@@ -546,9 +548,13 @@ Body: `{"name": "race_800"}`. A missing name uses `race_800`, the fixture `accep
 
 `200` `{"name": "race_800.yml", "on": "2026-10-17", "row": {}}`. `row` is the planned acceptance (`template_id`, `parameters`, `placeholder_date`, `ontology_version`, `source`, `reason_codes`). The file is written in a temporary directory and thrown away. The checked-in files in `tests/fixtures/planned` are not replaced.
 
+### `GET /fixtures/planned`
+
+Admin. `200` `{"rows": [{"name": "", "template_id": "", "parameters": {}, "parameter_rows": [], "reason_codes": [], "placeholder_date": "", "ontology_version": "", "source": "", "prose": "", "banner": "FIXTURE"}]}`. These are the checked-in files in `tests/fixtures/planned`. Nothing is written. `prose` is `explain_decision`. A normal account is `403`.
+
 ### `GET /fixtures/ledger`
 
-`200` `{"as_of": "2026-11-09", "entries": [], "emerging": [], "decaying": []}`. `as_of` is today. Entries are the four fixture deposits, the same tables the Ledger page shows.
+`200` `{"as_of": "2026-11-09", "entries": [], "emerging": [], "decaying": [], "banner": "FIXTURE", "deposits_rows": [], "emerging_rows": [], "decaying_rows": []}`. `as_of` is today in the Settings time zone. Entries are the four fixture deposits. The `*_rows` arrays are the tables the Ledger page shows, with dates in the Settings date format. An empty table is drawn as "—".
 
 ### `GET /fixtures/goal`
 

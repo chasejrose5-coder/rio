@@ -7,7 +7,7 @@ import { Expander } from "./Expander";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
-import { ApiError, api } from "@/lib/api";
+import { ApiError, api, previewing } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { weekdayName } from "@/lib/plan";
 import {
@@ -301,6 +301,7 @@ function ResultForm({ session, onSaved }: { session: SessionResponse; onSaved: (
   }
 
   async function commit(text: string, slots: (number | null)[], intervals: string | null) {
+    if (previewing()) return;
     setError("");
     try {
       await api.postResult({ date: session.date, text, slots, intervals }, session.digest);
@@ -399,6 +400,7 @@ function Watchless({ session, onSaved }: { session: SessionResponse; onSaved: ()
   }
 
   async function send(missed: boolean) {
+    if (previewing()) return;
     const outcomeError = missed ? "" : needsOutcome(session.quality, choice);
     if (outcomeError) {
       setError(outcomeError);

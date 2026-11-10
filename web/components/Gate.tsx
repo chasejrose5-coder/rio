@@ -10,6 +10,11 @@ import type { Athlete, CurrentSeason } from "@/lib/types";
 
 const SPLASH_KEY = "rio_startup_seen";
 
+function splashSkipped(): boolean {
+  if (window.sessionStorage.getItem(SPLASH_KEY) === "1") return true;
+  return new URLSearchParams(window.location.search).get("skip") === "1";
+}
+
 export function needsEasyPace(athlete: Athlete | null): boolean {
   return !String(athlete?.prefs?.easy_pace || "").trim();
 }
@@ -28,13 +33,15 @@ export function Gate() {
   useEffect(() => {
     if (status === "loading") return;
     if (status === "out") {
-      const seen = window.sessionStorage.getItem(SPLASH_KEY) === "1";
-      if (!seen) {
+      if (!splashSkipped()) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setSplash(true);
         return;
       }
-      router.replace("/sign-in");
+      if (window.sessionStorage.getItem(SPLASH_KEY) !== "1") {
+        window.sessionStorage.setItem(SPLASH_KEY, "1");
+      }
+      router.replace("/sign-in?skip=1");
       return;
     }
     let live = true;
@@ -69,7 +76,7 @@ export function Gate() {
         onContinue={() => {
           window.sessionStorage.setItem(SPLASH_KEY, "1");
           setSplash(false);
-          if (status === "out") router.replace("/sign-in");
+          if (status === "out") router.replace("/sign-in?skip=1");
         }}
       />
     );

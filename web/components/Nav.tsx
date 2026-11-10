@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { stopPreview } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { navShouldArm } from "@/lib/motion";
 import { sessionHref } from "@/lib/session";
 
 const NAV = [
@@ -36,7 +38,7 @@ export function Nav({ active }: { active?: string }) {
     const previous = window.sessionStorage.getItem(key);
     // The underline grows once per page. A control on the same page does not replay it.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setArm(previous !== path);
+    setArm(navShouldArm(previous, path));
     window.sessionStorage.setItem(key, path);
   }, [path]);
 
@@ -67,6 +69,7 @@ export function Nav({ active }: { active?: string }) {
             type="button"
             className="rio-logout"
             onClick={() => {
+              stopPreview();
               void signOut().then(() => router.replace("/sign-in"));
             }}
           >

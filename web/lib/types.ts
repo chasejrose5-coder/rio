@@ -102,6 +102,13 @@ export type HomeSeason = {
   next_session?: string | null;
 };
 
+export type TestPreview = {
+  active: boolean;
+  banner: string;
+  runs: number;
+  status: string;
+};
+
 export type HomeResponse = {
   today: string;
   athlete: Athlete;
@@ -110,6 +117,8 @@ export type HomeResponse = {
   copy: string;
   season: HomeSeason | null;
   next_session?: string | null;
+  broken?: boolean;
+  preview?: TestPreview;
 };
 
 export type CurrentSeason = {
@@ -185,6 +194,7 @@ export type PlanResponse = {
   sessions: PlanSession[];
   actuals?: CurrentSeason["actuals"];
   pace_status?: string;
+  preview?: TestPreview;
 };
 
 export type SeasonStat = { label: string; value: string };
@@ -280,6 +290,51 @@ export type ActivitiesResponse = {
   notice?: string | null;
   strava?: StravaStatus;
   logged?: LoggedActivity[];
+  preview?: TestPreview;
+};
+
+export type ParameterRow = { Parameter: string; Value: string };
+
+export type PrescriptionRow = {
+  template_id?: string;
+  prescribed_on?: string;
+  parameters?: Record<string, unknown>;
+  parameter_rows?: ParameterRow[];
+  reason_codes?: string[];
+  prose?: string;
+};
+
+export type FixturePrescription = {
+  name: string;
+  on: string;
+  limiting_capacities?: unknown;
+  rows: PrescriptionRow[];
+  banner?: string | null;
+  ontology_version?: string;
+};
+
+export type PlannedRow = {
+  name: string;
+  template_id: string;
+  parameters?: Record<string, unknown>;
+  parameter_rows?: ParameterRow[];
+  reason_codes: string[];
+  placeholder_date: string;
+  ontology_version: string;
+  source: string;
+  prose: string;
+  banner?: string | null;
+};
+
+export type LedgerBody = {
+  as_of: string;
+  entries: Record<string, unknown>[];
+  emerging: Record<string, unknown>[];
+  decaying: Record<string, unknown>[];
+  banner?: string | null;
+  deposits_rows: Record<string, unknown>[];
+  emerging_rows: Record<string, unknown>[];
+  decaying_rows: Record<string, unknown>[];
 };
 
 export type LapTable = {

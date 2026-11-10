@@ -7,6 +7,7 @@ The engines and the season services are imported. They are not copied.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -59,12 +60,30 @@ def create_app(
     app.state.strava_gate = RateGate()
     app.state.strava_post = None
     app.state.strava_get = None
+    hero = os.environ.get("RIO_HERO_PATH", "").strip()
+    if hero:
+        app.state.hero_path = Path(hero)
+
+    @app.middleware("http")
+    async def _block_preview_writes(request: Request, call_next):
+        """A test-season preview can be looked at. It cannot write this login."""
+        if (
+            request.method in {"POST", "PUT", "PATCH", "DELETE"}
+            and request.headers.get("x-rio-preview") == "test"
+            and request.url.path != "/auth/sign-out"
+        ):
+            return JSONResponse(
+                status_code=400,
+                content={"detail": "This login is not changed."},
+            )
+        return await call_next(request)
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[settings.frontend_origin],
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "If-Match", "X-RIO-Response"],
+        allow_headers=["Content-Type", "If-Match", "X-RIO-Response", "X-RIO-Preview"],
     )
     app.include_router(health_router)
     app.include_router(auth_router)

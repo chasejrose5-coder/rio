@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { LedgerView } from "@/components/FixtureViews";
 
 export default function Page() {
-  return <ComingSoon title="Ledger" />;
+  return <LedgerView />;
 }

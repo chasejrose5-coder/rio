@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { NextView } from "@/components/FixtureViews";
 
 export default function Page() {
-  return <ComingSoon title="Next" />;
+  return <NextView />;
 }

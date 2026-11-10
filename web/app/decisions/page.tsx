@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { DecisionsView } from "@/components/FixtureViews";
 
 export default function Page() {
-  return <ComingSoon title="Decisions" />;
+  return <DecisionsView />;
 }

@@ -326,6 +326,7 @@ def home_view(principal, directory, today: date, season, *, connected: bool, str
         "season": None,
         "copy": no_plan_copy(),
         "next_session": None,
+        "broken": False,
     }
     if season is None:
         return body
@@ -338,8 +339,12 @@ def home_view(principal, directory, today: date, season, *, connected: bool, str
         start = date.fromisoformat(str(start_text))
         goal = date.fromisoformat(season.inputs[3])
     except ValueError:
+        body["broken"] = True
+        body["copy"] = ""
         return body
     if isinstance(length, bool) or not isinstance(length, int) or length <= 0:
+        body["broken"] = True
+        body["copy"] = ""
         return body
     view = dashboard_view(
         start=start,

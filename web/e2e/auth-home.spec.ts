@@ -121,6 +121,8 @@ test("local sign-in hides forgot password and Google", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Log in" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Create account" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Forgot password?" })).toHaveCount(0);
+  await expect(page.getByText("Accounts aren't set up yet")).toBeVisible();
+  await expect(page.getByText("Sign-in will open here after accounts are connected.")).toBeVisible();
   await expect(page.getByRole("link", { name: /Google/i })).toHaveCount(0);
   await expect(page.getByText("Photo by Steve Pancrate on Pexels")).toBeVisible();
 });
@@ -129,6 +131,7 @@ test("hosted sign-in shows forgot password and still hides Google", async ({ pag
   await installApi(page, { hosted: true, season: true });
   await page.goto("/sign-in");
   await expect(page.getByRole("link", { name: "Forgot password?" })).toBeVisible();
+  await expect(page.getByText("Accounts aren't set up yet")).toHaveCount(0);
   await expect(page.getByRole("link", { name: /Google/i })).toHaveCount(0);
 });
 
