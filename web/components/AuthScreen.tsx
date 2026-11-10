@@ -9,6 +9,57 @@ import { useAuth } from "@/lib/auth";
 
 const SIGNUP_FAILED = "The account could not be created.";
 
+function PasswordField({
+  id,
+  name,
+  autoComplete,
+  value,
+  onChange,
+}: {
+  id: string;
+  name: string;
+  autoComplete: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [shown, setShown] = useState(false);
+  return (
+    <div className="rio-password">
+      <input
+        id={id}
+        name={name}
+        type={shown ? "text" : "password"}
+        autoComplete={autoComplete}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      <button
+        type="button"
+        className="rio-eye"
+        aria-label={shown ? "Hide password" : "Show password"}
+        onClick={() => setShown((current) => !current)}
+      >
+        <Eye open={shown} />
+      </button>
+    </div>
+  );
+}
+
+function Eye({ open }: { open: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      {open ? <path d="M4 5l16 14" stroke="currentColor" strokeWidth="1.7" /> : null}
+    </svg>
+  );
+}
+
 function emailProblem(email: string): string {
   const text = email.trim();
   if (!text || text.split("@").length !== 2 || !text.split("@")[1]?.includes(".")) {
@@ -70,6 +121,7 @@ export function SignInScreen() {
   const [busy, setBusy] = useState(false);
   const [forgot, setForgot] = useState(false);
   const [localFile, setLocalFile] = useState(false);
+  const [unconfigured, setUnconfigured] = useState(false);
 
   useEffect(() => {
     const note = new URLSearchParams(window.location.search).get("note");
@@ -87,6 +139,11 @@ export function SignInScreen() {
       if (!live) return;
       setForgot(hosted);
       setLocalFile(!hosted);
+    });
+    void api.accountMode().then((body) => {
+      if (live) setUnconfigured(body.mode === "unconfigured");
+    }).catch(() => {
+      if (live) setUnconfigured(false);
     });
     return () => {
       live = false;
@@ -115,7 +172,7 @@ export function SignInScreen() {
 
   return (
     <AuthFrame title="Log in" subtitle="Use your email and password." error={error} notice={notice}>
-      {localFile ? (
+      {unconfigured ? (
         <div className="rio-setup-card">
           <p className="rio-mark-label">Accounts aren&apos;t set up yet</p>
           <p className="rio-note">Sign-in will open here after accounts are connected.</p>
@@ -125,13 +182,12 @@ export function SignInScreen() {
         <label htmlFor="email">Email</label>
         <input id="email" name="email" type="text" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
         <label htmlFor="password">Password</label>
-        <input
+        <PasswordField
           id="password"
           name="password"
-          type="password"
           autoComplete="current-password"
           value={password}
-          onChange={(event) => setPassword(event.target.value)}
+          onChange={setPassword}
         />
         <button className="rio-primary" type="submit" disabled={busy}>
           Log in
@@ -201,13 +257,12 @@ export function CreateAccountScreen() {
         <label htmlFor="email">Email</label>
         <input id="email" name="email" type="text" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
         <label htmlFor="password">Password</label>
-        <input
+        <PasswordField
           id="password"
           name="password"
-          type="password"
           autoComplete="new-password"
           value={password}
-          onChange={(event) => setPassword(event.target.value)}
+          onChange={setPassword}
         />
         <button className="rio-primary" type="submit" disabled={busy}>
           Create account
@@ -302,13 +357,12 @@ export function ResetScreen({ token }: { token: string }) {
     <AuthFrame title="New password" error={error || (token ? "" : "That reset link is no longer valid.")}>
       <form onSubmit={onSubmit} noValidate>
         <label htmlFor="password">New password</label>
-        <input
+        <PasswordField
           id="password"
           name="password"
-          type="password"
           autoComplete="new-password"
           value={password}
-          onChange={(event) => setPassword(event.target.value)}
+          onChange={setPassword}
         />
         <button className="rio-primary" type="submit" disabled={busy || !token}>
           Save password

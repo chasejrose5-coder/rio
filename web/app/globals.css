@@ -140,8 +140,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
 }
-.rio-primary:hover { transform: translateY(-1px); }
-.rio-logout:hover, .rio-logout:active { transform: none; }
+.rio-primary, .rio-secondary {
+  transition: background-color 280ms var(--ease), color 280ms var(--ease), border-color 280ms var(--ease), transform 280ms var(--ease);
+}
+.rio-primary:hover, .rio-secondary:hover { transform: translateY(-1px); }
+.rio-primary:active, .rio-secondary:active { transform: translateY(0); }
+.rio-logout:hover, .rio-logout:active, .rio-text-link:hover { transform: none; }
+.rio-mini, .rio-daycard, .rio-lib-row, .rio-past-row {
+  transition: transform 360ms var(--ease), border-color 360ms var(--ease);
+}
+.rio-mini:hover, .rio-daycard:hover, .rio-lib-row:hover, .rio-past-row:hover { transform: translateY(-2px); }
 .rio-links a.is-active, .rio-subnav a.is-active { color: var(--accent); }
 .rio-start-session {
   background: var(--button) !important;
@@ -373,8 +381,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   position: relative;
   z-index: 2;
   max-width: 28rem;
-  margin: max(4.75rem, calc(50vh - 18rem)) auto 0.8rem;
-  padding: 1.6rem 1.5rem 1.35rem;
+  margin: max(4.75rem, calc(50vh - 20rem)) auto 0.8rem;
+  padding: 1.85rem 1.5rem 1.55rem;
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--line);
@@ -383,11 +391,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 }
 .rio-auth-hero { padding: 0.15rem 0 0.85rem; }
 .rio-auth-hero h1 {
-  font-family: var(--font);
-  font-size: clamp(2.25rem, 4vw, 2.75rem);
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  line-height: 1.05;
+  font-family: var(--display);
+  font-size: clamp(48px, 6vw, 84px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
   color: var(--ink);
 }
 .rio-synthetic {
@@ -400,7 +408,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 }
 .rio-auth-card .rio-range { margin: 0.45rem 0 0; color: var(--muted); }
 .rio-auth-card form { display: flex; flex-direction: column; }
-.rio-auth-card label { margin: 0.75rem 0 0.3rem; color: var(--muted); font-size: 0.75rem; }
+.rio-auth-card label { margin: 1.15rem 0 0.4rem; color: var(--muted); font-size: 0.75rem; }
 .rio-auth-card input {
   background: var(--surface);
   color: var(--ink);
@@ -411,6 +419,24 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   font-size: 1rem;
 }
 .rio-auth-card input:focus { border-color: #c94a25; outline: none; }
+.rio-password { position: relative; }
+.rio-password input { width: 100%; padding-right: 2.7rem; }
+.rio-eye {
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #6e6a64;
+  cursor: pointer;
+}
+.rio-eye:hover, .rio-eye:active { transform: translateY(-50%); background: transparent; color: #121110; }
 .rio-primary {
   margin-top: 0.85rem;
   min-height: 3rem;
@@ -514,16 +540,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   animation: rio-fade 220ms var(--ease) 120ms both;
 }
 @keyframes rio-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 .rio-brand-mark {
-  margin: 0;
+  margin: 0 0 0.2rem;
   font-family: var(--display);
   font-weight: 800;
-  font-size: clamp(3rem, 8vw, 5.5rem);
-  letter-spacing: -0.06em;
-  line-height: 0.85;
+  font-size: clamp(88px, 18vw, 176px);
+  letter-spacing: -0.065em;
+  line-height: 0.78;
 }
 .rio-brand-owned { margin: 0 0 1.2rem; letter-spacing: 0.08em; font-weight: 700; }
 .rio-splash h1 {
@@ -538,7 +564,28 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .rio-reason-line { margin: 0.35rem 0 0.7rem; font-family: var(--display); font-weight: 700; font-size: clamp(1.2rem, 2.1vw, 1.55rem); }
 .rio-splash blockquote { margin: 0; max-width: 38rem; }
 .rio-splash blockquote p { margin: 0; color: rgba(244, 241, 236, 0.9); line-height: 1.5; }
-.rio-founder-by { margin-top: 0.45rem !important; color: rgba(244, 241, 236, 0.58) !important; font-size: 0.84rem; }
+.rio-founder-by { margin-top: 0.45rem !important; color: rgba(244, 241, 236, 0.92) !important; font-size: 0.84rem; }
+.rio-splash .rio-photo-credit.on-photo {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 1rem;
+  z-index: 6;
+  margin: 0 auto;
+  background: rgba(18, 17, 16, 0.78);
+  color: #f4f1ec;
+  border: 1px solid rgba(244, 241, 236, 0.45);
+}
+.rio-splash .rio-contact.on-photo {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 3.15rem;
+  z-index: 6;
+  margin: 0;
+  text-align: center;
+  color: #f4f1ec;
+}
 .rio-splash-go { width: auto; min-width: 12rem; margin-top: 1.4rem; }
 .rio-easy, .rio-intro {
   max-width: 36rem;
@@ -1053,6 +1100,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   *, *::before, *::after {
     animation: none !important;
     transition: none !important;
+  }
+  .rio-splash-copy, .rio-stagger > *,
+  .rio-primary, .rio-secondary, .rio-mini, .rio-daycard, .rio-lib-row, .rio-past-row {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
@@ -1986,4 +2039,142 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   .page-creators .rio-creator-photo img { height: auto; min-height: 0; }
   .page-creators .rio-creator-photo img { object-fit: unset; object-position: center; }
   .page-creators .rio-creator-bio { font-size: 1rem; line-height: 1.65; }
+}
+
+.page-admin, .page-fixture {
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100dvh;
+}
+.page-admin main, .page-fixture main { padding: 0 5vw 3.5rem; }
+.page-admin .rio-hero, .page-fixture .rio-hero {
+  background: #121110;
+  color: #f4f1ec;
+  margin: 0 -5vw;
+  padding: 2.4rem 5vw 1.8rem;
+}
+.page-admin .rio-hero h1, .page-fixture .rio-hero h1 {
+  margin: 0.1rem 0 0;
+  color: #f4f1ec;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(2.6rem, 6vw, 4.4rem);
+  letter-spacing: -0.04em;
+  line-height: 0.92;
+}
+.page-admin .rio-range, .page-fixture .rio-range { color: #d7d2cb; }
+.page-admin .rio-card, .page-fixture .rio-card {
+  margin-top: 1rem;
+  background: #fff;
+  border: 1px solid #dadada;
+  border-radius: 18px;
+  box-shadow: 0 12px 32px rgba(14, 14, 14, 0.05);
+  padding: 0.9rem 1rem 1rem;
+}
+.page-admin .rio-card {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0.2rem 0 0.4rem;
+}
+.page-admin .rio-mark-label, .page-fixture .rio-mark-label,
+.page-admin .rio-k, .page-fixture .rio-k,
+.page-admin .rio-table th, .page-fixture .rio-table th,
+.page-fixture .rio-file { color: #3c3a36; }
+.page-admin .rio-note, .page-fixture .rio-note,
+.page-admin .rio-empty, .page-fixture .rio-empty,
+.page-admin .rio-settings-note, .page-fixture .rio-prose, .page-fixture .rio-v { color: #3c3a36; }
+.page-admin .rio-error, .page-fixture .rio-error { color: #8c3a2f; }
+.page-admin .rio-table, .page-fixture .rio-table { width: 100%; border-collapse: collapse; }
+.page-admin .rio-table th, .page-admin .rio-table td,
+.page-fixture .rio-table th, .page-fixture .rio-table td {
+  text-align: left;
+  padding: 0.35rem 0.55rem;
+  border-bottom: 1px solid #e7e1d8;
+  color: #121110;
+}
+.page-admin .rio-check, .page-fixture .rio-file {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.7rem 0;
+  color: #121110;
+}
+.page-fixture .rio-file { flex-direction: column; align-items: stretch; }
+.page-admin .rio-hero-frame label, .page-admin .rio-hero-editor label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0.45rem 0;
+  color: #3c3a36;
+}
+.page-admin label.rio-check {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  width: fit-content;
+  gap: 0.55rem;
+  margin: 0.35rem 0 0.55rem;
+  color: #121110;
+}
+.page-admin input[type="text"], .page-fixture select {
+  border: 1px solid #dcd6cc;
+  border-radius: 12px;
+  padding: 0.45rem 0.7rem;
+  background: #fffcf7;
+  color: #121110;
+  font: inherit;
+}
+.page-admin .rio-admin-views {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  justify-items: start;
+  gap: 0.55rem;
+  margin-top: 0.55rem;
+}
+.page-admin .rio-done-row {
+  display: flex;
+  justify-content: flex-start;
+  gap: 0.45rem;
+}
+.page-admin .rio-admin-views .rio-secondary,
+.page-admin .rio-done-row .rio-secondary,
+.page-admin .rio-secondary {
+  width: auto;
+  min-width: 0;
+}
+.page-admin .rio-primary { width: auto; min-width: 0; color: #fff; background: #c2461f; border-color: #c2461f; }
+.page-admin .rio-check input {
+  appearance: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin: 0;
+  border: 1px solid #dadada;
+  border-radius: 4px;
+  background: #f7f7f7;
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+}
+.page-admin .rio-check input:checked {
+  background: #e25a32;
+  border-color: #e25a32;
+}
+.page-admin .rio-check input:checked::after {
+  content: "";
+  width: 0.28rem;
+  height: 0.5rem;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+.page-admin .rio-hero-editor { margin-top: 1.2rem; }
+.page-fixture .rio-subject { margin: 0 0 0.45rem; font-weight: 600; color: #121110; }
+.page-fixture .rio-fields { display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: 0.2rem 0.7rem; margin: 0.2rem 0; }
+.rio-preview { margin: 0.8rem 0 0; }
+.rio-preview .rio-secondary { width: auto; min-width: 10rem; margin-top: 0.4rem; }
+@media (max-width: 720px) {
+  .page-admin .rio-admin-views { grid-template-columns: 1fr; }
+  .page-fixture .rio-fields { grid-template-columns: 1fr; }
 }

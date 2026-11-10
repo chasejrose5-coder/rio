@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import { Expander } from "./Expander";
 import { Footer, PhotoCredit } from "./Footer";
 import { Nav } from "./Nav";
+import { PreviewBanner } from "./PreviewBanner";
 import { RequireUser } from "./RequireUser";
-import { ApiError, api } from "@/lib/api";
+import { ApiError, api, previewing } from "@/lib/api";
 import {
   PLAN_VIEWS,
   activityNotice,
@@ -80,13 +81,14 @@ function PlanBody() {
 
   async function load(month?: string) {
     const params = typeof window === "undefined" ? new URLSearchParams() : new URLSearchParams(window.location.search);
+    if (params.get("preview") === "test") window.sessionStorage.setItem("rio_test_preview", "1");
     const link = linkError(params);
-    const named = namedSeason(params);
+    const named = previewing() ? undefined : namedSeason(params);
     try {
       const [planBody, homeBody, seasonBody] = await Promise.all([
         api.plan(month, named),
         api.home(false),
-        api.currentSeason(),
+        previewing() ? Promise.resolve(null) : api.currentSeason(),
       ]);
       let activityBody: ActivitiesResponse | null = null;
       setActivityNote("");
@@ -149,6 +151,10 @@ function PlanBody() {
 
   async function commit(week: number, choice: string) {
     if (!plan) return;
+    if (previewing()) {
+      setPending(null);
+      return;
+    }
     setMarkError("");
     try {
       await api.markWeek(week, choice, plan.digest);
@@ -177,6 +183,7 @@ function PlanBody() {
     <div className="page-plan">
       <Nav active="Plan" />
       <main className={rise ? "rio-stagger" : undefined}>
+        {plan?.preview?.active || previewing() ? <PreviewBanner banner={plan?.preview?.banner} /> : null}
         <header className="rio-plan-hero">
           <h1>{title}</h1>
           {range ? <p className="rio-range">{range}</p> : null}

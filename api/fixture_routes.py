@@ -80,6 +80,23 @@ def interval_names(request: Request) -> dict:
     return {"files": [path.name for path in intervals_json_paths()]}
 
 
+def _today(request: Request):
+    """Today in the Settings time zone. Fixture pages use the same clock."""
+    from api.routes import _resolved
+
+    _who, resolved = _resolved(request)
+    return resolved["today"]
+
+
+def _date_format(request: Request) -> str:
+    from api.routes import _resolved
+
+    _who, resolved = _resolved(request)
+    prefs = resolved.get("prefs") if isinstance(resolved, dict) else {}
+    found = prefs.get("date_format") if isinstance(prefs, dict) else "iso"
+    return found if found in ("iso", "short") else "iso"
+
+
 def _units(request: Request) -> str:
     from api.routes import _resolved
 
@@ -87,6 +104,52 @@ def _units(request: Request) -> str:
     prefs = resolved.get("prefs") if isinstance(resolved, dict) else {}
     units = prefs.get("units") if isinstance(prefs, dict) else "miles"
     return units if units in ("miles", "km") else "miles"
+
+
+def _dose_cell(value: object) -> str:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return "" if value is None else str(value)
+    if isinstance(value, float):
+        return repr(value)
+    return str(value)
+
+
+def _parameter_rows(parameters: object) -> list[dict]:
+    from engines.prescribe import PARAMETER_KEYS
+
+    found = parameters if isinstance(parameters, dict) else {}
+    rows = []
+    for key in PARAMETER_KEYS:
+        value = found.get(key)
+        text = "" if value is None else str(value).strip()
+        rows.append({"Parameter": key, "Value": text or "—"})
+    return rows
+
+
+def _prose(text: str, units: str) -> str:
+    from ui.settings import display_training
+
+    return display_training(text, units)
+
+
+def _deposit_rows(entries: list, date_format: str, *, windows: bool) -> list[dict]:
+    from ui.settings import format_date
+
+    rows = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        row = {
+            "Capacity": "" if entry.get("capacity") is None else entry.get("capacity"),
+            "Dose": _dose_cell(entry.get("dose")),
+            "Date": format_date(entry.get("date"), date_format),
+            "Source": "" if entry.get("source") is None else entry.get("source"),
+        }
+        if windows:
+            row["expression_window_days"] = entry.get("expression_window_days")
+            row["decay_days"] = entry.get("decay_days")
+        rows.append(row)
+    return rows
 
 
 def _cell(value: object) -> object:
@@ -226,7 +289,7 @@ def post_prescribe(body: NameBody, request: Request) -> dict:
     path = _by_name(body.name) if body.name else None
     if path is None:
         raise ApiError(400, "Name a fixture.")
-    today = date.today()
+    today = _today(request)
     ledger = Ledger()
     try:
         ledger.record_fixture(path, today - timedelta(days=1))
@@ -234,11 +297,29 @@ def post_prescribe(body: NameBody, request: Request) -> dict:
     except (ValueError, OSError) as exc:
         raise ApiError(400, str(exc)) from exc
     goal = ledger.goal if isinstance(ledger.goal, dict) else {}
+    from engines.explain import explain_prescription
+
+    units = _units(request)
+    rows = []
+    for row in result.get("rows") or []:
+        if not isinstance(row, dict):
+            continue
+        item = dict(row)
+        template_id = str(item.get("template_id") or "").strip()
+        codes = [str(code) for code in (item.get("reason_codes") or [])]
+        prose = ""
+        if template_id:
+            prose = _prose(explain_prescription(template_id, codes, goal), units)
+        item["prose"] = prose
+        item["parameter_rows"] = _parameter_rows(item.get("parameters"))
+        rows.append(item)
     return {
         "name": path.stem,
         "on": today.isoformat(),
         "limiting_capacities": goal.get("limiting_capacities"),
-        "rows": result.get("rows") or [],
+        "rows": rows,
+        "source": "fixture",
+        "banner": "FIXTURE",
         "ontology_version": result.get("ontology_version"),
     }
 
@@ -273,21 +354,68 @@ def post_accept(body: NameBody, request: Request) -> dict:
     return {"name": name, "on": on.isoformat(), "row": row}
 
 
+@router.get("/planned")
+def planned(request: Request) -> dict:
+    """Stored acceptance rows. The checked-in files are not rewritten."""
+    _admin(request)
+    from engines.accept import PLANNED_DIR, load_planned
+    from engines.explain import explain_decision
+
+    units = _units(request)
+    rows = []
+    for path in sorted(PLANNED_DIR.glob("*.yml")):
+        try:
+            row = load_planned(path)
+        except (OSError, ValueError) as exc:
+            raise ApiError(400, str(exc)) from exc
+        template_id = str(row.get("template_id") or "").strip()
+        codes = [str(code) for code in (row.get("reason_codes") or [])]
+        prose = ""
+        if template_id:
+            prose = _prose(explain_decision(template_id, codes), units)
+        source = str(row.get("source") or "")
+        rows.append(
+            {
+                "name": path.stem,
+                "template_id": template_id,
+                "parameters": row.get("parameters") if isinstance(row.get("parameters"), dict) else {},
+                "parameter_rows": _parameter_rows(row.get("parameters")),
+                "reason_codes": codes,
+                "placeholder_date": row.get("placeholder_date") or "",
+                "ontology_version": row.get("ontology_version") or "",
+                "source": source,
+                "prose": prose,
+                "banner": "FIXTURE" if source.strip().lower() == "fixture" else None,
+            }
+        )
+    return {"rows": rows}
+
+
 @router.get("/ledger")
 def ledger(request: Request) -> dict:
     _admin(request)
-    today = date.today()
+    today = _today(request)
     book = Ledger()
     try:
         entries = book.record_fixtures(today)
         windows = book.deposits_on(today)
     except (ValueError, OSError) as exc:
         raise ApiError(400, str(exc)) from exc
+    emerging = windows.get("emerging") or []
+    decaying = windows.get("decaying") or []
+    date_format = _date_format(request)
+    banner = None
+    if any(str(entry.get("source", "")).strip().lower() == "fixture" for entry in entries if isinstance(entry, dict)):
+        banner = "FIXTURE"
     return {
         "as_of": today.isoformat(),
         "entries": entries,
-        "emerging": windows.get("emerging") or [],
-        "decaying": windows.get("decaying") or [],
+        "emerging": emerging,
+        "decaying": decaying,
+        "banner": banner,
+        "deposits_rows": _deposit_rows(entries, date_format, windows=True),
+        "emerging_rows": _deposit_rows(emerging, date_format, windows=False),
+        "decaying_rows": _deposit_rows(decaying, date_format, windows=False),
     }
 
 

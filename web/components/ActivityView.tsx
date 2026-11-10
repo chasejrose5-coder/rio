@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import { Expander } from "./Expander";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
+import { PreviewBanner } from "./PreviewBanner";
 import { RequireUser } from "./RequireUser";
-import { ApiError, api } from "@/lib/api";
+import { ApiError, api, previewing } from "@/lib/api";
 import {
   badgeKind,
   formatSynced,
@@ -42,6 +43,19 @@ function ActivityBody() {
   const [rise, setRise] = useState(false);
 
   async function load(scope: "recent" | "all" | "read") {
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("preview") === "test") {
+      window.sessionStorage.setItem("rio_test_preview", "1");
+    }
+    if (previewing()) {
+      const next = await api.activities();
+      if (typeof next.length === "number" && next.length <= 0) {
+        setMode("bad");
+        return;
+      }
+      setBody(next);
+      setMode("ready");
+      return;
+    }
     const season = await api.currentSeason();
     if (!season) {
       setMode("missing");
@@ -117,6 +131,7 @@ function ActivityBody() {
     <div className="page-activity">
       <Nav active="Activity" />
       <main className={rise ? "rio-stagger" : undefined}>
+        {body?.preview?.active || previewing() ? <PreviewBanner banner={body?.preview?.banner} /> : null}
         <header className="rio-hero">
           <h1>Activity</h1>
           {mode === "ready" && range ? <p className="rio-range">{range}</p> : null}
@@ -156,7 +171,8 @@ function ActivityBody() {
               </div>
             ) : null}
             {stravaProblem ? <p className="rio-error">{stravaProblem}</p> : null}
-            {synced ? <p className="rio-note">{synced}</p> : null}
+            {body.preview?.status ? <p className="rio-note">{body.preview.status}</p> : null}
+            {synced && !body.preview?.active ? <p className="rio-note">{synced}</p> : null}
             {cards.length ? (
               <>
                 <div className="rio-stat-row rio-activity-stats">

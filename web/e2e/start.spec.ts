@@ -204,7 +204,7 @@ test("a brand-new local account generates from Start and can dismiss Strava", as
   await expect(page.getByText("Saved on this machine.")).toBeVisible();
   await page.getByLabel("Name").fill("Bea");
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill("correct-horse");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByRole("heading", { name: "Your easy pace" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
@@ -315,7 +315,7 @@ test("skip on a new account leaves the intro and it stays gone", async ({ page }
   await page.goto("/create-account");
   await page.getByLabel("Name").fill("Cara");
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill("correct-horse");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByRole("heading", { name: "Your easy pace" })).toBeVisible();
   await page.getByLabel("Easy pace").fill("8:00");
@@ -346,7 +346,7 @@ test("splash continue opens log in, and a new tab shows it again", async ({ page
   await expect(page.getByText("Photo by Giant Asparagus on Pexels")).toBeVisible();
   await expect(page.getByText("chasejrose5@gmail.com")).toBeVisible();
   await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page).toHaveURL(/\/sign-in$/);
+  await expect(page).toHaveURL(/\/sign-in\?skip=1$/);
   await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
   const again = await page.context().newPage();
   await again.goto("/");

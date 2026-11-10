@@ -164,6 +164,41 @@ def hero(request: Request) -> dict:
     }
 
 
+def preview_season(request: Request):
+    """The TEST athlete as a season the screens can draw.
+
+    None when that athlete has no plan. A non-admin is 403. This does not
+    read or write the caller's season.
+    """
+    who = _admin(request)
+    directory, strava, key, _caller_id, _caller_email = _tools(request, who)
+    bundle = read_test_bundle(directory, strava, key)
+    if not isinstance(bundle, dict) or not isinstance(bundle.get("plan"), dict):
+        return None
+    raw = bundle.get("inputs")
+    if not isinstance(raw, (list, tuple)) or len(raw) != 4:
+        return None
+    inputs = tuple(str(item) for item in raw)
+    activities = bundle.get("activities") if isinstance(bundle.get("activities"), list) else []
+    runs = bundle.get("runs") if isinstance(bundle.get("runs"), list) else []
+    from api.season_service import OpenSeason
+    from ui.cloud_session import season_digest
+
+    season = OpenSeason(
+        inputs=inputs,
+        plan=bundle["plan"],
+        marks={},
+        actuals={},
+        activities=activities,
+        bases={},
+        notes={},
+        base_source="preview",
+        digest=season_digest(inputs, bundle["plan"], {}, {}),
+        display_name="TEST Athlete",
+    )
+    return season, len(runs)
+
+
 @router.put("/hero")
 def save_hero(body: HeroBody, request: Request) -> dict:
     _admin(request)

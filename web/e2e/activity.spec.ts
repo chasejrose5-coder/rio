@@ -174,7 +174,7 @@ async function install(
 async function sign(page: Page) {
   await page.goto("/sign-in?skip=1");
   await page.getByLabel("Email").fill(athlete.email);
-  await page.getByLabel("Password").fill("correct-horse");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Log in" }).click();
   await page.waitForURL(/\/(home|start|easy-pace|intro)/);
 }

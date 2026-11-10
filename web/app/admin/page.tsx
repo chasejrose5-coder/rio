@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { AdminView } from "@/components/AdminView";
 
 export default function Page() {
-  return <ComingSoon title="Admin" />;
+  return <AdminView />;
 }

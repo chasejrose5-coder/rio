@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { Expander } from "./Expander";
 import { Footer, PhotoCredit } from "./Footer";
 import { Nav } from "./Nav";
+import { PreviewBanner } from "./PreviewBanner";
 import { RequireUser } from "./RequireUser";
 import { TrackArt } from "./TrackArt";
-import { ApiError, api } from "@/lib/api";
+import { ApiError, api, previewing, stopPreview } from "@/lib/api";
+import { linkError } from "@/lib/plan";
 import { shownName } from "@/lib/settings";
 import type { HomeResponse, WorkoutCard } from "@/lib/types";
 
@@ -62,7 +65,6 @@ function WorkoutFacts({ card, title }: { card: WorkoutCard; title: string }) {
       <Fact label="Pace" value={facts?.pace || "—"} />
       <Fact label="Rest" value={facts?.rest || "—"} />
       <Fact label="Reps" value={facts?.reps || "—"} />
-      {card.label ? <p className="rio-pace-line">{card.label}</p> : null}
       {prescription?.line ? <p className="rio-pace-line">{prescription.line}</p> : null}
       {prescription?.tolerance ? <p className="rio-pace-range">Tolerance {prescription.tolerance}</p> : null}
       {prescription?.block ? <p className="rio-pace-block">Block {prescription.block}</p> : null}
@@ -88,10 +90,13 @@ export function HomeView() {
 }
 
 function HomeBody() {
+  const router = useRouter();
   const [home, setHome] = useState<HomeResponse | null>(null);
   const [error, setError] = useState("");
+  const [linkProblem, setLinkProblem] = useState("");
   const [offer, setOffer] = useState(false);
   const [rise, setRise] = useState(false);
+  const [readOnly, setReadOnly] = useState(false);
 
   useEffect(() => {
     const key = "rio-motion-page";
@@ -110,19 +115,41 @@ function HomeBody() {
   }
 
   useEffect(() => {
-    const generated = new URLSearchParams(window.location.search).get("just_generated") === "true";
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("preview") === "test") window.sessionStorage.setItem("rio_test_preview", "1");
+    const linked = linkError(params);
+    if (linked) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLinkProblem(linked);
+      return;
+    }
+    setReadOnly(previewing());
+    const generated = params.get("just_generated") === "true";
     void load(generated).catch((caught) => {
+      if (caught instanceof ApiError && caught.status === 403 && previewing()) {
+        stopPreview();
+        router.replace("/home");
+        return;
+      }
       setError(caught instanceof ApiError ? caught.message : "Home could not be loaded.");
     });
-  }, []);
+  }, [router]);
 
   return (
     <div className="page-home">
       <Nav />
       <main className={rise ? "rio-stagger" : undefined}>
+        {readOnly || home?.preview?.active ? <PreviewBanner banner={home?.preview?.banner} /> : null}
+        {linkProblem ? (
+          <header className="rio-hero rio-home-hero">
+            <h1>Home</h1>
+            <p className="rio-error">{linkProblem}</p>
+          </header>
+        ) : null}
         {error ? <p className="rio-error">{error}</p> : null}
-        {home ? <HomeMain home={home} offer={offer} onDismiss={() => setOffer(false)} reload={() => void load(false)} /> : null}
+        {home && !linkProblem ? (
+          <HomeMain home={home} offer={offer} readOnly={readOnly} onDismiss={() => setOffer(false)} reload={() => void load(false)} />
+        ) : null}
         <PhotoCredit onPhoto>Photo by Gaby Lopez on Pexels</PhotoCredit>
         <Footer onPhoto />
       </main>
@@ -133,17 +160,31 @@ function HomeBody() {
 function HomeMain({
   home,
   offer,
+  readOnly,
   onDismiss,
   reload,
 }: {
   home: HomeResponse;
   offer: boolean;
+  readOnly: boolean;
   onDismiss: () => void;
   reload: () => void;
 }) {
   const season = home.season;
   const name = shownName(home.athlete.display_name || "", String(home.athlete.prefs.preferred || ""));
   const planLine = name ? `${name}'s plan` : "";
+
+  if (home.broken) {
+    return (
+      <>
+        <header className="rio-hero rio-home-hero">
+          <h1>Home</h1>
+          {home.hello ? <p className="rio-hello">{home.hello}</p> : null}
+        </header>
+        <p className="rio-empty">—</p>
+      </>
+    );
+  }
 
   if (!season) {
     return (
@@ -237,7 +278,12 @@ function HomeMain({
               <WorkoutFacts card={season.next} title={todayWorkout ? "Today's workout" : "Next workout"} />
             </Link>
             {season.logging === "done" ? (
-              <Watchless card={season.next} confirmAdapt={home.athlete.prefs.confirm_adapt === true} onSaved={reload} />
+              <Watchless
+                card={season.next}
+                confirmAdapt={home.athlete.prefs.confirm_adapt === true}
+                readOnly={readOnly}
+                onSaved={reload}
+              />
             ) : null}
           </>
         ) : (
@@ -385,10 +431,12 @@ function isHard(card: WorkoutCard): boolean {
 function Watchless({
   card,
   confirmAdapt,
+  readOnly,
   onSaved,
 }: {
   card: WorkoutCard;
   confirmAdapt: boolean;
+  readOnly: boolean;
   onSaved: () => void;
 }) {
   const [choice, setChoice] = useState("");
@@ -409,6 +457,7 @@ function Watchless({
   }
 
   async function send(missed: boolean) {
+    if (readOnly || previewing()) return;
     if (!missed && hard && choice !== "Behind" && choice !== "On target" && choice !== "Ahead") {
       setError("Choose behind, on target, or ahead.");
       return;

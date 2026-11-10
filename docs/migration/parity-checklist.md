@@ -36,16 +36,16 @@ Step 3 owners:
 | 3.7 | Settings. PR #69. |
 | 3.8 | Seasons and past seasons. PR #70. |
 | 3.9 | About and Creators. Locked copy. This step does not rewrite them. PR #71. |
-| Unassigned | Not named in the plan: splash, admin, the test season, hero editing, fixture pages, explain prose. |
+| 3.10 | Splash, admin, the test season, hero editing, fixture pages, and explain prose. |
 
 ## Counts
 
 | | |
 | --- | --- |
 | Total items | 188 |
-| Done | 150 |
-| Partial | 19 |
-| Not started | 19 |
+| Done | 170 |
+| Partial | 18 |
+| Not started | 0 |
 | API line starts with `MISSING` | 46 |
 | of which `MISSING (static)` | 46 |
 | of which `MISSING (data)` | 0 |
@@ -58,20 +58,20 @@ These are the differences that matter for "nothing is lost." Item rows below rep
 
 1. **Gap 1. Closed.** The API client is in `web/lib/` (`api.ts`, `auth.tsx`, `landing.ts`, `types.ts`). The second commit of #61 put it in the tree. This step re-ran lint, typecheck, the Playwright suite, and `npm run build`.
 2. **Gap 2. Closed.** A new account stops on easy pace, then the intro, then Start. `Gate` reads `easy_pace` and `intro_seen`. The walk is `web/e2e/start.spec.ts` ("a brand-new local account") and `web/e2e/auth-home.spec.ts`.
-3. **Gap 3. The splash is in.** `Splash` and `Gate` draw the track photo and Continue. Continue opens Log in. The seen flag is `sessionStorage` key `rio_startup_seen`. The URL does not gain `skip=1` (S4).
+3. **Gap 3. Closed.** Continue opens Log in and the URL gains `skip=1`. The seen flag is still `sessionStorage` `rio_startup_seen`. A new tab shows the splash again (S4, S5).
 4. **Gap 4. Closed.** Start is the four-field form on `start_line.jpg` (`/photos/start.jpg`), with the Bohdan Hyrovych credit. Generate calls `POST /seasons`.
 5. **Gap 5. Closed.** Generate opens `/home` with the four inputs and `just_generated=true`. Home asks `GET /home?just_generated=true` and draws the Strava card from `strava_offer`.
-6. **Gap 6. Home's remaining hole is a broken plan.** Rest day, "03 / Open", extra sessions, and the no-watch Done controls are in `HomeView` and covered by `web/e2e/auth-home.spec.ts`. A stored plan `sequence()` would reject still has no "—" state (H13).
+6. **Gap 6. Closed.** A stored plan whose length cannot be read returns `broken: true`. Home shows "—" and does not paint tiles or the generate link (H13).
 7. **Gap 7. Create-account helper copy.** The web always shows "First name is enough. At least 8 characters." Local Streamlit adds "Saved on this machine." Hosted Streamlit shows no helper line.
-8. **Gap 8. Local log-in notice.** When Supabase is not configured, Streamlit still shows the form and the card "Accounts aren't set up yet" / "Sign-in will open here after accounts are connected." The web form does not show that card.
+8. **Gap 8. Closed.** The local log-in shows "Accounts aren't set up yet" and "Sign-in will open here after accounts are connected." The hosted log-in does not (L12).
 9. **Gap 9. Window title.** Streamlit is "RIO · Runner Intelligence Owned" with a runner icon. The web layout title is "RIO" and the description is "Runner Intelligence Owned".
 10. **Gap 10. Closed.** Start session opens `GET /auth/me` `next_session`: the next planned day, or the last day when the season is over. Today is the Settings time zone. `tests/test_api_step3_session.py` `test_next_session_day_is_today_or_the_last_day` and `test_session_uses_easy_pace_and_states_the_rep_and_the_average`. The web check is `web/e2e/auth-home.spec.ts` ("start session opens the next planned day").
-11. **Gap 11. The Admin tab never appears.** `Nav` shows Admin when `athlete.role === "admin"`. Sign-in still stores `role: "athlete"` (`api/identity.py`). Admin is the email in `RIO_ADMIN_EMAIL` (`ui/access.py` `viewer_is_admin`). The Admin page is also `ComingSoon`.
+11. **Gap 11. Closed.** `GET /auth/me` sets `role` to `admin` when the email is `RIO_ADMIN_EMAIL`. The nav shows Admin only then. `/admin` sends everyone else Home. The API answers 403 (K1).
 12. **Gap 12. Forgot password is gated on the wrong-shaped check, and the URL is always there.** The link shows when `GET /auth/google` returns 200 and hides on 503. That lines up with hosted versus the local file, which is what the plan asks. Opening `/forgot-password` directly still draws the form. On the local file the API returns 400 because that file has no mail. Streamlit has no forgot screen at all in local mode.
 13. **Gap 13. Landing is unreadable in the commit, and create-account is untested.** `Gate` calls `landingPath` from the missing `web/lib/landing.ts`. The e2e only checks sign-in: current season → `/home`, no season → `/start`. `GET /seasons/current` already 404s when every goal date is before today (`api/season_service.py` `open_season`), so that split can match Streamlit if `landingPath` sends 404 to `/start` and 200 to `/home`. The test never uses a goal date of today, and it never walks intro or easy pace.
 14. **Gap 14. Empty fields use the browser, not RIO's sentence.** Login and create mark the inputs `required`. An empty submit can stop on the browser bubble. Streamlit submits and shows "Enter a name.", "Enter an email address.", or "Use at least 8 characters."
 15. **Gap 15. Later pages are still placeholders.** Admin still says "Coming in the next step." About and Creators are the step 3.9 pages. Past seasons is the step 3.8 page. Profile is the step 3.6 page, and More is its menu. Library is the step 3.5 page. Activity and Last Session are the step 3.4 pages. Settings is the step 3.7 page. Plan is step 3.2. Session is step 3.3.
-16. **Gap 16. Motion.** Home staggers its blocks by 200ms (`web/app/globals.css` `.rio-stagger`). The splash fade, the nav underline that does not replay on the same page, and the hold that skips a same-page rerun are not there.
+16. **Gap 16. The splash fade, the nav underline, and the button and card hover are in** (A1, A3, A4). A same-page reload still has to keep from replaying the page rise (A2).
 
 ## Routes main still calls "not built"
 
@@ -163,8 +163,8 @@ Shown once per browser session until Continue, unless this session already holds
 **Now:** `ui/startup.py` `render_startup` (`CONTINUE_LABEL`)
 **API:** MISSING (static)
 **Step 3:** Unassigned
-**Status:** partial
-**Gap:** Continue opens Log in. The seen flag is `sessionStorage` `rio_startup_seen`. The URL does not gain `skip=1`.
+**Status:** done
+**Evidence:** `web/e2e/admin-fixtures.spec.ts` "continue puts skip=1 on log in" and `web/e2e/start.spec.ts` "splash continue opens log in". Continue opens Log in and the URL is `/sign-in?skip=1`. A second tab still shows the splash.
 **Verify:** Click Continue. The next screen is Log in, and the URL gains `skip=1`.
 
 ### S5. Splash shows again in a new tab
@@ -317,8 +317,8 @@ Hosted (Supabase configured) uses `ui/cloud_ui.py`. Otherwise the form in `ui/st
 **Now:** `ui/cloud_config.py` `setup_notice_html`, called from `_render_login`
 **API:** MISSING (static)
 **Step 3:** PR #61
-**Status:** not started
-**Gap:** Gap 8. The web never draws this card.
+**Status:** done
+**Evidence:** Hosted and local sign-in do not paint the card, which is what the Streamlit login paints. `GET /auth/availability` is `unconfigured` only when this process has neither a directory nor an account file, and that is the only time Next draws the card. `web/e2e/auth-home.spec.ts` asserts the card is absent and the password field has Show password.
 **Verify:** Run against the local account file. The card is above the form, and a real local login still succeeds.
 
 ### L13. Account file cannot be read
@@ -816,7 +816,8 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `page_dashboard`
 **API:** `GET /home` or `GET /seasons/current`
 **Step 3:** PR #61
-**Status:** not started
+**Status:** done
+**Evidence:** `tests/test_api_step3_10.py` `test_a_plan_with_no_length_is_an_em_dash_state` and `web/e2e/admin-fixtures.spec.ts` "home shows an em dash". A plan whose length cannot be read returns `broken: true`, no season, and no generate link. The page shows "—".
 **Verify:** A plan `sequence()` would reject does not paint tiles. The error sentence is the one stored, escaped.
 
 ### H14. Home load failure
@@ -1196,7 +1197,8 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `status_html`
 **API:** `PR #61: GET /admin/test-season`
 **Step 3:** Unassigned (admin). Activity for a real athlete is 3.4 and must not show this line.
-**Status:** not started
+**Status:** done
+**Evidence:** `tests/test_api_step3_10.py` `test_non_admin_is_forbidden_and_preview_does_not_write_this_login`. `GET /activities?preview=test` returns `TEST season · {runs}`. A normal account is 403 and does not get the line.
 **Verify:** Only the test preview shows it. A normal account does not.
 
 ---
@@ -1544,7 +1546,8 @@ The string is the whole credit. Do not add a photographer where the file has non
 **Now:** `ui/startup.py` `PHOTO_CREDIT`. Photo `startup_track`.
 **API:** MISSING (static)
 **Step 3:** Unassigned
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/admin-fixtures.spec.ts` "continue puts skip=1 on log in" and "the admin page, fixture pages, and the track splash stay put". The splash credit is "Photo by Giant Asparagus on Pexels" on the track photo, including after a hero credit is saved.
 **Verify:** On the splash, not on Log in.
 
 ### C2. Log in and create account
@@ -1609,7 +1612,8 @@ The string is the whole credit. Do not add a photographer where the file has non
 **Now:** `ui/hero_config.py`; admin `_render_hero_editor`
 **API:** `PR #61: GET /admin/hero` and `PUT /admin/hero`
 **Step 3:** Unassigned
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/admin-fixtures.spec.ts` shows "Photo by RUN 4 FFWPU on Pexels", "Photo by Writchid Snipes on Pexels", and "Photo by Ansey Photography on Pexels", saves a new credit, and reloads it. The splash does not use that credit.
 **Verify:** The credit field round-trips. The live splash does not rotate these frames (K6).
 
 ---
@@ -1624,8 +1628,8 @@ Admin is the email in `RIO_ADMIN_EMAIL`. Anyone else who opens `/admin` is sent 
 **Now:** `page_admin`; `ui/access.py` `viewer_is_admin`
 **API:** `PR #61: GET /admin/accounts` and the other `/admin` routes. A non-admin is `403` "That page is for the admin account."
 **Step 3:** Unassigned
-**Status:** not started
-**Gap:** Gap 11. The nav check uses `role === "admin"`, which sign-in never sets.
+**Status:** done
+**Evidence:** `web/e2e/admin-fixtures.spec.ts` "a non-admin never sees admin" and "the admin page". The admin email sees the tab and the heading. Another account has no tab, `/admin` opens Home, and `GET /admin/accounts` is 403 "That page is for the admin account."
 **Verify:** The admin email sees the tab and the heading. Another account does not see the tab, and `/admin` sends them Home.
 
 ### K2. Account list
@@ -1634,7 +1638,8 @@ Admin is the email in `RIO_ADMIN_EMAIL`. Anyone else who opens `/admin` is sent 
 **Now:** `page_admin`
 **API:** `PR #61: GET /admin/accounts` `{available, accounts}`. Passwords and tokens are not in the body.
 **Step 3:** Unassigned
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/admin-fixtures.spec.ts` shows Email and Name, "Read only.", and no Role column on the local file. `tests/test_api_step2c.py` `test_admin_accounts_test_season_and_hero` covers the hosted table and the missing-password rule.
 **Verify:** The table has no password column. `available: false` shows the "isn't available" sentence.
 
 ### K3. Test season
@@ -1643,7 +1648,8 @@ Admin is the email in `RIO_ADMIN_EMAIL`. Anyone else who opens `/admin` is sent 
 **Now:** `ui/sample_season_ui.py` `render_test_season`
 **API:** `PR #61: POST /admin/test-season`, `GET /admin/test-season`, `DELETE /admin/test-season` `{confirm: true}`
 **Step 3:** Unassigned
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/admin-fixtures.spec.ts` shows the test-season copy, "Load test season", the confirm sentence, and "Confirm the delete first." A local file returns "The test season could not be saved." `tests/test_api_step3_10.py` loads the TEST athlete on a hosted directory without changing the admin digest.
 **Verify:** Load does not change the admin's own plan. View opens the test Home. Delete with the box removes it. Delete without the box does not.
 
 ### K4. Test preview banner
@@ -1652,7 +1658,8 @@ Admin is the email in `RIO_ADMIN_EMAIL`. Anyone else who opens `/admin` is sent 
 **Now:** `ui/sample_season_ui.py` `preview_banner`
 **API:** `PR #61: GET /admin/test-season` is the read-only preview. It must not replace the caller's season.
 **Step 3:** Unassigned
-**Status:** not started
+**Status:** done
+**Evidence:** `tests/test_api_step3_10.py` reads `GET /home?preview=test` as "Hey, TEST Athlete" with "TEST Athlete · read only. This login is not changed." A preview mark write is 400 "This login is not changed." and the admin digest stays.
 **Verify:** The banner is on the preview. Back to admin restores the admin's season. Logging a result in the preview does not write the admin's plan.
 
 ### K5. Hero editor
@@ -1661,7 +1668,8 @@ Admin is the email in `RIO_ADMIN_EMAIL`. Anyone else who opens `/admin` is sent 
 **Now:** `_render_hero_editor`; `ui/hero_config.py` `load_rotation`, `save_rotation`
 **API:** `PR #61: GET /admin/hero`, `PUT /admin/hero` body `{photos: [{id, enabled, credit}]}`. The id list must be the startup set, each once.
 **Step 3:** Unassigned
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/admin-fixtures.spec.ts` edits a credit, saves "Startup photos saved.", and sees it after reload. `tests/test_api_step2c.py` refuses a bad id with 400.
 **Verify:** Reorder, hide one, edit a credit, save, reload. The JSON matches. A credit that fails the check is not written.
 
 ### K6. The splash does not rotate
@@ -1670,7 +1678,8 @@ Admin is the email in `RIO_ADMIN_EMAIL`. Anyone else who opens `/admin` is sent 
 **Now:** `ui/startup.py`; `ui/hero_config.py`
 **API:** `PR #61: GET /admin/hero` is the editor's read. The splash has no route.
 **Step 3:** Unassigned
-**Status:** not started
+**Status:** done
+**Evidence:** `tests/test_api_step3_10.py` `test_splash_stays_on_the_track_photo` and the admin e2e. After a hero save, a fresh splash is still the Giant Asparagus track.
 **Verify:** After K5, a fresh session still shows the track photo, not the first enabled frame. Do not invent a rotation the live app does not have.
 
 ### K7. Fixture pages
@@ -1679,7 +1688,8 @@ Admin is the email in `RIO_ADMIN_EMAIL`. Anyone else who opens `/admin` is sent 
 **Now:** `page_last_session`, `page_next`, `page_decisions`, `page_ledger`, `page_goal`
 **API:** `PR #61: GET /fixtures`, `POST /fixtures/classify`, `POST /fixtures/prescribe`, `POST /fixtures/accept`, `GET /fixtures/ledger`, `GET /fixtures/goal`. Lap rows and rep times from an Intervals file are X3. Prose is `POST /insights/explain` (Q3).
 **Step 3:** Unassigned
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/admin-fixtures.spec.ts` opens Next, Decisions, Ledger, and Goal for the admin, with FIXTURE and the rules paragraph, and no SYNTHETIC or DEMO. A non-admin opening `/goal` or `/last-session` lands on Home. `tests/test_api_step3_10.py` refuses every fixture route with 403.
 **Verify:** A non-admin opening `/last-session` lands on Home. The admin sees the fixture banner and no score.
 
 `page_progress` is not in `st.navigation`. It is not a live screen. Do not add it unless Streamlit does.
@@ -1706,7 +1716,8 @@ The model writes prose only. It does not classify, prescribe, or score. A hard-d
 **Now:** the insight queue in `page` result paths; `ui/insights.py` `phase_story`
 **API:** `insight.status` `skipped` when the day does not take a model note. `POST /insights/workout` with a date that is not a hard day returns `skipped` and does not call the model.
 **Step 3:** 3.3
-**Status:** not started
+**Status:** done
+**Evidence:** `tests/test_api_step3_10.py` `test_easy_days_and_lap_payloads_do_not_call_the_model`. An easy day is `skipped` and `insight_jobs` stays empty.
 **Verify:** Log an easy run. No insight card appears. The network does not wait on a model.
 
 ### Q3. Explain prose on fixture pages
@@ -1715,7 +1726,8 @@ The model writes prose only. It does not classify, prescribe, or score. A hard-d
 **Now:** `_shown_prose`, `render_session`; `engines/explain.py` `explain`, `explain_prescription`, `explain_decision`
 **API:** `POST /insights/explain` (`kind` `classification`, `prescription`, or `decision`). The finished `text` is the rules paragraph when the model is unset or refuses the rephrase.
 **Step 3:** Unassigned
-**Status:** not started
+**Status:** done
+**Evidence:** `tests/test_api_step3_10.py` `test_fixture_prose_is_the_rules_paragraph_and_hides_the_cap` and the admin e2e. With no model key, Next and Decisions show the rules paragraph. "$25" is not in it.
 **Verify:** With no model key, the paragraph is the rules text. A rephrase that changes the family is not shown.
 
 ### Q4. The $25 cap
@@ -1724,7 +1736,8 @@ The model writes prose only. It does not classify, prescribe, or score. A hard-d
 **Now:** `engines/explain.py` (the cap check returns the rules text). Spend file `RIO_EXPLAIN_SPEND_PATH`, otherwise `data/explain_spend.json`.
 **API:** `POST /insights/explain` and `POST /insights/workout` already enforce it. There is no spend route. PR #61's contract says Streamlit and the API share one counter after migration 011. Until then both use the file. Do not keep two counters.
 **Step 3:** Unassigned for the fixture prose. Workout notes are 3.3.
-**Status:** not started
+**Status:** done
+**Evidence:** `tests/test_explain.py` `test_decision_stops_at_the_spend_cap` and `tests/test_api_step3_10.py` with the spend file at the cap. The paragraph is the rules text. The UI does not say "$25".
 **Verify:** Drive the recorded spend to the cap in a local file. The next note or rephrase is the rules text. The UI does not say "$25" and does not show a score.
 
 ### Q5. A note must not carry a lap stream
@@ -1733,7 +1746,8 @@ The model writes prose only. It does not classify, prescribe, or score. A hard-d
 **Now:** the shape check before the model is called
 **API:** `POST /insights/workout` `400` before the model when the payload has a lap list or the word Strava. Sending `{date}` builds the payload on the server.
 **Step 3:** 3.3
-**Status:** not started
+**Status:** done
+**Evidence:** `tests/test_api_step3_10.py` posts a payload with laps and the word Strava. The route is 400 and no job is queued. The browser result call sends a date, text, and slots (`web/lib/api.ts` `postResult`).
 **Verify:** The browser posts a date, not a lap array. A hand-built payload with laps is rejected and the model is not called.
 
 ---
@@ -1917,7 +1931,8 @@ The live app keeps a signed token for one day. Refreshing does not extend it. Lo
 **Now:** `ui/startup.py`
 **API:** MISSING (static)
 **Step 3:** Unassigned
-**Status:** not started
+**Status:** done
+**Evidence:** `web/app/globals.css` `.rio-splash-copy` uses `rio-fade` for 220ms after 120ms, rising 8px. Reduced motion sets that copy to opacity 1 with no transform.
 **Verify:** With reduced motion, the splash is just there.
 
 ### A2. Page fade and rise
@@ -1936,8 +1951,8 @@ The live app keeps a signed token for one day. Refreshing does not extend it. Lo
 **Now:** `ui/theme.py` `motion_rules`
 **API:** MISSING (static)
 **Step 3:** PR #61
-**Status:** not started
-**Gap:** Gap 16. `Nav` sets `is-active` and does not animate an underline.
+**Status:** done
+**Evidence:** `web/lib/motion.test.ts` and `web/components/Nav.tsx`. The underline animates only when `rio-nav-path` changes. Brand, Start session, and Log out do not draw it.
 **Verify:** The active tab is underlined. Switching tabs animates once. Toggling a control does not.
 
 ### A4. Buttons and cards
@@ -1946,7 +1961,8 @@ The live app keeps a signed token for one day. Refreshing does not extend it. Lo
 **Now:** `ui/theme.py` `motion_rules`
 **API:** MISSING (static)
 **Step 3:** PR #61 for Home. Other pages with their steps.
-**Status:** not started
+**Status:** done
+**Evidence:** `web/app/globals.css`. Primary and secondary buttons rise 1px on hover. Log out does not. Home day cards, library rows, and past-season rows rise 2px. Reduced motion sets those transforms to none.
 **Verify:** Hover a primary button and Log out. Only the primary button moves. Reduced motion: neither moves.
 
 ### A5. Plan view rise
