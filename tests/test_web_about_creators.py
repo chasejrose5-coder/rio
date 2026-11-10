@@ -132,7 +132,40 @@ def _load_ts(path: Path) -> dict:
     return json.loads(text[start:end])
 
 
-def _lines(payload: dict, *, creators: bool = False) -> list[str]:
+def about_index_color() -> str:
+    """The color that wins for About's index. Home's light override does not apply."""
+    css = (ROOT / "ui" / "static" / "app.css").read_text(encoding="utf-8")
+    color = ""
+    for chunk in css.split("}"):
+        if "{" not in chunk:
+            continue
+        selector, body = chunk.rsplit("{", 1)
+        selector = " ".join(selector.split())
+        if any(skip in selector for skip in ("rio-home-hero", "rio-card", "rio-mini", "rio-soft-card", "rio-daycard", "st-key-rio-home-today")):
+            continue
+        parts = [part.strip() for part in selector.split(",")]
+        if not any(part in {".rio-index", ".rio-index-light"} for part in parts):
+            continue
+        for decl in body.split(";"):
+            decl = decl.strip()
+            if decl.startswith("color:"):
+                color = decl.split(":", 1)[1].split("!")[0].strip()
+    if not color:
+        raise AssertionError("the About index color was not found")
+    return color
+
+
+def about_index_is_shown() -> bool:
+    """Ink on the dark stadium photo does not read. Orange and paper do."""
+    return about_index_color().lower() not in {"#121110", "#0e0e0e"}
+
+
+def next_shows_about_index(view: str) -> bool:
+    banner = view[view.index("rio-about-banner") : view.index("rio-photo-credit")]
+    return "rio-index" in banner
+
+
+def _lines(payload: dict, *, creators: bool = False, show_index: bool = True) -> list[str]:
     if creators:
         return [
             payload["banner"],
@@ -142,7 +175,9 @@ def _lines(payload: dict, *, creators: bool = False) -> list[str]:
             *payload["paragraphs"],
             payload["close"],
         ]
-    lines = [payload["index"], payload["heading"], payload["credit"]]
+    lines = [payload["heading"], payload["credit"]]
+    if show_index:
+        lines.insert(0, payload["index"])
     for section in payload["sections"]:
         lines.append(section["title"])
         lines.extend(section["visible"])
@@ -188,9 +223,16 @@ def test_rendered_about_and_creators_text_matches_streamlit() -> None:
     expected_creators = creators_payload()
     actual_about = _load_ts(ABOUT_TS)
     actual_creators = _load_ts(CREATORS_TS)
+    about_view = ABOUT_VIEW.read_text(encoding="utf-8")
+    creators_view = CREATORS_VIEW.read_text(encoding="utf-8")
+    shown = about_index_is_shown()
     diff = "".join(
         (
-            _diff("about visible", _lines(expected_about), _lines(actual_about)),
+            _diff(
+                "about visible",
+                _lines(expected_about, show_index=shown),
+                _lines(actual_about, show_index=next_shows_about_index(about_view)),
+            ),
             _diff("about hidden", _hidden(expected_about), _hidden(actual_about)),
             _diff("creators visible", _lines(expected_creators, creators=True), _lines(actual_creators, creators=True)),
             _diff("creators hidden", _hidden(expected_creators, creators=True), _hidden(actual_creators, creators=True)),
@@ -206,8 +248,6 @@ def test_rendered_about_and_creators_text_matches_streamlit() -> None:
         raise AssertionError("the About banner moved")
     if "about_sections(" not in page or "hidden" not in page:
         raise AssertionError("About no longer keeps the long paragraphs")
-    about_view = ABOUT_VIEW.read_text(encoding="utf-8")
-    creators_view = CREATORS_VIEW.read_text(encoding="utf-8")
     for token in (
         "section.title",
         "section.visible",
@@ -216,12 +256,13 @@ def test_rendered_about_and_creators_text_matches_streamlit() -> None:
         "section.hidden",
         "row.label",
         "row.line",
-        "ABOUT.index",
         "ABOUT.heading",
         "ABOUT.credit",
     ):
         if token not in about_view:
             raise AssertionError(token)
+    if shown != next_shows_about_index(about_view):
+        raise AssertionError("the About eyebrow is shown on one side only")
     for token in ("CREATORS.banner", "CREATORS.heading", "CREATORS.alt", "CREATORS.name", "CREATORS.paragraphs", "CREATORS.close", "CREATORS.comment"):
         if token not in creators_view:
             raise AssertionError(token)

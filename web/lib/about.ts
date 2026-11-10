@@ -5,7 +5,7 @@ import { ABOUT } from "./about-copy";
 export { ABOUT };
 
 export function visibleAboutLines(): string[] {
-  const lines: string[] = [ABOUT.index, ABOUT.heading, ABOUT.credit];
+  const lines: string[] = [ABOUT.heading, ABOUT.credit];
   for (const section of ABOUT.sections) {
     lines.push(section.title, ...section.visible);
     for (const row of section.rows) lines.push(row.label, row.line);

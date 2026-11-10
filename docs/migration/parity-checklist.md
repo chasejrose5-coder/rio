@@ -1466,7 +1466,7 @@ Locked copy. Step 3.9 does not rewrite it. About shows the short paragraphs. The
 **API:** MISSING (static)
 **Step 3:** 3.9
 **Status:** done
-**Evidence:** `web/e2e/about-creators.spec.ts` "about shows the stadium photo, the credit, and the eight phases". The index and the heading are both "About". The credit on the banner is "Photo by Botond Dobozi on Pexels". `tests/test_web_about_creators.py` diffs that text against Streamlit.
+**Evidence:** `web/e2e/about-creators.spec.ts` "about shows the stadium photo, the credit, and the eight phases". The heading is "About" and the credit is "Photo by Botond Dobozi on Pexels". The markup in `page_about` still has `rio-index rio-index-light`, and `ui/static/app.css` then paints every `.rio-index` `#121110`. That ink sits on the dark photo, so the eyebrow is not shown. The light color is only under `.rio-home-hero`. Next does not paint the eyebrow. `tests/test_web_about_creators.py` diffs the visible lines, so a shown eyebrow fails.
 **Verify:** Credit is on the banner. See C6.
 
 ### O2. Eight phases

@@ -46,7 +46,6 @@ function AboutBody() {
         <header className="rio-about-banner">
           <div className="rio-about-shade" aria-hidden="true" />
           <div className="rio-about-title">
-            <p className="rio-index rio-index-light">{ABOUT.index}</p>
             <h1>{ABOUT.heading}</h1>
           </div>
           <p className="rio-photo-credit">{ABOUT.credit}</p>

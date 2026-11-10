@@ -1807,7 +1807,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   z-index: 2;
   padding: 0 5vw 2.4rem;
 }
-.page-about .rio-about-title .rio-index { color: #f4f1ec; }
 .page-about .rio-about-title h1 {
   margin: 0;
   color: #f4f1ec;
