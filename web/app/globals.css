@@ -419,6 +419,24 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   font-size: 1rem;
 }
 .rio-auth-card input:focus { border-color: #c94a25; outline: none; }
+.rio-password { position: relative; }
+.rio-password input { width: 100%; padding-right: 2.7rem; }
+.rio-eye {
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #6e6a64;
+  cursor: pointer;
+}
+.rio-eye:hover, .rio-eye:active { transform: translateY(-50%); background: transparent; color: #121110; }
 .rio-primary {
   margin-top: 0.85rem;
   min-height: 3rem;
@@ -2094,18 +2112,48 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   font: inherit;
 }
 .page-admin .rio-admin-views {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 0.55rem;
   margin-top: 0.7rem;
 }
+.page-admin .rio-done-row {
+  display: flex;
+  justify-content: flex-start;
+  gap: 0.45rem;
+}
 .page-admin .rio-admin-views .rio-secondary,
 .page-admin .rio-done-row .rio-secondary,
-.page-admin .rio-primary, .page-admin .rio-secondary {
-  width: 100%;
+.page-admin .rio-secondary {
+  width: auto;
   min-width: 0;
 }
-.page-admin .rio-primary { width: auto; min-width: 12rem; color: #fff; background: #c2461f; border-color: #c2461f; }
+.page-admin .rio-primary { width: auto; min-width: 0; color: #fff; background: #c2461f; border-color: #c2461f; }
+.page-admin .rio-check input {
+  appearance: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin: 0;
+  border: 1px solid #dadada;
+  border-radius: 4px;
+  background: #f7f7f7;
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+}
+.page-admin .rio-check input:checked {
+  background: #e25a32;
+  border-color: #e25a32;
+}
+.page-admin .rio-check input:checked::after {
+  content: "";
+  width: 0.28rem;
+  height: 0.5rem;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
 .page-admin .rio-hero-editor { margin-top: 1.2rem; }
 .page-admin .rio-photo-credit {
   background: #121110;

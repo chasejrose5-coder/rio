@@ -181,6 +181,25 @@ def test_fixture_prose_is_the_rules_paragraph_and_hides_the_cap(tmp_path: Path) 
         _restore_admin(previous)
 
 
+def test_login_card_is_only_when_auth_is_unconfigured() -> None:
+    directory, client = _hosted()
+    hosted = client.get("/auth/availability")
+    if hosted.status_code != 200 or hosted.json() != {"mode": "hosted"}:
+        raise AssertionError(hosted.text)
+    local = _client(None)
+    found = local.get("/auth/availability")
+    if found.status_code != 200 or found.json() != {"mode": "local"}:
+        raise AssertionError(found.text)
+    bare = _client(None)
+    bare.app.state.directory = None
+    bare.app.state.accounts_path = None
+    missing = bare.get("/auth/availability")
+    if missing.status_code != 200 or missing.json() != {"mode": "unconfigured"}:
+        raise AssertionError(missing.text)
+    if directory is None:
+        raise AssertionError("hosted directory was dropped")
+
+
 def test_splash_stays_on_the_track_photo() -> None:
     splash = (ROOT / "web" / "components" / "Splash.tsx").read_text(encoding="utf-8")
     startup = (ROOT / "ui" / "startup.py").read_text(encoding="utf-8")

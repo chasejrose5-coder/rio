@@ -318,7 +318,7 @@ Hosted (Supabase configured) uses `ui/cloud_ui.py`. Otherwise the form in `ui/st
 **API:** MISSING (static)
 **Step 3:** PR #61
 **Status:** done
-**Evidence:** `web/e2e/auth-home.spec.ts` "local sign-in hides forgot password and Google" shows "Accounts aren't set up yet" and "Sign-in will open here after accounts are connected." The hosted sign-in test does not.
+**Evidence:** Hosted and local sign-in do not paint the card, which is what the Streamlit login paints. `GET /auth/availability` is `unconfigured` only when this process has neither a directory nor an account file, and that is the only time Next draws the card. `web/e2e/auth-home.spec.ts` asserts the card is absent and the password field has Show password.
 **Verify:** Run against the local account file. The card is above the form, and a real local login still succeeds.
 
 ### L13. Account file cannot be read

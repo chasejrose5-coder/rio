@@ -12,7 +12,7 @@ async function signIn(page: Page, email: string, name: string) {
   }
   await page.goto("/sign-in?skip=1");
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill("correct-horse");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page).not.toHaveURL(/\/sign-in/);
 }

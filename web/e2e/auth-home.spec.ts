@@ -117,12 +117,12 @@ test("local sign-in hides forgot password and Google", async ({ page }) => {
   await page.goto("/sign-in");
   await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
   await expect(page.getByLabel("Email")).toBeVisible();
-  await expect(page.getByLabel("Password")).toBeVisible();
+  await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Log in" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Create account" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Forgot password?" })).toHaveCount(0);
-  await expect(page.getByText("Accounts aren't set up yet")).toBeVisible();
-  await expect(page.getByText("Sign-in will open here after accounts are connected.")).toBeVisible();
+  await expect(page.getByText("Accounts aren't set up yet")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Show password" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Google/i })).toHaveCount(0);
   await expect(page.getByText("Photo by Steve Pancrate on Pexels")).toBeVisible();
 });
@@ -149,7 +149,7 @@ test("sign-in with a current season opens Home", async ({ page }) => {
   await installApi(page, { hosted: false, season: true });
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill("ada@example.com");
-  await page.getByLabel("Password").fill("correct-horse");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page).toHaveURL(/\/home$/);
   await expect(page.getByText("130")).toBeVisible();
@@ -168,7 +168,7 @@ test("sign-in without a current season opens Start", async ({ page }) => {
   await installApi(page, { hosted: false, season: false });
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill("ada@example.com");
-  await page.getByLabel("Password").fill("correct-horse");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page).toHaveURL(/\/start$/);
   await expect(page.getByRole("heading", { name: "Start" })).toBeVisible();
@@ -228,10 +228,10 @@ test("a new account walks easy pace, the intro, then Start", async ({ page }) =>
   await expect(page.getByText("Saved on this machine.")).toBeVisible();
   await page.getByLabel("Name").fill("Bea");
   await page.getByLabel("Email").fill("bea@example.com");
-  await page.getByLabel("Password").fill("short");
+  await page.getByLabel("Password", { exact: true }).fill("short");
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByText("Use at least 8 characters.")).toBeVisible();
-  await page.getByLabel("Password").fill("correct-horse");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByRole("heading", { name: "Your easy pace" })).toBeVisible();
   await page.getByLabel("Easy pace").fill("abc");
@@ -274,7 +274,7 @@ test("a failed easy-pace save stays on the card", async ({ page }) => {
   });
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill("ada@example.com");
-  await page.getByLabel("Password").fill("correct-horse");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page.getByRole("heading", { name: "Your easy pace" })).toBeVisible();
   await page.getByLabel("Easy pace").fill("7:45");
@@ -288,7 +288,7 @@ test("an account with a season and no easy pace stops on easy pace", async ({ pa
   await installApi(page, { hosted: false, season: true, easyPace: "" });
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill("ada@example.com");
-  await page.getByLabel("Password").fill("correct-horse");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page.getByRole("heading", { name: "Your easy pace" })).toBeVisible();
 });
@@ -309,7 +309,7 @@ test("home shows rest-day copy, extras, the open index, and no-watch controls", 
   });
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill("ada@example.com");
-  await page.getByLabel("Password").fill("correct-horse");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page.getByText("03  /  Open")).toBeVisible();
   await expect(page.getByText("Extra sessions")).toBeVisible();
@@ -323,7 +323,7 @@ test("a current season skips the intro, and intro_seen false shows it again", as
   await installApi(page, { hosted: false, season: true, introSeen: null });
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill("ada@example.com");
-  await page.getByLabel("Password").fill("correct-horse");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page).toHaveURL(/\/home$/);
   await expect(page.getByRole("heading", { name: "Start here" })).toHaveCount(0);
@@ -333,7 +333,7 @@ test("showing the intro again stops on the guide", async ({ page }) => {
   await installApi(page, { hosted: false, season: true, introSeen: false });
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill("ada@example.com");
-  await page.getByLabel("Password").fill("correct-horse");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page.getByRole("heading", { name: "Start here" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
@@ -343,7 +343,7 @@ test("start session opens the next planned day after the settings today", async 
   await installApi(page, { hosted: false, season: true });
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill("ada@example.com");
-  await page.getByLabel("Password").fill("correct-horse");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page).toHaveURL(/\/home$/);
   await expect(page.getByRole("link", { name: "Start session" })).toHaveAttribute("href", "/session?date=2026-11-10");

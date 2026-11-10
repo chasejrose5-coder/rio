@@ -108,7 +108,7 @@ async function install(page: Page, options: { session?: "quality" | "easy" | "do
 async function signIn(page: Page) {
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill("ada@example.com");
-  await page.getByLabel("Password").fill("correct-horse");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Log in" }).click();
 }
 

@@ -168,6 +168,21 @@ def delete(body: DeleteAccountBody, request: Request, response: Response) -> dic
     return {"deleted": True}
 
 
+@router.get("/availability")
+def availability(request: Request) -> dict:
+    """How this process can sign someone in.
+
+    hosted: Supabase. local: the account file. unconfigured: neither.
+    The login card is only for unconfigured. Hosted Streamlit does not show it,
+    and a local file can still sign in.
+    """
+    if request.app.state.directory is not None:
+        return {"mode": "hosted"}
+    if getattr(request.app.state, "accounts_path", None) is not None:
+        return {"mode": "local"}
+    return {"mode": "unconfigured"}
+
+
 @router.get("/google")
 def google(request: Request) -> dict:
     return google_start(request.app.state.directory)

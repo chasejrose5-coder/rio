@@ -110,6 +110,8 @@ export const api = {
       body: JSON.stringify({ token, password }),
     }),
 
+  accountMode: () => request<{ mode: "hosted" | "local" | "unconfigured" }>("/auth/availability"),
+
   /** 503 means accounts are local, which is when Streamlit hides Forgot password. */
   /** Hosted accounts are the ones that can email a reset link. Local is a 503. */
   accountsHosted: async (): Promise<boolean> => {

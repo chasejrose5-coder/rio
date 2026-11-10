@@ -182,7 +182,7 @@ async function installApi(page: Page, options: { season?: boolean; confirm?: boo
 async function signIn(page: Page) {
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill("ada@example.com");
-  await page.getByLabel("Password").fill("correct-horse");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Log in" }).click();
 }
 
@@ -357,7 +357,7 @@ test("a brand-new account reaches Plan from Start and can mark a week", async ({
   await page.goto("/create-account");
   await page.getByLabel("Name").fill("Bea");
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill("correct-horse");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByRole("heading", { name: "Your easy pace" })).toBeVisible();
 
