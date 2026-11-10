@@ -3,9 +3,9 @@
 """The OAuth nonce is stored on the server and checked on the way back.
 
 RIO_STRAVA_REDIRECT_URI is the callback this process puts in the authorize
-URL. When it is unset, the URL is the Streamlit callback (RIO_APP_URL + "/"),
-so that registration keeps working. The new site sets the variable when its
-own callback is registered with Strava.
+URL. When it is unset, RIO_CALLBACK_BASE_URL plus /strava/callback is used,
+so cutover only changes that base and the redirect registered at Strava.
+When both are unset, the URL is the Streamlit callback (RIO_APP_URL + "/").
 
 Strava HTTP is injected. Tests pass a stand-in. The default is ui.strava.
 """
@@ -47,17 +47,23 @@ OAUTH_SECONDS = 10 * 60
 # The in-memory store's gate. It is not a Supabase service role key.
 _MEMORY_KEY = "memory-service"
 REDIRECT_ENV = "RIO_STRAVA_REDIRECT_URI"
+# The public site. The callback path stays /strava/callback, so cutover is this base.
+CALLBACK_BASE_ENV = "RIO_CALLBACK_BASE_URL"
 
 
 def redirect_for_api() -> str:
     """The redirect this process sends to Strava.
 
-    A value in RIO_STRAVA_REDIRECT_URI wins. Otherwise the Streamlit root,
-    which is what redirect_uri() already returns.
+    A full value in RIO_STRAVA_REDIRECT_URI wins. Otherwise a base in
+    RIO_CALLBACK_BASE_URL becomes {base}/strava/callback. When both are unset,
+    the Streamlit root stays, which is what redirect_uri() already returns.
     """
     custom = read_setting(REDIRECT_ENV).strip()
     if custom:
         return custom
+    base = read_setting(CALLBACK_BASE_ENV).strip().rstrip("/")
+    if base:
+        return f"{base}/strava/callback"
     return redirect_uri()
 
 
@@ -247,7 +253,15 @@ def _public_status(token: dict | None) -> dict:
 def status(app, principal) -> dict:
     store, key, _nonce = _backend(app, principal)
     token = _token(store, principal.user_id, key) if configured() else None
-    return _public_status(token)
+    body = _public_status(token)
+    if body["connected"]:
+        try:
+            rows = store.get_activities(principal.user_id, key)
+        except Exception:
+            rows = None
+        if isinstance(rows, list):
+            body["count"] = len(rows)
+    return body
 
 
 def connect(app, principal) -> dict:

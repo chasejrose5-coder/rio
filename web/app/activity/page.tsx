@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { ActivityView } from "@/components/ActivityView";
 
 export default function Page() {
-  return <ComingSoon title="Activity" />;
+  return <ActivityView />;
 }

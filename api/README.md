@@ -18,6 +18,8 @@ Settings come from the environment. A `.env` file in the repository root is read
 | Name | What it is |
 | --- | --- |
 | `RIO_FRONTEND_ORIGIN` | The one browser origin allowed to call this API. Default `http://localhost:3000`. A wildcard is refused. |
+| `RIO_CALLBACK_BASE_URL` | Public origin of the Next.js app. When `RIO_STRAVA_REDIRECT_URI` is unset, the Strava redirect is `{base}/strava/callback`. Unset keeps the Streamlit callback. |
+| `RIO_STRAVA_REDIRECT_URI` | Full Strava redirect. It wins over `RIO_CALLBACK_BASE_URL`. |
 | `RIO_SUPABASE_URL` | Hosted accounts. When this and the anon key are set, sign-in uses Supabase. |
 | `RIO_SUPABASE_ANON_KEY` | The anon key. It stays on the server. |
 | `RIO_SUPABASE_SERVICE_ROLE_KEY` | Required for the hosted session table. It is not sent to the browser. |

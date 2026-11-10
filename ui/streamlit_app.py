@@ -5306,10 +5306,8 @@ def page_activity() -> None:
                         label="Connect Strava in Settings",
                         icon="",
                     )
-    from ui.strava_ui import strava_connected as _strava_ready
-
-    if _strava_ready():
-        _activities_notice()
+    # The missing-key card is set while Strava is disconnected. Draw it then too.
+    _activities_notice()
     from ui.activity_board import (
         activity_style,
         build_cards,

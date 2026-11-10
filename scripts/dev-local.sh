@@ -10,6 +10,8 @@ if [[ "${RIO_USE_HOSTED:-}" != "1" ]]; then
   export RIO_SUPABASE_SERVICE_ROLE_KEY=
 fi
 export RIO_FRONTEND_ORIGIN="${RIO_FRONTEND_ORIGIN:-http://localhost:3000}"
+# Strava returns to the Next.js callback. Override with a full RIO_STRAVA_REDIRECT_URI.
+export RIO_CALLBACK_BASE_URL="${RIO_CALLBACK_BASE_URL:-$RIO_FRONTEND_ORIGIN}"
 export NEXT_PUBLIC_RIO_API_URL="${NEXT_PUBLIC_RIO_API_URL:-http://localhost:8000}"
 
 python3 -m uvicorn api.main:app --host 127.0.0.1 --port 8000 &

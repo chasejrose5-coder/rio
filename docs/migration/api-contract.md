@@ -224,7 +224,7 @@ Tokens are stored with the service role (`strava_tokens` in `003_strava.sql`). T
 
 The OAuth nonce is stored on the server, keyed by the athlete, for ten minutes. It is not written to a cookie or `localStorage`. The authorize URL still carries `state`, because that is how Strava echoes it back. The callback accepts the code only when `state` matches the stored nonce for this cookie. A second callback with the same state is refused. A state that was never stored is refused, even when the signature would match.
 
-`RIO_STRAVA_REDIRECT_URI` is the redirect placed in the authorize URL. When it is unset, the redirect is the Streamlit callback (`RIO_APP_URL` + `/`). `ui/strava.py` `redirect_uri()` is unchanged, so the live Streamlit callback keeps working. Set the variable when the new site's callback is registered with Strava. A browser that lands on `GET /strava/callback` is sent to `{RIO_FRONTEND_ORIGIN}/settings?strava=connected` or `?strava=error`. A client that sends `X-RIO-Response: json` gets the JSON body instead.
+`RIO_STRAVA_REDIRECT_URI` is the redirect placed in the authorize URL. When it is unset, `RIO_CALLBACK_BASE_URL` (no trailing slash) plus `/strava/callback` is the redirect, so cutover changes that base and the URI registered with Strava. When both are unset, the redirect is the Streamlit callback (`RIO_APP_URL` + `/`). `ui/strava.py` `redirect_uri()` is unchanged, so the live Streamlit callback keeps working. A browser that lands on `GET /strava/callback` is sent to `{RIO_FRONTEND_ORIGIN}/settings?strava=connected` or `?strava=error`. The Next.js page at `/strava/callback` sends `X-RIO-Response: json` and then opens Settings. A client that sends that header gets the JSON body instead.
 
 Hosted connect needs `supabase/migrations/010_strava_oauth.sql`. Until that has been run, hosted connect returns `503`. The Streamlit app does not read that table.
 
@@ -236,7 +236,7 @@ Hosted connect needs `supabase/migrations/010_strava_oauth.sql`. Until that has 
 {"configured": true, "connected": false, "athlete_name": "", "last_sync_at": null, "redirect_uri": ""}
 ```
 
-`configured` is false when the Strava client id or secret is missing. `redirect_uri` is empty in that case.
+`configured` is false when the Strava client id or secret is missing. `redirect_uri` is empty in that case. When connected, `count` is the number of stored Strava runs. It is omitted when that list cannot be read. `last_sync_at` is a unix second. The page formats it in the Settings time zone.
 
 ### `GET /strava/connect`
 
@@ -392,6 +392,9 @@ These are the reads and writes Home, Plan, Activity, Library, Profile, Settings,
 | `weekly_meters` | Completed meters for each plan week |
 | `heart` | `[{"date": "", "bpm": 0}]` |
 | `notice` | `null` when the activity pull succeeded, or when Strava is connected (Intervals is skipped). Otherwise the `PullError` text from the same pull Plan runs. A missing Intervals key is `RIO_INTERVALS_API_KEY is not set. …`. The page prints "Strava isn't connected" only when that text contains "is not set" or "not configured". Any other notice prints "Runs could not be loaded. Try Refresh in a moment." |
+| `figures` | `distance` (completed work, pace unit) and `heart` (the figure Streamlit puts on "Latest heart rate", or "—") |
+| `length` | Season length in weeks, or `0` when the plan has no positive length |
+| `start_date`, `goal_date` | The season range, `YYYY-MM-DD`. The page formats them with the saved date format. They are calendar dates, not server UTC. |
 
 `404` when there is no current season. Refresh is `POST /strava/sync`. The read does not add an environment variable. A key already in the process is the one the pull uses.
 
@@ -507,7 +510,11 @@ Admin. `200` `{"files": ["synthetic_se_400_with_recovery.json"]}`. Names only. A
 
 ### `GET /fixtures/intervals/{name}`
 
-Admin. `200` `{"name": "", "times": [], "source": ""}`. `times` are the WORK elapsed seconds from that local JSON file. Warm-up and cool-down are left out. `400` `{"detail": "{name} is not JSON."}` or `Could not read {name}.` `404` when the name is not in that folder. Nothing is requested from Intervals.icu.
+Admin. `200` `{"name": "", "times": [], "source": "", "laps": [], "rows": [], "distance_heading": "Distance (m)", "date": "", "banner": null, "family": "", "confidence": "", "reason_codes": [], "prose": ""}`. `times` are the WORK elapsed seconds. `laps` are the normalized laps (`distance_m`, `seconds`, `rest_s`), including rest. Warm-up and cool-down stay out of both. `rows` is the lap table in the Settings distance unit. `prose` is the rules paragraph from `explain`. `400` `{"detail": "{name} is not JSON."}` or `Could not read {name}.` `404` when the name is not in that folder. Nothing is requested from Intervals.icu.
+
+### `GET /fixtures/session?name=`
+
+Admin. One YAML fixture, the same fields as the intervals body except `times` and `source`. `banner` is `FIXTURE` when the file says so. `400` when the name is missing or the file cannot be read. `404` when the name is not a fixture. A normal account is `403`.
 
 ### `POST /fixtures/classify`
 

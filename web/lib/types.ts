@@ -119,6 +119,7 @@ export type CurrentSeason = {
     goal_time: string;
     goal_date: string;
   };
+  plan?: { season_length_weeks?: number; start_date?: string };
   digest?: string;
   marks?: Record<string, string>;
   actuals?: Record<
@@ -188,8 +189,10 @@ export type ActivityRow = {
   shown_date?: string;
   name?: string;
   label?: string;
+  template_id?: string;
   meters?: number | null;
   work?: string;
+  distance?: string;
   hr?: string;
   heart_rate?: number | null;
   extra?: boolean;
@@ -206,11 +209,76 @@ export type LoggedActivity = {
   heart_rate: string;
 };
 
+export type RunLap = {
+  rep?: string;
+  target?: string;
+  actual?: string;
+  rest?: string;
+};
+
+export type RunCard = {
+  id: string;
+  date: string;
+  shown_date: string;
+  name: string;
+  template_id?: string;
+  status: string;
+  detail: string;
+  laps?: RunLap[];
+  meters?: number;
+  heart_rate?: number | null;
+};
+
+export type WeekGroup = {
+  title: string;
+  open: boolean;
+  cards: RunCard[];
+};
+
+export type StravaStatus = {
+  configured: boolean;
+  connected: boolean;
+  athlete_name: string;
+  last_sync_at: number | string | null;
+  redirect_uri?: string;
+  count?: number;
+};
+
 export type ActivitiesResponse = {
   rows: ActivityRow[];
   all: ActivityRow[];
+  cards?: RunCard[];
+  groups?: WeekGroup[];
+  summary?: {
+    title?: string;
+    distance?: string;
+    runs?: number;
+    counts?: Record<string, number>;
+  };
+  weekly_meters?: number[];
+  heart?: { date: string; bpm: number }[];
+  figures?: { distance: string; heart: string };
+  length?: number;
+  start_date?: string;
+  goal_date?: string;
   notice?: string | null;
+  strava?: StravaStatus;
   logged?: LoggedActivity[];
+};
+
+export type LapTable = {
+  name?: string;
+  date?: string;
+  banner?: string | null;
+  times?: (number | null)[];
+  source?: string;
+  laps?: { distance_m?: number; seconds?: number | null; rest_s?: number | null }[];
+  distance_heading?: string;
+  rows?: Record<string, string | number>[];
+  family?: string;
+  confidence?: string;
+  reason_codes?: string[];
+  prose?: string;
 };
 
 export type SessionResponse = {

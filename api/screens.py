@@ -570,6 +570,31 @@ def library_view(query: str, family: str, phase: int | None) -> dict:
     }
 
 
+def _figure_heart(points: list) -> str:
+    """The last matched point, which is the oldest row. Streamlit uses points[-1]."""
+    if not points:
+        return "—"
+    number = points[-1].get("bpm") if isinstance(points[-1], dict) else None
+    if isinstance(number, bool) or not isinstance(number, (int, float)):
+        return "—"
+    text = str(int(number)) if float(number).is_integer() else f"{float(number):.1f}"
+    return f"{text} bpm"
+
+
+def _activity_figures(rows: list, start: date, length: int, prefs: dict) -> dict:
+    """Completed work and the heart figure above the charts. Display only."""
+    from engines.pace import format_span
+    from ui.activity_data import heart_rate_points, weekly_completed_meters
+
+    completed = weekly_completed_meters(rows, start=start, length=length) if rows else []
+    total = sum(completed) if completed else 0
+    unit = "km" if prefs.get("units") == "km" else "mi"
+    return {
+        "distance": format_span(total, unit),
+        "heart": _figure_heart(heart_rate_points(rows) if rows else []),
+    }
+
+
 def activity_view(season, today: date, prefs: dict, easy_pace: str, easy_unit: str) -> dict:
     sessions = season.plan.get("sessions") if isinstance(season.plan, dict) else []
     if not isinstance(sessions, list):
@@ -600,8 +625,9 @@ def activity_view(season, today: date, prefs: dict, easy_pace: str, easy_unit: s
     )
     summary = week_summary(cards, today, unit)
     groups = group_weeks(cards, today)
+    matched = session_rows(activities, sessions, date_format=date_format)
     return {
-        "rows": session_rows(activities, sessions, date_format=date_format),
+        "rows": matched,
         "all": all_activities(activities, date_format=date_format),
         "cards": json_ready(cards),
         "groups": json_ready(groups),
@@ -609,6 +635,10 @@ def activity_view(season, today: date, prefs: dict, easy_pace: str, easy_unit: s
         "weekly_meters": weekly_meters(cards, start, length),
         "heart": heart_points(cards),
         "logged": logged_activities(activities, str(prefs.get("units") or "miles")),
+        "figures": _activity_figures(matched, start, length, prefs),
+        "length": length if length > 0 else 0,
+        "start_date": start.isoformat(),
+        "goal_date": goal_day.isoformat(),
     }
 
 
