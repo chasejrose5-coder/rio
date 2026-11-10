@@ -43,9 +43,9 @@ Step 3 owners:
 | | |
 | --- | --- |
 | Total items | 188 |
-| Done | 139 |
+| Done | 142 |
 | Partial | 19 |
-| Not started | 30 |
+| Not started | 27 |
 | API line starts with `MISSING` | 46 |
 | of which `MISSING (static)` | 46 |
 | of which `MISSING (data)` | 0 |
@@ -70,7 +70,7 @@ These are the differences that matter for "nothing is lost." Item rows below rep
 12. **Gap 12. Forgot password is gated on the wrong-shaped check, and the URL is always there.** The link shows when `GET /auth/google` returns 200 and hides on 503. That lines up with hosted versus the local file, which is what the plan asks. Opening `/forgot-password` directly still draws the form. On the local file the API returns 400 because that file has no mail. Streamlit has no forgot screen at all in local mode.
 13. **Gap 13. Landing is unreadable in the commit, and create-account is untested.** `Gate` calls `landingPath` from the missing `web/lib/landing.ts`. The e2e only checks sign-in: current season → `/home`, no season → `/start`. `GET /seasons/current` already 404s when every goal date is before today (`api/season_service.py` `open_season`), so that split can match Streamlit if `landingPath` sends 404 to `/start` and 200 to `/home`. The test never uses a goal date of today, and it never walks intro or easy pace.
 14. **Gap 14. Empty fields use the browser, not RIO's sentence.** Login and create mark the inputs `required`. An empty submit can stop on the browser bubble. Streamlit submits and shows "Enter a name.", "Enter an email address.", or "Use at least 8 characters."
-15. **Gap 15. Later pages are still placeholders.** Past seasons, Admin, and About and Creators still say "Coming in the next step." Profile is the step 3.6 page, and More is its menu. Library is the step 3.5 page. Activity and Last Session are the step 3.4 pages. Settings is the step 3.7 page. Plan is step 3.2. Session is step 3.3.
+15. **Gap 15. Later pages are still placeholders.** Admin, and About and Creators still say "Coming in the next step." Past seasons is the step 3.8 page. Profile is the step 3.6 page, and More is its menu. Library is the step 3.5 page. Activity and Last Session are the step 3.4 pages. Settings is the step 3.7 page. Plan is step 3.2. Session is step 3.3.
 16. **Gap 16. Motion.** Home staggers its blocks by 200ms (`web/app/globals.css` `.rio-stagger`). The splash fade, the nav underline that does not replay on the same page, and the hold that skips a same-page rerun are not there.
 
 ## Routes main still calls "not built"
@@ -1427,18 +1427,20 @@ Changes to name, time zone, and the toggles save as they are edited. There is no
 
 **Sees:** Heading "Past seasons". Each row shows Start date, Goal date, and Goal time. The link text is those three, and it opens that season's plan. Empty: "No seasons on this account." Unreadable: "This account's seasons could not be read."
 **Now:** `page_past_seasons`, `_past_entry`; `ui/past_seasons.py` `entry_fields`, `season_entries`
-**API:** `GET /seasons/past` (`today`, `seasons[].inputs`, `seasons[].stats`). Dates use the saved date format.
+**API:** `GET /seasons/past` (`today`, `seasons[].inputs`, `seasons[].stats`, `open[]` for a goal date of today or later). Dates use the saved date format. Opening a row is `GET /plan` with the four inputs. That read does not call `sequence()` and does not save.
 **Step 3:** 3.8
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/past-seasons.spec.ts` "two stored seasons list start, goal, and time" and "opening a past season loads those inputs". `tests/test_api_step3_past.py` `test_the_list_keeps_the_current_season_beside_past_ones` and `test_opening_a_stored_season_does_not_build_a_new_one`. Short dates are "Jan 6, 2020". ISO stays `2020-01-06`. An unreadable file shows "This account's seasons could not be read." Empty is "No seasons on this account."
 **Verify:** Two stored seasons. Each row's three values match Start. Opening one does not build a new season. It loads those four inputs.
 
 ### U2. Current season has no delete
 
 **Sees:** No "Delete season" on a row whose goal date is today or later.
 **Now:** `page_past_seasons`; `ui/past_seasons.py` `is_past_season`
-**API:** `DELETE /seasons/past` `409` when the goal date is today or later
+**API:** `DELETE /seasons/past` `409` when the goal date is today or later. That season is in `open`, not `seasons`.
 **Step 3:** 3.8
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/past-seasons.spec.ts` "the current season has no delete control". `tests/test_api_step3_past.py` `test_a_season_ending_today_cannot_be_deleted`. The row for today has no "Delete season". Yesterday does. The API returns 409 for the season that ends today.
 **Verify:** A season ending today has no delete control. A season that ended yesterday does.
 
 ### U3. Delete asks with stats first
@@ -1447,7 +1449,8 @@ Changes to name, time zone, and the toggles save as they are edited. There is no
 **Now:** `_past_summary_html`; `ui/past_seasons.py` `season_summary`
 **API:** `GET /seasons/past` `stats` is this panel. `DELETE /seasons/past` needs `confirm: true` plus the inputs. `400` without confirm. `404` when that season is not on the account.
 **Step 3:** 3.8
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/past-seasons.spec.ts` "delete asks with the stats, then removes only that season". `tests/test_api_step3_past.py` `test_delete_still_needs_confirm_and_leaves_the_other_season`. Cancel sends no delete. Confirm shows "Season deleted." The other past season and the current season stay. A missing count is not shown as zero.
 **Verify:** Open delete. The stats are visible before "Delete permanently". Cancel closes the panel and deletes nothing. Confirm shows "Season deleted." and the row is gone. The other seasons stay.
 
 ---
@@ -1918,7 +1921,7 @@ The live app keeps a signed token for one day. Refreshing does not extend it. Lo
 **API:** MISSING (static)
 **Step 3:** Each page's step. Home's stagger is the partial stand-in.
 **Status:** partial
-**Gap:** Gap 16. Home staggers children. It does not suppress the animation on a same-page reload. Library, Profile, More, and Settings fade once and their blocks rise about 8px. A save on Profile or Settings does not replay it. Past seasons, About, and Creators are still open.
+**Gap:** Gap 16. Home staggers children. It does not suppress the animation on a same-page reload. Library, Profile, More, Settings, and Past seasons fade once and their blocks rise about 8px. A save on Profile or Settings, or opening delete on Past seasons, does not replay it. About and Creators are still open.
 **Verify:** Open Home, then refresh Home. The second time does not replay the rise. Open Plan from Home. Plan fades once.
 
 ### A3. Nav underline

@@ -7,6 +7,7 @@ import type {
   CurrentSeason,
   HomeResponse,
   LapTable,
+  PastSeasonsResponse,
   PlanResponse,
   ResultWrite,
   SeasonWrite,
@@ -169,10 +170,35 @@ export const api = {
   watchless: (body: { date: string; outcome?: string; time?: string; missed?: boolean }) =>
     request("/seasons/current/watchless", { method: "POST", body: JSON.stringify(body) }),
 
-  plan: (month?: string) => {
-    const query = month ? `?month=${encodeURIComponent(month)}` : "";
-    return request<PlanResponse>(`/plan${query}`);
+  plan: (
+    month?: string,
+    inputs?: { current_time: string; start_date: string; goal_time: string; goal_date: string },
+  ) => {
+    const params = new URLSearchParams();
+    if (month) params.set("month", month);
+    if (inputs) {
+      params.set("current_time", inputs.current_time);
+      params.set("start_date", inputs.start_date);
+      params.set("goal_time", inputs.goal_time);
+      params.set("goal_date", inputs.goal_date);
+    }
+    const suffix = params.toString();
+    return request<PlanResponse>(`/plan${suffix ? `?${suffix}` : ""}`);
   },
+
+  pastSeasons: () => request<PastSeasonsResponse>("/seasons/past"),
+
+  deletePastSeason: (body: {
+    current_time: string;
+    start_date: string;
+    goal_time: string;
+    goal_date: string;
+    confirm: boolean;
+  }) =>
+    request<{ deleted: boolean; inputs: PastSeasonsResponse["seasons"][number]["inputs"]; stats: PastSeasonsResponse["seasons"][number]["stats"] }>(
+      "/seasons/past",
+      { method: "DELETE", body: JSON.stringify(body) },
+    ),
 
   activities: () => request<ActivitiesResponse>("/activities"),
 

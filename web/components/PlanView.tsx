@@ -37,6 +37,15 @@ import {
 import type { ActivitiesResponse, CurrentSeason, PlanDay, PlanResponse, PlanSession } from "@/lib/types";
 
 const VIEW_KEY = "rio_plan_last";
+
+function namedSeason(params: URLSearchParams) {
+  const current_time = params.get("current_time") || "";
+  const start_date = params.get("start_date") || "";
+  const goal_time = params.get("goal_time") || "";
+  const goal_date = params.get("goal_date") || "";
+  if (!current_time || !start_date || !goal_time || !goal_date) return undefined;
+  return { current_time, start_date, goal_time, goal_date };
+}
 const CAL_DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MARK_CHOICES = [
   ["on_track", "On track"],
@@ -70,9 +79,15 @@ function PlanBody() {
   const [markError, setMarkError] = useState("");
 
   async function load(month?: string) {
-    const link = typeof window === "undefined" ? "" : linkError(new URLSearchParams(window.location.search));
+    const params = typeof window === "undefined" ? new URLSearchParams() : new URLSearchParams(window.location.search);
+    const link = linkError(params);
+    const named = namedSeason(params);
     try {
-      const [planBody, homeBody, seasonBody] = await Promise.all([api.plan(month), api.home(false), api.currentSeason()]);
+      const [planBody, homeBody, seasonBody] = await Promise.all([
+        api.plan(month, named),
+        api.home(false),
+        api.currentSeason(),
+      ]);
       let activityBody: ActivitiesResponse | null = null;
       setActivityNote("");
       try {
@@ -83,9 +98,19 @@ function PlanBody() {
         }
       }
       setPlan(planBody);
-      setSeason(seasonBody);
+      setSeason(
+        seasonBody || planBody.actuals
+          ? {
+              today: seasonBody?.today || planBody.prefs.today || "",
+              inputs: planBody.inputs,
+              actuals: planBody.actuals ?? seasonBody?.actuals,
+              marks: planBody.marks,
+              digest: planBody.digest,
+            }
+          : null,
+      );
       setActivities(activityBody);
-      setPace(homeBody.season?.pace_status || "No runs yet");
+      setPace(planBody.pace_status || homeBody.season?.pace_status || "No runs yet");
       setProblem(link);
       setMode("ready");
     } catch (caught) {

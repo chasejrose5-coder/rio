@@ -211,10 +211,14 @@ Body: `{"confirm": true}`. `200` is `season` plus `committed: true`. The plan is
 `200`:
 
 ```json
-{"today": "2026-11-09", "seasons": [{"inputs": {}, "stats": [{"label": "Season", "value": ""}]}]}
+{"today": "2026-11-09", "seasons": [{"inputs": {}, "stats": [{"label": "Season", "value": ""}]}], "open": []}
 ```
 
-`stats` is the confirm panel. Dates use the saved date format.
+`seasons` is every stored season whose goal date is before today. `open` is every stored season whose goal date is today or later. Both use the same row: `inputs` and `stats`. `stats` is the confirm panel. A missing fact is left out. Dates use the saved date format. Order in each list is start date, then goal date, then goal time, then current time. `500` `{"detail": "This account's seasons could not be read."}` when the account file cannot be opened. A goal date of today is in `open`, not `seasons`.
+
+### `GET /plan` with the four inputs
+
+`current_time`, `start_date`, `goal_time`, and `goal_date` are optional. When all four name a season already stored on this account, the response is that season's plan, including one whose goal date is before today. `sequence()` is not called to build a new season, and nothing is saved. Marks stored on that season come back on `marks`. `actuals` and `pace_status` are that season's. When any field is missing, or the four inputs are not on this account, the response stays the current season. The current season on `GET /seasons/current` does not change.
 
 ### `DELETE /seasons/past`
 

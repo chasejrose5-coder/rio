@@ -214,6 +214,37 @@ def _apply_notes(season: OpenSeason, raw: object) -> None:
     season.notes = encode_notes(raw)
 
 
+def _open_hosted_row(principal: Principal, directory, row: dict) -> OpenSeason:
+    """One stored hosted season. The plan already on the row is not rebuilt."""
+    inputs = _inputs_of(row)
+    assert inputs is not None
+    marks = _marks(row.get("marks"))
+    actuals = row.get("actuals") if isinstance(row.get("actuals"), dict) else {}
+    try:
+        state = load_hosted_state(directory, principal.token, inputs)
+        stored_ok = True
+    except StateMissing:
+        state = {}
+        stored_ok = False
+    bases, source = resolve_bases(inputs, marks, state.get("quality_base") if isinstance(state, dict) else {})
+    season = OpenSeason(
+        inputs=inputs,
+        plan=deepcopy(row.get("plan")),
+        marks=marks,
+        actuals=deepcopy(actuals),
+        activities=[],
+        bases=bases,
+        notes={},
+        base_source=source,
+        digest="",
+        state_stored=stored_ok and source != "recomputed",
+        display_name=principal.display_name,
+    )
+    _apply_notes(season, state.get("workout_notes") if isinstance(state, dict) else {})
+    _refresh_digest(season)
+    return season
+
+
 def _hosted_open(principal: Principal, directory, today: date) -> OpenSeason | None:
     bundle = load_hosted_season(directory, principal.token)
     plans = bundle.get("plans") if isinstance(bundle, dict) else []
@@ -231,33 +262,7 @@ def _hosted_open(principal: Principal, directory, today: date) -> OpenSeason | N
             chosen = row
     if chosen is None:
         return None
-    inputs = _inputs_of(chosen)
-    assert inputs is not None
-    marks = _marks(chosen.get("marks"))
-    actuals = chosen.get("actuals") if isinstance(chosen.get("actuals"), dict) else {}
-    try:
-        state = load_hosted_state(directory, principal.token, inputs)
-        stored_ok = True
-    except StateMissing:
-        state = {}
-        stored_ok = False
-    bases, source = resolve_bases(inputs, marks, state.get("quality_base") if isinstance(state, dict) else {})
-    season = OpenSeason(
-        inputs=inputs,
-        plan=deepcopy(chosen.get("plan")),
-        marks=marks,
-        actuals=deepcopy(actuals),
-        activities=[],
-        bases=bases,
-        notes={},
-        base_source=source,
-        digest="",
-        state_stored=stored_ok and source != "recomputed",
-        display_name=principal.display_name,
-    )
-    _apply_notes(season, state.get("workout_notes") if isinstance(state, dict) else {})
-    _refresh_digest(season)
-    return season
+    return _open_hosted_row(principal, directory, chosen)
 
 
 def _local_open(principal: Principal, today: date) -> OpenSeason | None:
@@ -349,6 +354,34 @@ def open_season(principal: Principal, directory, today: date) -> OpenSeason:
     if found is None:
         raise ApiError(404, "No current season.")
     return found
+
+
+def open_named(principal: Principal, directory, today: date, inputs: tuple[str, str, str, str]) -> OpenSeason | None:
+    """A season already stored for these four inputs. Nothing is generated or saved.
+
+    A goal date before today is included. None means this account does not
+    have that season, so the caller keeps the current one.
+    """
+    if not inputs_ok(inputs) or type(today) is not date:
+        return None
+    if principal.kind == "hosted":
+        for row in _hosted_rows(principal, directory):
+            if _inputs_of(row) != inputs:
+                continue
+            plan = row.get("plan")
+            if not isinstance(plan, dict) or not plan_has_sessions(plan):
+                return None
+            return _open_hosted_row(principal, directory, row)
+        return None
+    from ui.accounts import record_keys
+    from ui.past_seasons import KEY_PREFIX
+
+    keys = record_keys(principal.accounts_path, principal.email, principal.seal, KEY_PREFIX)
+    if not isinstance(keys, list):
+        raise ApiError(500, "This account's seasons could not be read.")
+    if inputs not in season_entries(keys):
+        return None
+    return _load_local(principal, inputs)
 
 
 def _save(principal: Principal, directory, season: OpenSeason, previous: str | None) -> None:
@@ -626,29 +659,65 @@ def _hosted_rows(principal: Principal, directory) -> list[dict]:
     return [row for row in plans if isinstance(row, dict)]
 
 
-def list_past(principal: Principal, directory, today: date, date_format: str) -> list[dict]:
-    rows = []
+def _season_row(inputs: tuple, stored: object, date_format: str) -> dict:
+    return {"inputs": _input_payload(inputs), "stats": _panel_stats(inputs, stored, date_format)}
+
+
+def _sort_rows(rows: list[dict]) -> list[dict]:
+    """Start date, then goal date, then goal time, then the current time."""
+
+    def key(row: dict) -> tuple:
+        inputs = row.get("inputs") if isinstance(row.get("inputs"), dict) else {}
+        return (
+            str(inputs.get("start_date") or ""),
+            str(inputs.get("goal_date") or ""),
+            str(inputs.get("goal_time") or ""),
+            str(inputs.get("current_time") or ""),
+        )
+
+    return sorted(rows, key=key)
+
+
+def list_seasons(principal: Principal, directory, today: date, date_format: str) -> tuple[list[dict], list[dict]]:
+    """Past seasons, then seasons whose goal date is today or later.
+
+    The past list is what delete can remove. The open list is shown with
+    no delete control. A missing fact stays out of stats.
+    """
+    try:
+        past, opened = _collect_seasons(principal, directory, today, date_format)
+    except AccountError as exc:
+        if str(exc) == "Accounts could not be read.":
+            raise ApiError(500, "This account's seasons could not be read.") from exc
+        raise ApiError(401, str(exc)) from exc
+    return _sort_rows(past), _sort_rows(opened)
+
+
+def _collect_seasons(principal: Principal, directory, today: date, date_format: str) -> tuple[list[dict], list[dict]]:
+    past: list[dict] = []
+    opened: list[dict] = []
+
+    def keep(inputs: tuple, stored: object) -> None:
+        row = _season_row(inputs, stored, date_format)
+        if is_past_season(inputs, today):
+            past.append(row)
+        else:
+            opened.append(row)
+
     if principal.kind == "hosted":
         for row in _hosted_rows(principal, directory):
             inputs = _inputs_of(row)
-            if inputs is None or not is_past_season(inputs, today):
+            if inputs is None:
                 continue
-            rows.append(
-                {
-                    "inputs": _input_payload(inputs),
-                    "stats": _panel_stats(inputs, summary_record(row), date_format),
-                }
-            )
-        return rows
+            keep(inputs, summary_record(row))
+        return past, opened
     from ui.accounts import read_record, record_keys
     from ui.past_seasons import KEY_PREFIX
 
     keys = record_keys(principal.accounts_path, principal.email, principal.seal, KEY_PREFIX)
     if not isinstance(keys, list):
-        raise ApiError(401, "Sign in again.")
+        raise ApiError(500, "This account's seasons could not be read.")
     for inputs in season_entries(keys):
-        if not is_past_season(inputs, today):
-            continue
         raw = read_record(principal.accounts_path, principal.email, principal.seal, storage_key(inputs))
         stored = None
         if isinstance(raw, str) and raw.strip():
@@ -659,8 +728,13 @@ def list_past(principal: Principal, directory, today: date, date_format: str) ->
             except json.JSONDecodeError:
                 parsed = None
             stored = summary_record(parsed)
-        rows.append({"inputs": _input_payload(inputs), "stats": _panel_stats(inputs, stored, date_format)})
-    return rows
+        keep(inputs, stored)
+    return past, opened
+
+
+def list_past(principal: Principal, directory, today: date, date_format: str) -> list[dict]:
+    past, _opened = list_seasons(principal, directory, today, date_format)
+    return past
 
 
 def delete_past(principal: Principal, directory, today: date, payload: dict, date_format: str) -> dict:
