@@ -28,7 +28,7 @@ Step 3 owners:
 | --- | --- |
 | PR #61 (step 3a) | Sign in, create account, forgot and reset password, Home, and the shell that those pages already share (nav, footer, the Home photo). |
 | 3.1 | Start, including the intro and the easy-pace step. No PR yet. |
-| 3.2 | Plan. This pull request (`cursor/plan-page-3723`). |
+| 3.2 | Plan. PR #64. |
 | 3.3 | Start session and Session. |
 | 3.4 | Activity and Strava. |
 | 3.5 | Library. |
