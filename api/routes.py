@@ -29,7 +29,7 @@ from api.season_service import (
     commit_week,
     delete_past,
     generate,
-    list_past,
+    list_seasons,
     open_season,
     remember_note,
     season_payload,
@@ -363,9 +363,11 @@ def reset_plan(body: ConfirmBody, request: Request) -> dict:
 def past_seasons(request: Request) -> dict:
     who, resolved = _resolved(request)
     date_format = resolved["prefs"]["date_format"]
+    past, opened = list_seasons(who, request.app.state.directory, resolved["today"], date_format)
     return {
         "today": resolved["today"].isoformat(),
-        "seasons": list_past(who, request.app.state.directory, resolved["today"], date_format),
+        "seasons": past,
+        "open": opened,
     }
 
 

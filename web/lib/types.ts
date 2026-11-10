@@ -183,6 +183,21 @@ export type PlanResponse = {
   calendar: PlanDay[][];
   weeks: PlanWeek[];
   sessions: PlanSession[];
+  actuals?: CurrentSeason["actuals"];
+  pace_status?: string;
+};
+
+export type SeasonStat = { label: string; value: string };
+
+export type StoredSeason = {
+  inputs: CurrentSeason["inputs"];
+  stats: SeasonStat[];
+};
+
+export type PastSeasonsResponse = {
+  today: string;
+  seasons: StoredSeason[];
+  open?: StoredSeason[];
 };
 
 export type ActivityRow = {

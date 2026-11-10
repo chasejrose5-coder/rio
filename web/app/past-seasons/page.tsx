@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { PastSeasonsView } from "@/components/PastSeasonsView";
 
 export default function Page() {
-  return <ComingSoon title="Past seasons" />;
+  return <PastSeasonsView />;
 }

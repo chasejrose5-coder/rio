@@ -24,7 +24,7 @@ from api.screens import (
     profile_view,
     session_view,
 )
-from api.season_service import open_season
+from api.season_service import open_named, open_season, parse_inputs
 from api.strava_flow import attach_activities, status
 
 router = APIRouter(tags=["screens"])
@@ -78,10 +78,44 @@ def home(request: Request, just_generated: bool = False) -> dict:
     )
 
 
+def _named_season(who, directory, today, current_time, start_date, goal_time, goal_date):
+    """A stored season named by the four inputs. A partial link stays the current one."""
+    if not all(isinstance(value, str) and value.strip() for value in (current_time, start_date, goal_time, goal_date)):
+        return None
+    try:
+        inputs = parse_inputs(
+            {
+                "current_time": current_time,
+                "start_date": start_date,
+                "goal_time": goal_time,
+                "goal_date": goal_date,
+            }
+        )
+    except ApiError:
+        return None
+    return open_named(who, directory, today, inputs)
+
+
 @router.get("/plan")
-def plan(request: Request, month: str | None = None) -> dict:
+def plan(
+    request: Request,
+    month: str | None = None,
+    current_time: str | None = None,
+    start_date: str | None = None,
+    goal_time: str | None = None,
+    goal_date: str | None = None,
+) -> dict:
     who, resolved = _resolved(request)
-    season = open_season(who, request.app.state.directory, resolved["today"])
+    named = _named_season(
+        who,
+        request.app.state.directory,
+        resolved["today"],
+        current_time,
+        start_date,
+        goal_time,
+        goal_date,
+    )
+    season = named if named is not None else open_season(who, request.app.state.directory, resolved["today"])
     attach_activities(request.app, who, season)
     return plan_view(season, resolved["today"], prefs_payload(resolved), month)
 

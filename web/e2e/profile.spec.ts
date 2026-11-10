@@ -102,6 +102,9 @@ async function install(
     }
     const path = url.pathname;
     if (path === "/auth/me") return json(route, athlete);
+    if (path === "/seasons/past" && route.request().method() === "GET") {
+      return json(route, { today: "2026-11-10", seasons: [], open: [] });
+    }
     if (path === "/auth/google") return json(route, { detail: "Accounts are not available." }, 503);
     if (path === "/profile" && route.request().method() === "GET") {
       if (options.fail) return json(route, { detail: options.fail }, 500);
@@ -236,5 +239,6 @@ test("the More menu lists the five pages", async ({ page }) => {
   await expect(sub.getByRole("link", { name: "Profile" })).toHaveAttribute("href", "/profile");
   await cards.getByRole("link", { name: /Past seasons/ }).click();
   await expect(page.getByRole("heading", { name: "Past seasons" })).toBeVisible();
-  await expect(page.getByText("Coming in the next step.")).toBeVisible();
+  await expect(page.getByText("No seasons on this account.")).toBeVisible();
+  await expect(page.getByText("Coming in the next step.")).toHaveCount(0);
 });

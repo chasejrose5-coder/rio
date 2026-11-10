@@ -524,6 +524,8 @@ def plan_view(season, today: date, prefs: dict, month: str | None) -> dict:
         "calendar": json_ready(weeks),
         "weeks": json_ready(progress),
         "sessions": json_ready(presented),
+        "actuals": season.actuals if isinstance(season.actuals, dict) else {},
+        "pace_status": _pace_status(season, today, easy_pace, easy_unit, logs),
     }
 
 
