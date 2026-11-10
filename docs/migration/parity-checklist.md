@@ -43,9 +43,9 @@ Step 3 owners:
 | | |
 | --- | --- |
 | Total items | 188 |
-| Done | 142 |
+| Done | 150 |
 | Partial | 19 |
-| Not started | 27 |
+| Not started | 19 |
 | API line starts with `MISSING` | 46 |
 | of which `MISSING (static)` | 46 |
 | of which `MISSING (data)` | 0 |
@@ -70,7 +70,7 @@ These are the differences that matter for "nothing is lost." Item rows below rep
 12. **Gap 12. Forgot password is gated on the wrong-shaped check, and the URL is always there.** The link shows when `GET /auth/google` returns 200 and hides on 503. That lines up with hosted versus the local file, which is what the plan asks. Opening `/forgot-password` directly still draws the form. On the local file the API returns 400 because that file has no mail. Streamlit has no forgot screen at all in local mode.
 13. **Gap 13. Landing is unreadable in the commit, and create-account is untested.** `Gate` calls `landingPath` from the missing `web/lib/landing.ts`. The e2e only checks sign-in: current season → `/home`, no season → `/start`. `GET /seasons/current` already 404s when every goal date is before today (`api/season_service.py` `open_season`), so that split can match Streamlit if `landingPath` sends 404 to `/start` and 200 to `/home`. The test never uses a goal date of today, and it never walks intro or easy pace.
 14. **Gap 14. Empty fields use the browser, not RIO's sentence.** Login and create mark the inputs `required`. An empty submit can stop on the browser bubble. Streamlit submits and shows "Enter a name.", "Enter an email address.", or "Use at least 8 characters."
-15. **Gap 15. Later pages are still placeholders.** Admin, and About and Creators still say "Coming in the next step." Past seasons is the step 3.8 page. Profile is the step 3.6 page, and More is its menu. Library is the step 3.5 page. Activity and Last Session are the step 3.4 pages. Settings is the step 3.7 page. Plan is step 3.2. Session is step 3.3.
+15. **Gap 15. Later pages are still placeholders.** Admin still says "Coming in the next step." About and Creators are the step 3.9 pages. Past seasons is the step 3.8 page. Profile is the step 3.6 page, and More is its menu. Library is the step 3.5 page. Activity and Last Session are the step 3.4 pages. Settings is the step 3.7 page. Plan is step 3.2. Session is step 3.3.
 16. **Gap 16. Motion.** Home staggers its blocks by 200ms (`web/app/globals.css` `.rio-stagger`). The splash fade, the nav underline that does not replay on the same page, and the hold that skips a same-page rerun are not there.
 
 ## Routes main still calls "not built"
@@ -1465,7 +1465,8 @@ Locked copy. Step 3.9 does not rewrite it. About shows the short paragraphs. The
 **Now:** `page_about`; `theme.ABOUT_CREDIT`
 **API:** MISSING (static)
 **Step 3:** 3.9
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/about-creators.spec.ts` "about shows the stadium photo, the credit, and the eight phases". The index and the heading are both "About". The credit on the banner is "Photo by Botond Dobozi on Pexels". `tests/test_web_about_creators.py` diffs that text against Streamlit.
 **Verify:** Credit is on the banner. See C6.
 
 ### O2. Eight phases
@@ -1474,7 +1475,8 @@ Locked copy. Step 3.9 does not rewrite it. About shows the short paragraphs. The
 **Now:** `page_about`; `ui/about.py` `about_sections`, `_PHASE_INTRO`, `phase_rows`, `_PHASE_CLOSE`
 **API:** MISSING (static). Families come from `engines/season.py` `_PRIMARY` and `_SECONDARY`, not from a model.
 **Step 3:** 3.9
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/about-creators.spec.ts` reads the eight phase rows in order, including "The short fast reps step up from phase 1." and "The taper stays fresh. No hard speed endurance or anaerobic work." The page has no probability line. `tests/test_web_about_creators.py` diffs the rows against `phase_rows()`.
 **Verify:** Eight rows. Phase 2 mentions the step up from phase 1. Phase 8 says the taper stays fresh. No score.
 
 ### O3. 10% rule, classification, hard days
@@ -1483,7 +1485,8 @@ Locked copy. Step 3.9 does not rewrite it. About shows the short paragraphs. The
 **Now:** `page_about` uses `shown` when it is set, and puts `_TEN_PERCENT`, `_CLASSIFICATION`, and `_HARD_DAYS` in a hidden div
 **API:** MISSING (static)
 **Step 3:** 3.9
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/about-creators.spec.ts` compares the visible paragraphs with `_SHOWN` and finds "Those calls stop once recorded spend reaches $25." only inside the hidden div. `tests/test_web_about_creators.py` diffs both lists against `ui/about.py`.
 **Verify:** The visible classification paragraph is the `_SHOWN` one. The hidden div still contains "Those calls stop once recorded spend reaches $25." Do not delete the hidden paragraphs.
 
 ### O4. Creators
@@ -1492,7 +1495,8 @@ Locked copy. Step 3.9 does not rewrite it. About shows the short paragraphs. The
 **Now:** `page_creators`; `theme.CHASE_PHOTO` (no credit, `theme.py`); `ui/creators.py` `CREATORS` is the hidden placeholder
 **API:** MISSING (static)
 **Step 3:** 3.9
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/about-creators.spec.ts` "creators shows Chase and keeps the Jay Rose placeholder in a comment". The three paragraphs and "Every rep has a reason." are visible. The HTML comment still has the Jay Rose placeholder and is not in the visible text. There is no "Photo by" line. `tests/test_web_about_creators.py` diffs the comment against `page_creators`.
 **Verify:** The three visible paragraphs match, including "Every rep has a reason." The comment still contains the Jay Rose placeholder. It is not visible. No photo credit line.
 
 ---
@@ -1585,7 +1589,8 @@ The string is the whole credit. Do not add a photographer where the file has non
 **Now:** `theme.ABOUT_CREDIT`. Photo `about_stadium.jpg`.
 **API:** MISSING (static)
 **Step 3:** 3.9
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/about-creators.spec.ts` "about shows the stadium photo, the credit, and the eight phases". The credit sits on the About banner, over `photos/about.jpg`.
 **Verify:** On the About banner.
 
 ### C7. Creators
@@ -1594,7 +1599,8 @@ The string is the whole credit. Do not add a photographer where the file has non
 **Now:** `page_creators`; `theme.py` comment on `CHASE_PHOTO`
 **API:** MISSING (static)
 **Step 3:** 3.9
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/about-creators.spec.ts` "creators shows Chase and keeps the Jay Rose placeholder in a comment". The image alt is "Chase Rose exploding out of the starting blocks." and the page has no "Photo by" line.
 **Verify:** The photo has the alt text from O4 and no "Photo by" line.
 
 ### C8. Admin hero frames
@@ -1921,7 +1927,7 @@ The live app keeps a signed token for one day. Refreshing does not extend it. Lo
 **API:** MISSING (static)
 **Step 3:** Each page's step. Home's stagger is the partial stand-in.
 **Status:** partial
-**Gap:** Gap 16. Home staggers children. It does not suppress the animation on a same-page reload. Library, Profile, More, Settings, and Past seasons fade once and their blocks rise about 8px. A save on Profile or Settings, or opening delete on Past seasons, does not replay it. About and Creators are still open.
+**Gap:** Gap 16. Home staggers children. It does not suppress the animation on a same-page reload. Library, Profile, More, Settings, Past seasons, About, and Creators fade once and their blocks rise about 8px. A save on Profile or Settings, opening delete on Past seasons, or a same-page reload of About or Creators does not replay it. The splash fade is still open.
 **Verify:** Open Home, then refresh Home. The second time does not replay the rise. Open Plan from Home. Plan fades once.
 
 ### A3. Nav underline
@@ -2012,7 +2018,8 @@ These are in the code and must stay hidden. Shipping them would add something th
 **Now:** `page_about`
 **API:** MISSING (static)
 **Step 3:** 3.9
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/about-creators.spec.ts` reads the hidden classification paragraph, including "Those calls stop once recorded spend reaches $25.", and asserts the hidden div is not visible. The visible paragraph is the short `_SHOWN` line.
 **Verify:** View source. The long classification paragraph is present and not visible.
 
 ### Z6. Jay Rose placeholder
@@ -2021,7 +2028,8 @@ These are in the code and must stay hidden. Shipping them would add something th
 **Now:** `page_creators`
 **API:** MISSING (static)
 **Step 3:** 3.9
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/about-creators.spec.ts` finds the HTML comment from `page_creators` in the page source. The visible article is Chase only. "Jay Rose" is not in the visible text.
 **Verify:** The comment is in the page. The visible article is Chase only (O4).
 
 ### Z7. Legacy activity tables

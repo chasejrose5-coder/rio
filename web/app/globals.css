@@ -1773,3 +1773,218 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   .page-past .rio-past-row { grid-template-columns: 1fr; row-gap: 0.55rem; }
   .page-past .rio-past-time { text-align: left; }
 }
+
+.page-about, .page-creators {
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100dvh;
+}
+.page-about main, .page-creators main { padding: 0 5vw 3.5rem; }
+.page-about .rio-contact, .page-creators .rio-contact { color: #3c3a36; }
+.page-creators .rio-contact { margin-top: 1.6rem; }
+.page-about [hidden] { display: none !important; }
+
+.page-about .rio-about-banner {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  height: 78vh;
+  min-height: 24rem;
+  margin: 0 -5vw 0;
+  overflow: hidden;
+  background-color: #121110;
+  background-image: image-set(url("/photos/about-1200.webp") type("image/webp"), url("/photos/about.jpg") type("image/jpeg"));
+  background-size: cover;
+  background-position: center center;
+}
+.page-about .rio-about-shade {
+  position: absolute;
+  inset: 0;
+  background: var(--shade);
+}
+.page-about .rio-about-title {
+  position: relative;
+  z-index: 2;
+  padding: 0 5vw 2.4rem;
+}
+.page-about .rio-about-title .rio-index { color: #f4f1ec; }
+.page-about .rio-about-title h1 {
+  margin: 0;
+  color: #f4f1ec;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(56px, 9vw, 140px);
+  letter-spacing: -0.04em;
+  line-height: 0.88;
+}
+.page-about .rio-photo-credit {
+  position: absolute;
+  left: 50%;
+  bottom: 0.7rem;
+  z-index: 2;
+  transform: translateX(-50%);
+  margin: 0;
+  background: rgba(18, 17, 16, 0.82);
+  color: #f4f1ec;
+  border-color: rgba(244, 241, 236, 0.45);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.page-about .rio-card {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid #dcd6cc;
+  box-shadow: none;
+  padding: 2.2rem 0 1.4rem;
+  margin: 0;
+}
+.page-about .rio-mark-label {
+  display: block;
+  margin: 0;
+  padding: 0 0 0.45rem;
+  color: #3c3a36;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.page-about .rio-note,
+.page-about .rio-prose,
+.page-about .rio-v { color: #121110; }
+.page-about .rio-note {
+  margin: 0 0 0.15rem;
+  font-size: 1.02rem;
+  line-height: 1.6;
+}
+.page-about .rio-prose {
+  margin: 0.35rem 0 0.15rem;
+  padding-top: 0.95rem;
+  border-top: 1px solid #dcd6cc;
+  font-size: 1.02rem;
+  line-height: 1.6;
+}
+.page-about .rio-fields { margin-top: 0.1rem; }
+.page-about .rio-card .rio-note + .rio-fields > .rio-field:first-child,
+.page-about .rio-card .rio-prose + .rio-fields > .rio-field:first-child {
+  border-top: 1px solid #dcd6cc;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+}
+.page-about .rio-field {
+  display: grid;
+  grid-template-columns: 11.5rem minmax(0, 1fr);
+  column-gap: 1.35rem;
+  align-items: baseline;
+  padding: 0.78rem 0;
+}
+.page-about .rio-field + .rio-field { border-top: 1px solid #dcd6cc; }
+.page-about .rio-k {
+  color: #3c3a36;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.page-about .rio-v {
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.page-about.is-compact .rio-card { padding: 1.15rem 0 0.8rem; }
+
+.page-creators .rio-hero {
+  background: #121110;
+  color: #f4f1ec;
+  margin: 0 -5vw;
+  padding: 2.78rem 5vw 2.2rem;
+}
+.page-creators .rio-synthetic {
+  margin: 0 0 0.54rem;
+  color: #e25a32;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.page-creators .rio-hero h1 {
+  margin: 0.1rem 0 0;
+  color: #f4f1ec;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(2.6rem, 6.05vw, 5.55rem);
+  letter-spacing: -0.04em;
+  line-height: 0.92;
+  max-width: 7.8em;
+}
+.page-creators.is-compact .rio-hero { padding: 1.35rem 5vw 0.85rem; }
+.page-creators.is-compact .rio-hero h1 { font-size: 2.35rem; margin-top: 0.35rem; }
+.page-creators .rio-creator-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(16rem, 0.95fr);
+  gap: 1.15rem 1.6rem;
+  align-items: stretch;
+  width: 100%;
+  margin-top: 1.25rem;
+}
+.page-creators .rio-creator-photo { margin: 0; min-height: 18rem; height: 100%; }
+.page-creators .rio-creator-photo picture,
+.page-creators .rio-creator-photo img { display: block; width: 100%; height: 100%; }
+.page-creators .rio-creator-photo img {
+  object-fit: cover;
+  object-position: center 32%;
+  border-radius: 16px;
+}
+.page-creators .rio-creator { padding: 0.2rem 0 0.4rem; }
+.page-creators .rio-creator-name {
+  margin: 0 0 1rem;
+  color: #121110;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(1.55rem, 3vw, 2.15rem);
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+.page-creators .rio-creator-bio {
+  margin: 0;
+  max-width: 38rem;
+  color: #121110;
+  font-size: 1.06rem;
+  line-height: 1.7;
+}
+.page-creators .rio-creator-bio + .rio-creator-bio { margin-top: 0.85rem; }
+.page-creators .rio-creator-close {
+  position: relative;
+  margin: 1.7rem 0 0;
+  padding-top: 1.15rem;
+  color: #e25a32;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(1.25rem, 2.4vw, 1.6rem);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+.page-creators .rio-creator-close::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2.25rem;
+  height: 2px;
+  background: #e25a32;
+}
+@media (max-width: 1200px) {
+  .page-about .rio-about-banner {
+    background-image: image-set(url("/photos/about-800.webp") type("image/webp"), url("/photos/about-800.jpg") type("image/jpeg"));
+  }
+}
+@media (max-width: 800px) {
+  .page-about .rio-about-title h1 { font-size: clamp(48px, 14vw, 72px); }
+  .page-about .rio-field { grid-template-columns: 1fr; row-gap: 0.22rem; }
+  .page-creators .rio-creator-layout { grid-template-columns: 1fr; gap: 1rem; margin-top: 1rem; }
+  .page-creators .rio-creator-photo,
+  .page-creators .rio-creator-photo picture,
+  .page-creators .rio-creator-photo img { height: auto; min-height: 0; }
+  .page-creators .rio-creator-photo img { object-fit: unset; object-position: center; }
+  .page-creators .rio-creator-bio { font-size: 1rem; line-height: 1.65; }
+}
