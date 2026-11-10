@@ -19,6 +19,7 @@ async function signIn(page: Page, email: string, name: string) {
 
 test("continue puts skip=1 on log in and a later visit skips the splash", async ({ page }) => {
   await page.goto("/");
+  await expect(page).toHaveTitle("RIO · Runner Intelligence Owned");
   await expect(page.getByRole("heading", { name: "Your Race, Your Plan, Your Result" })).toBeVisible();
   await expect(page.getByText("Photo by Giant Asparagus on Pexels")).toBeVisible();
   await page.getByRole("button", { name: "Continue" }).click();

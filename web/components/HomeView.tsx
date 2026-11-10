@@ -10,6 +10,7 @@ import { PreviewBanner } from "./PreviewBanner";
 import { RequireUser } from "./RequireUser";
 import { TrackArt } from "./TrackArt";
 import { ApiError, api, previewing, stopPreview } from "@/lib/api";
+import { pageShouldRise } from "@/lib/motion";
 import { linkError } from "@/lib/plan";
 import { shownName } from "@/lib/settings";
 import type { HomeResponse, WorkoutCard } from "@/lib/types";
@@ -101,11 +102,11 @@ function HomeBody() {
   useEffect(() => {
     const key = "rio-motion-page";
     const previous = window.sessionStorage.getItem(key);
-    if (previous !== "home") {
+    if (pageShouldRise(previous, "home")) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setRise(true);
-      window.sessionStorage.setItem(key, "home");
     }
+    window.sessionStorage.setItem(key, "home");
   }, []);
 
   async function load(justGenerated = false) {
@@ -537,25 +538,29 @@ function Watchless({
 
 function StravaOffer({ onDismiss }: { onDismiss: () => void }) {
   const [error, setError] = useState("");
+  const [connectUrl, setConnectUrl] = useState("");
+
+  useEffect(() => {
+    void api
+      .stravaStatus()
+      .then((status) => {
+        if (!status.configured || status.connected) return;
+        return api.stravaConnect().then((body) => {
+          if (body.url) setConnectUrl(body.url);
+        });
+      })
+      .catch(() => setConnectUrl(""));
+  }, []);
 
   return (
     <section className="rio-soft-card rio-strava-offer">
       <h2>Your plan is ready.</h2>
       <p>Connect Strava so your runs show up.</p>
-      <button
-        type="button"
-        className="rio-primary"
-        onClick={() => {
-          void api
-            .stravaConnect()
-            .then((body) => {
-              if (body.url) window.location.assign(body.url);
-            })
-            .catch((caught) => setError(caught instanceof ApiError ? caught.message : "Strava could not be opened."));
-        }}
-      >
-        Connect Strava
-      </button>
+      {connectUrl ? (
+        <button type="button" className="rio-primary" onClick={() => window.location.assign(connectUrl)}>
+          Connect Strava
+        </button>
+      ) : null}
       <button
         type="button"
         className="rio-secondary"

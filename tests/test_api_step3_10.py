@@ -200,6 +200,17 @@ def test_login_card_is_only_when_auth_is_unconfigured() -> None:
         raise AssertionError("hosted directory was dropped")
 
 
+def test_reloading_does_not_mint_a_new_session_cookie() -> None:
+    _directory, client = _hosted()
+    me = client.get("/auth/me")
+    if me.status_code != 200:
+        raise AssertionError(me.text)
+    if "set-cookie" in {key.lower() for key in me.headers}:
+        raise AssertionError(me.headers)
+    if "token" in me.text or "password" in me.text:
+        raise AssertionError(me.text)
+
+
 def test_splash_stays_on_the_track_photo() -> None:
     splash = (ROOT / "web" / "components" / "Splash.tsx").read_text(encoding="utf-8")
     startup = (ROOT / "ui" / "startup.py").read_text(encoding="utf-8")
