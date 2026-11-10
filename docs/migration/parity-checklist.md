@@ -28,7 +28,7 @@ Step 3 owners:
 | --- | --- |
 | PR #61 (step 3a) | Sign in, create account, forgot and reset password, Home, and the shell that those pages already share (nav, footer, the Home photo). |
 | 3.1 | Start, including the intro and the easy-pace step. No PR yet. |
-| 3.2 | Plan. |
+| 3.2 | Plan. This pull request (`cursor/plan-page-3723`). |
 | 3.3 | Start session and Session. |
 | 3.4 | Activity and Strava. |
 | 3.5 | Library. |
@@ -43,9 +43,9 @@ Step 3 owners:
 | | |
 | --- | --- |
 | Total items | 187 |
-| Done | 71 |
+| Done | 86 |
 | Partial | 24 |
-| Not started | 92 |
+| Not started | 77 |
 | API line starts with `MISSING` | 48 |
 | of which `MISSING (static)` | 46 |
 | of which `MISSING (data)` | 2 |
@@ -70,7 +70,7 @@ These are the differences that matter for "nothing is lost." Item rows below rep
 12. **Gap 12. Forgot password is gated on the wrong-shaped check, and the URL is always there.** The link shows when `GET /auth/google` returns 200 and hides on 503. That lines up with hosted versus the local file, which is what the plan asks. Opening `/forgot-password` directly still draws the form. On the local file the API returns 400 because that file has no mail. Streamlit has no forgot screen at all in local mode.
 13. **Gap 13. Landing is unreadable in the commit, and create-account is untested.** `Gate` calls `landingPath` from the missing `web/lib/landing.ts`. The e2e only checks sign-in: current season → `/home`, no season → `/start`. `GET /seasons/current` already 404s when every goal date is before today (`api/season_service.py` `open_season`), so that split can match Streamlit if `landingPath` sends 404 to `/start` and 200 to `/home`. The test never uses a goal date of today, and it never walks intro or easy pace.
 14. **Gap 14. Empty fields use the browser, not RIO's sentence.** Login and create mark the inputs `required`. An empty submit can stop on the browser bubble. Streamlit submits and shows "Enter a name.", "Enter an email address.", or "Use at least 8 characters."
-15. **Gap 15. Every other page is the placeholder.** Plan, Activity, Library, More, Profile, Settings, About, Creators, Session, Past seasons, Admin, and the fixture URLs render "Coming in the next step."
+15. **Gap 15. Every other page is the placeholder.** Activity, Library, More, Profile, Settings, About, Creators, Session, Past seasons, Admin, and the fixture URLs render "Coming in the next step." Plan is the step 3.2 page.
 16. **Gap 16. Motion.** Home staggers its blocks by 200ms (`web/app/globals.css` `.rio-stagger`). The splash fade, the nav underline that does not replay on the same page, and the hold that skips a same-page rerun are not there.
 
 ## Routes main still calls "not built"
@@ -843,7 +843,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `page_plan`, `_length_text`, `_with_plan_credit`
 **API:** `GET /plan` `inputs`. The session list is `plan.sessions` on `GET /seasons/current`.
 **Step 3:** 3.2
-**Status:** not started
+**Status:** done
 **Verify:** A 12-week season says "12 weeks". A one-week season says "1 week". Dates follow ISO or Short (Settings G5).
 
 ### B2. No plan, and a bad plan
@@ -852,7 +852,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `page_plan`, `_season_prompt`
 **API:** `GET /plan` `404` when there is no current season
 **Step 3:** 3.2
-**Status:** not started
+**Status:** done
 **Verify:** No season: the link opens Start. No empty calendar of fake days.
 
 ### B3. Pace status line
@@ -861,7 +861,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `page_plan`, `_pace_status_label`
 **API:** `GET /home` `pace_status` is the same words. `GET /plan` does not repeat the sentence; the client can use the home field or the season.
 **Step 3:** 3.2
-**Status:** not started
+**Status:** done
 **Verify:** The line under the hero matches the Home tile.
 
 ### B4. Phases strip
@@ -870,7 +870,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `page_plan`, `_phase_timeline`
 **API:** `GET /plan` `weeks` (`week`, `phase`, `status`)
 **Step 3:** 3.2
-**Status:** not started
+**Status:** done
 **Verify:** The current week is visually distinct. Phase digits match the season.
 
 ### B5. Calendar, This week, Full season
@@ -879,7 +879,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `page_plan`
 **API:** none for the control. Calendar data is `GET /plan?month=YYYY-MM`.
 **Step 3:** 3.2
-**Status:** not started
+**Status:** done
 **Verify:** Each segment shows its view. Reload keeps the last one. Default is Calendar.
 
 ### B6. Weeks expander
@@ -888,7 +888,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `_plan_weeks`, `_progress_html`; `ui/progress.py` `days_label`
 **API:** `GET /plan` `weeks` (`meters`, `volume`, `days_remaining`, `status`)
 **Step 3:** 3.2
-**Status:** not started
+**Status:** done
 **Verify:** Collapsed on first open. A week with no file shows no distance, not template meters.
 
 ### B7. Month calendar
@@ -897,7 +897,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `page_calendar`, `_cal_cell`; `ui/calendar.py` `month_title`, `session_label`, `month_weeks`
 **API:** `GET /plan?month=YYYY-MM`. Omitted month is the month that contains today. `400` when `month` is not `YYYY-MM`. `404` with no season.
 **Step 3:** 3.2
-**Status:** not started
+**Status:** done
 **Verify:** Today has the today style. Clicking a workout opens that date. An off-month cell has no link.
 
 ### B8. This week
@@ -906,7 +906,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `page_weekly`, `_weekly_hero`, `_week_option`
 **API:** `GET /seasons/current` `plan.sessions`, plus `GET /plan` `weeks`
 **Step 3:** 3.2
-**Status:** not started
+**Status:** done
 **Verify:** Changing the select changes the seven days. Dates use the saved format.
 
 ### B9. Recap
@@ -915,7 +915,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `page_weekly`; `ui/recap.py` `recap_view`
 **API:** The numbers are on the season (`marks`, `actuals`, `activities`). There is no separate recap route. The client builds the four lines from `GET /seasons/current` and `GET /activities`.
 **Step 3:** 3.2
-**Status:** not started
+**Status:** done
 **Verify:** A week with no logged work does not invent meters. Template meters stay out.
 
 ### B10. Week day cards and extras
@@ -924,7 +924,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `page_weekly`, `_session_link`, `_render_extras`
 **API:** `GET /activities` `rows` and `all` (`extra: true` when unmatched)
 **Step 3:** 3.2
-**Status:** not started
+**Status:** done
 **Verify:** A planned day opens Session. An extra run is under the week, labeled extra.
 
 ### B11. Week mark
@@ -933,7 +933,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `_render_mark`; labels `ui/dashboard.py` `MARK_LABEL`
 **API:** `POST /seasons/current/marks` body `{week, choice}`. `choice` is `on_track`, `not_hitting`, or `smashing`. This route does not call the model.
 **Step 3:** 3.2. The confirm dialog is W8.
-**Status:** not started
+**Status:** done
 **Verify:** Each button. With confirm-adapt on, the dialog comes first. With it off, later weeks move immediately. The marked week itself stays as written.
 
 ### B12. Full season
@@ -942,7 +942,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `page_season`, `_render_schedule`, `_day_html`, `_plain_reasons`
 **API:** `GET /seasons/current` `plan`
 **Step 3:** 3.2
-**Status:** not started
+**Status:** done
 **Verify:** Every week of the season is listed. A row opens that session. Reasons are the plain words, not raw codes, unless the code has no plain form.
 
 ### B13. Plan credit
@@ -951,7 +951,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `_with_plan_credit`; `theme.PLAN_CREDIT`
 **API:** MISSING (static)
 **Step 3:** 3.2
-**Status:** not started
+**Status:** done
 **Verify:** The credit is on the curve photo, not under the footer. See C5.
 
 ---
@@ -1537,7 +1537,7 @@ The string is the whole credit. Do not add a photographer where the file has non
 **Now:** `theme.PLAN_CREDIT`. Photo `plan_curve.jpg`.
 **API:** MISSING (static)
 **Step 3:** 3.2
-**Status:** not started
+**Status:** done
 **Verify:** Inside the Plan hero.
 
 ### C6. About
@@ -1854,7 +1854,7 @@ The live app keeps a signed token for one day. Refreshing does not extend it. Lo
 **API:** `today` on `GET /auth/me`, `GET /home`, and `GET /seasons/current`. The contract says it is `YYYY-MM-DD` in the saved time zone. The zone is `PATCH /settings` `timezone`, one id from the Settings list.
 **Step 3:** PR #61 for landing and Home. Start's default date is 3.1. The calendar cell is 3.2. The control is 3.7 (Settings G2).
 **Status:** partial
-**Gap:** Start's default date uses `GET /auth/me` `today`, which is the saved zone. A brand-new account set to `America/Los_Angeles` showed 2026-11-09 while UTC was 2026-11-10. The Settings control that picks the zone is still 3.7. The calendar's today cell is 3.2.
+**Gap:** Start's default date uses `GET /auth/me` `today`, which is the saved zone. A brand-new account set to `America/Los_Angeles` showed 2026-11-09 while UTC was 2026-11-10. The Plan calendar's today cell uses that same date (`GET /plan` `calendar.today`): on that check the outlined day was 2026-11-09, not the UTC day. The Settings control that picks the zone is still 3.7. A new account does not pick a zone until then.
 **Verify:** Set the zone to `Pacific/Auckland` and compare with UTC around midnight. Home, the calendar's today cell, and Home-versus-Start agree. Document the zone in the screenshot.
 
 ---
@@ -1907,7 +1907,7 @@ The live app keeps a signed token for one day. Refreshing does not extend it. Lo
 **Now:** `motion_rules` on `.rio-plan-view-*`
 **API:** MISSING (static)
 **Step 3:** 3.2
-**Status:** not started
+**Status:** done
 **Verify:** Switch views. The new view rises. Switching back does not loop.
 
 ### A6. Reduced motion

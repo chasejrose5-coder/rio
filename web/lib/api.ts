@@ -1,4 +1,4 @@
-import type { Athlete, AuthResult, CurrentSeason, HomeResponse, SeasonWrite } from "./types";
+import type { ActivitiesResponse, Athlete, AuthResult, CurrentSeason, HomeResponse, PlanResponse, SeasonWrite } from "./types";
 
 export class ApiError extends Error {
   status: number;
@@ -124,4 +124,18 @@ export const api = {
 
   watchless: (body: { date: string; outcome?: string; time?: string; missed?: boolean }) =>
     request("/seasons/current/watchless", { method: "POST", body: JSON.stringify(body) }),
+
+  plan: (month?: string) => {
+    const query = month ? `?month=${encodeURIComponent(month)}` : "";
+    return request<PlanResponse>(`/plan${query}`);
+  },
+
+  activities: () => request<ActivitiesResponse>("/activities"),
+
+  markWeek: (week: number, choice: string, digest: string) =>
+    request<SeasonWrite>("/seasons/current/marks", {
+      method: "POST",
+      body: JSON.stringify({ week, choice }),
+      headers: digest ? { "If-Match": digest } : {},
+    }),
 };

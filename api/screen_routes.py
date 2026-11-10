@@ -81,6 +81,7 @@ def home(request: Request, just_generated: bool = False) -> dict:
 def plan(request: Request, month: str | None = None) -> dict:
     who, resolved = _resolved(request)
     season = open_season(who, request.app.state.directory, resolved["today"])
+    attach_activities(request.app, who, season)
     return plan_view(season, resolved["today"], prefs_payload(resolved), month)
 
 

@@ -16,6 +16,7 @@ from api.identity import Principal
 from api.prefs import account_prefs, athlete_payload
 from engines.pace import PACE_MILE, PaceLog, pace_unit, project_800, workout_recipe, workout_times
 from ui.accounts import AccountError, normalize_name, read_local, write_easy_pace, write_local
+from ui.activities import with_matched_distances
 from ui.activity_board import build_cards, group_weeks, heart_points, week_summary, weekly_meters
 from ui.activity_data import all_activities, session_rows
 from ui.calendar import month_title, month_weeks, opening_month, plan_months
@@ -411,12 +412,24 @@ def plan_view(season, today: date, prefs: dict, month: str | None) -> dict:
         raise ApiError(400, "This season has no weeks.")
     months = plan_months(sessions)
     chosen = opening_month(months, today)
-    if isinstance(month, str) and len(month) == 7 and month[4] == "-":
+    if month is not None:
+        # Omitted month is the month that contains today. A present value must be YYYY-MM.
+        if (
+            not isinstance(month, str)
+            or len(month) != 7
+            or month[4] != "-"
+            or not month[:4].isdigit()
+            or not month[5:7].isdigit()
+        ):
+            raise ApiError(400, "The month is not YYYY-MM.")
         try:
             chosen = date(int(month[:4]), int(month[5:7]), 1)
         except ValueError:
             raise ApiError(400, "The month is not YYYY-MM.") from None
     weeks = month_weeks(chosen.year, chosen.month, sessions, today)
+    activities = season.activities if isinstance(season.activities, list) else []
+    # Matched WORK meters only. A day with no file and no match stays at 0.
+    # Template meters are not used. Intervals file laps are the known hole (W13).
     progress = progress_weeks(
         start=start,
         goal=goal,
@@ -424,7 +437,39 @@ def plan_view(season, today: date, prefs: dict, month: str | None) -> dict:
         sessions=sessions,
         marks=season.marks,
         today=today,
+        distances=with_matched_distances({}, activities),
     )
+    units = str(prefs.get("units") or "miles")
+    date_format = str(prefs.get("date_format") or "iso")
+    easy_pace = str(prefs.get("easy_pace") or "")
+    easy_unit = str(prefs.get("easy_pace_unit") or "mi")
+    logs = _pace_logs(season)
+    presented = []
+    for session in sessions:
+        if not isinstance(session, dict):
+            continue
+        ready = _present_session(
+            session,
+            season,
+            units=units,
+            date_format=date_format,
+            easy_pace=easy_pace,
+            easy_unit=easy_unit,
+            logs=logs,
+        )
+        for key in ("probability", "readiness", "readiness_score"):
+            ready.pop(key, None)
+        raw_target = session.get("target_outcome")
+        target = display_training(raw_target, units) if isinstance(raw_target, str) else ""
+        ready["target"] = target or "—"
+        template = str(session.get("template_id") or "")
+        # Speed days show the rep line. Streamlit leaves the block clock off those cards.
+        prescription = ready.get("prescription")
+        if isinstance(prescription, dict) and template.startswith(("spd_", "mv_")):
+            prescription = dict(prescription)
+            prescription["block"] = ""
+            ready["prescription"] = prescription
+        presented.append(ready)
     return {
         "inputs": {
             "current_time": season.inputs[0],
@@ -440,6 +485,7 @@ def plan_view(season, today: date, prefs: dict, month: str | None) -> dict:
         "month_title": month_title(chosen),
         "calendar": json_ready(weeks),
         "weeks": json_ready(progress),
+        "sessions": json_ready(presented),
     }
 
 

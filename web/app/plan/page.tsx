@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { PlanView } from "@/components/PlanView";
 
 export default function Page() {
-  return <ComingSoon title="Plan" />;
+  return <PlanView />;
 }

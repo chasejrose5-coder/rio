@@ -681,6 +681,216 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 @media (max-width: 700px) {
   .rio-start-grid { grid-template-columns: 1fr; }
 }
+.page-plan { background: var(--paper); color: var(--ink); min-height: 100dvh; }
+.page-plan main { padding: 0 5vw 3.5rem; }
+.rio-plan-hero {
+  position: relative;
+  isolation: isolate;
+  margin: 0 -5vw;
+  padding: 2.6rem 5vw 1.7rem;
+  min-height: 11rem;
+  background-color: #121110;
+  background-image: var(--shade), image-set(url("/photos/plan-curve.webp") type("image/webp"), url("/photos/plan-curve.jpg") type("image/jpeg"));
+  background-size: cover;
+  background-position: center;
+  color: var(--paper);
+}
+.rio-plan-hero h1 {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.92;
+  font-size: clamp(2.6rem, 6vw, 4.4rem);
+}
+.rio-plan-hero .rio-range,
+.rio-plan-hero .rio-error,
+.rio-plan-hero .rio-photo-credit { position: relative; z-index: 1; }
+.rio-plan-hero .rio-range { margin: 0.7rem 0 0; color: rgba(244, 241, 236, 0.86); font-size: 1.05rem; }
+.page-plan .rio-plan-hero .rio-error { color: #ff6b4a; }
+.rio-plan-hero .rio-photo-credit { margin-top: 1.15rem; }
+.page-plan .rio-error { color: #b42318; }
+.rio-after-hero { margin: 1.1rem 0 0; }
+.page-plan .rio-card { border-top: 1px solid var(--line); padding: 1.3rem 0 0.4rem; margin: 0.4rem 0 0; }
+.rio-phases { display: flex; gap: 0.4rem; overflow-x: auto; padding: 0.45rem 0 0.2rem; }
+.rio-phase {
+  flex: 1 0 4.2rem;
+  min-width: 4.2rem;
+  padding: 0.55rem 0.2rem 0.45rem;
+  text-align: center;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid var(--line);
+}
+.rio-phase-week { color: var(--muted); font-size: 0.68rem; letter-spacing: 0.06em; }
+.rio-phase-num {
+  margin-top: 0.15rem;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.7rem;
+  letter-spacing: -0.04em;
+}
+.rio-phase-now { border-bottom-color: var(--accent); }
+.rio-phase-now .rio-phase-num { color: var(--accent); }
+.rio-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.rio-segments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  width: fit-content;
+  max-width: 100%;
+  margin: 1.15rem 0 0;
+  padding: 0.22rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+}
+.rio-segments label {
+  position: relative;
+  padding: 0.42rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.rio-segments label.is-selected { background: var(--button); color: #fff; }
+.rio-segments input { position: absolute; opacity: 0; inset: 0; margin: 0; }
+.rio-plan-gap { height: 1.25rem; }
+.rio-plan-view { animation: rio-rise 200ms var(--ease) both; }
+.rio-weeks { margin: 0.2rem 0 1rem; }
+.rio-weeks summary, .rio-reasons-box summary {
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
+.rio-weeks .rio-note { margin-top: 0.7rem; }
+.rio-progress-list { margin-top: 0.6rem; }
+.rio-progress {
+  display: grid;
+  grid-template-columns: 0.65rem 6.5rem minmax(0, 1fr) 6.2rem auto;
+  column-gap: 0.85rem;
+  align-items: baseline;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--line);
+}
+.rio-progress-tick {
+  width: 0.55rem;
+  height: 0.55rem;
+  border: 1px solid var(--muted);
+  border-radius: 99px;
+}
+.rio-progress-done .rio-progress-tick, .rio-progress-current .rio-progress-tick {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.rio-progress-week { font-weight: 600; }
+.rio-progress-phase, .rio-progress-status, .rio-progress-days { color: var(--muted); }
+.rio-progress-volume { margin-top: 0.15rem; }
+.rio-section { margin: 0.2rem 0 0.6rem; font-family: var(--display); font-weight: 800; letter-spacing: -0.03em; font-size: 1.8rem; }
+.rio-pick { max-width: 24rem; margin: 0.6rem 0 1.1rem; }
+.rio-pick label { display: block; margin: 0 0 0.3rem; color: var(--muted); font-size: 0.75rem; }
+.rio-pick select {
+  width: 100%;
+  min-height: 2.8rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 0.4rem 0.7rem;
+  font-size: 1rem;
+}
+.rio-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.35rem; }
+.rio-cal-dow { color: var(--muted); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 0 0.15rem 0.2rem; }
+.rio-cal-day {
+  display: block;
+  min-height: 4.85rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 0.42rem 0.4rem 0.45rem;
+  color: inherit;
+}
+.rio-cal-session { background: #fff; border-color: #dadada; }
+.rio-cal-today { border-color: var(--accent); }
+.rio-cal-num { font-weight: 600; font-variant-numeric: tabular-nums; }
+.rio-cal-quiet .rio-cal-num, .rio-cal-label { color: var(--muted); }
+.rio-cal-label { margin-top: 0.32rem; font-size: 0.72rem; line-height: 1.25; }
+.rio-cal-out { min-height: 4.85rem; }
+.rio-hero-week { padding: 0.2rem 0 0.4rem; }
+.rio-hero-week h2 { margin: 0; font-family: var(--display); font-weight: 800; letter-spacing: -0.04em; font-size: clamp(2rem, 4vw, 2.8rem); }
+.rio-hero-week .rio-range { margin: 0.35rem 0 0; color: var(--muted); }
+.rio-recap { border-top: 1px solid var(--line); padding: 1rem 0 0.4rem; }
+.rio-recap dl { margin: 0.45rem 0 0; }
+.rio-field { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 0.35rem 0.8rem; margin: 0.28rem 0; }
+.rio-field dt { color: var(--muted); }
+.rio-field dd { margin: 0; }
+.rio-daycard {
+  display: block;
+  background: #fff;
+  border: 1px solid #dadada;
+  border-radius: 18px;
+  padding: 1.2rem 1.25rem 1.05rem;
+  margin: 0 0 0.75rem;
+  color: inherit;
+}
+.rio-daycard-dow { font-size: 1.35rem; font-weight: 600; letter-spacing: -0.03em; }
+.rio-daycard-date { margin-top: 0.25rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rio-daycard-work { margin-top: 0.9rem; font-size: 1.12rem; font-weight: 600; line-height: 1.4; }
+.rio-daycard-target { margin-top: 0.75rem; padding-top: 0.7rem; border-top: 1px solid #dadada; color: var(--muted); line-height: 1.45; }
+.rio-daycard-actual { margin-top: 0.55rem; font-variant-numeric: tabular-nums; }
+.rio-pace-line, .rio-pace-range, .rio-pace-block { margin: 0.35rem 0 0; line-height: 1.4; }
+.rio-pace-range, .rio-pace-block { color: var(--muted); font-size: 0.92rem; }
+.page-plan .rio-hit:hover .rio-daycard, .page-plan .rio-cal-session:hover { border-color: var(--accent); }
+.rio-week { border-top: 1px solid var(--line); padding: 1.15rem 0 0.3rem; }
+.rio-week-title { margin: 0; font-family: var(--display); font-weight: 800; letter-spacing: -0.03em; font-size: 1.45rem; }
+.rio-week-meta { margin: 0.35rem 0 0; color: var(--muted); }
+.rio-day {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr) auto;
+  gap: 0.55rem 1rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--line);
+  color: inherit;
+}
+.rio-dow { font-weight: 600; }
+.rio-date, .rio-target, .rio-status { color: var(--muted); }
+.rio-name { font-weight: 600; line-height: 1.4; }
+.rio-reasons-box { margin: 0.4rem 0 0.6rem; }
+.rio-reason-day { margin: 0.7rem 0 0.15rem; font-weight: 600; }
+.rio-reason { margin: 0.15rem 0; color: var(--muted); }
+.rio-week-mark { margin: 0.8rem 0 0.2rem; }
+.rio-marks, .rio-confirm { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.45rem; }
+.rio-marks .rio-primary, .rio-marks .rio-secondary, .rio-confirm .rio-primary, .rio-confirm .rio-secondary {
+  width: auto;
+  min-width: 7.2rem;
+  min-height: 2.6rem;
+  margin-top: 0;
+}
+.rio-season-prompt { margin: 1.2rem 0 0; }
+.rio-season-prompt a { font-weight: 600; border-bottom: 2px solid var(--accent); }
+@media (max-width: 1200px) {
+  .rio-plan-hero {
+    background-image: var(--shade), image-set(url("/photos/plan-curve-800.webp") type("image/webp"), url("/photos/plan-curve-800.jpg") type("image/jpeg"));
+  }
+}
+@media (max-width: 720px) {
+  .rio-progress { grid-template-columns: 0.65rem 1fr; }
+  .rio-progress-status, .rio-progress-days { grid-column: 2; }
+  .rio-day { grid-template-columns: 1fr; }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation: none !important;
