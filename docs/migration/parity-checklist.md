@@ -30,7 +30,7 @@ Step 3 owners:
 | 3.1 | Start, including the intro and the easy-pace step. No PR yet. |
 | 3.2 | Plan. PR #64. |
 | 3.3 | Start session and Session. |
-| 3.4 | Activity, Last Session laps, and the Strava callback. |
+| 3.4 | Activity, Last Session laps, and the Strava callback. PR #66. |
 | 3.5 | Library. |
 | 3.6 | Profile. |
 | 3.7 | Settings. |
