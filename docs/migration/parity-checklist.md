@@ -31,7 +31,7 @@ Step 3 owners:
 | 3.2 | Plan. PR #64. |
 | 3.3 | Start session and Session. |
 | 3.4 | Activity, Last Session laps, and the Strava callback. PR #66. |
-| 3.5 | Library. This step. |
+| 3.5 | Library. PR #67. |
 | 3.6 | Profile. |
 | 3.7 | Settings. |
 | 3.8 | Seasons and past seasons. |
