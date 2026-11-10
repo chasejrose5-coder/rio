@@ -155,6 +155,13 @@ test("the four values, a saved goal, a bad time, and a new easy pace", async ({ 
   await expect(page.getByText("Mar 19, 2027")).toBeVisible();
   await expect(page.getByLabel("Goal 800m time")).toHaveValue("1:55.0");
   await expect(page.getByLabel("Goal 800m time")).toHaveAttribute("placeholder", "1:55.0");
+  const easyBox = await page.locator("#profile-easy-pace").boundingBox();
+  const goalBox = await page.locator("#profile-goal").boundingBox();
+  const goalLabel = await page.locator("label[for='profile-goal']").boundingBox();
+  expect(easyBox && goalBox && goalLabel).toBeTruthy();
+  expect(goalBox!.width).toBeGreaterThan(200);
+  expect(Math.abs(goalBox!.width - easyBox!.width)).toBeLessThan(4);
+  expect(goalBox!.y).toBeGreaterThan(goalLabel!.y + 12);
   await expect(page.getByText("Minutes, seconds, and tenths, like 1:55.0.")).toBeVisible();
   await expect(page.getByText("Saving keeps this time on your account. It does not rebuild the season.")).toBeVisible();
   const current = page.getByText("Current 800 time");

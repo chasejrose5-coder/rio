@@ -1345,8 +1345,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   color: #3c3a36;
 }
 .page-profile .rio-easy-form input[type="text"],
-.page-profile .rio-easy-form input:not([type="radio"]),
-.page-profile .rio-profile-edit input {
+.page-profile .rio-easy-form input:not([type="radio"]) {
   max-width: 22rem;
   background: #fff;
   color: #121110;
@@ -1355,10 +1354,34 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   color: #3c3a36;
   opacity: 1;
 }
-.page-profile .rio-easy-form fieldset label, .page-profile .rio-profile-edit label {
+.page-profile .rio-easy-form fieldset label {
   color: #121110;
   font-size: 0.95rem;
   font-weight: 600;
+}
+.page-profile .rio-profile-edit label {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.3rem;
+  color: #121110;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.page-profile .rio-profile-edit input:not([type="radio"]) {
+  display: block;
+  width: 100%;
+  max-width: 22rem;
+  box-sizing: border-box;
+  min-height: 2.8rem;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.4rem 0.7rem;
+  background: #fff;
+  color: #121110;
+  font-size: 1rem;
+  font-weight: 500;
 }
 .page-profile .rio-profile-lead {
   margin: 1.15rem 0 0.85rem;

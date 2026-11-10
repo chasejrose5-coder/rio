@@ -226,6 +226,7 @@ function ProfileBody() {
                       Goal 800m time
                       <input
                         id="profile-goal"
+                        type="text"
                         value={goal}
                         placeholder="1:55.0"
                         onChange={(event) => setGoal(event.target.value)}
