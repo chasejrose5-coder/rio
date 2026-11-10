@@ -24,7 +24,7 @@ Model keys (`RIO_EXPLAIN_API_KEY`, `RIO_EXPLAIN_MODEL`, `RIO_EXPLAIN_BASE_URL`) 
 
 | Field | Values |
 | --- | --- |
-| `timezone` | An id from the Settings list, such as `Pacific/Auckland` |
+| `timezone` | An id from the Settings list, such as `Pacific/Auckland`. A zone already stored outside that list is still returned. `today` uses a listed zone, then the suggestion. |
 | `pace_units` | `mi` or `km` |
 | `no_watch` | bool |
 | `easy_pace` | `m:ss`, or `""` |
@@ -344,6 +344,8 @@ These are the reads and writes Home, Plan, Activity, Library, Profile, Settings,
 }
 ```
 
+`hello` is `Hey, {name}`. The name is the nickname when `preferred` is set, otherwise `display_name`. A blank nickname falls back to the name.
+
 `strava` is the status object. `copy` is the no-plan sentence when `season` is null. When a season is open, `season` is:
 
 | Field | Meaning |
@@ -453,7 +455,7 @@ Cookie. Send only the fields to change. `200` is `athlete`.
 | Field | Rule |
 | --- | --- |
 | `pace_units` | `mi` or `km` |
-| `timezone` | One id from the Settings list |
+| `timezone` | One id from the Settings list. A saved id outside the list is shown and is not a new value. |
 | `no_watch` | bool |
 | `easy_pace` and `easy_pace_unit` | Both, or neither. Pace is `m:ss`. |
 | `display_name` | A name, 40 characters or fewer |

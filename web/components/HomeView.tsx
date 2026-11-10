@@ -7,6 +7,7 @@ import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { TrackArt } from "./TrackArt";
 import { ApiError, api } from "@/lib/api";
+import { shownName } from "@/lib/settings";
 import type { HomeResponse, WorkoutCard } from "@/lib/types";
 
 const MARKS: Record<string, string> = {
@@ -140,7 +141,7 @@ function HomeMain({
   reload: () => void;
 }) {
   const season = home.season;
-  const name = home.athlete.display_name?.trim();
+  const name = shownName(home.athlete.display_name || "", String(home.athlete.prefs.preferred || ""));
   const planLine = name ? `${name}'s plan` : "";
 
   if (!season) {

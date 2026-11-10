@@ -307,14 +307,16 @@ def _next_days(sessions: list, today: date, season, *, units: str, date_format: 
 
 
 def home_view(principal, directory, today: date, season, *, connected: bool, strava: dict, just_generated: bool) -> dict:
-    from ui.accounts import hey
+    from ui.accounts import hey, shown_name
     from ui.plan_strava import should_offer_strava
 
     prefs = account_prefs(principal, directory)
+    # The greeting is the nickname when Settings has one, otherwise the name.
+    named = shown_name(principal.display_name, prefs.get("preferred"))
     body = {
         "today": today.isoformat(),
         "athlete": athlete_payload(principal, prefs),
-        "hello": hey(principal.display_name),
+        "hello": hey(named),
         "strava": strava,
         "strava_offer": should_offer_strava(
             just_generated=just_generated,

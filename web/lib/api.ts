@@ -101,6 +101,36 @@ export const api = {
 
   signOut: () => request<{ ok: boolean }>("/auth/sign-out", { method: "POST" }),
 
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<{ ok: boolean; message: string }>("/auth/password", {
+      method: "POST",
+      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    }),
+
+  changeEmail: (email: string, password: string) =>
+    request<{ ok: boolean; email: string; message: string }>("/auth/email", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
+
+  deleteAccount: (body: { confirm: boolean; email?: string; password?: string }) =>
+    request<{ deleted: boolean }>("/auth/delete", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  clearMarks: () =>
+    request<CurrentSeason>("/seasons/current/clear", {
+      method: "POST",
+      body: JSON.stringify({ confirm: true }),
+    }),
+
+  resetPlan: () =>
+    request<{ reset: boolean }>("/seasons/reset", {
+      method: "POST",
+      body: JSON.stringify({ confirm: true }),
+    }),
+
   createSeason: (inputs: { current_time: string; start_date: string; goal_time: string; goal_date: string }) =>
     request<SeasonWrite>("/seasons", {
       method: "POST",
