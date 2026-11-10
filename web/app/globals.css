@@ -2155,11 +2155,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   transform: rotate(45deg) translate(-1px, -1px);
 }
 .page-admin .rio-hero-editor { margin-top: 1.2rem; }
-.page-admin .rio-photo-credit {
-  background: #121110;
-  color: #f4f1ec;
-  border: 1px solid rgba(244, 241, 236, 0.45);
-}
 .page-fixture .rio-subject { margin: 0 0 0.45rem; font-weight: 600; color: #121110; }
 .page-fixture .rio-fields { display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: 0.2rem 0.7rem; margin: 0.2rem 0; }
 .rio-preview { margin: 0.8rem 0 0; }
