@@ -1,4 +1,16 @@
-import type { ActivitiesResponse, Athlete, AuthResult, CurrentSeason, HomeResponse, PlanResponse, ResultWrite, SeasonWrite, SessionResponse } from "./types";
+import type {
+  ActivitiesResponse,
+  Athlete,
+  AuthResult,
+  CurrentSeason,
+  HomeResponse,
+  LapTable,
+  PlanResponse,
+  ResultWrite,
+  SeasonWrite,
+  SessionResponse,
+  StravaStatus,
+} from "./types";
 
 export class ApiError extends Error {
   status: number;
@@ -154,5 +166,27 @@ export const api = {
   intervalFiles: () => request<{ files: string[] }>("/fixtures/intervals"),
 
   intervalFill: (name: string) =>
-    request<{ name: string; times: (number | null)[]; source: string }>(`/fixtures/intervals/${encodeURIComponent(name)}`),
+    request<LapTable & { name: string; times: (number | null)[]; source: string }>(
+      `/fixtures/intervals/${encodeURIComponent(name)}`,
+    ),
+
+  fixtureNames: () => request<{ fixtures: string[] }>("/fixtures"),
+
+  fixtureSession: (name: string) => request<LapTable>(`/fixtures/session?name=${encodeURIComponent(name)}`),
+
+  stravaStatus: () => request<StravaStatus>("/strava/status"),
+
+  stravaSync: (scope: "recent" | "all") =>
+    request<{ synced?: boolean; notice?: string | null; count?: number; strava?: StravaStatus }>("/strava/sync", {
+      method: "POST",
+      body: JSON.stringify({ scope }),
+    }),
+
+  stravaDisconnect: () => request<{ connected: boolean }>("/strava/disconnect", { method: "POST" }),
+
+  stravaCallback: (code: string, state: string) =>
+    request<{ connected?: boolean; athlete_name?: string }>(
+      `/strava/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`,
+      { headers: { "X-RIO-Response": "json" } },
+    ),
 };

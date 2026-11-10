@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { LastSessionView } from "@/components/LastSessionView";
 
 export default function Page() {
-  return <ComingSoon title="Last Session" />;
+  return <LastSessionView />;
 }

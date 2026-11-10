@@ -1006,3 +1006,172 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
     transition: none !important;
   }
 }
+
+.page-activity, .page-last, .page-settings {
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100dvh;
+}
+.page-activity main, .page-last main, .page-settings main { padding: 0 5vw 3.5rem; }
+.page-activity .rio-hero, .page-last .rio-hero, .page-settings .rio-hero {
+  background: var(--ink);
+  color: var(--paper);
+  margin: 0 -5vw;
+  padding: 2.4rem 5vw 1.8rem;
+}
+.page-activity .rio-hero h1, .page-last .rio-hero h1, .page-settings .rio-hero h1 {
+  color: var(--paper);
+  font-size: clamp(2.6rem, 6vw, 4.4rem);
+  max-width: 16ch;
+}
+.page-activity .rio-range, .page-last .rio-range { color: #d7d2cb; }
+.page-activity .rio-mark-label,
+.page-last .rio-mark-label,
+.page-settings .rio-mark-label,
+.page-activity .rio-summary-kicker,
+.page-activity .rio-laps th,
+.page-last .rio-k,
+.page-last .rio-table th,
+.page-last .rio-file,
+.page-activity .rio-week summary {
+  color: #3c3a36;
+}
+.page-activity .rio-note, .page-last .rio-note, .page-settings .rio-note,
+.page-activity .rio-empty, .page-last .rio-empty,
+.page-settings .rio-settings-note, .page-last .rio-prose, .page-last .rio-v {
+  color: #3c3a36;
+}
+.page-activity .rio-error, .page-settings .rio-error, .page-last .rio-error { color: #8c3a2f; }
+.page-activity .rio-card, .page-last .rio-card, .page-settings .rio-card,
+.page-activity .rio-week-summary, .page-activity .rio-run, .page-activity .rio-volume, .page-activity .rio-heart {
+  background: #fff;
+  border: 1px solid #dadada;
+  border-radius: 18px;
+  box-shadow: 0 12px 32px rgba(14, 14, 14, 0.05);
+}
+.page-activity .rio-card, .page-last .rio-card, .page-settings .rio-card { margin-top: 1rem; padding: 0.9rem 1rem 1rem; }
+.page-activity .rio-card-tight { margin-top: 0.8rem; }
+.page-activity .rio-refresh { margin-top: 1.1rem; }
+.page-activity .rio-refresh .rio-secondary, .page-settings .rio-secondary { width: auto; min-width: 8rem; margin-top: 0.4rem; }
+.page-settings .rio-strava-connect {
+  width: auto;
+  min-width: 14rem;
+  color: #fff;
+  background: #c2461f;
+  border-color: #c2461f;
+}
+.rio-strava-settings { margin: 0.45rem 0 0; }
+.rio-strava-settings a {
+  color: #121110;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+.page-activity .rio-week-summary { padding: 0.9rem 1rem 1rem; margin: 0.4rem 0 0.9rem; }
+.page-activity .rio-summary-row {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-top: 0.7rem;
+}
+.page-activity .rio-summary-tile { background: #f2f2f2; border-radius: 12px; padding: 0.45rem 0.5rem 0.55rem; }
+.page-activity .rio-summary-kicker {
+  margin: 0;
+  color: #3c3a36;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.page-activity .rio-summary-value {
+  margin: 0.15rem 0 0;
+  color: #121110;
+  font-family: var(--display);
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.page-activity .rio-activity-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin: 0.35rem 0 1rem;
+  border-top: 1px solid #dcd6cc;
+  border-bottom: 1px solid #dcd6cc;
+  background: transparent;
+}
+.page-activity .rio-activity-stats .rio-stat-tile {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 1.15rem 1.35rem 1.25rem;
+  min-height: 0;
+}
+.page-activity .rio-activity-stats .rio-stat-tile:first-child {
+  padding-left: 0;
+  border-right: 1px solid #dcd6cc;
+}
+.page-activity .rio-activity-stats .rio-stat-tile:last-child { padding-right: 0; }
+.page-activity .rio-activity-stats .rio-mark-label {
+  margin: 0;
+  padding: 0 0 0.35rem;
+  color: #3c3a36;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+.page-activity .rio-activity-stats .rio-stat-value {
+  margin: 0.1rem 0 0;
+  color: #121110;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(2rem, 3.4vw, 3.6rem);
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+.page-activity .rio-run { padding: 0.85rem 1rem 0.9rem; margin: 0 0 0.7rem; }
+.page-activity .rio-run-head { display: flex; justify-content: space-between; gap: 0.75rem; align-items: flex-start; }
+.page-activity .rio-run-name { margin: 0; color: #121110; font-family: var(--display); font-size: 1.15rem; font-weight: 700; }
+.page-activity .rio-run-date, .page-activity .rio-run-detail { margin: 0.2rem 0 0; color: #3c3a36; font-size: 0.92rem; }
+.page-activity .rio-badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.page-activity .rio-badge-on-track { background: #e25a32; color: #fff; }
+.page-activity .rio-badge-ahead { background: #1f7a4d; color: #fff; }
+.page-activity .rio-badge-behind { background: #8c3a2f; color: #fff; }
+.page-activity .rio-badge-extra { background: #e4e4e4; color: #3a3a3a; }
+.page-activity .rio-laps { width: 100%; border-collapse: collapse; margin-top: 0.65rem; font-size: 0.82rem; }
+.page-activity .rio-laps th { text-align: left; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.page-activity .rio-laps td, .page-activity .rio-laps th { padding: 0.28rem 0.35rem; border-bottom: 1px solid #e6e6e6; }
+.page-activity .rio-laps td { color: #121110; }
+.page-activity .rio-volume, .page-activity .rio-heart { padding: 0.95rem 1.15rem 0.55rem; margin: 0 0 1rem; }
+.page-activity .rio-volume-line, .page-activity .rio-heart-axis-line { display: block; width: 100%; height: auto; }
+.page-activity .rio-week { margin: 0.4rem 0 0.8rem; }
+.page-activity .rio-week summary {
+  cursor: pointer;
+  color: #121110;
+  font-weight: 700;
+  padding: 0.45rem 0;
+}
+.page-last .rio-file-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; }
+.page-last .rio-file { color: #6b6b6b; }
+.page-last .rio-table { width: 100%; border-collapse: collapse; }
+.page-last .rio-table th, .page-last .rio-table td {
+  text-align: left;
+  padding: 0.35rem 0.45rem;
+  border-bottom: 1px solid #e6e6e6;
+  color: #121110;
+}
+.page-last .rio-k { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-top: 0.7rem; }
+.page-last .rio-v { color: #121110; margin-top: 0.15rem; }
+.page-last .rio-synthetic { color: #e25a32; letter-spacing: 0.16em; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; margin: 0 0 0.4rem; }
+.page-settings .rio-coming { color: #121110; }
+@media (max-width: 720px) {
+  .page-activity .rio-summary-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .page-activity .rio-activity-stats { grid-template-columns: 1fr; }
+}

@@ -80,24 +80,122 @@ def interval_names(request: Request) -> dict:
     return {"files": [path.name for path in intervals_json_paths()]}
 
 
-@router.get("/intervals/{name}")
-def interval_fill(name: str, request: Request) -> dict:
-    """WORK elapsed times from one local JSON file. Nothing is requested from Intervals.icu."""
-    _admin(request)
-    from ui.last_session import IntervalsFileError, intervals_json_paths, quality_fill
+def _units(request: Request) -> str:
+    from api.routes import _resolved
+
+    _who, resolved = _resolved(request)
+    prefs = resolved.get("prefs") if isinstance(resolved, dict) else {}
+    units = prefs.get("units") if isinstance(prefs, dict) else "miles"
+    return units if units in ("miles", "km") else "miles"
+
+
+def _cell(value: object) -> object:
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    if value is None:
+        return ""
+    return value
+
+
+def _lap_rows(laps: list, units: str) -> tuple[list[dict], str]:
+    """The Last Session table. Distance follows the Settings pace unit."""
+    from ui.settings import distance_heading, distance_number
+
+    amounts = [lap.get("distance_m") for lap in laps if isinstance(lap, dict)]
+    heading = distance_heading(units, amounts)
+    rows = []
+    for index, lap in enumerate(laps, start=1):
+        if not isinstance(lap, dict):
+            continue
+        rows.append(
+            {
+                "Lap": index,
+                heading: distance_number(lap.get("distance_m"), units, amounts),
+                "Seconds": _cell(lap.get("seconds")),
+                "Rest (s)": _cell(lap.get("rest_s")),
+            }
+        )
+    return rows, heading
+
+
+def present_session(payload: dict, units: str, banner: str | None) -> dict:
+    """Laps, the classification, and the rules paragraph. The same fields as render_session."""
+    from engines.classify import classify
+    from engines.explain import explain
+    from engines.normalize import normalize
+
+    normalized = normalize(payload)
+    found = normalized.get("laps") if isinstance(normalized, dict) else None
+    laps = found if isinstance(found, list) else []
+    result = classify(payload)
+    rows, heading = _lap_rows(laps, units)
+    when = payload.get("date") if isinstance(payload.get("date"), str) else ""
+    return {
+        "date": when,
+        "banner": banner,
+        "laps": laps,
+        "distance_heading": heading,
+        "rows": rows,
+        "family": result.get("family") or "",
+        "confidence": result.get("confidence") or "",
+        "reason_codes": list(result.get("reason_codes") or []),
+        "prose": explain(result),
+    }
+
+
+def _interval_path(name: str):
+    from ui.last_session import intervals_json_paths
 
     text = name.strip()
     if not text or "/" in text or "\\" in text or text.startswith("."):
         raise ApiError(404, "That file is not on this server.")
-    paths = intervals_json_paths()
-    chosen = next((path for path in paths if path.name == text), None)
+    return next((path for path in intervals_json_paths() if path.name == text), None)
+
+
+@router.get("/intervals/{name}")
+def interval_fill(name: str, request: Request) -> dict:
+    """WORK times and the lap table from one local JSON file. Nothing is requested from Intervals.icu."""
+    _admin(request)
+    from ui.last_session import IntervalsFileError, open_intervals, quality_fill
+
+    chosen = _interval_path(name)
     if chosen is None:
         raise ApiError(404, "That file is not on this server.")
     try:
         times, source = quality_fill(chosen)
+        payload, banner = open_intervals(chosen)
+        shown = present_session(payload, _units(request), banner)
     except IntervalsFileError as exc:
         raise ApiError(400, str(exc)) from exc
-    return {"name": chosen.name, "times": times, "source": source}
+    except (TypeError, ValueError, OSError) as exc:
+        message = str(exc).strip() or f"{chosen.name} could not be read."
+        raise ApiError(400, message) from exc
+    shown["name"] = chosen.name
+    shown["times"] = times
+    shown["source"] = source
+    return shown
+
+
+@router.get("/session")
+def fixture_session(request: Request, name: str = "") -> dict:
+    """One fixture the way Last Session draws it: laps, family, and the paragraph."""
+    _admin(request)
+    text = name.strip()
+    if not text:
+        raise ApiError(400, "Name a fixture.")
+    path = _by_name(text)
+    try:
+        payload = parse_fixture(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ApiError(400, str(exc)) from exc
+    source = str(payload.get("source") or "").strip().lower() if isinstance(payload, dict) else ""
+    banner = "FIXTURE" if source == "fixture" else None
+    try:
+        shown = present_session(payload if isinstance(payload, dict) else {}, _units(request), banner)
+    except (TypeError, ValueError, OSError) as exc:
+        raise ApiError(400, str(exc)) from exc
+    shown["name"] = path.stem
+    return shown
 
 
 @router.post("/classify")
