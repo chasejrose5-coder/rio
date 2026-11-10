@@ -135,13 +135,18 @@ def prefs_payload(resolved: dict) -> dict:
 
 def athlete_payload(principal: Principal, resolved: dict) -> dict:
     """The signed-in athlete. The same shape as GET /auth/me."""
+    from ui.access import viewer_is_admin
+
     prefs = prefs_payload(resolved)
     today = prefs.pop("today")
+    role = principal.role or "athlete"
+    if viewer_is_admin(principal.email):
+        role = "admin"
     return {
         "id": principal.user_id,
         "email": principal.email,
         "display_name": principal.display_name,
-        "role": principal.role,
+        "role": role,
         "kind": principal.kind,
         "today": today,
         "prefs": prefs,

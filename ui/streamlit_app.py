@@ -38,6 +38,7 @@ from engines.season import sequence
 from ui.about import about_sections
 from ui.calendar import month_title, month_weeks, opening_month, plan_months
 from ui.library import filter_workouts, library_rows
+from ui.workout_text import WORKOUT_TEXT as _WORKOUT_TEXT
 from ui.activities import (
     activity_by_id,
     load_local_env,
@@ -1595,41 +1596,7 @@ _STATUS_LABELS = (
     ("capacity_weight", "Weighted"),
 )
 
-# Card copy only. template_id stays on the session and inside reason codes.
-_WORKOUT_TEXT = {
-    "aer_4000_r0_x1": "4 km very easy, Zone 2",
-    "aer_5000_r0_x1": "5 km easy, Zone 2, talkable the whole way",
-    "aer_8000_r0_x1": "8 km easy, Zone 2",
-    "aer_9500_r0_x1": "9.5 km easy, Zone 2, talkable",
-    "aer_10000_r0_x1": "10 km easy, Zone 2, talkable",
-    "aer_10500_r0_x1": "10.5 km easy, Zone 2, talkable",
-    "aer_11000_r0_x1": "11 km easy, Zone 2, talkable",
-    "aer_11500_r0_x1": "11.5 km easy, Zone 2, talkable",
-    "aer_12000_r0_x1": "12 km easy, still talkable",
-    "aer_12500_r0_x1": "12.5 km easy, still talkable",
-    "aer_13000_r0_x1": "13 km easy, still talkable",
-    "aer_13500_r0_x1": "13.5 km easy, still talkable",
-    "aer_14000_r0_x1": "14 km easy, still talkable",
-    "aer_14500_r0_x1": "14.5 km easy, still talkable",
-    "aer_15000_r0_x1": "15 km easy, still talkable",
-    "mv_60_r120_x10": "10 × 60 m fast, rolling start, full rest",
-    "mv_80_r180_x8": "8 × 80 m fast, full recovery",
-    "spd_150_r150_x8": "8 × 150 m at or faster than goal 800 pace, long rest",
-    "thr_1000_r60_x5": "5 × 1000 m comfortably hard, not 800 pace, 60 s rest",
-    "thr_1200_r60_x4": "4 × 1200 m comfortably hard, 60 s rest",
-    "ap_600_r75_x6": "6 × 600 m strong, slower than goal 800 pace, 75 s rest",
-    "ap_700_r90_x5": "5 × 700 m strong, not goal 800 pace, 90 s rest",
-    "ap_800_r90_x5": "5 × 800 m strong, clearly slower than goal 800 pace, 90 s rest",
-    "se_300_r75_x8": "8 × 300 m near goal 800 pace, 75 s rest",
-    "se_400_r90_x6": "6 × 400 m near goal 800 pace, 90 s rest",
-    "se_500_r120_x4": "4 × 500 m near goal 800 pace, 2 min rest",
-    "an_600_r180_x3": "3 × 600 m hard, 3 min rest",
-    "an_400_r45_x6": "Broken 800s, 3 × (400 + 400) near goal 800 pace, 45 s rest",
-    "rr_200_r180_x4": "4 × 200 m at goal 800 pace, long rest",
-    "rr_300_r180_x3": "3 × 300 m at goal 800 pace, long rest",
-    "rr_400_r240_x2": "2 × 400 m at goal 800 pace, long rest",
-    "rr_800_r0_x1": "800 m race",
-}
+# Card copy lives in ui/workout_text.py. template_id stays on the session.
 
 # Plain words for season reason codes already stored on the session.
 _REASON_PLAIN = {

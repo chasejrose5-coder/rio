@@ -90,11 +90,10 @@ def _expired(issued_at: object, *, now: int | None = None) -> bool:
     return moment - issued_at >= _SESSION_SECONDS or moment < issued_at
 
 
-def sign_in_hosted(directory, email: str, password: str) -> tuple[str, int, dict]:
-    """Directory sign-in, then an opaque session row. Tokens stay in that row."""
-    session = directory.sign_in(email, password)
+def _remember_hosted(directory, session: dict, *, missing: str) -> tuple[str, int, dict]:
+    """Store the directory session and return the opaque cookie id."""
     if not isinstance(session, dict) or not session.get("access_token"):
-        raise CloudAuthError("Email or password does not match.")
+        raise CloudAuthError(missing)
     issued = int(time.time())
     record = {
         "access_token": session.get("access_token"),
@@ -113,6 +112,25 @@ def sign_in_hosted(directory, email: str, password: str) -> tuple[str, int, dict
     return sid, issued, session
 
 
+def sign_in_hosted(directory, email: str, password: str) -> tuple[str, int, dict]:
+    """Directory sign-in, then an opaque session row. Tokens stay in that row."""
+    session = directory.sign_in(email, password)
+    return _remember_hosted(directory, session, missing="Email or password does not match.")
+
+
+def _remember_local(app, email: str, seal: str, name: str) -> tuple[str, int, dict]:
+    """The seal stays under the cookie id. The cookie value is only the id."""
+    issued = int(time.time())
+    sid = new_hosted_sid()
+    _local_sessions(app)[hosted_hash(sid)] = {
+        "email": email,
+        "seal": seal,
+        "display_name": name,
+        "issued_at": issued,
+    }
+    return sid, issued, {"email": email, "display_name": name, "user_id": email, "role": "athlete"}
+
+
 def sign_in_local(app, path: Path, email: str, password: str) -> tuple[str, int, dict]:
     """The account file. The seal is stored under the cookie id, not in it."""
     found = authenticate(path, email, password)
@@ -121,15 +139,7 @@ def sign_in_local(app, path: Path, email: str, password: str) -> tuple[str, int,
     cleaned, seal = found
     local = read_local(path, cleaned) or {}
     name = local.get("name") if isinstance(local.get("name"), str) else ""
-    issued = int(time.time())
-    sid = new_hosted_sid()
-    _local_sessions(app)[hosted_hash(sid)] = {
-        "email": cleaned,
-        "seal": seal,
-        "display_name": name,
-        "issued_at": issued,
-    }
-    return sid, issued, {"email": cleaned, "display_name": name, "user_id": cleaned, "role": "athlete"}
+    return _remember_local(app, cleaned, seal, name)
 
 
 def update_local_session(app, sid: str, **fields: object) -> None:

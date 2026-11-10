@@ -184,7 +184,7 @@ Body:
 
 Body: `{"date": "", "outcome": "Ahead", "time": "1:12.4", "note": null}`.
 
-`outcome` is `Behind`, `On target`, or `Ahead`. `time` may be empty. `200` matches the result route, including `insight`. A time on a hard day adapts later weeks. Done with no time does not. `400` when the date or the time is unusable.
+`outcome` is `Behind`, `On target`, or `Ahead`. `time` may be empty. `missed: true` stores Couldn't finish: no time, no mark, and later weeks stay put. `200` matches the result route, including `insight`. A time on a hard day adapts later weeks. Done with no time does not. `400` when the date or the time is unusable.
 
 ### `POST /seasons/current/marks`
 
@@ -349,8 +349,11 @@ These are the reads and writes Home, Plan, Activity, Library, Profile, Settings,
 | `inputs`, `digest` | The current season |
 | `view` | Next workout, days remaining, phase, last mark, and this week's focus, from `dashboard_view` |
 | `phase` | The authored phase story, or `null`. Not a model note. |
-| `next` | Today's workout, or the next one. No-watch uses the next open workout. |
-| `upcoming` | The next three sessions on or after today |
+| `next` | Today's workout, or the next one. No-watch uses the next open workout. Also `label`, `facts` (`distance`, `pace`, `rest`, `reps`), `shown_date`, and `prescription`. |
+| `upcoming` | The next three sessions on or after today, with the same card fields as `next` |
+| `next_days` | The three calendar days after today. A day with no session is still a card (`label` is `—`). |
+| `pace_status` | `No runs yet`, `Not enough data`, `On track`, `Ahead`, or `Behind` |
+| `prescription` | `line`, `tolerance`, and `block`. `line` is the time per rep and the rest, or the easy pace, or the sentence that asks for an easy pace. `block` is the session clock for a rep workout. Easy pace is not passed into `sequence()` or `adapt()`. |
 | `notes` | Unviewed insight notes: `[{"date": "", "note": {}, "viewed": false}]` |
 | `activities` | The same activity rows as `season.activities` |
 | `logging` | `done` or `times` |

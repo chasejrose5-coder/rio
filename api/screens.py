@@ -9,18 +9,20 @@ passed into sequence() or adapt().
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 from api.errors import ApiError
 from api.identity import Principal
 from api.prefs import account_prefs, athlete_payload
-from engines.pace import PACE_MILE, pace_unit
+from engines.pace import PACE_MILE, PaceLog, pace_unit, project_800, workout_recipe, workout_times
 from ui.accounts import AccountError, normalize_name, read_local, write_easy_pace, write_local
 from ui.activity_board import build_cards, group_weeks, heart_points, week_summary, weekly_meters
 from ui.activity_data import all_activities, session_rows
 from ui.calendar import month_title, month_weeks, opening_month, plan_months
 from ui.cloud_store import CloudAuthError
-from ui.dashboard import current_week, dashboard_view
+from ui.dashboard import current_week, dashboard_view, session_facts
+from ui.settings import display_training, format_date
+from ui.workout_text import WORKOUT_TEXT
 from ui.insights import no_plan_copy, phase_story
 from ui.library import filter_workouts, library_rows
 from ui.no_watch import next_open_workout
@@ -69,6 +71,211 @@ def _upcoming(sessions: list, today: date, count: int = 3) -> list[dict]:
             rows.append(session)
     rows.sort(key=lambda session: str(session.get("date")))
     return rows[:count]
+
+
+_WEEKDAYS = (
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+)
+
+
+def _positive(values: object) -> list[float]:
+    if not isinstance(values, (list, tuple)):
+        return []
+    found = []
+    for value in values:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            continue
+        number = float(value)
+        if number > 0:
+            found.append(number)
+    return found
+
+
+def _pace_logs(season) -> list[PaceLog]:
+    """Logged times already stored. The average of a rep workout is one log."""
+    logs: list[PaceLog] = []
+    actuals = season.actuals if isinstance(season.actuals, dict) else {}
+    activities = season.activities if isinstance(season.activities, list) else []
+    by_day: dict[str, dict] = {}
+    for row in activities:
+        if isinstance(row, dict) and isinstance(row.get("date"), str) and row["date"] not in by_day:
+            by_day[row["date"]] = row
+    sessions = season.plan.get("sessions") if isinstance(season.plan, dict) else []
+    if not isinstance(sessions, list):
+        return logs
+    for session in sessions:
+        if not isinstance(session, dict):
+            continue
+        text = session.get("date")
+        template = str(session.get("template_id") or "").strip()
+        if not isinstance(text, str) or not template:
+            continue
+        try:
+            day = date.fromisoformat(text)
+        except ValueError:
+            continue
+        numbers: list[float] = []
+        saved = actuals.get(text)
+        if isinstance(saved, dict) and saved.get("template_id") == template:
+            numbers = _positive(saved.get("numbers")) or _positive(saved.get("slots"))
+        if not numbers:
+            match = by_day.get(text)
+            if isinstance(match, dict):
+                numbers = _positive(match.get("reps"))
+        if not numbers:
+            continue
+        logs.append(PaceLog(day, sum(numbers) / len(numbers), template))
+    return logs
+
+
+def _pace_status(season, today: date, easy_pace: str, easy_unit: str, logs: list[PaceLog]) -> str:
+    if not logs:
+        return "No runs yet"
+    try:
+        found = project_800(
+            current_mark=season.inputs[0],
+            goal_mark=season.inputs[2],
+            start=date.fromisoformat(season.inputs[1]),
+            goal_date=date.fromisoformat(season.inputs[3]),
+            on=today,
+            logs=logs,
+            easy_pace=easy_pace,
+            easy_unit=easy_unit,
+        )
+    except ValueError:
+        return "Not enough data"
+    text = str(found.get("status") or "on track")
+    return text[:1].upper() + text[1:]
+
+
+def _present_session(session: dict, season, *, units: str, date_format: str, easy_pace: str, easy_unit: str, logs: list[PaceLog]) -> dict:
+    """The card copy, the facts, and the clock line. The stored plan is not changed."""
+    shown = dict(session)
+    template = str(session.get("template_id") or "").strip()
+    raw = WORKOUT_TEXT.get(template, template)
+    label = display_training(raw, units) if raw else "—"
+    if not label:
+        label = "—"
+    facts = session_facts(template, raw or "")
+    recipe = workout_recipe(template)
+    continuous = bool(recipe and recipe.get("continuous"))
+    distance = str(facts.get("distance") or "—")
+    if continuous:
+        converted = display_training(distance, units)
+        distance = converted or distance
+    pace = str(facts.get("pace") or "—")
+    rest = str(facts.get("rest") or "—")
+    if rest == "—":
+        rest = "No rest"
+    if continuous:
+        pace = easy_pace_phrase_or_ask(easy_pace, easy_unit)
+    shown["label"] = label
+    shown["facts"] = {
+        "distance": distance,
+        "pace": pace,
+        "rest": rest,
+        "reps": str(facts.get("reps") or "—"),
+    }
+    day_text = str(session.get("date") or "")
+    try:
+        day = date.fromisoformat(day_text)
+    except ValueError:
+        day = None
+    shown["shown_date"] = format_date(day_text, date_format) if day_text else "—"
+    prescription = None
+    if day is not None and template:
+        try:
+            found = workout_times(
+                template,
+                current_mark=season.inputs[0],
+                goal_mark=season.inputs[2],
+                start=date.fromisoformat(season.inputs[1]),
+                goal_date=date.fromisoformat(season.inputs[3]),
+                on=day,
+                logs=logs,
+                easy_pace=easy_pace,
+                easy_unit=easy_unit,
+            )
+        except ValueError:
+            found = None
+        if isinstance(found, dict):
+            line = str(found.get("line") or "").strip()
+            if found.get("easy_unset") or (continuous and not line):
+                line = "Set your easy pace before this run."
+            elif continuous and line and not line.lower().startswith("run at "):
+                line = f"Run at {line}"
+            if line:
+                prescription = {
+                    "line": line,
+                    "tolerance": "" if continuous else str(found.get("tolerance") or ""),
+                    "block": "" if continuous else str(found.get("block") or ""),
+                }
+    shown["prescription"] = prescription
+    return shown
+
+
+def easy_pace_phrase_or_ask(easy_pace: str, easy_unit: str) -> str:
+    from engines.pace import easy_pace_phrase
+
+    phrase = easy_pace_phrase(easy_pace, easy_unit) if easy_pace else ""
+    return phrase or "Set your easy pace"
+
+
+def _blank_day(day: date, date_format: str) -> dict:
+    return {
+        "date": day.isoformat(),
+        "shown_date": format_date(day, date_format),
+        "day_of_week": _WEEKDAYS[day.weekday()],
+        "template_id": "",
+        "label": "—",
+        "facts": None,
+        "prescription": None,
+    }
+
+
+def _next_days(sessions: list, today: date, season, *, units: str, date_format: str, easy_pace: str, easy_unit: str, logs: list[PaceLog]) -> list[dict]:
+    """The three calendar days after today. A rest day still takes a card."""
+    by_date: dict[date, dict] = {}
+    for session in sessions:
+        if not isinstance(session, dict):
+            continue
+        text = session.get("date")
+        if not isinstance(text, str):
+            continue
+        try:
+            day = date.fromisoformat(text)
+        except ValueError:
+            continue
+        if day <= today or day in by_date:
+            continue
+        by_date[day] = session
+    rows = []
+    for offset in range(1, 4):
+        day = today + timedelta(days=offset)
+        found = by_date.get(day)
+        if found is None:
+            rows.append(_blank_day(day, date_format))
+            continue
+        ready = json_ready(found)
+        if isinstance(ready, dict):
+            rows.append(
+                _present_session(
+                    ready,
+                    season,
+                    units=units,
+                    date_format=date_format,
+                    easy_pace=easy_pace,
+                    easy_unit=easy_unit,
+                    logs=logs,
+                )
+            )
+    return rows
 
 
 def home_view(principal, directory, today: date, season, *, connected: bool, strava: dict, just_generated: bool) -> dict:
@@ -125,6 +332,36 @@ def home_view(principal, directory, today: date, season, *, connected: bool, str
     shown = view.get("next")
     if prefs["prefs"].get("no_watch") is True:
         shown = next_open_workout(sessions, today, season.actuals)
+    units = str(prefs["prefs"].get("units") or "miles")
+    date_format = str(prefs["prefs"].get("date_format") or "iso")
+    easy_pace = str(prefs.get("easy_pace") or "")
+    easy_unit = str(prefs.get("easy_pace_unit") or "mi")
+    logs = _pace_logs(season)
+    ready_next = json_ready(shown)
+    if isinstance(ready_next, dict):
+        ready_next = _present_session(
+            ready_next,
+            season,
+            units=units,
+            date_format=date_format,
+            easy_pace=easy_pace,
+            easy_unit=easy_unit,
+            logs=logs,
+        )
+    upcoming = []
+    for item in json_ready(_upcoming(sessions, today)):
+        if isinstance(item, dict):
+            upcoming.append(
+                _present_session(
+                    item,
+                    season,
+                    units=units,
+                    date_format=date_format,
+                    easy_pace=easy_pace,
+                    easy_unit=easy_unit,
+                    logs=logs,
+                )
+            )
     notes = []
     for day, item in season.notes.items():
         if isinstance(item, dict) and item.get("viewed") is not True and isinstance(item.get("note"), dict):
@@ -140,8 +377,19 @@ def home_view(principal, directory, today: date, season, *, connected: bool, str
         "digest": season.digest,
         "view": json_ready(view),
         "phase": story,
-        "next": json_ready(shown),
-        "upcoming": json_ready(_upcoming(sessions, today)),
+        "pace_status": _pace_status(season, today, easy_pace, easy_unit, logs),
+        "next": ready_next,
+        "upcoming": upcoming,
+        "next_days": _next_days(
+            sessions,
+            today,
+            season,
+            units=units,
+            date_format=date_format,
+            easy_pace=easy_pace,
+            easy_unit=easy_unit,
+            logs=logs,
+        ),
         "notes": notes,
         "activities": json_ready(season.activities),
         "logging": "done" if prefs["prefs"].get("no_watch") is True else "times",
