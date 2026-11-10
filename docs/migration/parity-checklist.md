@@ -33,7 +33,7 @@ Step 3 owners:
 | 3.4 | Activity, Last Session laps, and the Strava callback. PR #66. |
 | 3.5 | Library. PR #67. |
 | 3.6 | Profile and the More menu. PR #68. |
-| 3.7 | Settings. |
+| 3.7 | Settings. PR #69. |
 | 3.8 | Seasons and past seasons. |
 | 3.9 | About and Creators. Locked copy. This step does not rewrite them. |
 | Unassigned | Not named in the plan: splash, admin, the test season, hero editing, fixture pages, explain prose. |
@@ -43,9 +43,9 @@ Step 3 owners:
 | | |
 | --- | --- |
 | Total items | 188 |
-| Done | 122 |
-| Partial | 22 |
-| Not started | 44 |
+| Done | 139 |
+| Partial | 19 |
+| Not started | 30 |
 | API line starts with `MISSING` | 46 |
 | of which `MISSING (static)` | 46 |
 | of which `MISSING (data)` | 0 |
@@ -70,7 +70,7 @@ These are the differences that matter for "nothing is lost." Item rows below rep
 12. **Gap 12. Forgot password is gated on the wrong-shaped check, and the URL is always there.** The link shows when `GET /auth/google` returns 200 and hides on 503. That lines up with hosted versus the local file, which is what the plan asks. Opening `/forgot-password` directly still draws the form. On the local file the API returns 400 because that file has no mail. Streamlit has no forgot screen at all in local mode.
 13. **Gap 13. Landing is unreadable in the commit, and create-account is untested.** `Gate` calls `landingPath` from the missing `web/lib/landing.ts`. The e2e only checks sign-in: current season → `/home`, no season → `/start`. `GET /seasons/current` already 404s when every goal date is before today (`api/season_service.py` `open_season`), so that split can match Streamlit if `landingPath` sends 404 to `/start` and 200 to `/home`. The test never uses a goal date of today, and it never walks intro or easy pace.
 14. **Gap 14. Empty fields use the browser, not RIO's sentence.** Login and create mark the inputs `required`. An empty submit can stop on the browser bubble. Streamlit submits and shows "Enter a name.", "Enter an email address.", or "Use at least 8 characters."
-15. **Gap 15. Later pages are still placeholders.** Past seasons, Admin, and About and Creators still say "Coming in the next step." Profile is the step 3.6 page, and More is its menu. Library is the step 3.5 page. Activity and Last Session are the step 3.4 pages. Settings shows the Strava block; the rest of Settings is still the next step. Plan is step 3.2. Session is step 3.3.
+15. **Gap 15. Later pages are still placeholders.** Past seasons, Admin, and About and Creators still say "Coming in the next step." Profile is the step 3.6 page, and More is its menu. Library is the step 3.5 page. Activity and Last Session are the step 3.4 pages. Settings is the step 3.7 page. Plan is step 3.2. Session is step 3.3.
 16. **Gap 16. Motion.** Home staggers its blocks by 200ms (`web/app/globals.css` `.rio-stagger`). The splash fade, the nav underline that does not replay on the same page, and the hold that skips a same-page rerun are not there.
 
 ## Routes main still calls "not built"
@@ -1293,7 +1293,8 @@ Changes to name, time zone, and the toggles save as they are edited. There is no
 **Now:** `page_settings`
 **API:** `PATCH /settings` returns the athlete. `400` when a value is unusable or the body changes nothing.
 **Step 3:** 3.7
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/settings.spec.ts` "a rejected name stays an error and the saved name is unchanged" and `tests/test_api_step3_settings.py` `test_a_bad_value_does_not_wipe_the_name`. A bad zone returns "Choose a time zone from the list." and the stored name stays.
 **Verify:** A bad time zone does not wipe the name. The previous value stays.
 
 ### G2. Name, nickname, email, time zone
@@ -1302,7 +1303,8 @@ Changes to name, time zone, and the toggles save as they are edited. There is no
 **Now:** `page_settings`, `_profile_save_note`
 **API:** `PATCH /settings` `display_name`, `preferred` (empty string clears it), `timezone`. Email on this form is display-only. Changing it is Settings G7.
 **Step 3:** 3.7
-**Status:** not started
+**Status:** done
+**Evidence:** `tests/test_api_step3_settings.py` `test_the_greeting_uses_the_nickname_then_the_name` and `test_an_unlisted_saved_zone_still_appears`. `web/e2e/settings.spec.ts` covers the name error and the zone list. Home `hello` is the nickname, then the name.
 **Verify:** Edit the name, reload, the greeting on Home uses it. Clear the nickname and the greeting falls back to the name. "Enter a name." when the name is rejected.
 
 ### G3. Change password
@@ -1311,7 +1313,8 @@ Changes to name, time zone, and the toggles save as they are edited. There is no
 **Now:** `page_settings`; `ui/accounts.py` `change_password`
 **API:** `PR #61: POST /auth/password` body `{current_password, new_password}`. The cookie stays.
 **Step 3:** 3.7
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/settings.spec.ts` "password and email keep the person signed in when the secret is wrong". The API round trip is `tests/test_api_step2c.py` `test_change_password_and_email_keep_the_session`.
 **Verify:** Wrong current password stays signed in and shows the error. The right one lets the new password log in. The old one does not.
 
 ### G4. Logging
@@ -1320,7 +1323,8 @@ Changes to name, time zone, and the toggles save as they are edited. There is no
 **Now:** `page_settings`
 **API:** `PATCH /settings` `no_watch`. `prefs.logging` becomes `done` when that is true, otherwise `times`.
 **Step 3:** 3.7. The Session behavior is W9.
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/settings.spec.ts` "timezone, pace, and each toggle are saved" posts `no_watch`. `tests/test_api_step3_settings.py` `test_the_saved_zone_decides_today_on_home_and_plan` keeps the session ids. Session already reads `logging`.
 **Verify:** Turn it on. Session shows Done, not rep boxes. Turn it off. Rep boxes return. The plan is not rewritten.
 
 ### G5. Pace units, intro, start date, ids, compact, dates, confirm
@@ -1329,7 +1333,8 @@ Changes to name, time zone, and the toggles save as they are edited. There is no
 **Now:** `page_settings`. Short dates are like "Oct 24, 2026" (`ui/settings.py` `format_date`). ISO is `YYYY-MM-DD`.
 **API:** `PATCH /settings` `pace_units`, `intro_seen`, `start_date`, `show_ids`, `compact`, `date_format`, `confirm_adapt`. The plan is not rewritten.
 **Step 3:** 3.7
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/settings.spec.ts` "timezone, pace, and each toggle are saved" and "show intro guide opens the guide again". A non-admin has no "Show template ids". `PATCH /settings` does not rewrite the plan (`test_the_saved_zone_decides_today_on_home_and_plan`).
 **Verify:** Per km changes Activity distance and does not change a rep from meters to miles. "Show intro guide" opens I1 on the next paint. Short versus ISO changes Plan and Past seasons. A non-admin has no "Show template ids".
 
 ### G6. Export
@@ -1338,7 +1343,8 @@ Changes to name, time zone, and the toggles save as they are edited. There is no
 **Now:** `page_settings`; `ui/plan_store.py` `export_season`
 **API:** The file is built in the browser from `GET /seasons/current` (inputs, plan, marks, actuals). There is no separate export route.
 **Step 3:** 3.7
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/settings.spec.ts` "export downloads the season, and an empty account says to start" saves `rio-season.json` with the four inputs and no password or seal. `web/lib/settings.test.ts` checks the file shape. No export route was added.
 **Verify:** The file opens as JSON and contains the four inputs. No tokens.
 
 ### G7. Change email
@@ -1347,7 +1353,8 @@ Changes to name, time zone, and the toggles save as they are edited. There is no
 **Now:** `page_settings`; `ui/accounts.py` `change_email`
 **API:** `PR #61: POST /auth/email` body `{email, password}`
 **Step 3:** 3.7
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/settings.spec.ts` "password and email keep the person signed in when the secret is wrong" and "hosted email success can ask for a confirmation mail". A taken address stays on the old email. Hosted success is "Check your email to confirm the new address."
 **Verify:** Wrong password does not change the address. A taken address shows the error and stays on the old one.
 
 ### G8. Privacy note and version
@@ -1356,7 +1363,8 @@ Changes to name, time zone, and the toggles save as they are edited. There is no
 **Now:** `_browser_clear_note`; `ui/settings.py` `APP_VERSION`
 **API:** none for the sentences. Version is static.
 **Step 3:** 3.7
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/settings.spec.ts` "about is the version, and strava shows connect or disconnect" expects "RIO 0.1". Hosted and local privacy sentences are in "hosted email success can ask for a confirmation mail" and "danger actions ask before they run".
 **Verify:** The version is 0.1. The privacy sentence matches hosted versus local.
 
 ### G9. Danger zone
@@ -1365,7 +1373,8 @@ Changes to name, time zone, and the toggles save as they are edited. There is no
 **Now:** `page_settings`
 **API:** none for the kicker
 **Step 3:** 3.7
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/settings.spec.ts` "danger actions ask before they run". The kicker and the red expander are separate from Preferences. Each button without its checkbox shows that button's confirm sentence and does not call the route.
 **Verify:** The block is visually separate from Preferences. Nothing in it runs without its own confirm.
 
 ### G10. Clear marks
@@ -1374,7 +1383,8 @@ Changes to name, time zone, and the toggles save as they are edited. There is no
 **Now:** `page_settings`, `_clear_season_marks`
 **API:** `POST /seasons/current/clear` body `{confirm: true}`. The plan is `sequence()` again for the same four inputs. Marks, actuals, and quality bases are empty. Notes stay.
 **Step 3:** 3.7
-**Status:** not started
+**Status:** done
+**Evidence:** `tests/test_api_step3_settings.py` `test_clear_keeps_notes_and_reset_keeps_the_account`. `web/e2e/settings.spec.ts` shows "Confirm to clear marks and actuals." before the box, then "Marks and actuals are cleared."
 **Verify:** Confirm, then a logged rep is gone and an insight note is still there. The four inputs are unchanged.
 
 ### G11. Reset plan
@@ -1383,7 +1393,8 @@ Changes to name, time zone, and the toggles save as they are edited. There is no
 **Now:** `page_settings`, `_reset_saved_plan`
 **API:** `PR #61: POST /seasons/reset` body `{confirm: true}`. The account, name, and settings stay.
 **Step 3:** 3.7
-**Status:** not started
+**Status:** done
+**Evidence:** `tests/test_api_step3_settings.py` `test_clear_keeps_notes_and_reset_keeps_the_account`. Reset without the box is "Confirm to reset the plan." After confirm, Home has no season, sign-in still works, and easy pace stays.
 **Verify:** After reset, Home is the no-plan state. Log in still works. Easy pace is still saved.
 
 ### G12. Delete account
@@ -1392,7 +1403,8 @@ Changes to name, time zone, and the toggles save as they are edited. There is no
 **Now:** `page_settings`; `ui/accounts.py` `delete_account`; `ui/cloud_ui.py` `delete_signed_in_account`
 **API:** `PR #61: POST /auth/delete`. `confirm` must be true. Hosted ignores email and password. Local requires both. The cookie is cleared.
 **Step 3:** 3.7
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/settings.spec.ts` "danger actions ask before they run" shows "Confirm to delete this account." and "Confirm with your email to delete this account." The local API check is `tests/test_api_step2c.py` `test_local_delete_requires_the_email_and_the_password`. No production delete was run.
 **Verify:** Use a throwaway account. After delete, that email cannot log in. Another account on the same browser is unaffected. Do not run this against production.
 
 ### G13. Clear local data
@@ -1401,7 +1413,8 @@ Changes to name, time zone, and the toggles save as they are edited. There is no
 **Now:** `page_settings`, `_sign_out`
 **API:** MISSING (static) for the checkbox. Sign-out is `POST /auth/sign-out`. The browser store is the client's.
 **Step 3:** 3.7
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/settings.spec.ts` "danger actions ask before they run" shows "Confirm to clear local data." before the box. Confirm clears this browser's storage and calls `POST /auth/sign-out`. The account file is not deleted.
 **Verify:** After clear, reload is Log in (or the splash). A hosted season is still there on the next log-in. A local account file is still on the machine.
 
 ---
@@ -1725,9 +1738,9 @@ Screen-specific sentences are on their items (T8, W2, Y3, M3, U1, Settings G10).
 **Sees:** The link "Generate season plan", or the note "Generate a season on Start.", on Home, Plan, Activity, Library's neighbors, Session, Profile, and Settings export, whenever there is no season.
 **Now:** `_season_prompt` and the per-page branches
 **API:** `GET /seasons/current` `404` "No current season." `GET /home` `copy` when `season` is null.
-**Step 3:** Each page's step. Home's version is done in PR #61 (H2).
-**Status:** partial
-**Gap:** Home, Plan, Session, Activity, and Profile send a person with no season to Start. Profile shows "Generate a season on Start." and the link "Generate season plan". Library loads the menu with no season, so it has no prompt. Settings export is still a later step.
+**Step 3:** Each page's step. Home's version is done in PR #61 (H2). Profile is 3.6. Settings export is 3.7.
+**Status:** done
+**Evidence:** `web/e2e/settings.spec.ts` "settings export without a season points at Start" shows "Generate a season on Start." Profile already has that note and "Generate season plan". Home, Plan, Session, and Activity already link to Start. Library loads the menu with no season, which is the Streamlit page.
 **Verify:** On each of those pages, with no season, the person can get to Start. They never see a blank plan.
 
 ### X2. An em dash for an empty value
@@ -1756,8 +1769,8 @@ Screen-specific sentences are on their items (T8, W2, Y3, M3, U1, Settings G10).
 **Now:** `ui/accounts.py`; `_enter_account`
 **API:** The auth routes' `detail`
 **Step 3:** PR #61 for sign-in. Settings writes are 3.7.
-**Status:** partial
-**Gap:** Sign-in shows `detail` when the client exists (Gap 1). Settings does not exist yet, so its save errors are not started.
+**Status:** done
+**Evidence:** `web/e2e/settings.spec.ts` "save failures use the account sentences" shows "This account could not be opened.", "This session could not be saved.", and "This account could not be saved." in `.rio-error`. Sign-in already shows `detail`.
 **Verify:** Each sentence can appear, escaped, in `.rio-error`. No traceback.
 
 ---
@@ -1879,8 +1892,8 @@ The live app keeps a signed token for one day. Refreshing does not extend it. Lo
 **Now:** `ui/settings.py` `local_today`, `session_timezone`, `suggested_timezone`; `ui/streamlit_app.py` `_athlete_today`
 **API:** `today` on `GET /auth/me`, `GET /home`, and `GET /seasons/current`. The contract says it is `YYYY-MM-DD` in the saved time zone. The zone is `PATCH /settings` `timezone`, one id from the Settings list.
 **Step 3:** PR #61 for landing and Home. Start's default date is 3.1. The calendar cell is 3.2. The control is 3.7 (Settings G2).
-**Status:** partial
-**Gap:** Start's default date uses `GET /auth/me` `today`, which is the saved zone. A brand-new account set to `America/Los_Angeles` showed 2026-11-09 while UTC was 2026-11-10. The Plan calendar's today cell uses that same date (`GET /plan` `calendar.today`): on that check the outlined day was 2026-11-09, not the UTC day. The Settings control that picks the zone is still 3.7. A new account does not pick a zone until then.
+**Status:** done
+**Evidence:** `tests/test_api_step3_settings.py` `test_the_saved_zone_decides_today_on_home_and_plan`. At 2026-11-10 18:00 UTC, `Pacific/Auckland` makes `today` 2026-11-11 on `GET /auth/me`, `GET /home`, and the Plan calendar cell. `Pacific/Honolulu` makes that day 2026-11-10. The Settings select is the control.
 **Verify:** Set the zone to `Pacific/Auckland` and compare with UTC around midnight. Home, the calendar's today cell, and Home-versus-Start agree. Document the zone in the screenshot.
 
 ---
@@ -1905,7 +1918,7 @@ The live app keeps a signed token for one day. Refreshing does not extend it. Lo
 **API:** MISSING (static)
 **Step 3:** Each page's step. Home's stagger is the partial stand-in.
 **Status:** partial
-**Gap:** Gap 16. Home staggers children. It does not suppress the animation on a same-page reload. Library, Profile, and More fade once and their blocks rise about 8px. A save on Profile does not replay it. The later pages are still open.
+**Gap:** Gap 16. Home staggers children. It does not suppress the animation on a same-page reload. Library, Profile, More, and Settings fade once and their blocks rise about 8px. A save on Profile or Settings does not replay it. Past seasons, About, and Creators are still open.
 **Verify:** Open Home, then refresh Home. The second time does not replay the rise. Open Plan from Home. Plan fades once.
 
 ### A3. Nav underline
@@ -1986,7 +1999,8 @@ These are in the code and must stay hidden. Shipping them would add something th
 **Now:** `page_settings`
 **API:** `PATCH /settings` does not document these. `normalize` still stores `reminders`, `recap`, `notifications`, and `theme`, and nothing is sent.
 **Step 3:** 3.7
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/settings.spec.ts` "settings shows every section, and the hidden leftovers stay hidden". The hidden div still has Metric, Imperial, Dark, Notifications, Workout reminders, Weekly recap, and "Placeholder. Nothing is sent."
 **Verify:** Settings has no theme toggle and no notification toggle. The hidden strings are still in the DOM if Streamlit's hidden div is kept, and they are not visible.
 
 ### Z5. About's long paragraphs

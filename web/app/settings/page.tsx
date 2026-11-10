@@ -1,10 +1,10 @@
 import { Suspense } from "react";
-import { StravaSettings } from "@/components/StravaSettings";
+import { SettingsView } from "@/components/SettingsView";
 
 export default function Page() {
   return (
     <Suspense fallback={<p className="rio-wait">Loading</p>}>
-      <StravaSettings />
+      <SettingsView />
     </Suspense>
   );
 }

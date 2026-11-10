@@ -264,6 +264,7 @@ test("connect opens Strava and disconnect clears the name", async ({ page }) => 
   });
   await sign(page);
   await page.goto("/settings");
+  await page.locator("summary", { hasText: "Strava" }).click();
   await expect(page.getByText("Strava data is only visible to you.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Connect with Strava" })).toBeVisible();
   await expect(page.locator(".rio-mark-label", { hasText: "Strava" })).toHaveCSS("color", "rgb(60, 58, 54)");

@@ -89,7 +89,10 @@ def account_prefs(principal: Principal, directory) -> dict:
     prefs = normalize(raw)
     # The shell shows distance in the pace unit the athlete picked.
     prefs["units"] = "km" if prefs.get("pace_units") == "km" else "miles"
+    # Today follows a listed zone. A saved id outside that list still comes
+    # back so Settings can show it, and today falls back to the suggestion.
     timezone = chosen_timezone(zone, None)
+    shown_zone = zone.strip() if isinstance(zone, str) and zone.strip() else timezone
     today = local_today(timezone)
     phrase = ""
     easy_pace = ""
@@ -99,7 +102,7 @@ def account_prefs(principal: Principal, directory) -> dict:
         phrase = easy_pace_phrase(easy_pace, easy_unit)
     return {
         "prefs": prefs,
-        "timezone": timezone,
+        "timezone": shown_zone,
         "today": today,
         "easy_pace": easy_pace,
         "easy_pace_unit": easy_unit,
