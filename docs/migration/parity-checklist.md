@@ -43,9 +43,9 @@ Step 3 owners:
 | | |
 | --- | --- |
 | Total items | 187 |
-| Done | 35 |
-| Partial | 29 |
-| Not started | 123 |
+| Done | 71 |
+| Partial | 24 |
+| Not started | 92 |
 | API line starts with `MISSING` | 48 |
 | of which `MISSING (static)` | 46 |
 | of which `MISSING (data)` | 2 |
@@ -56,12 +56,12 @@ The two data rows are W13 and X3, the same hole: an Intervals JSON file's laps a
 
 These are the differences that matter for "nothing is lost." Item rows below repeat the ones that belong to a screen.
 
-1. **Gap 1. The client that talks to the API is not in the commit.** `web/app/layout.tsx`, `web/components/AuthScreen.tsx`, `Gate.tsx`, `HomeView.tsx`, `Nav.tsx`, and `RequireUser.tsx` import `@/lib/api`, `@/lib/auth`, `@/lib/landing`, and `@/lib/types`. Those files are not on `cursor/next-web-scaffold-b006`. The screens cannot build from the tree. Every `done` row below is source in the components, not a built site.
-2. **Gap 2. A new account skips the intro and the easy-pace screen.** Streamlit, in `_with_plan`, stops on easy pace until one is saved, then on the three-step intro until Skip or Done, and only then draws the page. A brand-new account has no season, so the page under those gates is Start. `CreateAccountScreen` does `router.replace("/")`. `Gate` then opens Start, which is `ComingSoon` ("Coming in the next step."). It never reads `easy_pace` or `intro_seen`. The create-account e2e does not submit the form.
-3. **Gap 3. There is no startup splash.** The first Streamlit screen is the track photo and Continue. The web app opens Log in.
-4. **Gap 4. Start is a placeholder.** Generate, the four fields, the validation sentences, the Bohdan Hyrovych credit, and the handoff that arms the Strava card are not built. The placeholder adds a sentence Streamlit does not use: "This is where a season starts when there is no goal date today or later."
-5. **Gap 5. The Strava card on Home cannot appear yet.** `HomeView` draws "Your plan is ready." only when `GET /home?just_generated=true` returns `strava_offer`. Nothing in the built UI sets `just_generated`, because Generate does not exist.
-6. **Gap 6. Home is not the whole Home.** The aerial photo, credit, greeting, track, four tiles, glossary, phase bar, today's workout, tolerance and block lines, insight "Got it", and the no-plan state are in `HomeView`. Still missing on that page: "Rest day" (the web shows the API's "—" for an empty day), the "03 / Open" index when the phase story is hidden, extra-session cards, and the no-watch Done controls that Streamlit embeds under today's workout. No-watch workout *choice* can still be right if the API's `next` is the next open workout. The buttons are not there.
+1. **Gap 1. Closed.** The API client is in `web/lib/` (`api.ts`, `auth.tsx`, `landing.ts`, `types.ts`). The second commit of #61 put it in the tree. This step re-ran lint, typecheck, the Playwright suite, and `npm run build`.
+2. **Gap 2. Closed.** A new account stops on easy pace, then the intro, then Start. `Gate` reads `easy_pace` and `intro_seen`. The walk is `web/e2e/start.spec.ts` ("a brand-new local account") and `web/e2e/auth-home.spec.ts`.
+3. **Gap 3. The splash is in.** `Splash` and `Gate` draw the track photo and Continue. Continue opens Log in. The seen flag is `sessionStorage` key `rio_startup_seen`. The URL does not gain `skip=1` (S4).
+4. **Gap 4. Closed.** Start is the four-field form on `start_line.jpg` (`/photos/start.jpg`), with the Bohdan Hyrovych credit. Generate calls `POST /seasons`.
+5. **Gap 5. Closed.** Generate opens `/home` with the four inputs and `just_generated=true`. Home asks `GET /home?just_generated=true` and draws the Strava card from `strava_offer`.
+6. **Gap 6. Home's remaining hole is a broken plan.** Rest day, "03 / Open", extra sessions, and the no-watch Done controls are in `HomeView` and covered by `web/e2e/auth-home.spec.ts`. A stored plan `sequence()` would reject still has no "—" state (H13).
 7. **Gap 7. Create-account helper copy.** The web always shows "First name is enough. At least 8 characters." Local Streamlit adds "Saved on this machine." Hosted Streamlit shows no helper line.
 8. **Gap 8. Local log-in notice.** When Supabase is not configured, Streamlit still shows the form and the card "Accounts aren't set up yet" / "Sign-in will open here after accounts are connected." The web form does not show that card.
 9. **Gap 9. Window title.** Streamlit is "RIO · Runner Intelligence Owned" with a runner icon. The web layout title is "RIO" and the description is "Runner Intelligence Owned".
@@ -138,7 +138,7 @@ Shown once per browser session until Continue, unless this session already holds
 **Now:** `ui/startup.py` `render_startup`, `_layout_css`
 **API:** MISSING (static)
 **Step 3:** Unassigned. Not in the plan, and not in PR #61.
-**Status:** not started
+**Status:** done
 **Verify:** New session, signed out. Screenshot before Continue. No app header.
 
 ### S2. Splash words
@@ -147,7 +147,7 @@ Shown once per browser session until Continue, unless this session already holds
 **Now:** `ui/startup.py` `_HTML` (the `HEADLINE` and `CREATOR_STATEMENT` constants are not what is drawn)
 **API:** MISSING (static)
 **Step 3:** Unassigned
-**Status:** not started
+**Status:** done
 **Verify:** Screenshot the splash copy, including the quote and the attribution.
 
 ### S3. Splash credit
@@ -156,7 +156,7 @@ Shown once per browser session until Continue, unless this session already holds
 **Now:** `ui/startup.py` `PHOTO_CREDIT`
 **API:** MISSING (static)
 **Step 3:** Unassigned
-**Status:** not started
+**Status:** done
 **Verify:** The credit is readable on the photo. See also C1.
 
 ### S4. Continue
@@ -165,7 +165,8 @@ Shown once per browser session until Continue, unless this session already holds
 **Now:** `ui/startup.py` `render_startup` (`CONTINUE_LABEL`)
 **API:** MISSING (static)
 **Step 3:** Unassigned
-**Status:** not started
+**Status:** partial
+**Gap:** Continue opens Log in. The seen flag is `sessionStorage` `rio_startup_seen`. The URL does not gain `skip=1`.
 **Verify:** Click Continue. The next screen is Log in, and the URL gains `skip=1`.
 
 ### S5. Splash shows again in a new tab
@@ -174,7 +175,7 @@ Shown once per browser session until Continue, unless this session already holds
 **Now:** `ui/startup.py` `startup_pending` (`SEEN_KEY` is `rio_startup_seen`)
 **API:** MISSING (static)
 **Step 3:** Unassigned
-**Status:** not started
+**Status:** done
 **Verify:** Continue, then open a second tab. The splash is back.
 
 ### S6. Splash skipped when a season is already open
@@ -183,7 +184,7 @@ Shown once per browser session until Continue, unless this session already holds
 **Now:** `ui/streamlit_app.py` around the `startup_pending` check, `_has_current_season`
 **API:** `GET /seasons/current` (the skip itself is not a route)
 **Step 3:** Unassigned
-**Status:** not started
+**Status:** done
 **Verify:** Sign in with a current season, reload in the same session. Land on the app, not the splash.
 
 ### S7. Splash contact line
@@ -192,7 +193,7 @@ Shown once per browser session until Continue, unless this session already holds
 **Now:** `ui/streamlit_app.py` `_contact_footer`
 **API:** MISSING (static)
 **Step 3:** Unassigned
-**Status:** not started
+**Status:** done
 **Verify:** The address is on the splash, in light type on the photo.
 
 ### S8. Splash fade
@@ -201,7 +202,7 @@ Shown once per browser session until Continue, unless this session already holds
 **Now:** `ui/startup.py` splash CSS and `_SETTLE_JS`
 **API:** MISSING (static)
 **Step 3:** Unassigned
-**Status:** not started
+**Status:** done
 **Verify:** Record the first paint. Copy eases in. With "reduce motion" on, it does not travel. See A1.
 
 ---
@@ -477,7 +478,7 @@ Three steps. Skip and Done do the same thing: mark the intro seen. It runs after
 **Now:** `ui/intro.py` `guide_html`, `STEPS`
 **API:** MISSING (static) for the words. The flag is `PATCH /settings` field `intro_seen`.
 **Step 3:** 3.1
-**Status:** not started
+**Status:** done
 **Verify:** New account, after easy pace. Screenshot the card. No model, no plan.
 
 ### I2. Step 1
@@ -486,7 +487,7 @@ Three steps. Skip and Done do the same thing: mark the intro seen. It runs after
 **Now:** `ui/intro.py` `STEPS`
 **API:** MISSING (static)
 **Step 3:** 3.1
-**Status:** not started
+**Status:** done
 **Verify:** The first step's title and sentence match, including "Generate season plan".
 
 ### I3. Step 2
@@ -495,7 +496,7 @@ Three steps. Skip and Done do the same thing: mark the intro seen. It runs after
 **Now:** `ui/intro.py` `STEPS`
 **API:** MISSING (static)
 **Step 3:** 3.1
-**Status:** not started
+**Status:** done
 **Verify:** Second step copy matches.
 
 ### I4. Step 3
@@ -504,7 +505,7 @@ Three steps. Skip and Done do the same thing: mark the intro seen. It runs after
 **Now:** `ui/intro.py` `STEPS`
 **API:** MISSING (static)
 **Step 3:** 3.1
-**Status:** not started
+**Status:** done
 **Verify:** Third step copy matches.
 
 ### I5. Skip and Done
@@ -513,7 +514,7 @@ Three steps. Skip and Done do the same thing: mark the intro seen. It runs after
 **Now:** `ui/intro.py` `render_intro`; `ui/streamlit_app.py` `_intro_gate`, `_store_intro`
 **API:** `PATCH /settings` `{intro_seen: true}`
 **Step 3:** 3.1
-**Status:** not started
+**Status:** done
 **Verify:** Each button, on its own new account, dismisses the guide and does not show it again on reload.
 
 ### I6. When the intro appears
@@ -522,9 +523,8 @@ Three steps. Skip and Done do the same thing: mark the intro seen. It runs after
 **Now:** `_intro_due`, `_store_intro`
 **API:** `GET /auth/me` `prefs.intro_seen` (`true`, `false`, or `null`). Write with `PATCH /settings`.
 **Step 3:** 3.1. The Settings button is 3.7 (Settings G5).
-**Status:** not started
-**Gap:** Gap 2. PR #61 never reads `intro_seen`.
-**Verify:** New account: guide shows. Account with a current season: guide does not. After "Show intro guide": it shows once more.
+**Status:** done
+**Verify:** New account: guide shows. Account with a current season: guide does not. After "Show intro guide": it shows once more. The button itself is G5. `intro_seen: false` shows the guide again, including when a season exists.
 
 ---
 
@@ -538,7 +538,7 @@ The first stop once an account exists and no easy pace is saved. It is before th
 **Now:** `ui/easy_pace.py` `_card`, `render_easy_pace`
 **API:** MISSING (static) for the words
 **Step 3:** 3.1
-**Status:** not started
+**Status:** done
 **Verify:** New account, first screen after sign-in, before the intro. Screenshot the card.
 
 ### E2. Pace, unit, and save
@@ -547,7 +547,7 @@ The first stop once an account exists and no easy pace is saved. It is before th
 **Now:** `ui/easy_pace.py` `render_easy_pace`. Range is 1:00 through 30:00 via `engines/pace.py` `canonical_easy_pace`.
 **API:** `PATCH /settings` with both `easy_pace` and `easy_pace_unit`. A bad pace does not replace a pace already saved.
 **Step 3:** 3.1
-**Status:** not started
+**Status:** done
 **Verify:** "7:25" and per mile saves and leaves the screen. "abc" shows "Enter a pace like 7:25." and stays.
 
 ### E3. Save failed
@@ -556,8 +556,8 @@ The first stop once an account exists and no easy pace is saved. It is before th
 **Now:** `ui/streamlit_app.py` `_store_easy_pace`
 **API:** `PATCH /settings` error `detail`
 **Step 3:** 3.1
-**Status:** not started
-**Verify:** When the write fails, the sentence is shown and the next screen does not open.
+**Status:** done
+**Verify:** When the write fails, the sentence is shown and the next screen does not open. The screen uses the API `detail`, and "Easy pace could not be saved." when the failure is not an `ApiError`.
 
 ### E4. Gate order
 
@@ -565,8 +565,7 @@ The first stop once an account exists and no easy pace is saved. It is before th
 **Now:** `_with_plan`, `_easy_pace_gate`, `_intro_gate`
 **API:** `GET /auth/me` for `prefs.easy_pace`. Landing uses `GET /seasons/current` (404 means Start).
 **Step 3:** 3.1
-**Status:** not started
-**Gap:** Gap 2.
+**Status:** done
 **Verify:** Brand-new account: easy pace, then intro, then Start. Do not open Home first.
 
 ---
@@ -581,8 +580,7 @@ Four fields. Generate calls `engines/season.py` `sequence` and opens Home. The n
 **Now:** `page_start`; `theme.START_PHOTO`, `shade_html`
 **API:** MISSING (static)
 **Step 3:** 3.1
-**Status:** not started
-**Gap:** Gap 4. `/start` is `ComingSoon`.
+**Status:** done
 **Verify:** Screenshot Start. The photo is `start_line.jpg`, not the Home aerial.
 
 ### T2. Start hero
@@ -591,7 +589,7 @@ Four fields. Generate calls `engines/season.py` `sequence` and opens Home. The n
 **Now:** `page_start`, `_page_hero`
 **API:** none
 **Step 3:** 3.1
-**Status:** not started
+**Status:** done
 **Verify:** Heading and subtitle match. No "SYNTHETIC / DEMO" badge.
 
 ### T3. Your 800 m time today
@@ -600,7 +598,7 @@ Four fields. Generate calls `engines/season.py` `sequence` and opens Home. The n
 **Now:** `page_start`; defaults `ui/start_form.py` `start_form_defaults`
 **API:** The value is `inputs.current_time` on `POST /seasons`
 **Step 3:** 3.1
-**Status:** not started
+**Status:** done
 **Verify:** Empty on first open. Help text matches. Placeholder is 2:05.0.
 
 ### T4. Start date
@@ -609,7 +607,7 @@ Four fields. Generate calls `engines/season.py` `sequence` and opens Home. The n
 **Now:** `page_start`; `ui/settings.py` `start_on`
 **API:** `inputs.start_date` on `POST /seasons`. The preference is `PATCH /settings` `start_date` (`today` or `sunday`).
 **Step 3:** 3.1
-**Status:** not started
+**Status:** done
 **Verify:** Default is today. With "Next Sunday" saved, the default is that Sunday. Today follows the time zone (item D1).
 
 ### T5. Goal 800
@@ -618,7 +616,7 @@ Four fields. Generate calls `engines/season.py` `sequence` and opens Home. The n
 **Now:** `page_start`
 **API:** `inputs.goal_time` on `POST /seasons`
 **Step 3:** 3.1
-**Status:** not started
+**Status:** done
 **Verify:** Placeholder 1:58.0. The box is empty until typed.
 
 ### T6. Goal date
@@ -627,7 +625,7 @@ Four fields. Generate calls `engines/season.py` `sequence` and opens Home. The n
 **Now:** `page_start`; `start_form_defaults`
 **API:** `inputs.goal_date` on `POST /seasons`
 **Step 3:** 3.1
-**Status:** not started
+**Status:** done
 **Verify:** On 31 March the default is 31 August, not 31 September. On 31 January it is 30 June.
 
 ### T7. Generate season plan
@@ -636,7 +634,7 @@ Four fields. Generate calls `engines/season.py` `sequence` and opens Home. The n
 **Now:** `page_start`, `_generate_season`, `_arm_strava_prompt`
 **API:** `POST /seasons`. `200` is the season plus `committed: true` and `strava_offer`. `400` when an input is unusable. A plan that contains `probability` or `readiness_score` is rejected.
 **Step 3:** 3.1
-**Status:** not started
+**Status:** done
 **Verify:** Valid times open Home, not a second Start. The Strava card is the next item. No score and no probability anywhere.
 
 ### T8. Generate errors
@@ -645,7 +643,7 @@ Four fields. Generate calls `engines/season.py` `sequence` and opens Home. The n
 **Now:** `page_start`; `engines/season.py`
 **API:** `POST /seasons` `400` `detail`
 **Step 3:** 3.1
-**Status:** not started
+**Status:** done
 **Verify:** One screenshot per sentence. The plan is not stored.
 
 ### T9. Start credit
@@ -654,7 +652,7 @@ Four fields. Generate calls `engines/season.py` `sequence` and opens Home. The n
 **Now:** `page_start`; `theme.START_CREDIT`
 **API:** MISSING (static)
 **Step 3:** 3.1
-**Status:** not started
+**Status:** done
 **Verify:** Credit sits on the photo. See C4.
 
 ### T10. A link to a different season
@@ -663,7 +661,7 @@ Four fields. Generate calls `engines/season.py` `sequence` and opens Home. The n
 **Now:** `_link_preview_note`, `_ensure_linked_plan`
 **API:** `POST /seasons` for the four inputs in the link. Marks for those inputs come back on `GET /seasons/current`.
 **Step 3:** 3.1
-**Status:** not started
+**Status:** done
 **Verify:** Open a URL whose four inputs are not the saved season. The saved season stays until "Use this season".
 
 ---
@@ -678,8 +676,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `ui/strava_ui.py` `render_plan_prompt`; armed by `_arm_strava_prompt` and `ui/plan_strava.py` `should_offer_strava`
 **API:** `POST /seasons` returns `strava_offer`. `GET /home?just_generated=true` returns the same flag.
 **Step 3:** The card is on Home (PR #61). Generate, which arms it, is 3.1.
-**Status:** partial
-**Gap:** Gap 5. `StravaOffer` in `HomeView` has the two sentences, and it is never shown because Start does not send `just_generated`.
+**Status:** done
 **Verify:** Generate with Strava disconnected and the prompt not dismissed. Home shows the card. Generate again after "Not now" does not.
 
 ### V2. Connect Strava
@@ -689,7 +686,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** `GET /strava/connect` `200` `{url}`. `409` if already connected. `503` if Strava is not configured or migration 010 is missing.
 **Step 3:** PR #61 for the button. The OAuth return lands on Settings (`?strava=connected` or `?strava=error`), which is 3.7.
 **Status:** partial
-**Gap:** Gap 5. The button calls `api.stravaConnect` and sends the browser to `url`. Unreachable until Generate exists.
+**Gap:** The button is on the card after Generate and calls `GET /strava/connect`. This local session has no Strava app, so the call is 503 and the browser stays on Home. The round trip to Strava and back is 3.7, when Settings can land `?strava=connected`.
 **Verify:** Click Connect. The browser goes to Strava, then back. Tokens are not in the page.
 
 ### V3. Not now
@@ -698,8 +695,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `render_plan_prompt`; `_store_strava_prompt_seen`
 **API:** `PATCH /settings` `{strava_prompt_seen: true}`
 **Step 3:** PR #61
-**Status:** partial
-**Gap:** Gap 5. Dismiss calls `api.dismissStrava`. Same reachability hole.
+**Status:** done
 **Verify:** Not now, reload Home. The card is gone. Strava is still disconnected.
 
 ---
@@ -777,9 +773,8 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `page_dashboard`, `_track_hero`, `_track_stage`, `_split_html`. No-watch picks `ui/no_watch.py` `next_open_workout`.
 **API:** `GET /home` `season.next` (`label`, `facts`, `shown_date`, `prescription.line`, `prescription.tolerance`, `prescription.block` in PR #61's contract). Easy pace is not passed into `sequence()` or `adapt()`.
 **Step 3:** PR #61 for the card. The Done controls on this card are W1 (step 3.3).
-**Status:** partial
-**Gap:** Gap 6. Facts, tolerance, and block are drawn. The no-watch Done / Couldn't finish / Behind / On target / Ahead controls that Streamlit puts under this card are not.
-**Verify:** A Tuesday quality day shows tolerance and block. An easy day shows the pace sentence, or the "set your easy pace" sentence when none is saved. Clicking opens Session for that date.
+**Status:** done
+**Verify:** A Tuesday quality day shows tolerance and block. An easy day shows the pace sentence, or the "set your easy pace" sentence when none is saved. Clicking opens Session for that date. The no-watch controls are under the card when `logging` is `done`. The Session page itself is step 3.3.
 
 ### H9. No workout left
 
@@ -796,8 +791,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `_upcoming_days`, `_mini_day`, `_session_link`
 **API:** `GET /home` `season.next_days` (PR #61 contract). A day with no session still has a card and `label` "—".
 **Step 3:** PR #61
-**Status:** partial
-**Gap:** Gap 6. The web prints `label`, so an empty day says "—" instead of "Rest day".
+**Status:** done
 **Verify:** Three cards. The empty one says "Rest day". A workout card links to `/session?date=`.
 
 ### H11. Quick links
@@ -806,8 +800,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `_quick_links`
 **API:** none
 **Step 3:** PR #61
-**Status:** partial
-**Gap:** Gap 6. The four links are there. "03 / Open" is not.
+**Status:** done
 **Verify:** Home with no phase story shows "03 / Open". Home with a phase story does not.
 
 ### H12. Extra sessions
@@ -816,8 +809,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `_render_extras`, `_extra_link`
 **API:** `GET /home` `season.activities` (same rows as the season). The client decides which are extra.
 **Step 3:** PR #61
-**Status:** not started
-**Gap:** Gap 6. `HomeView` does not render activities.
+**Status:** done
 **Verify:** An unmatched run in the last 14 days appears under the quick links and nowhere in the matched list.
 
 ### H13. Broken season
@@ -1474,9 +1466,8 @@ Locked copy. Step 3.9 does not rewrite it. About shows the short paragraphs. The
 **Now:** `_contact_footer`
 **API:** MISSING (static)
 **Step 3:** PR #61 for the shell. Splash is unassigned (S7).
-**Status:** partial
-**Gap:** `Footer` is on auth, Home, and the placeholders. It is not on a splash, because there is no splash (Gap 3).
-**Verify:** The mailto is on Log in, Home, and a placeholder page. The address is chasejrose5@gmail.com.
+**Status:** done
+**Verify:** The mailto is on Log in, Home, and a placeholder page. The address is chasejrose5@gmail.com. It is also on the splash.
 
 ### F2. Nav
 
@@ -1537,7 +1528,7 @@ The string is the whole credit. Do not add a photographer where the file has non
 **Now:** `theme.START_CREDIT`. Photo `start_line.jpg`.
 **API:** MISSING (static)
 **Step 3:** 3.1
-**Status:** not started
+**Status:** done
 **Verify:** Start only.
 
 ### C5. Plan
@@ -1723,7 +1714,7 @@ Screen-specific sentences are on their items (T8, W2, Y3, M3, U1, Settings G10).
 **API:** The season and screen routes use "—" in labels the contract already names (`next_days.label`, focus, phase).
 **Step 3:** Each page's step
 **Status:** partial
-**Gap:** Home uses "—" for a missing headline and for an empty next-3 day. The empty day should be "Rest day" (H10), not a blanket em dash.
+**Gap:** Home uses "—" for a missing headline. An empty next-3 day says "Rest day" (H10). Other pages are still placeholders.
 **Verify:** A missing focus tile is "—". A rest day is not.
 
 ### X3. Intervals file body
@@ -1840,9 +1831,8 @@ The live app keeps a signed token for one day. Refreshing does not extend it. Lo
 **Now:** `_with_plan`
 **API:** `GET /auth/me` `prefs.easy_pace`, `prefs.intro_seen`
 **Step 3:** 3.1
-**Status:** not started
-**Gap:** Gap 2.
-**Verify:** The screenshot sequence in N6.
+**Status:** done
+**Verify:** The screenshot sequence in N6. Brand-new account: easy pace, then the intro, then Start.
 
 ### D7. Unsigned visitors
 
@@ -1864,7 +1854,7 @@ The live app keeps a signed token for one day. Refreshing does not extend it. Lo
 **API:** `today` on `GET /auth/me`, `GET /home`, and `GET /seasons/current`. The contract says it is `YYYY-MM-DD` in the saved time zone. The zone is `PATCH /settings` `timezone`, one id from the Settings list.
 **Step 3:** PR #61 for landing and Home. Start's default date is 3.1. The calendar cell is 3.2. The control is 3.7 (Settings G2).
 **Status:** partial
-**Gap:** Home displays `home.today` from the API, which is the right clock, but only if the zone was saved. The Settings control that saves it is not built. A new account on the web never picks a zone, so today stays the API default until 3.7.
+**Gap:** Start's default date uses `GET /auth/me` `today`, which is the saved zone. A brand-new account set to `America/Los_Angeles` showed 2026-11-09 while UTC was 2026-11-10. The Settings control that picks the zone is still 3.7. The calendar's today cell is 3.2.
 **Verify:** Set the zone to `Pacific/Auckland` and compare with UTC around midnight. Home, the calendar's today cell, and Home-versus-Start agree. Document the zone in the screenshot.
 
 ---

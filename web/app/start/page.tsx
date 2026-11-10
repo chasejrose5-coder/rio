@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { StartForm } from "@/components/StartForm";
 
 export default function Page() {
-  return <ComingSoon title="Start" />;
+  return <StartForm />;
 }

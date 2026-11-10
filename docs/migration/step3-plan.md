@@ -2,7 +2,7 @@
 
 Step 3a is the Next.js app in `web/`. Streamlit stays the live site. The pages below are still placeholders that say they are coming in the next step. Each one is its own pull request, in this order.
 
-1. Start, including onboarding and the easy-pace step.
+1. Start. Easy pace and the three-step intro already shipped with the scaffold and stay as they are. This step replaces the Start placeholder: the start-line photo, the four fields, Generate, and the link that names a different season. Generate opens Home and arms the Strava card.
 2. Plan.
 3. Start session and Session.
 4. Activity and Strava.

@@ -110,6 +110,13 @@ export type CurrentSeason = {
   };
 };
 
+export type SeasonWrite = {
+  inputs: CurrentSeason["inputs"];
+  committed?: boolean;
+  strava_offer?: boolean;
+  plan?: unknown;
+};
+
 export type AuthResult = {
   email: string;
   display_name: string;

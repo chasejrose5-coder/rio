@@ -1,4 +1,4 @@
-import type { Athlete, AuthResult, CurrentSeason, HomeResponse } from "./types";
+import type { Athlete, AuthResult, CurrentSeason, HomeResponse, SeasonWrite } from "./types";
 
 export class ApiError extends Error {
   status: number;
@@ -86,6 +86,12 @@ export const api = {
   },
 
   signOut: () => request<{ ok: boolean }>("/auth/sign-out", { method: "POST" }),
+
+  createSeason: (inputs: { current_time: string; start_date: string; goal_time: string; goal_date: string }) =>
+    request<SeasonWrite>("/seasons", {
+      method: "POST",
+      body: JSON.stringify(inputs),
+    }),
 
   currentSeason: async (): Promise<CurrentSeason | null> => {
     try {
