@@ -381,8 +381,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   position: relative;
   z-index: 2;
   max-width: 28rem;
-  margin: max(4.75rem, calc(50vh - 18rem)) auto 0.8rem;
-  padding: 1.6rem 1.5rem 1.35rem;
+  margin: max(4.75rem, calc(50vh - 20rem)) auto 0.8rem;
+  padding: 1.85rem 1.5rem 1.55rem;
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--line);
@@ -391,11 +391,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 }
 .rio-auth-hero { padding: 0.15rem 0 0.85rem; }
 .rio-auth-hero h1 {
-  font-family: var(--font);
-  font-size: clamp(2.25rem, 4vw, 2.75rem);
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  line-height: 1.05;
+  font-family: var(--display);
+  font-size: clamp(48px, 6vw, 84px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
   color: var(--ink);
 }
 .rio-synthetic {
@@ -408,7 +408,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 }
 .rio-auth-card .rio-range { margin: 0.45rem 0 0; color: var(--muted); }
 .rio-auth-card form { display: flex; flex-direction: column; }
-.rio-auth-card label { margin: 0.75rem 0 0.3rem; color: var(--muted); font-size: 0.75rem; }
+.rio-auth-card label { margin: 1.15rem 0 0.4rem; color: var(--muted); font-size: 0.75rem; }
 .rio-auth-card input {
   background: var(--surface);
   color: var(--ink);
@@ -2071,6 +2071,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   box-shadow: 0 12px 32px rgba(14, 14, 14, 0.05);
   padding: 0.9rem 1rem 1rem;
 }
+.page-admin .rio-card {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0.2rem 0 0.4rem;
+}
 .page-admin .rio-mark-label, .page-fixture .rio-mark-label,
 .page-admin .rio-k, .page-fixture .rio-k,
 .page-admin .rio-table th, .page-fixture .rio-table th,
@@ -2102,7 +2109,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   margin: 0.45rem 0;
   color: #3c3a36;
 }
-.page-admin .rio-check { flex-direction: row; align-items: center; color: #121110; }
+.page-admin label.rio-check {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  width: fit-content;
+  gap: 0.55rem;
+  margin: 0.35rem 0 0.55rem;
+  color: #121110;
+}
 .page-admin input[type="text"], .page-fixture select {
   border: 1px solid #dcd6cc;
   border-radius: 12px;
@@ -2112,11 +2127,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   font: inherit;
 }
 .page-admin .rio-admin-views {
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  justify-items: start;
   gap: 0.55rem;
-  margin-top: 0.7rem;
+  margin-top: 0.55rem;
 }
 .page-admin .rio-done-row {
   display: flex;

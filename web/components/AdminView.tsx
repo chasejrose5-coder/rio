@@ -205,6 +205,7 @@ function AdminBody() {
           {heroError ? <p className="rio-error">{heroError}</p> : null}
           {photos.map((photo, index) => (
             <div className="rio-hero-frame" key={photo.id}>
+              <p className="rio-photo-credit">{photo.credit}</p>
               <label className="rio-check">
                 <input
                   type="checkbox"
@@ -216,7 +217,6 @@ function AdminBody() {
                 />
                 Show on the startup page
               </label>
-              <p className="rio-photo-credit">{photo.credit}</p>
               <label>
                 Credit line
                 <input

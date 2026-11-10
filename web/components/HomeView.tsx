@@ -65,7 +65,6 @@ function WorkoutFacts({ card, title }: { card: WorkoutCard; title: string }) {
       <Fact label="Pace" value={facts?.pace || "—"} />
       <Fact label="Rest" value={facts?.rest || "—"} />
       <Fact label="Reps" value={facts?.reps || "—"} />
-      {card.label ? <p className="rio-pace-line">{card.label}</p> : null}
       {prescription?.line ? <p className="rio-pace-line">{prescription.line}</p> : null}
       {prescription?.tolerance ? <p className="rio-pace-range">Tolerance {prescription.tolerance}</p> : null}
       {prescription?.block ? <p className="rio-pace-block">Block {prescription.block}</p> : null}

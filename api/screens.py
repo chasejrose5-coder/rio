@@ -248,6 +248,19 @@ def _present_session(session: dict, season, *, units: str, date_format: str, eas
     return shown
 
 
+def _drop_speed_block(card: dict) -> dict:
+    """Speed days keep the rep line. Streamlit leaves the block clock off those cards."""
+    recipe = workout_recipe(card.get("template_id"))
+    prescription = card.get("prescription")
+    if not (recipe and recipe.get("speed") and isinstance(prescription, dict) and prescription.get("block")):
+        return card
+    shown = dict(card)
+    clock = dict(prescription)
+    clock["block"] = ""
+    shown["prescription"] = clock
+    return shown
+
+
 def easy_pace_phrase_or_ask(easy_pace: str, easy_unit: str) -> str:
     from engines.pace import easy_pace_phrase
 
@@ -293,14 +306,16 @@ def _next_days(sessions: list, today: date, season, *, units: str, date_format: 
         ready = json_ready(found)
         if isinstance(ready, dict):
             rows.append(
-                _present_session(
-                    ready,
-                    season,
-                    units=units,
-                    date_format=date_format,
-                    easy_pace=easy_pace,
-                    easy_unit=easy_unit,
-                    logs=logs,
+                _drop_speed_block(
+                    _present_session(
+                        ready,
+                        season,
+                        units=units,
+                        date_format=date_format,
+                        easy_pace=easy_pace,
+                        easy_unit=easy_unit,
+                        logs=logs,
+                    )
                 )
             )
     return rows
@@ -375,27 +390,31 @@ def home_view(principal, directory, today: date, season, *, connected: bool, str
     logs = _pace_logs(season)
     ready_next = json_ready(shown)
     if isinstance(ready_next, dict):
-        ready_next = _present_session(
-            ready_next,
-            season,
-            units=units,
-            date_format=date_format,
-            easy_pace=easy_pace,
-            easy_unit=easy_unit,
-            logs=logs,
+        ready_next = _drop_speed_block(
+            _present_session(
+                ready_next,
+                season,
+                units=units,
+                date_format=date_format,
+                easy_pace=easy_pace,
+                easy_unit=easy_unit,
+                logs=logs,
+            )
         )
     upcoming = []
     for item in json_ready(_upcoming(sessions, today)):
         if isinstance(item, dict):
             upcoming.append(
-                _present_session(
-                    item,
-                    season,
-                    units=units,
-                    date_format=date_format,
-                    easy_pace=easy_pace,
-                    easy_unit=easy_unit,
-                    logs=logs,
+                _drop_speed_block(
+                    _present_session(
+                        item,
+                        season,
+                        units=units,
+                        date_format=date_format,
+                        easy_pace=easy_pace,
+                        easy_unit=easy_unit,
+                        logs=logs,
+                    )
                 )
             )
     notes = []

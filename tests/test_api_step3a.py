@@ -58,6 +58,14 @@ def test_home_workout_states_the_rep_time(tmp_path: Path) -> None:
         line = str(prescription.get("line") or "")
     if "m @" not in line and "Set your easy pace" not in line and "per " not in line:
         raise AssertionError(nxt)
+    # Speed days keep the rep line. The block clock stays off, as on the Streamlit cards.
+    for card in [nxt, *(season.get("next_days") or [])]:
+        if not isinstance(card, dict):
+            continue
+        template = str(card.get("template_id") or "")
+        block = str((card.get("prescription") or {}).get("block") or "")
+        if template.startswith(("spd_", "mv_")) and block:
+            raise AssertionError(card)
     days = season.get("next_days")
     if not isinstance(days, list) or len(days) != 3:
         raise AssertionError(days)
