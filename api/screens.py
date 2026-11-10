@@ -547,7 +547,13 @@ def intervals_pull(connected: bool, sessions: list, stored: object, today: date)
     return updated, None
 
 
-def library_view(query: str, family: str, phase: int | None) -> dict:
+def library_view(query: str, family: str, phase: int | None, units: str = "miles") -> dict:
+    """The frozen menu, in the distance words this athlete already uses.
+
+    Search still matches the stored name, and also the name on screen after
+    miles or kilometers are applied. The family list stays the full menu,
+    sorted by the capacity label Streamlit shows. This does not call explain.
+    """
     from engines.prescribe import load_menu
 
     try:
@@ -555,19 +561,50 @@ def library_view(query: str, family: str, phase: int | None) -> dict:
     except ValueError as exc:
         raise ApiError(500, str(exc)) from exc
     rows = library_rows(menu)
-    visible = filter_workouts(rows, query=query, family=family, phase=phase)
-    families = []
-    labels = {}
+    opened = filter_workouts(rows, query="", family=family, phase=phase)
+    needle = " ".join(str(query or "").casefold().split())
+    visible = []
+    for row in opened:
+        if not isinstance(row, dict):
+            continue
+        if needle and needle not in _library_haystack(row, units):
+            continue
+        item = dict(row)
+        shown = display_training(str(item.get("description") or ""), units)
+        if shown:
+            item["description"] = shown
+        visible.append(item)
+    families: list[str] = []
+    labels: dict[str, str] = {}
     for row in rows:
-        name = row.get("family") or ""
+        name = str(row.get("family") or "")
         if name and name not in families:
             families.append(name)
-            labels[name] = row.get("capacity") or name
+        if name:
+            labels[name] = str(row.get("capacity") or name)
+    families.sort(
+        key=lambda name: next(
+            (str(item.get("capacity") or name) for item in rows if item.get("family") == name),
+            name,
+        )
+    )
     return {
         "count": len(visible),
         "workouts": visible,
         "families": [{"id": name, "label": labels.get(name, name)} for name in families],
     }
+
+
+def _library_haystack(row: dict, units: str) -> str:
+    stored = str(row.get("description") or "")
+    shown = display_training(stored, units)
+    parts = (
+        stored,
+        shown,
+        str(row.get("id") or ""),
+        str(row.get("capacity") or ""),
+    )
+    return " ".join(parts).casefold()
 
 
 def _figure_heart(points: list) -> str:

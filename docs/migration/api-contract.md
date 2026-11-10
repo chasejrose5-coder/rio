@@ -39,6 +39,8 @@ Model keys (`RIO_EXPLAIN_API_KEY`, `RIO_EXPLAIN_MODEL`, `RIO_EXPLAIN_BASE_URL`) 
 | `intro_seen` | `true`, `false`, or `null` when the athlete has not stored it |
 | `strava_prompt_seen` | bool |
 | `preferred` | Nickname, or `""` |
+| `show_ids` | bool. Template ids on Library, and on the hidden Activity tables. Admin is the only Settings toggle. |
+| `compact` | bool. Tighter hero and library rows. |
 
 `season` (the body of the season routes):
 
@@ -402,7 +404,7 @@ These are the reads and writes Home, Plan, Activity, Library, Profile, Settings,
 
 `200` `{"count": 0, "workouts": [], "families": [{"id": "", "label": ""}]}`.
 
-A workout is `id`, `description`, `capacity`, `family`, `phases` (ints). `q` matches the name, the id, or the capacity. `family` is a family id. `phase` is 1–8. Empty filters leave that side open. This is the frozen menu. It does not change.
+A workout is `id`, `description`, `capacity`, `family`, `phases` (ints). `description` is the menu name after `display_training` for this athlete's units. Reps stay in meters. `q` matches the stored name, that shown name, the id, or the capacity. `family` is a family id. `phase` is 1–8. Empty filters leave that side open. `families` is every family on the menu, not the filtered subset, sorted by the capacity label. This is the frozen menu. It does not change, and it does not call explain. A menu that cannot be read is `500` with the exception sentence.
 
 ### `GET /profile`
 
