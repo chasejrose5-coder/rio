@@ -32,7 +32,7 @@ Step 3 owners:
 | 3.3 | Start session and Session. |
 | 3.4 | Activity, Last Session laps, and the Strava callback. PR #66. |
 | 3.5 | Library. PR #67. |
-| 3.6 | Profile and the More menu. |
+| 3.6 | Profile and the More menu. PR #68. |
 | 3.7 | Settings. |
 | 3.8 | Seasons and past seasons. |
 | 3.9 | About and Creators. Locked copy. This step does not rewrite them. |
