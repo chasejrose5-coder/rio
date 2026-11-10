@@ -42,8 +42,8 @@ Step 3 owners:
 
 | | |
 | --- | --- |
-| Total items | 187 |
-| Done | 86 |
+| Total items | 188 |
+| Done | 87 |
 | Partial | 24 |
 | Not started | 77 |
 | API line starts with `MISSING` | 48 |
@@ -953,6 +953,15 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Step 3:** 3.2
 **Status:** done
 **Verify:** The credit is on the curve photo, not under the footer. See C5.
+
+### B14. This week activity notice
+
+**Sees:** When Strava is not connected and the Intervals pull fails because the key is missing, "Strava isn't connected", "Connect Strava in Settings to see your runs here.", and "Open Settings". Any other pull failure says "Runs could not be loaded. Try Refresh in a moment." A connected Strava account does not show the card. The raw adapter sentence stays off the page.
+**Now:** `page_weekly` `_activities_notice`
+**API:** `GET /activities` `notice`. The card is shown only when that text contains "is not set" or "not configured".
+**Step 3:** 3.2
+**Status:** done
+**Verify:** Local Plan, This week, with no Intervals key. The three lines are on the page. A 429-style notice shows the refresh sentence instead.
 
 ---
 

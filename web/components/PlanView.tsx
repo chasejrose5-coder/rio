@@ -8,6 +8,7 @@ import { RequireUser } from "./RequireUser";
 import { ApiError, api } from "@/lib/api";
 import {
   PLAN_VIEWS,
+  activityNotice,
   addDays,
   daysLabel,
   displayDistance,
@@ -434,7 +435,7 @@ function ThisWeek({
           ))}
         </select>
       </div>
-      {activityNote ? <p className="rio-note">{activityNote}</p> : null}
+      <ActivityNotice notice={activities?.notice} fallback={activityNote} />
       <section className="rio-recap">
         <p className="rio-mark-label">Recap</p>
         <dl>
@@ -697,6 +698,29 @@ function Marks({
       {markError ? <p className="rio-error">{markError}</p> : null}
     </div>
   );
+}
+
+function ActivityNotice({ notice, fallback }: { notice: string | null | undefined; fallback: string }) {
+  const kind = activityNotice(notice);
+  if (kind === "missing") {
+    return (
+      <div className="rio-card rio-card-tight">
+        <p className="rio-mark-label">{"Strava isn't connected"}</p>
+        <p className="rio-note">Connect Strava in Settings to see your runs here.</p>
+        <p className="rio-season-prompt">
+          <Link href="/settings">Open Settings</Link>
+        </p>
+      </div>
+    );
+  }
+  if (kind === "failed" || fallback) {
+    return (
+      <div className="rio-card rio-card-tight">
+        <p className="rio-note">Runs could not be loaded. Try Refresh in a moment.</p>
+      </div>
+    );
+  }
+  return null;
 }
 
 function daysFor(plan: PlanResponse, week: number): PlanSession[] {

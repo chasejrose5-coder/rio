@@ -133,7 +133,7 @@ async function json(route: Route, body: unknown, status = 200) {
   await route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
 
-async function installApi(page: Page, options: { season?: boolean; confirm?: boolean; dateFormat?: string; bad?: string }) {
+async function installApi(page: Page, options: { season?: boolean; confirm?: boolean; dateFormat?: string; bad?: string; notice?: string | null }) {
   let marks: Record<string, string> = {};
   let signed = false;
   const prefs = { ...athlete.prefs, confirm_adapt: options.confirm === true, date_format: options.dateFormat || "iso" };
@@ -168,7 +168,7 @@ async function installApi(page: Page, options: { season?: boolean; confirm?: boo
     }
     if (path === "/activities") {
       if (!options.season) return json(route, { detail: "No current season." }, 404);
-      return json(route, activities);
+      return json(route, { ...activities, notice: options.notice ?? null });
     }
     if (path === "/seasons/current/marks" && route.request().method() === "POST") {
       const body = route.request().postDataJSON() as { week: number; choice: string };
@@ -312,6 +312,24 @@ test("confirm-adapt asks before a week mark is stored", async ({ page }) => {
   await page.getByRole("button", { name: "Smashing" }).click();
   await page.getByRole("button", { name: "Confirm" }).click();
   await expect(page.getByRole("button", { name: "Smashing" })).toHaveAttribute("aria-pressed", "true");
+});
+
+test("a missing intervals key shows the Strava card, and another pull failure does not", async ({ page }) => {
+  await installApi(page, { season: true, notice: "RIO_INTERVALS_API_KEY is not set. Set it in the environment." });
+  await signIn(page);
+  await page.goto("/plan");
+  await page.getByRole("radio", { name: "This week" }).click();
+  await expect(page.getByText("Strava isn't connected")).toBeVisible();
+  await expect(page.getByText("Connect Strava in Settings to see your runs here.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open Settings" })).toHaveAttribute("href", "/settings");
+
+  await installApi(page, { season: true, notice: "Intervals.icu returned 429" });
+  await signIn(page);
+  await page.goto("/plan");
+  await page.getByRole("radio", { name: "This week" }).click();
+  await expect(page.getByText("Runs could not be loaded. Try Refresh in a moment.")).toBeVisible();
+  await expect(page.getByText("Strava isn't connected")).toHaveCount(0);
+  await expect(page.getByText("Intervals.icu returned 429")).toHaveCount(0);
 });
 
 test("short dates follow the saved format", async ({ page }) => {

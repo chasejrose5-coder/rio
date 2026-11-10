@@ -631,6 +631,37 @@ def test_local_settings_use_the_account_file(tmp_path: Path) -> None:
         raise AssertionError(stored)
 
 
+def test_activities_notice_follows_the_plan_pull(monkeypatch) -> None:
+    """The card is the missing-key pull. A connected Strava account does not pull."""
+    from datetime import date
+
+    from ui.activities import PullError
+
+    monkeypatch.delenv("RIO_INTERVALS_API_KEY", raising=False)
+    from api.screens import intervals_pull
+
+    _rows, notice = intervals_pull(False, [], [], date(2026, 11, 10))
+    if not isinstance(notice, str) or "is not set" not in notice:
+        raise AssertionError(notice)
+    kept, quiet = intervals_pull(True, [], [{"date": "2026-11-10"}], date(2026, 11, 10))
+    if quiet is not None or kept != [{"date": "2026-11-10"}]:
+        raise AssertionError((quiet, kept))
+
+    _directory, client = _signed("activities-notice@example.com")
+    _generate(client)
+    found = client.get("/activities")
+    if found.status_code != 200 or "is not set" not in (found.json().get("notice") or ""):
+        raise AssertionError(found.text)
+
+    def boom(*_args, **_kwargs):
+        raise PullError("Intervals.icu returned 429")
+
+    monkeypatch.setattr("ui.activities.sync_recent", boom)
+    _rows, other = intervals_pull(False, [], [], date(2026, 11, 10))
+    if other != "Intervals.icu returned 429":
+        raise AssertionError(other)
+
+
 def test_plan_pace_lines_and_month() -> None:
     """Plan days carry the same pace line Home shows. A bad month is refused."""
     _directory, client = _signed("plan-pace@example.com")

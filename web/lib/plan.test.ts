@@ -4,6 +4,7 @@ import {
   daysLabel,
   displayDistance,
   distancesFromRows,
+  activityNotice,
   extrasBetween,
   formatDate,
   lengthText,
@@ -91,6 +92,14 @@ test("extras are the unmatched runs inside Sunday through Saturday", () => {
   ];
   const found = extrasBetween(rows, "2026-11-08", "2026-11-14");
   assert.deepEqual(found.map((row) => row.name), ["Shakeout"]);
+});
+
+test("the Strava card is only the missing-key notice", () => {
+  assert.equal(activityNotice(null), null);
+  assert.equal(activityNotice(""), null);
+  assert.equal(activityNotice("RIO_INTERVALS_API_KEY is not set. Set it in the environment."), "missing");
+  assert.equal(activityNotice("Strava is not configured."), "missing");
+  assert.equal(activityNotice("Intervals.icu returned 429"), "failed");
 });
 
 test("a bad shared link is the red sentence, and a normal plan URL is not", () => {

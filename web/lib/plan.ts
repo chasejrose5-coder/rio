@@ -426,6 +426,15 @@ export function linkError(params: URLSearchParams): string {
   return "";
 }
 
+/** Streamlit shows the Strava card only when the pull error says the key is missing. */
+export function activityNotice(notice: string | null | undefined): "missing" | "failed" | null {
+  const text = (notice || "").trim();
+  if (!text) return null;
+  const lowered = text.toLowerCase();
+  if (lowered.includes("is not set") || lowered.includes("not configured")) return "missing";
+  return "failed";
+}
+
 export function paceStatusLine(status: string | undefined): string {
   const text = (status || "No runs yet").trim() || "No runs yet";
   return `Pace status ${text}.`;

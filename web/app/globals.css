@@ -879,6 +879,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   min-height: 2.6rem;
   margin-top: 0;
 }
+.page-plan .rio-mark-label { color: #6b6b6b; }
 .rio-season-prompt { margin: 1.2rem 0 0; }
 .rio-season-prompt a { font-weight: 600; border-bottom: 2px solid var(--accent); }
 @media (max-width: 1200px) {

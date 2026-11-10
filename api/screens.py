@@ -489,6 +489,28 @@ def plan_view(season, today: date, prefs: dict, month: str | None) -> dict:
     }
 
 
+def intervals_pull(connected: bool, sessions: list, stored: object, today: date) -> tuple[list, str | None]:
+    """The pull Plan runs when Strava is not connected.
+
+    A connected Strava account skips Intervals, so the notice stays empty.
+    A missing key raises PullError with "is not set". Any other pull failure
+    is the same notice string Streamlit stores. The raw text is not shown.
+    """
+    rows = stored if isinstance(stored, list) else []
+    if connected:
+        return rows, None
+    from ui.activities import PullError, sync_recent
+
+    try:
+        # The process already loaded .env at startup. Do not read it again here.
+        updated = sync_recent(sessions, rows, today, load_env=lambda: None)
+    except PullError as exc:
+        return rows, str(exc)
+    if not isinstance(updated, list):
+        return rows, None
+    return updated, None
+
+
 def library_view(query: str, family: str, phase: int | None) -> dict:
     from engines.prescribe import load_menu
 

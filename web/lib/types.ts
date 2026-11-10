@@ -188,6 +188,7 @@ export type ActivityRow = {
 export type ActivitiesResponse = {
   rows: ActivityRow[];
   all: ActivityRow[];
+  notice?: string | null;
 };
 
 export type SeasonWrite = {

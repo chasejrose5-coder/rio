@@ -390,8 +390,9 @@ These are the reads and writes Home, Plan, Activity, Library, Profile, Settings,
 | `summary` | This week's distance, run count, and status counts |
 | `weekly_meters` | Completed meters for each plan week |
 | `heart` | `[{"date": "", "bpm": 0}]` |
+| `notice` | `null` when the activity pull succeeded, or when Strava is connected (Intervals is skipped). Otherwise the `PullError` text from the same pull Plan runs. A missing Intervals key is `RIO_INTERVALS_API_KEY is not set. …`. The page prints "Strava isn't connected" only when that text contains "is not set" or "not configured". Any other notice prints "Runs could not be loaded. Try Refresh in a moment." |
 
-`404` when there is no current season. Refresh is `POST /strava/sync`.
+`404` when there is no current season. Refresh is `POST /strava/sync`. The read does not add an environment variable. A key already in the process is the one the pull uses.
 
 ### `GET /library?q=&family=&phase=`
 
