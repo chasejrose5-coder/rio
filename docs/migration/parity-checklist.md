@@ -33,7 +33,7 @@ Step 3 owners:
 | 3.4 | Activity, Last Session laps, and the Strava callback. PR #66. |
 | 3.5 | Library. PR #67. |
 | 3.6 | Profile and the More menu. PR #68. |
-| 3.7 | Settings. This pull request. |
+| 3.7 | Settings. PR #69. |
 | 3.8 | Seasons and past seasons. |
 | 3.9 | About and Creators. Locked copy. This step does not rewrite them. |
 | Unassigned | Not named in the plan: splash, admin, the test season, hero editing, fixture pages, explain prose. |
