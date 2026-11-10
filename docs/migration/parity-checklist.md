@@ -43,14 +43,14 @@ Step 3 owners:
 | | |
 | --- | --- |
 | Total items | 188 |
-| Done | 87 |
-| Partial | 24 |
-| Not started | 77 |
-| API line starts with `MISSING` | 48 |
+| Done | 100 |
+| Partial | 23 |
+| Not started | 65 |
+| API line starts with `MISSING` | 47 |
 | of which `MISSING (static)` | 46 |
-| of which `MISSING (data)` | 2 |
+| of which `MISSING (data)` | 1 |
 
-The two data rows are W13 and X3, the same hole: an Intervals JSON file's laps and rep times. The 46 static rows are copy, photos, or chrome. A few of those also name a route for the part that is stored (the intro flag, the confirm-adapt setting, sign-out). Photo credits are listed on the screen and again under Photo credits, so those rows are in the total twice on purpose.
+The remaining data row is X3, the Last Session lap table. W13, the admin session picker, now reads `GET /fixtures/intervals/{name}` for WORK times. The 46 static rows are copy, photos, or chrome. A few of those also name a route for the part that is stored (the intro flag, the confirm-adapt setting, sign-out). Photo credits are listed on the screen and again under Photo credits, so those rows are in the total twice on purpose.
 
 ## PR #61 gaps
 
@@ -65,12 +65,12 @@ These are the differences that matter for "nothing is lost." Item rows below rep
 7. **Gap 7. Create-account helper copy.** The web always shows "First name is enough. At least 8 characters." Local Streamlit adds "Saved on this machine." Hosted Streamlit shows no helper line.
 8. **Gap 8. Local log-in notice.** When Supabase is not configured, Streamlit still shows the form and the card "Accounts aren't set up yet" / "Sign-in will open here after accounts are connected." The web form does not show that card.
 9. **Gap 9. Window title.** Streamlit is "RIO · Runner Intelligence Owned" with a runner icon. The web layout title is "RIO" and the description is "Runner Intelligence Owned".
-10. **Gap 10. Start session has no date.** The nav link is always `/session`. Streamlit opens the next planned day, or the latest day when the season is over (`_next_session_day`).
+10. **Gap 10. Closed.** Start session opens `GET /auth/me` `next_session`: the next planned day, or the last day when the season is over. Today is the Settings time zone. `tests/test_api_step3_session.py` `test_next_session_day_is_today_or_the_last_day` and `test_session_uses_easy_pace_and_states_the_rep_and_the_average`. The web check is `web/e2e/auth-home.spec.ts` ("start session opens the next planned day").
 11. **Gap 11. The Admin tab never appears.** `Nav` shows Admin when `athlete.role === "admin"`. Sign-in still stores `role: "athlete"` (`api/identity.py`). Admin is the email in `RIO_ADMIN_EMAIL` (`ui/access.py` `viewer_is_admin`). The Admin page is also `ComingSoon`.
 12. **Gap 12. Forgot password is gated on the wrong-shaped check, and the URL is always there.** The link shows when `GET /auth/google` returns 200 and hides on 503. That lines up with hosted versus the local file, which is what the plan asks. Opening `/forgot-password` directly still draws the form. On the local file the API returns 400 because that file has no mail. Streamlit has no forgot screen at all in local mode.
 13. **Gap 13. Landing is unreadable in the commit, and create-account is untested.** `Gate` calls `landingPath` from the missing `web/lib/landing.ts`. The e2e only checks sign-in: current season → `/home`, no season → `/start`. `GET /seasons/current` already 404s when every goal date is before today (`api/season_service.py` `open_season`), so that split can match Streamlit if `landingPath` sends 404 to `/start` and 200 to `/home`. The test never uses a goal date of today, and it never walks intro or easy pace.
 14. **Gap 14. Empty fields use the browser, not RIO's sentence.** Login and create mark the inputs `required`. An empty submit can stop on the browser bubble. Streamlit submits and shows "Enter a name.", "Enter an email address.", or "Use at least 8 characters."
-15. **Gap 15. Every other page is the placeholder.** Activity, Library, More, Profile, Settings, About, Creators, Session, Past seasons, Admin, and the fixture URLs render "Coming in the next step." Plan is the step 3.2 page.
+15. **Gap 15. Every other page is the placeholder.** Activity, Library, More, Profile, Settings, About, Creators, Past seasons, Admin, and the fixture URLs render "Coming in the next step." Plan is the step 3.2 page. Session is the step 3.3 page.
 16. **Gap 16. Motion.** Home staggers its blocks by 200ms (`web/app/globals.css` `.rio-stagger`). The splash fade, the nav underline that does not replay on the same page, and the hold that skips a same-page rerun are not there.
 
 ## Routes main still calls "not built"
@@ -122,9 +122,7 @@ PR #61's copy of `docs/migration/api-contract.md` adds these. They are not on `m
 - Hidden copy that must stay hidden (Z1–Z7)
 - Motion (A1–A6)
 
-`MISSING (data)` — one hole, two rows (W13 and X3):
-
-- The admin Intervals file picker. `GET /fixtures` on PR #61 returns names. `POST /fixtures/classify` returns a family, not laps and not each rep's elapsed time. Nothing returns the file under `tests/fixtures/intervals` or fills the result boxes from it.
+`MISSING (data)` — X3, the Last Session lap table (distance, seconds, and rest). W13's session picker is `GET /fixtures/intervals` and `GET /fixtures/intervals/{name}`, which return the WORK elapsed times and do not return the full lap table.
 
 ---
 
@@ -973,11 +971,10 @@ After a successful Generate, once, if Strava is not connected and the person has
 
 **Sees:** Nav control "Start session". It opens the next planned date, or the latest date when nothing is left.
 **Now:** `_render_nav`, `_next_session_day`
-**API:** `GET /home` `season.next.date`, or `GET /sessions/{date}`
+**API:** `GET /auth/me` `next_session`. The same date is `GET /home` `next_session`.
 **Step 3:** 3.3. The nav shell is PR #61.
-**Status:** partial
-**Gap:** Gap 10. PR #61 links to `/session` with no date.
-**Verify:** Mid-season, Start session opens today's workout or the next one, the same day Home shows. After the last day, it opens the last day.
+**Status:** done
+**Verify:** Mid-season, Start session opens today's workout or the next one, the same day Home shows. After the last day, it opens the last day. `tests/test_api_step3_session.py` `test_next_session_day_is_today_or_the_last_day`. `web/e2e/auth-home.spec.ts` "start session opens the next planned day". Video `session-new-account-log-result.mp4`.
 
 ### W2. Session with no plan, no date, or a bad date
 
@@ -985,17 +982,17 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `page_session`
 **API:** `GET /sessions/{date}` `404` when the date is not in the season or there is no season
 **Step 3:** 3.3
-**Status:** not started
-**Verify:** Three screenshots. No stack trace. No empty result form on a bad date.
+**Status:** done
+**Verify:** Three screenshots. No stack trace. No empty result form on a bad date. `web/e2e/session.spec.ts` "a session with no plan, no date, or a bad date" and "a bad date does not open the result form".
 
 ### W3. Session hero and workout
 
 **Sees:** The weekday as the heading and the date under it. Card "Workout" in plain menu words. Optional "Structure" and "Target outcome" ("—" when blank). "Reasons" in plain words, or "—".
 **Now:** `page_session`, `_structure_text`, `_plain_reasons`
-**API:** `GET /sessions/{date}` `session`
+**API:** `GET /sessions/{date}` `label`, `structure`, `target`, `reasons`
 **Step 3:** 3.3
-**Status:** not started
-**Verify:** The workout name matches Library. Reasons are sentences, not code tokens, when a plain form exists.
+**Status:** done
+**Verify:** The workout name matches Library. Reasons are sentences, not code tokens, when a plain form exists. `tests/test_api_step3_session.py` `test_session_uses_easy_pace_and_states_the_rep_and_the_average`. `web/e2e/session.spec.ts` "a quality day states the rep time".
 
 ### W4. Prep notes
 
@@ -1003,26 +1000,26 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `_prep_lines`
 **API:** MISSING (static). Do not store this on the session.
 **Step 3:** 3.3
-**Status:** not started
-**Verify:** Screenshot all four blocks. Logging a result does not change the prep text.
+**Status:** done
+**Verify:** Screenshot all four blocks. Logging a result does not change the prep text. `web/lib/session.test.ts` "prep notes are the four fixed blocks". `web/e2e/session.spec.ts` shows Pre-warm-up, Warm-up, Cool-down, and Core. Full-page screenshot `session-quality-side-by-side.png`.
 
 ### W5. Pace line on the session
 
 **Sees:** Per rep, "Tolerance …" and "Block …", or for an easy run "Run at …" or "Set your easy pace before this run." A logged actual can show "Actual …".
 **Now:** `_split_html`; `engines/pace.py` `workout_times`
-**API:** `GET /sessions/{date}` plus the prescription fields `GET /home` already returns for that day. Easy pace comes from `GET /auth/me` `prefs` and is not an input to `sequence()`.
+**API:** `GET /sessions/{date}` `prescription` (`line`, `tolerance`, `block`, `average`). Easy pace comes from the saved pace and is not an input to `sequence()`.
 **Step 3:** 3.3
-**Status:** not started
-**Verify:** A 6×400 shows a tolerance band and a block clock. An easy run uses the saved pace, never the 1.55 aerobic fraction.
+**Status:** done
+**Verify:** A 6×400 shows a tolerance band and a block clock. An easy run uses the saved pace, never the 1.55 aerobic fraction. `tests/test_api_step3_session.py` `test_session_uses_easy_pace_and_states_the_rep_and_the_average`. `web/e2e/session.spec.ts` "an easy run uses the saved pace". Full-page screenshots `session-quality-side-by-side.png` and `session-easy-side-by-side.png`. Both show "The higher capacity weight won" on the Tuesday, which is the plain form of `capacity_weight`. The Tuesday is 2026-11-10 and the Monday is 2026-11-09, today in America/Los_Angeles while the server clock was 2026-11-10 UTC.
 
 ### W6. Matched activity beside the template
 
 **Sees:** "Intervals" with Reps, Work, and Avg HR from the matched run. A separate "Avg HR" when the page has a heart rate the match block did not show.
 **Now:** `_supplied_html`, `page_session`
-**API:** `GET /sessions/{date}` `actual`, and `GET /activities` for the matched row (`work`, `heart_rate`)
+**API:** `GET /sessions/{date}` `match` (`reps`, `work`, `heart_rate`) and `actual`
 **Step 3:** 3.3
-**Status:** not started
-**Verify:** A matched quality day shows rep times that can still be edited. Warm-up meters are not in Work.
+**Status:** done
+**Verify:** A matched quality day shows rep times that can still be edited. Warm-up meters are not in Work. `web/e2e/session.spec.ts` shows Intervals, Reps, and Avg HR beside the template. The boxes stay editable.
 
 ### W7. Watch logging
 
@@ -1030,8 +1027,8 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `_render_result`, `_time_box`; `ui/result.py` `judge`, `result_box_count`
 **API:** `POST /seasons/current/results` body `{date, text, slots, intervals, note}`. `400` when the date is not in the season or the result cannot be judged. The response includes `insight` (`pending`, `ready`, or `skipped`) and does not wait for the model.
 **Step 3:** 3.3
-**Status:** not started
-**Verify:** Type a rep time. It saves without a separate Save button. A hard day can change later weeks. An easy day does not call adapt. The plan is stored before any note runs.
+**Status:** done
+**Verify:** Type a rep time. It saves without a separate Save button. A hard day can change later weeks. An easy day does not call adapt. The plan is stored before any note runs. `tests/test_api_step3_session.py` `test_a_quality_result_adapts_and_an_easy_done_does_not`. `web/e2e/session.spec.ts` "a quality day states the rep time" (no Save button; Confirm is W8). Easy days render no result boxes.
 
 ### W8. Confirm before later weeks change
 
@@ -1039,8 +1036,8 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `_confirm_adapt`, `_render_result`, `_render_watchless`, `_render_mark`
 **API:** MISSING (static) for the dialog. The setting is `PATCH /settings` `confirm_adapt`. Confirm then calls `POST /seasons/current/results`, `POST /seasons/current/watchless`, or `POST /seasons/current/marks`. The API applies the mark. It does not know about the dialog.
 **Step 3:** 3.3 for the dialog on a result. The setting is 3.7 (Settings G5). The week-mark copy is 3.2 (B11).
-**Status:** not started
-**Verify:** Setting on: the dialog shows and Cancel leaves later weeks alone. Setting off: no dialog, later weeks move. An adapt error is red via `_finish_commit`.
+**Status:** done
+**Verify:** Setting on: the dialog shows and Cancel leaves later weeks alone. Setting off: no dialog, later weeks move. An adapt error is red via `_finish_commit`. `web/e2e/session.spec.ts` "a quality day states the rep time" (Cancel posts nothing; Confirm posts once) and "no-watch shows Done". `web/lib/session.test.ts` "confirm copy matches the dialog". Full-page screenshot `session-confirm-side-by-side.png` shows Confirm and Cancel on both apps. Plan after the save is `session-plan-after.png`.
 
 ### W9. No-watch Done
 
@@ -1048,8 +1045,8 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `_render_watchless`, `_watchless_choices`, `_watchless_summary`; `ui/no_watch.py` `CHOICES`
 **API:** `POST /seasons/current/watchless` body `{date, outcome, time, note}`. `outcome` is `Behind`, `On target`, or `Ahead`. `time` may be empty. A time on a hard day adapts later weeks. Done with no time does not.
 **Step 3:** 3.3. The same block is embedded on Home when no-watch is on (H8).
-**Status:** not started
-**Verify:** Easy day: Done and Couldn't finish only, plus Add a time. Hard day: the three outcomes are required ("Choose behind, on target, or ahead." if missing). Done with no time does not move later weeks.
+**Status:** done
+**Verify:** Easy day: Done and Couldn't finish only, plus Add a time. Hard day: the three outcomes are required ("Choose behind, on target, or ahead." if missing). Done with no time does not move later weeks. `tests/test_api_step3_session.py` `test_a_quality_result_adapts_and_an_easy_done_does_not`. `web/e2e/session.spec.ts` "no-watch shows Done". Home uses the same block when `logging` is `done`.
 
 ### W10. Add a time
 
@@ -1057,8 +1054,8 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `_render_watchless`
 **API:** `POST /seasons/current/watchless` `time`. `400` when the time is unusable.
 **Step 3:** 3.3
-**Status:** not started
-**Verify:** Blank time completes. "1:12.4" is stored as one number. "abc" shows the sentence and does not save.
+**Status:** done
+**Verify:** Blank time completes. "1:12.4" is stored as one number. "abc" shows the sentence and does not save. `tests/test_api_step3_session.py` `test_a_quality_result_adapts_and_an_easy_done_does_not` (the "abc" sentence and the blank Done). `web/e2e/session.spec.ts` types `1:12.4` before Confirm.
 
 ### W11. Insight on the session
 
@@ -1066,26 +1063,26 @@ After a successful Generate, once, if Strava is not connected and the person has
 **Now:** `page_session` calls `_show_stored_insight`
 **API:** `GET /sessions/{date}` `note`. "Got it" is `POST /seasons/current/notes` `{date, note, viewed: true}`.
 **Step 3:** 3.3. The note shape is item Q1.
-**Status:** not started
-**Verify:** Got it hides the note on reload. It does not call the model.
+**Status:** done
+**Verify:** Got it hides the note on reload. It does not call the model. `web/e2e/session.spec.ts` shows the headline and clicks Got it, which posts `viewed: true` and does not call `POST /insights/workout`.
 
 ### W12. An extra activity opened as a session
 
 **Sees:** The weekday and date, then a card "Activity" with reps, volume, and heart rate. No result boxes.
 **Now:** `page_session`, `_render_logged_activity`
-**API:** `GET /activities` `cards` for that id. `GET /sessions/{date}` `404` if that date is not a planned day, so the client must use the activity payload.
+**API:** `GET /activities` `logged` for that id. `GET /sessions/{date}` `404` if that date is not a planned day, so the client must use the activity payload.
 **Step 3:** 3.3
-**Status:** not started
-**Verify:** Open an extra from Home or Activity. No Done form and no adapt.
+**Status:** done
+**Verify:** Open an extra from Home or Activity. No Done form and no adapt. `web/e2e/session.spec.ts` "an extra activity has no Done form".
 
 ### W13. Admin Intervals file on the session
 
 **Sees:** Only for the admin email: a select "Intervals file", first option "—", then JSON names. Choosing one fills the rep boxes from that file's WORK elapsed times. The numbers stay editable. A bad file says "Could not read {name}." or "{name} is not JSON."
 **Now:** `_intervals_choice`, `_fixture_allowed`. Everyone else is sent Home.
-**API:** MISSING (data). See X3. `PR #61: GET /fixtures` lists names and does not return rep times.
-**Step 3:** Unassigned (fixture tools). The athlete result form is 3.3 and must not show this select.
-**Status:** not started
-**Verify:** A normal account has no file select. The admin account can fill reps from a fixture and still edit them.
+**API:** `GET /fixtures/intervals` lists names. `GET /fixtures/intervals/{name}` returns the WORK elapsed times. A normal account is `403`.
+**Step 3:** 3.3. The athlete result form must not show this select. The admin fill was the data hole on this row.
+**Status:** done
+**Verify:** A normal account has no file select. The admin account can fill reps from a fixture and still edit them. `tests/test_api_step3_session.py` `test_admin_intervals_fill_stays_off_a_normal_account`. `web/e2e/session.spec.ts` asserts the select is absent for an athlete.
 
 ---
 

@@ -211,7 +211,24 @@ def log_out(request: Request, response: Response) -> dict:
 @auth_router.get("/me")
 def me(request: Request) -> dict:
     who, resolved = _resolved(request)
-    return athlete_payload(who, resolved)
+    payload = athlete_payload(who, resolved)
+    payload["next_session"] = _next_session(request, who, resolved)
+    return payload
+
+
+def _next_session(request: Request, who, resolved: dict) -> str | None:
+    """The next planned day, or the last day when the season is over.
+
+    Today is the Settings time zone already on this viewer. A missing season
+    leaves the link without a date.
+    """
+    from api.screens import next_session_day
+
+    try:
+        season = open_season(who, request.app.state.directory, resolved["today"])
+    except ApiError:
+        return None
+    return next_session_day(season.plan, resolved["today"])
 
 
 @season_router.get("/current")

@@ -873,6 +873,29 @@ def _rep_time_text(seconds: Decimal) -> str:
     return f"{_seconds_text(seconds)} s"
 
 
+def average_rep_text(reps: object) -> str:
+    """The mean of the prescribed rep times. Blank when there are none.
+
+    The seconds come from workout_times. This does not pick a new fraction.
+    """
+    if not isinstance(reps, list) or not reps:
+        return ""
+    total = Decimal(0)
+    count = 0
+    for row in reps:
+        if not isinstance(row, dict):
+            continue
+        seconds = row.get("seconds")
+        number = seconds if isinstance(seconds, Decimal) else _decimal(seconds)
+        if number is None or number <= 0:
+            continue
+        total += number
+        count += 1
+    if count == 0:
+        return ""
+    return _rep_time_text(_tenths(total / Decimal(count)))
+
+
 def _tolerance_text(rows: list[dict]) -> str:
     same = len({(row["low"], row["high"]) for row in rows}) == 1
     if same:

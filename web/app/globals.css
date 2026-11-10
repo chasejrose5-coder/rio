@@ -892,6 +892,114 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   .rio-progress-status, .rio-progress-days { grid-column: 2; }
   .rio-day { grid-template-columns: 1fr; }
 }
+.page-session { background: var(--paper); color: var(--ink); min-height: 100dvh; }
+.page-session main { padding: 0 5vw 3.5rem; }
+.page-session .rio-hero {
+  background: var(--ink);
+  color: var(--paper);
+  margin: 0 -5vw;
+  padding: 2.4rem 5vw 1.8rem;
+}
+.page-session .rio-hero h1 { font-size: clamp(2.6rem, 6vw, 4.4rem); color: var(--paper); max-width: 16ch; }
+.page-session .rio-range { color: #d7d2cb; }
+.page-session .rio-card {
+  margin-top: 1.2rem;
+  background: #fff;
+  border: 1px solid #dadada;
+  border-radius: 18px;
+  padding: 1.15rem 1.4rem 1.2rem;
+}
+/* Home paints these labels cream for the dark hero. On this page they sit on white. */
+.page-session .rio-mark-label {
+  margin: 0;
+  padding: 0.9rem 0 0.4rem;
+  color: #6b6b6b;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+.page-session h2.rio-week-title {
+  margin: 0 0 0.45rem;
+  color: #0e0e0e;
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+.page-session .rio-pace { margin-top: 0.15rem; }
+.page-session .rio-pace-line {
+  margin: 0.12rem 0 0;
+  color: #121110;
+  font-size: 0.98rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.page-session .rio-pace-range,
+.page-session .rio-pace-block {
+  margin: 0.1rem 0 0;
+  color: #6e6a64;
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+.page-session .rio-session-section { border-top: 1px solid #dadada; margin-top: 0.35rem; }
+.page-session .rio-note {
+  margin: 0;
+  color: #0e0e0e;
+  font-size: 1.02rem;
+  line-height: 1.5;
+}
+.page-session .rio-reason {
+  margin: 0.28rem 0;
+  color: #0e0e0e;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+.rio-session-split { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(12rem, 0.8fr); gap: 1.2rem; }
+.rio-supplied { padding-left: 1rem; border-left: 1px solid #dadada; }
+.rio-template-id { margin: 0.2rem 0 0; color: #6b6b6b; font-size: 0.78rem; }
+.page-session .rio-prep {
+  margin: 0.85rem 0 0.15rem;
+  padding-top: 0.15rem;
+  border-top: 1px solid #dadada;
+}
+.page-session .rio-prep-block + .rio-prep-block {
+  margin-top: 0.2rem;
+  border-top: 1px solid #dadada;
+}
+.page-session .rio-prep-line,
+.page-session .rio-prep-lead {
+  margin: 0;
+  color: #0e0e0e;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+.page-session .rio-prep-list { margin: 0.28rem 0 0.15rem; padding-left: 1.15rem; }
+.page-session .rio-prep-list li { margin: 0.16rem 0; color: #0e0e0e; font-size: 0.95rem; line-height: 1.45; }
+.page-session .rio-prep-list li::marker { color: #6b6b6b; }
+.page-session .rio-settings-note,
+.page-session .rio-rep-note { color: #6b6b6b; }
+.rio-result { margin-top: 1rem; padding-top: 0.4rem; border-top: 1px solid #dadada; }
+.rio-result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem 1rem; }
+.rio-result label, .rio-file { display: flex; flex-direction: column; gap: 0.25rem; color: #6b6b6b; font-size: 0.78rem; font-weight: 600; }
+.rio-result input, .rio-file select {
+  min-height: 2.6rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.4rem 0.7rem;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 1rem;
+}
+.rio-result-one { max-width: 16rem; }
+.rio-rep-note { margin: 0.2rem 0 0.55rem; color: var(--muted); }
+.rio-file { max-width: 22rem; margin: 0.4rem 0 0.7rem; }
+@media (max-width: 720px) {
+  .rio-session-split, .rio-result-grid { grid-template-columns: 1fr; }
+  .rio-supplied { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); padding-top: 0.8rem; }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation: none !important;

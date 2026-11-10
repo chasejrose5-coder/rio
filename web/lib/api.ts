@@ -1,4 +1,4 @@
-import type { ActivitiesResponse, Athlete, AuthResult, CurrentSeason, HomeResponse, PlanResponse, SeasonWrite } from "./types";
+import type { ActivitiesResponse, Athlete, AuthResult, CurrentSeason, HomeResponse, PlanResponse, ResultWrite, SeasonWrite, SessionResponse } from "./types";
 
 export class ApiError extends Error {
   status: number;
@@ -138,4 +138,21 @@ export const api = {
       body: JSON.stringify({ week, choice }),
       headers: digest ? { "If-Match": digest } : {},
     }),
+
+  session: (date: string) => request<SessionResponse>(`/sessions/${encodeURIComponent(date)}`),
+
+  postResult: (
+    body: { date: string; text: string; slots?: (number | null)[] | null; intervals?: string | null },
+    digest: string,
+  ) =>
+    request<ResultWrite>("/seasons/current/results", {
+      method: "POST",
+      body: JSON.stringify(body),
+      headers: digest ? { "If-Match": digest } : {},
+    }),
+
+  intervalFiles: () => request<{ files: string[] }>("/fixtures/intervals"),
+
+  intervalFill: (name: string) =>
+    request<{ name: string; times: (number | null)[]; source: string }>(`/fixtures/intervals/${encodeURIComponent(name)}`),
 };

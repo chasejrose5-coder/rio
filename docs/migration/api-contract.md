@@ -88,7 +88,7 @@ Cookie. `200` `{"ok": true}` and the cookie is cleared.
 
 ### `GET /auth/me`
 
-Cookie. `200` is `athlete`.
+Cookie. `200` is `athlete`. `today` is `YYYY-MM-DD` in the Settings time zone. `next_session` is the next planned date on or after that day, or the latest planned date when the season is over, or `null` when there is no current season. Start session opens that date.
 
 ### `POST /auth/sign-up`
 
@@ -357,6 +357,7 @@ These are the reads and writes Home, Plan, Activity, Library, Profile, Settings,
 | `notes` | Unviewed insight notes: `[{"date": "", "note": {}, "viewed": false}]` |
 | `activities` | The same activity rows as `season.activities` |
 | `logging` | `done` or `times` |
+| `next_session` | The next planned date, or the latest date when the season is over. The same value is on the top-level body. `next.actual` is the stored result for that day when the template still matches, so the Home Done controls can show a miss or a completion. |
 
 `just_generated=true` is how the client asks whether to show the Strava card after Generate. `POST /seasons` already returns `strava_offer` for that moment.
 
@@ -438,6 +439,8 @@ Cookie. Body: `{"goal_time": "1:54.0"}`.
 
 `session` is the planned day. `actual` is the stored result, or `null`. `quality` is true for a Tuesday or Thursday that is not an easy or long run. `note` is the insight, or `null`. `404` when the date is not in the season, or there is no season. Saving a result is `POST /seasons/current/results`. Got it is `POST /seasons/current/notes` with `viewed: true`.
 
+The same body also carries the words the session page shows. `label`, `structure`, `target`, and `reasons` are the plain sentences. `prescription` is `line`, `tolerance`, `block`, and `average`. `line` is the time per rep and the rest, or `Run at …` from the saved easy pace, or `Set your easy pace before this run.` `average` is the mean of those prescribed rep times. An easy or long run leaves it blank, and the line is never the 1.55 aerobic fraction. Quality families keep their fractions. `boxes` is the number of result boxes (0 on an easy day, and 0 when logging is Done). `seed` fills those boxes from a saved result or a matched run. `summary` is the saved `{times} · {mark}`. `match` is Reps, Work, and Avg HR from the matched activity. `logging` is `times` or `done`. `confirm_adapt` is the setting. The confirm dialog stays in the browser. `show_id` is the template-id setting.
+
 ### `PATCH /settings`
 
 Cookie. Send only the fields to change. `200` is `athlete`.
@@ -497,6 +500,14 @@ The Last Session, Next, Decisions, Ledger, and Goal pages. Admin only, same as `
 ### `GET /fixtures`
 
 `200` `{"fixtures": ["easy", "race_800"]}`. The names are the stems in `tests/fixtures`.
+
+### `GET /fixtures/intervals`
+
+Admin. `200` `{"files": ["synthetic_se_400_with_recovery.json"]}`. Names only. A normal account is `403`.
+
+### `GET /fixtures/intervals/{name}`
+
+Admin. `200` `{"name": "", "times": [], "source": ""}`. `times` are the WORK elapsed seconds from that local JSON file. Warm-up and cool-down are left out. `400` `{"detail": "{name} is not JSON."}` or `Could not read {name}.` `404` when the name is not in that folder. Nothing is requested from Intervals.icu.
 
 ### `POST /fixtures/classify`
 

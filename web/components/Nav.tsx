@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { sessionHref } from "@/lib/session";
 
 const NAV = [
   { href: "/home", label: "Home" },
@@ -28,8 +29,7 @@ export function Nav({ active }: { active?: string }) {
   const [arm, setArm] = useState(false);
   const moreOpen = path === "/more" || MORE.some((item) => path === item.href) || active === "More";
   const admin = athlete?.role === "admin";
-  const today = athlete?.today;
-  const sessionHref = today ? `/session?date=${today}` : "/session";
+  const startSession = sessionHref(athlete?.next_session);
 
   useEffect(() => {
     const key = "rio-nav-path";
@@ -60,7 +60,7 @@ export function Nav({ active }: { active?: string }) {
               Admin
             </Link>
           ) : null}
-          <Link className="rio-start-session" href={sessionHref}>
+          <Link className="rio-start-session" href={startSession}>
             Start session
           </Link>
           <button

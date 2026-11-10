@@ -56,6 +56,33 @@ def _phase(rows: list) -> int | None:
     return None
 
 
+def next_session_day(plan_or_sessions, today: date) -> str | None:
+    """The next planned date, or the latest one when nothing is left.
+
+    Today is the athlete's date. Dates compare as YYYY-MM-DD.
+    """
+    sessions = plan_or_sessions
+    if isinstance(plan_or_sessions, dict):
+        sessions = plan_or_sessions.get("sessions")
+    if not isinstance(sessions, list) or not isinstance(today, date):
+        return None
+    days = []
+    for session in sessions:
+        if not isinstance(session, dict):
+            continue
+        day = session.get("date")
+        if isinstance(day, str) and day.strip():
+            days.append(day.strip())
+    if not days:
+        return None
+    days.sort()
+    today_text = today.isoformat()
+    for day in days:
+        if day >= today_text:
+            return day
+    return days[-1]
+
+
 def _upcoming(sessions: list, today: date, count: int = 3) -> list[dict]:
     rows = []
     for session in sessions:
@@ -296,6 +323,7 @@ def home_view(principal, directory, today: date, season, *, connected: bool, str
         ),
         "season": None,
         "copy": no_plan_copy(),
+        "next_session": None,
     }
     if season is None:
         return body
@@ -394,7 +422,15 @@ def home_view(principal, directory, today: date, season, *, connected: bool, str
         "notes": notes,
         "activities": json_ready(season.activities),
         "logging": "done" if prefs["prefs"].get("no_watch") is True else "times",
+        "next_session": next_session_day(sessions, today),
     }
+    body["next_session"] = body["season"]["next_session"]
+    day = body["season"]["next"].get("date") if isinstance(body["season"].get("next"), dict) else None
+    actuals = season.actuals if isinstance(season.actuals, dict) else {}
+    actual = actuals.get(day) if isinstance(day, str) else None
+    template = body["season"]["next"].get("template_id") if isinstance(body["season"].get("next"), dict) else None
+    if isinstance(actual, dict) and actual.get("template_id") == template and isinstance(body["season"].get("next"), dict):
+        body["season"]["next"]["actual"] = actual
     return body
 
 
@@ -572,6 +608,7 @@ def activity_view(season, today: date, prefs: dict, easy_pace: str, easy_unit: s
         "summary": json_ready(summary),
         "weekly_meters": weekly_meters(cards, start, length),
         "heart": heart_points(cards),
+        "logged": logged_activities(activities, str(prefs.get("units") or "miles")),
     }
 
 
@@ -614,8 +651,177 @@ def profile_view(season, resolved: dict, override: str | None = None) -> dict:
     }
 
 
-def session_view(season, day: str) -> dict | None:
+_REASON_PLAIN = {
+    "phase_1": "Phase 1",
+    "phase_2": "Phase 2",
+    "phase_3": "Phase 3",
+    "phase_4": "Phase 4",
+    "phase_5": "Phase 5",
+    "phase_6": "Phase 6",
+    "phase_7": "Phase 7",
+    "phase_8": "Phase 8",
+    "phase_primary": "Primary work for this phase",
+    "phase_secondary": "Secondary work for this phase",
+    "weekly_aerobic_long_run": "The weekly long run",
+    "priority_speed_endurance": "Speed endurance is a priority",
+    "priority_aerobic_power": "Aerobic power is a priority",
+    "priority_anaerobic_capacity": "Anaerobic capacity is a priority",
+    "capacity_weight": "The higher capacity weight won",
+    "ten_percent_hold": "Held so the week does not rise more than 10%",
+    "ten_percent_easier_template": "An easier session, so the week stays within 10%",
+    "extra_easy_day": "An extra easy day",
+    "extra_easy_week": "An easy week",
+    "harder_template": "A harder session",
+    "moved_back_one_phase": "Moved back one phase",
+    "advanced_one_phase": "Advanced one phase",
+    "phase_8_freshness": "The taper stays fresh",
+    "phase_8_no_hard_se_or_an": "No hard speed endurance or anaerobic work",
+}
+
+
+def _plain_reason(code: object) -> str:
+    text = str(code).strip()
+    if not text:
+        return ""
+    known = _REASON_PLAIN.get(text)
+    if known:
+        return known
+    if len(text) == 7 and text.startswith("phase_") and text[6].isdigit():
+        return f"Phase {text[6]}"
+    return text.replace("_", " ")
+
+
+def _reason_lines(codes: object) -> list[str]:
+    lines = []
+    for code in codes or []:
+        words = _plain_reason(code)
+        if words:
+            lines.append(words)
+    return lines
+
+
+def _structure_text(template_id: str, units: str) -> str:
+    key = template_id.strip()
+    menu_text = ""
+    if key:
+        try:
+            from engines.prescribe import load_menu
+
+            for row in load_menu():
+                if isinstance(row, dict) and str(row.get("id") or "").strip() == key:
+                    menu_text = str(row.get("default_structure") or "").strip()
+                    break
+        except ValueError:
+            menu_text = ""
+    text = menu_text or WORKOUT_TEXT.get(key, key)
+    shown = display_training(text, units) if isinstance(text, str) and text else ""
+    return shown or "—"
+
+
+def _result_summary(saved: object) -> str:
+    if not isinstance(saved, dict):
+        return ""
+    parts = []
+    for number in saved.get("numbers") or []:
+        if isinstance(number, bool) or not isinstance(number, (int, float)):
+            continue
+        if isinstance(number, float) and number.is_integer():
+            parts.append(str(int(number)))
+        else:
+            parts.append(str(number))
+    text = ", ".join(parts)
+    mark = saved.get("mark")
+    if text and mark in ("on_track", "not_hitting", "smashing"):
+        return f"{text} · {mark}"
+    return ""
+
+
+def _seed_slots(saved: object, count: int) -> list:
+    from services.season_commit import stored_slot
+
+    slots: list = [None] * count
+    if not isinstance(saved, dict):
+        return slots
+    stored = saved.get("slots")
+    if isinstance(stored, list):
+        for index in range(min(count, len(stored))):
+            slots[index] = stored_slot(stored[index])
+        return slots
+    numbers = saved.get("numbers")
+    if not isinstance(numbers, list):
+        return slots
+    filled = [stored_slot(number) for number in numbers]
+    filled = [slot for slot in filled if slot is not None]
+    for index, slot in enumerate(filled[:count]):
+        slots[index] = slot
+    return slots
+
+
+def _match_block(match: object, units: str) -> dict | None:
+    from ui.activities import meters_text
+    from ui.last_session import heart_rate_text
+    from ui.result import filled_times
+    from ui.settings import display_distance
+
+    if not isinstance(match, dict):
+        return None
+    reps = filled_times(match.get("reps") or [])
+    volume = meters_text(match.get("work_m"))
+    shown = display_distance(volume, units) if volume else ""
+    heart = ""
+    if match.get("heart_rate") is not None:
+        heart = heart_rate_text({"average_heartrate": match.get("heart_rate")}) or ""
+    if not reps and not shown and not heart:
+        return None
+    return {"reps": reps, "work": shown, "heart_rate": heart}
+
+
+def logged_activities(activities: object, units: str) -> list[dict]:
+    """One card per stored activity. An extra has matched false and no result form."""
+    from ui.activities import meters_text
+    from ui.last_session import heart_rate_text
+    from ui.result import filled_times
+    from ui.settings import display_distance
+
+    rows = []
+    for row in activities or []:
+        if not isinstance(row, dict):
+            continue
+        ident = row.get("id")
+        if not isinstance(ident, str) or not ident.strip():
+            continue
+        volume = meters_text(row.get("work_m"))
+        shown = display_distance(volume, units) if volume else ""
+        heart = ""
+        if row.get("heart_rate") is not None:
+            heart = heart_rate_text({"average_heartrate": row.get("heart_rate")}) or ""
+        name = row.get("name")
+        title = name.strip() if isinstance(name, str) and name.strip() else "Activity"
+        rows.append(
+            {
+                "id": ident.strip(),
+                "date": str(row.get("date") or ""),
+                "name": title,
+                "matched": row.get("matched") is True,
+                "reps": filled_times(row.get("reps") or []),
+                "volume": shown,
+                "heart_rate": heart,
+            }
+        )
+    return rows
+
+
+def session_view(season, day: str, resolved: dict | None = None) -> dict | None:
+    """One planned day, with the words and the clock the session page shows.
+
+    Easy and long runs use the saved easy pace. Quality families keep the
+    fractions workout_times already applied. The prep notes are not stored.
+    """
+    from engines.pace import average_rep_text, effort_pace, pace_unit, workout_recipe, workout_times
     from services.season_commit import quality_day
+    from ui.activities import matched_on
+    from ui.last_session import activity_by_ref, fit_slots, heart_rate_text
+    from ui.result import result_box_count
 
     sessions = season.plan.get("sessions") if isinstance(season.plan, dict) else []
     found = None
@@ -626,18 +832,104 @@ def session_view(season, day: str) -> dict | None:
                 break
     if found is None:
         return None
-    actual = season.actuals.get(day) if isinstance(season.actuals, dict) else None
+    resolved = resolved or {}
+    prefs = resolved.get("prefs") if isinstance(resolved.get("prefs"), dict) else {}
+    units = str(prefs.get("units") or "miles")
+    date_format = str(prefs.get("date_format") or "iso")
+    easy_pace = str(resolved.get("easy_pace") or "")
+    easy_unit = str(resolved.get("easy_pace_unit") or "mi")
+    logs = _pace_logs(season)
+    presented = _present_session(
+        found,
+        season,
+        units=units,
+        date_format=date_format,
+        easy_pace=easy_pace,
+        easy_unit=easy_unit,
+        logs=logs,
+    )
+    template = str(found.get("template_id") or "")
+    recipe = workout_recipe(template)
+    continuous = bool(recipe and recipe.get("continuous"))
+    activities = season.activities if isinstance(season.activities, list) else []
+    match = matched_on(activities, day)
+    block = _match_block(match, units)
+    prescription = presented.get("prescription")
+    if isinstance(prescription, dict):
+        prescription = dict(prescription)
+        if recipe and recipe.get("speed"):
+            prescription["block"] = ""
+        if continuous:
+            prescription["average"] = ""
+            actual_pace = effort_pace(match, pace_unit(prefs.get("pace_units") or "mi")) if isinstance(match, dict) else ""
+            line = str(prescription.get("line") or "")
+            if actual_pace and "Actual " not in line:
+                prescription["line"] = f"{line} · Actual {actual_pace}"
+        else:
+            try:
+                clock = workout_times(
+                    template,
+                    current_mark=season.inputs[0],
+                    goal_mark=season.inputs[2],
+                    start=date.fromisoformat(season.inputs[1]),
+                    goal_date=date.fromisoformat(season.inputs[3]),
+                    on=date.fromisoformat(day),
+                    logs=logs,
+                    easy_pace=easy_pace,
+                    easy_unit=easy_unit,
+                )
+            except ValueError:
+                clock = None
+            average = average_rep_text(clock.get("reps") if isinstance(clock, dict) else None)
+            prescription["average"] = average
+        presented["prescription"] = prescription
+    stored = season.actuals.get(day) if isinstance(season.actuals, dict) else None
+    actual = stored if isinstance(stored, dict) else None
+    same = actual if isinstance(actual, dict) and actual.get("template_id") == found.get("template_id") else None
     item = season.notes.get(day)
     note = item.get("note") if isinstance(item, dict) else None
     viewed = item.get("viewed") is True if isinstance(item, dict) else None
+    hard = quality_day(found)
+    logging = "done" if prefs.get("no_watch") is True else "times"
+    count = result_box_count(template) if hard and logging == "times" else 0
+    seed = _seed_slots(same, count) if count else []
+    if count and same is None and isinstance(match, dict) and not any(slot is not None for slot in seed):
+        seed = fit_slots(match.get("reps"), count)
+    extra_hr = ""
+    ref = same.get("intervals") if isinstance(same, dict) else None
+    if isinstance(ref, str) and ref.strip():
+        file_activity = activity_by_ref(ref)
+        text = heart_rate_text(file_activity) if isinstance(file_activity, dict) else None
+        shown = block.get("heart_rate") if isinstance(block, dict) else ""
+        if text and text != shown:
+            extra_hr = text
+    target = presented.get("target") if isinstance(presented.get("target"), str) else ""
+    if not target:
+        raw_target = found.get("target_outcome")
+        target = display_training(raw_target, units) if isinstance(raw_target, str) else ""
     return {
         "date": day,
         "session": found,
-        "actual": actual if isinstance(actual, dict) else None,
-        "quality": quality_day(found),
+        "actual": actual,
+        "quality": hard,
         "note": note if isinstance(note, dict) else None,
         "viewed": viewed,
         "digest": season.digest,
+        "label": presented.get("label") or "—",
+        "structure": _structure_text(template, units),
+        "target": target or "—",
+        "reasons": _reason_lines(found.get("reason_codes") or []),
+        "shown_date": presented.get("shown_date") or day,
+        "facts": presented.get("facts"),
+        "prescription": presented.get("prescription"),
+        "logging": logging,
+        "confirm_adapt": prefs.get("confirm_adapt") is True,
+        "show_id": prefs.get("show_ids") is True,
+        "boxes": count,
+        "seed": seed,
+        "summary": _result_summary(same),
+        "match": block,
+        "heart_rate": extra_hr,
     }
 
 
