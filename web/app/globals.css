@@ -1031,8 +1031,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .page-activity .rio-summary-kicker,
 .page-activity .rio-laps th,
 .page-last .rio-k,
-.page-last .rio-table th {
-  color: #6b6b6b;
+.page-last .rio-table th,
+.page-last .rio-file,
+.page-activity .rio-week summary {
+  color: #3c3a36;
 }
 .page-activity .rio-note, .page-last .rio-note, .page-settings .rio-note,
 .page-activity .rio-empty, .page-last .rio-empty,
@@ -1075,8 +1077,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .page-activity .rio-summary-tile { background: #f2f2f2; border-radius: 12px; padding: 0.45rem 0.5rem 0.55rem; }
 .page-activity .rio-summary-kicker {
   margin: 0;
+  color: #3c3a36;
   font-size: 0.68rem;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -1088,13 +1091,44 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   font-weight: 700;
 }
 .page-activity .rio-activity-stats {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin: 0.85rem 0 1rem;
-  border: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin: 0.35rem 0 1rem;
+  border-top: 1px solid #dcd6cc;
+  border-bottom: 1px solid #dcd6cc;
+  background: transparent;
 }
-.page-activity .rio-stat-tile { padding: 0.9rem 1rem 1rem; min-height: 0; }
-.page-activity .rio-stat-value { color: #121110; font-size: 1.55rem; font-weight: 800; letter-spacing: -0.04em; }
+.page-activity .rio-activity-stats .rio-stat-tile {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 1.15rem 1.35rem 1.25rem;
+  min-height: 0;
+}
+.page-activity .rio-activity-stats .rio-stat-tile:first-child {
+  padding-left: 0;
+  border-right: 1px solid #dcd6cc;
+}
+.page-activity .rio-activity-stats .rio-stat-tile:last-child { padding-right: 0; }
+.page-activity .rio-activity-stats .rio-mark-label {
+  margin: 0;
+  padding: 0 0 0.35rem;
+  color: #3c3a36;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+.page-activity .rio-activity-stats .rio-stat-value {
+  margin: 0.1rem 0 0;
+  color: #121110;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(2rem, 3.4vw, 3.6rem);
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
 .page-activity .rio-run { padding: 0.85rem 1rem 0.9rem; margin: 0 0 0.7rem; }
 .page-activity .rio-run-head { display: flex; justify-content: space-between; gap: 0.75rem; align-items: flex-start; }
 .page-activity .rio-run-name { margin: 0; color: #121110; font-family: var(--display); font-size: 1.15rem; font-weight: 700; }

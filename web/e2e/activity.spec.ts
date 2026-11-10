@@ -207,15 +207,20 @@ test("a disconnected account shows the empty line and the Strava card", async ({
   await expect(page.getByRole("link", { name: "Open Settings" })).toBeVisible();
   await expect(page.getByText("Intervals.icu")).toHaveCount(0);
   await expect(page.getByText("Refresh from Strava")).toHaveCount(0);
-  await expect(page.locator(".rio-mark-label").first()).toHaveCSS("color", "rgb(107, 107, 107)");
+  await expect(page.locator(".rio-mark-label").first()).toHaveCSS("color", "rgb(60, 58, 54)");
 });
 
-test("an intervals failure stays off the raw adapter sentence", async ({ page }) => {
-  await install(page, { notice: "Intervals.icu returned 429" });
+test("an intervals failure stays off the raw adapter sentence and keeps the stored runs", async ({ page }) => {
+  await install(page, { notice: "Intervals.icu returned 429", cards: true });
   await sign(page);
   await page.goto("/activity");
   await expect(page.getByText("Runs could not be loaded. Try Refresh in a moment.")).toBeVisible();
   await expect(page.getByText("Intervals.icu")).toHaveCount(0);
+  await expect(page.getByText("Completed work")).toBeVisible();
+  await expect(page.locator(".rio-stat-value", { hasText: "1.5 mi" })).toBeVisible();
+  await expect(page.locator(".rio-stat-value", { hasText: "160 bpm" })).toBeVisible();
+  await expect(page.getByText("This week")).toBeVisible();
+  await expect(page.getByText("Heart rate · bpm")).toBeVisible();
 });
 
 test("a connected empty week names the sync in the saved zone", async ({ page }) => {
@@ -261,7 +266,7 @@ test("connect opens Strava and disconnect clears the name", async ({ page }) => 
   await page.goto("/settings");
   await expect(page.getByText("Strava data is only visible to you.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Connect with Strava" })).toBeVisible();
-  await expect(page.locator(".rio-mark-label", { hasText: "Strava" })).toHaveCSS("color", "rgb(107, 107, 107)");
+  await expect(page.locator(".rio-mark-label", { hasText: "Strava" })).toHaveCSS("color", "rgb(60, 58, 54)");
   await page.getByRole("button", { name: "Connect with Strava" }).click();
   await page.waitForURL(/strava\.com\/oauth\/authorize/);
   expect(page.url()).toContain("redirect_uri=");
@@ -295,5 +300,5 @@ test("an admin sees the lap table and not the synthetic banner", async ({ page }
   await expect(page.getByRole("cell", { name: "90" })).toBeVisible();
   await expect(page.locator(".rio-synthetic")).toHaveCount(0);
   await expect(page.getByText("Speed endurance, from the lap times.")).toBeVisible();
-  await expect(page.locator(".rio-mark-label", { hasText: "Laps" })).toHaveCSS("color", "rgb(107, 107, 107)");
+  await expect(page.locator(".rio-mark-label", { hasText: "Laps" })).toHaveCSS("color", "rgb(60, 58, 54)");
 });

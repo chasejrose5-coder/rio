@@ -1097,7 +1097,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** `GET /activities` `404` when there is no current season
 **Step 3:** 3.4
 **Status:** done
-**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Screenshots in the step 3.4 PR.
+**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Fresh side-by-sides on PR #66: activity, the error state with the stored runs still showing, and Last Session laps.
 **Verify:** No season does not call Strava. The link opens Start.
 
 ### Y2. Refresh
@@ -1107,7 +1107,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** `POST /strava/sync` body `{scope: "all"}` for a full pull, `{scope: "recent"}` to continue from the last success. `429` when Strava rate-limits. `404` with no season. When Strava is not connected, the same route runs the Intervals fallback and a missing key comes back as `synced: false` and a `notice`.
 **Step 3:** 3.4
 **Status:** done
-**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Screenshots in the step 3.4 PR.
+**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Fresh side-by-sides on PR #66: activity, the error state with the stored runs still showing, and Last Session laps.
 **Verify:** Refresh imports runs. A failed import shows the notice and does not move "last synced". A quality day is not adapted twice.
 
 ### Y3. Strava not connected
@@ -1117,7 +1117,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** `GET /strava/status` `connected: false`
 **Step 3:** 3.4
 **Status:** done
-**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Screenshots in the step 3.4 PR.
+**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Fresh side-by-sides on PR #66: activity, the error state with the stored runs still showing, and Last Session laps.
 **Verify:** Disconnected account. Both the empty line and the Settings link. No fake rows.
 
 ### Y4. Connected empty, and last synced
@@ -1127,7 +1127,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** `GET /strava/status` `last_sync_at`; `GET /activities`
 **Step 3:** 3.4
 **Status:** done
-**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Screenshots in the step 3.4 PR.
+**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Fresh side-by-sides on PR #66: activity, the error state with the stored runs still showing, and Last Session laps.
 **Verify:** After a sync of zero runs, the empty card is the second sentence, not the disconnected one.
 
 ### Y5. This week summary
@@ -1137,7 +1137,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** `GET /activities` `summary`
 **Step 3:** 3.4
 **Status:** done
-**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Screenshots in the step 3.4 PR.
+**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Fresh side-by-sides on PR #66: activity, the error state with the stored runs still showing, and Last Session laps.
 **Verify:** Counts match the cards below. Distance uses pace units (miles or km). Reps stay in meters.
 
 ### Y6. Week groups and run cards
@@ -1147,7 +1147,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** `GET /activities` `groups`, `cards`
 **Step 3:** 3.4
 **Status:** done
-**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Screenshots in the step 3.4 PR.
+**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Fresh side-by-sides on PR #66: activity, the error state with the stored runs still showing, and Last Session laps.
 **Verify:** An unmatched run is Extra, not dropped. A run with no distance and no heart rate is on neither list.
 
 ### Y7. Heart-rate chart
@@ -1157,7 +1157,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** `GET /activities` `heart` (`date`, `bpm`)
 **Step 3:** 3.4
 **Status:** done
-**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Screenshots in the step 3.4 PR.
+**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Fresh side-by-sides on PR #66: activity, the error state with the stored runs still showing, and Last Session laps.
 **Verify:** Dots are dated. A run with no heart rate adds no dot. No chart at all when every bpm is missing.
 
 ### Y8. Strava errors
@@ -1167,7 +1167,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** `POST /strava/sync` `429` and `notice`. Connect and disconnect use `GET /strava/connect`, `GET /strava/callback`, `POST /strava/disconnect`.
 **Step 3:** 3.4
 **Status:** done
-**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Screenshots in the step 3.4 PR.
+**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Fresh side-by-sides on PR #66: activity, the error state with the stored runs still showing, and Last Session laps.
 **Verify:** A 429 shows the busy sentence. The page does not print a token or a stack trace.
 
 ### Y9. Strava in Settings
@@ -1177,7 +1177,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** `GET /strava/status`, `GET /strava/connect`, `POST /strava/disconnect`. Disconnect deauthorizes and deletes tokens and activities. The response has no `access_token` and no `refresh_token`.
 **Step 3:** 3.7 for the Settings block. The return URL is part of `GET /strava/callback` (lands on `/settings?strava=connected` or `?strava=error`).
 **Status:** done
-**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Screenshots in the step 3.4 PR.
+**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Fresh side-by-sides on PR #66: activity, the error state with the stored runs still showing, and Last Session laps.
 **Verify:** Connect, see the name, Disconnect, and the runs leave Activity. View the network response and confirm it has no token.
 
 ### Y10. Opening a page pulls recent runs
@@ -1187,7 +1187,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** `POST /strava/sync` `{scope: "recent"}` on those opens, `{scope: "all"}` on Refresh
 **Step 3:** 3.4
 **Status:** done
-**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Screenshots in the step 3.4 PR.
+**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Fresh side-by-sides on PR #66: activity, the error state with the stored runs still showing, and Last Session laps.
 **Verify:** Open Activity twice. The second open does not duplicate rows. With Strava connected, Intervals is not called.
 
 ### Y11. Test-season line
@@ -1740,7 +1740,7 @@ Screen-specific sentences are on their items (T8, W2, Y3, M3, U1, Settings G10).
 **API:** `GET /fixtures/intervals/{name}` returns `laps`, `rows`, and `times`. `GET /fixtures/session` is the YAML fixture. Admin only.
 **Step 3:** 3.4
 **Status:** done
-**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Screenshots in the step 3.4 PR.
+**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Fresh side-by-sides on PR #66: activity, the error state with the stored runs still showing, and Last Session laps.
 **Verify:** Admin only. A known fixture fills the same seconds Streamlit shows. A non-admin cannot open the picker.
 
 ### X4. Account could not be opened or saved
@@ -1782,7 +1782,7 @@ Screen-specific sentences are on their items (T8, W2, Y3, M3, U1, Settings G10).
 **API:** `POST /strava/sync` `429`
 **Step 3:** 3.4
 **Status:** done
-**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Screenshots in the step 3.4 PR.
+**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Fresh side-by-sides on PR #66: activity, the error state with the stored runs still showing, and Last Session laps.
 **Verify:** The busy sentence. `last_sync_at` does not move.
 
 ### RL4. Intervals
@@ -1792,7 +1792,7 @@ Screen-specific sentences are on their items (T8, W2, Y3, M3, U1, Settings G10).
 **API:** `POST /strava/sync` `notice` when the fallback fails
 **Step 3:** 3.4
 **Status:** done
-**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Screenshots in the step 3.4 PR.
+**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Fresh side-by-sides on PR #66: activity, the error state with the stored runs still showing, and Last Session laps.
 **Verify:** A 429 from Intervals becomes the "Try Refresh" sentence, not the adapter sentence.
 
 ---
@@ -2007,7 +2007,7 @@ These are in the code and must stay hidden. Shipping them would add something th
 **API:** `GET /activities` still returns `rows` and `all`, which those tables used. The visible UI is the cards (Y6).
 **Step 3:** 3.4
 **Status:** done
-**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Screenshots in the step 3.4 PR.
+**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Fresh side-by-sides on PR #66: activity, the error state with the stored runs still showing, and Last Session laps.
 **Verify:** The visible Activity page is cards and the heart chart. The old tables are not on screen. Do not drop `rows` and `all` from the API. The hidden block can stay hidden.
 
 ### Z8. Planned versus actual
