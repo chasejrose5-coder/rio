@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
+import { Expander } from "./Expander";
 import { Footer, PhotoCredit } from "./Footer";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
@@ -194,8 +195,7 @@ function HomeMain({
       {showedPhase && season.phase ? (
         <section>
           <p className="rio-index rio-index-pad">01  /  Current phase</p>
-          <details className="rio-phase-details">
-            <summary>{season.phase.collapsed}</summary>
+          <Expander className="rio-phase-details" title={season.phase.collapsed}>
             <div className="rio-phase-panel">
               {panel?.headline ? <p className="rio-phase-headline">{panel.headline}</p> : null}
               {panel?.focus ? <p className="rio-phase-focus">{panel.focus}</p> : null}
@@ -223,7 +223,7 @@ function HomeMain({
               {panel?.marks ? <p className="rio-phase-caption">{panel.marks}</p> : null}
               {panel?.note ? <p className="rio-phase-caption">{panel.note}</p> : null}
             </div>
-          </details>
+          </Expander>
         </section>
       ) : null}
       {season.notes.map((item) => (
@@ -315,10 +315,9 @@ function Insight({
       <p className="rio-insight-headline">{note.headline}</p>
       <p>{note.body}</p>
       {note.carry_forward ? (
-        <details>
-          <summary>Carry forward</summary>
+        <Expander title="Carry forward">
           <p>{note.carry_forward}</p>
-        </details>
+        </Expander>
       ) : null}
       <button
         type="button"

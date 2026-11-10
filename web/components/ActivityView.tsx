@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Expander } from "./Expander";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
@@ -214,10 +215,9 @@ function unitsOf(value: unknown): string {
 function Week({ title, open, cards }: { title: string; open: boolean; cards: RunCard[] }) {
   const [shown, setShown] = useState(open);
   return (
-    <details className="rio-week" open={shown} onToggle={(event) => setShown(event.currentTarget.open)}>
-      <summary>{title}</summary>
+    <Expander className="rio-week" title={title} open={shown} onToggle={(event) => setShown(event.currentTarget.open)}>
       {cards.length ? cards.map((card) => <Run key={`${card.date}-${card.id}`} card={card} />) : <p className="rio-empty">No runs this week.</p>}
-    </details>
+    </Expander>
   );
 }
 

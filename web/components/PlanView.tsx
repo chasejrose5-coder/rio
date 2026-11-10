@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Expander } from "./Expander";
 import { Footer, PhotoCredit } from "./Footer";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
@@ -266,8 +267,7 @@ function PlanReady({
         ))}
       </fieldset>
       <div className="rio-plan-gap" />
-      <details className="rio-weeks">
-        <summary>Weeks</summary>
+      <Expander className="rio-weeks" title="Weeks">
         {emptyWeeks ? (
           <p className="rio-note">No runs logged yet. A week shows distance after a workout is saved.</p>
         ) : null}
@@ -285,7 +285,7 @@ function PlanReady({
             </div>
           ))}
         </div>
-      </details>
+      </Expander>
       <div key={view} className="rio-plan-view">
         {view === "Calendar" ? <Calendar plan={plan} onMonth={onMonth} /> : null}
         {view === "This week" ? (
@@ -524,8 +524,7 @@ function FullSeason({
                     <DayRow key={session.date} session={session} first={index === 0} format={format} />
                   ))}
                 </div>
-                <details className="rio-reasons-box">
-                  <summary>Reasons</summary>
+                <Expander className="rio-reasons-box" title="Reasons">
                   {days.map((session) => {
                     const lines = plainReasonLines(session.reason_codes);
                     return (
@@ -543,7 +542,7 @@ function FullSeason({
                       </div>
                     );
                   })}
-                </details>
+                </Expander>
               </>
             )}
             <Marks

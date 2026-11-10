@@ -595,8 +595,58 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .rio-intro-actions { display: flex; gap: 0.6rem; max-width: 36rem; }
 .rio-intro-actions .rio-primary { width: auto; min-width: 8rem; margin-top: 0; }
 .rio-watchless { margin-top: 0.8rem; }
-.rio-done-choices, .rio-done-row { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.55rem; }
-.rio-watchless .rio-primary, .rio-watchless .rio-secondary { width: auto; min-width: 7rem; margin-top: 0; }
+.rio-done-choices { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.55rem; }
+.rio-done-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  margin-top: 0.55rem;
+}
+.rio-watchless .rio-done-row .rio-primary,
+.rio-watchless .rio-done-row .rio-secondary {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  border-radius: 12px;
+  box-sizing: border-box;
+}
+.rio-watchless .rio-done-row .rio-primary {
+  min-height: 2.85rem;
+  font-weight: 700;
+}
+.rio-watchless .rio-done-row .rio-secondary {
+  min-height: 2.7rem;
+  background: #fffcf7;
+  border: 1px solid #dcd6cc;
+  color: #121110;
+  font-weight: 600;
+}
+.rio-watchless .rio-done-row .rio-text-link {
+  grid-column: 1 / -1;
+  width: auto;
+  margin-top: 0.15rem;
+  justify-self: start;
+}
+.rio-expander summary {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  list-style: none;
+  cursor: pointer;
+  color: #3c3a36;
+  font-weight: 400;
+}
+.rio-expander summary::-webkit-details-marker { display: none; }
+.rio-expander .rio-chevron {
+  box-sizing: border-box;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 2px solid #6e6a64;
+  border-bottom: 2px solid #6e6a64;
+  transform: rotate(-45deg);
+  flex: none;
+}
+.rio-expander[open] > summary .rio-chevron { transform: rotate(45deg); }
 .rio-watchless input { display: block; margin-top: 0.4rem; min-height: 2.6rem; border: 1px solid var(--line); border-radius: 12px; padding: 0.4rem 0.7rem; }
 .rio-extras { margin-top: 0.4rem; }
 .rio-extras .rio-mark-label { color: var(--paper); }
@@ -772,7 +822,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .rio-weeks { margin: 0.2rem 0 1rem; }
 .rio-weeks summary, .rio-reasons-box summary {
   cursor: pointer;
-  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-size: 0.78rem;
@@ -1154,8 +1203,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .page-activity .rio-week { margin: 0.4rem 0 0.8rem; }
 .page-activity .rio-week summary {
   cursor: pointer;
-  color: #121110;
-  font-weight: 700;
   padding: 0.45rem 0;
 }
 .page-last .rio-file-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; }
@@ -1171,7 +1218,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .page-last .rio-v { color: #121110; margin-top: 0.15rem; }
 .page-last .rio-synthetic { color: #e25a32; letter-spacing: 0.16em; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; margin: 0 0 0.4rem; }
 .page-settings .rio-coming { color: #121110; }
-.page-settings .rio-error { color: #8c3a2f; }
+.page-settings .rio-error { color: #121110; }
 .page-settings .rio-settings-note,
 .page-settings .rio-note,
 .page-settings .rio-wait { color: #3c3a36; }
@@ -1193,9 +1240,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   padding: 0.2rem 1rem 0.9rem;
 }
 .page-settings .rio-expander summary {
-  cursor: pointer;
-  color: #121110;
-  font-weight: 600;
   padding: 0.7rem 0 0.35rem;
 }
 .page-settings .rio-expander-danger {

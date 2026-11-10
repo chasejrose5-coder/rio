@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Expander } from "./Expander";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
@@ -410,8 +411,7 @@ function SettingsBody() {
         {problem ? <p className="rio-error">{problem}</p> : null}
         {note ? <p className="rio-settings-note rio-settings-flash">{note}</p> : null}
 
-        <details className="rio-expander" open>
-          <summary>Profile</summary>
+        <Expander title="Profile" defaultOpen>
           <p className="rio-mark-label">Profile</p>
           <label className="rio-stack" htmlFor="settings-name">
             Name
@@ -471,20 +471,18 @@ function SettingsBody() {
               Change password
             </button>
           </form>
-        </details>
+        </Expander>
 
-        <details className="rio-expander">
-          <summary>Logging</summary>
+        <Expander title="Logging">
           <p className="rio-mark-label">Logging</p>
           <label className="rio-toggle">
             <input type="checkbox" checked={noWatch} onChange={(event) => void commitNoWatch(event.target.checked)} />
             {"I don't use a watch"}
           </label>
           <p className="rio-settings-note">Complete workouts with Done instead of entering splits.</p>
-        </details>
+        </Expander>
 
-        <details className="rio-expander">
-          <summary>Preferences</summary>
+        <Expander title="Preferences">
           <p className="rio-mark-label">Preferences</p>
           <fieldset className="rio-choice-set">
             <legend>Pace units</legend>
@@ -547,10 +545,9 @@ function SettingsBody() {
             <input type="checkbox" checked={confirmAdapt} onChange={(event) => void commitConfirm(event.target.checked)} />
             Ask me before a timed run changes later weeks
           </label>
-        </details>
+        </Expander>
 
-        <details className="rio-expander">
-          <summary>Data</summary>
+        <Expander title="Data">
           <p className="rio-mark-label">Data</p>
           {hasSeason ? (
             <button type="button" className="rio-settings-button" onClick={() => void exportSeason()}>
@@ -561,10 +558,9 @@ function SettingsBody() {
           ) : (
             <p className="rio-wait">Loading</p>
           )}
-        </details>
+        </Expander>
 
-        <details className="rio-expander">
-          <summary>Account</summary>
+        <Expander title="Account">
           <p className="rio-mark-label">Account</p>
           <form onSubmit={changeEmail} noValidate>
             <label className="rio-stack" htmlFor="settings-new-email">
@@ -591,31 +587,27 @@ function SettingsBody() {
               Change email
             </button>
           </form>
-        </details>
+        </Expander>
 
-        <details className="rio-expander">
-          <summary>Privacy</summary>
+        <Expander title="Privacy">
           <p className="rio-mark-label">Privacy</p>
           <p className="rio-settings-note">{clearNote}</p>
-        </details>
+        </Expander>
 
-        <details className="rio-expander">
-          <summary>About</summary>
+        <Expander title="About">
           <p className="rio-mark-label">About</p>
           <p className="rio-settings-note">RIO {APP_VERSION}</p>
-        </details>
+        </Expander>
 
-        <details className="rio-expander" {...(flag ? { open: true } : {})}>
-          <summary>Strava</summary>
+        <Expander title="Strava" {...(flag ? { open: true } : {})}>
           <StravaPanel flag={flag} />
-        </details>
+        </Expander>
 
         <p className="rio-danger-kicker">Danger zone</p>
         <p className="rio-settings-note">
           Reset the plan, delete this account, or clear this browser. These sit apart from the settings above.
         </p>
-        <details className="rio-expander rio-expander-danger">
-          <summary>Danger zone</summary>
+        <Expander title="Danger zone" className="rio-expander-danger">
           <p className="rio-mark-label">Data</p>
           <label className="rio-check">
             <input type="checkbox" checked={clearMarksOk} onChange={(event) => setClearMarksOk(event.target.checked)} />
@@ -673,7 +665,7 @@ function SettingsBody() {
             Clear local data
           </button>
           <p className="rio-settings-note">{clearNote}</p>
-        </details>
+        </Expander>
         <Footer />
       </main>
     </div>

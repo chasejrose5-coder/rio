@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { Expander } from "./Expander";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
@@ -493,10 +494,9 @@ function Insight({
       <p className="rio-insight-headline">{note.headline}</p>
       <p>{note.body}</p>
       {note.carry_forward ? (
-        <details>
-          <summary>Carry forward</summary>
+        <Expander title="Carry forward">
           <p>{note.carry_forward}</p>
-        </details>
+        </Expander>
       ) : null}
       <button
         type="button"
