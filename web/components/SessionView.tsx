@@ -167,7 +167,7 @@ function Workout({ session, onSaved }: { session: SessionResponse; onSaved: () =
         <div className={session.match ? "rio-session-split" : undefined}>
           <div>
             <p className="rio-mark-label">Workout</p>
-            <p className="rio-name">{session.label}</p>
+            <h2 className="rio-week-title">{session.label}</h2>
             {session.show_id && session.session.template_id ? (
               <p className="rio-template-id">{session.session.template_id}</p>
             ) : null}
@@ -193,16 +193,18 @@ function Workout({ session, onSaved }: { session: SessionResponse; onSaved: () =
         <Field label="Target outcome" value={session.target || "—"} />
         <Prep />
         {session.heart_rate ? <Field label="Avg HR" value={session.heart_rate} /> : null}
-        <p className="rio-mark-label">Reasons</p>
-        {session.reasons.length ? (
-          session.reasons.map((line) => (
-            <p className="rio-reason" key={line}>
-              {line}
-            </p>
-          ))
-        ) : (
-          <p className="rio-empty">—</p>
-        )}
+        <section className="rio-session-section">
+          <p className="rio-mark-label">Reasons</p>
+          {session.reasons.length ? (
+            session.reasons.map((line) => (
+              <p className="rio-reason" key={line}>
+                {line}
+              </p>
+            ))
+          ) : (
+            <p className="rio-empty">—</p>
+          )}
+        </section>
       </section>
       {session.logging === "done" ? (
         <Watchless session={session} onSaved={onSaved} />
@@ -216,10 +218,10 @@ function Workout({ session, onSaved }: { session: SessionResponse; onSaved: () =
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <>
+    <section className="rio-session-section">
       <p className="rio-mark-label">{label}</p>
-      <p>{value}</p>
-    </>
+      <p className="rio-note">{value}</p>
+    </section>
   );
 }
 

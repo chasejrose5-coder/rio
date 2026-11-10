@@ -1001,7 +1001,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** MISSING (static). Do not store this on the session.
 **Step 3:** 3.3
 **Status:** done
-**Verify:** Screenshot all four blocks. Logging a result does not change the prep text. `web/lib/session.test.ts` "prep notes are the four fixed blocks". `web/e2e/session.spec.ts` shows Pre-warm-up, Warm-up, Cool-down, and Core. Screenshot `session-quality-side-by-side.png`.
+**Verify:** Screenshot all four blocks. Logging a result does not change the prep text. `web/lib/session.test.ts` "prep notes are the four fixed blocks". `web/e2e/session.spec.ts` shows Pre-warm-up, Warm-up, Cool-down, and Core. Full-page screenshot `session-quality-side-by-side.png`.
 
 ### W5. Pace line on the session
 
@@ -1010,7 +1010,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** `GET /sessions/{date}` `prescription` (`line`, `tolerance`, `block`, `average`). Easy pace comes from the saved pace and is not an input to `sequence()`.
 **Step 3:** 3.3
 **Status:** done
-**Verify:** A 6×400 shows a tolerance band and a block clock. An easy run uses the saved pace, never the 1.55 aerobic fraction. `tests/test_api_step3_session.py` `test_session_uses_easy_pace_and_states_the_rep_and_the_average`. `web/e2e/session.spec.ts` "an easy run uses the saved pace". Screenshots `session-quality-side-by-side.png` and `session-easy-side-by-side.png`. The Tuesday in those shots is 2026-11-10 and the Monday is 2026-11-09, which is today in America/Los_Angeles while the server clock was 2026-11-10 UTC.
+**Verify:** A 6×400 shows a tolerance band and a block clock. An easy run uses the saved pace, never the 1.55 aerobic fraction. `tests/test_api_step3_session.py` `test_session_uses_easy_pace_and_states_the_rep_and_the_average`. `web/e2e/session.spec.ts` "an easy run uses the saved pace". Full-page screenshots `session-quality-side-by-side.png` and `session-easy-side-by-side.png`. Both show "The higher capacity weight won" on the Tuesday, which is the plain form of `capacity_weight`. The Tuesday is 2026-11-10 and the Monday is 2026-11-09, today in America/Los_Angeles while the server clock was 2026-11-10 UTC.
 
 ### W6. Matched activity beside the template
 
@@ -1037,7 +1037,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** MISSING (static) for the dialog. The setting is `PATCH /settings` `confirm_adapt`. Confirm then calls `POST /seasons/current/results`, `POST /seasons/current/watchless`, or `POST /seasons/current/marks`. The API applies the mark. It does not know about the dialog.
 **Step 3:** 3.3 for the dialog on a result. The setting is 3.7 (Settings G5). The week-mark copy is 3.2 (B11).
 **Status:** done
-**Verify:** Setting on: the dialog shows and Cancel leaves later weeks alone. Setting off: no dialog, later weeks move. An adapt error is red via `_finish_commit`. `web/e2e/session.spec.ts` "a quality day states the rep time" (Cancel posts nothing; Confirm posts once) and "no-watch shows Done". `web/lib/session.test.ts` "confirm copy matches the dialog". Screenshot `session-confirm.png`. Plan after the save is `session-plan-after.png`.
+**Verify:** Setting on: the dialog shows and Cancel leaves later weeks alone. Setting off: no dialog, later weeks move. An adapt error is red via `_finish_commit`. `web/e2e/session.spec.ts` "a quality day states the rep time" (Cancel posts nothing; Confirm posts once) and "no-watch shows Done". `web/lib/session.test.ts` "confirm copy matches the dialog". Full-page screenshot `session-confirm-side-by-side.png` shows Confirm and Cancel on both apps. Plan after the save is `session-plan-after.png`.
 
 ### W9. No-watch Done
 
