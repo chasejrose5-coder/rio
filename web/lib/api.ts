@@ -1,6 +1,7 @@
 import type {
   ActivitiesResponse,
   Athlete,
+  LibraryResponse,
   AuthResult,
   CurrentSeason,
   HomeResponse,
@@ -143,6 +144,15 @@ export const api = {
   },
 
   activities: () => request<ActivitiesResponse>("/activities"),
+
+  library: (query?: { q?: string; family?: string; phase?: number }) => {
+    const params = new URLSearchParams();
+    if (query?.q) params.set("q", query.q);
+    if (query?.family) params.set("family", query.family);
+    if (typeof query?.phase === "number") params.set("phase", String(query.phase));
+    const suffix = params.toString();
+    return request<LibraryResponse>(`/library${suffix ? `?${suffix}` : ""}`);
+  },
 
   markWeek: (week: number, choice: string, digest: string) =>
     request<SeasonWrite>("/seasons/current/marks", {

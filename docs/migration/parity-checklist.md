@@ -31,7 +31,7 @@ Step 3 owners:
 | 3.2 | Plan. PR #64. |
 | 3.3 | Start session and Session. |
 | 3.4 | Activity, Last Session laps, and the Strava callback. PR #66. |
-| 3.5 | Library. |
+| 3.5 | Library. PR #67. |
 | 3.6 | Profile. |
 | 3.7 | Settings. |
 | 3.8 | Seasons and past seasons. |
@@ -43,9 +43,9 @@ Step 3 owners:
 | | |
 | --- | --- |
 | Total items | 188 |
-| Done | 114 |
+| Done | 117 |
 | Partial | 23 |
-| Not started | 51 |
+| Not started | 48 |
 | API line starts with `MISSING` | 46 |
 | of which `MISSING (static)` | 46 |
 | of which `MISSING (data)` | 0 |
@@ -70,7 +70,7 @@ These are the differences that matter for "nothing is lost." Item rows below rep
 12. **Gap 12. Forgot password is gated on the wrong-shaped check, and the URL is always there.** The link shows when `GET /auth/google` returns 200 and hides on 503. That lines up with hosted versus the local file, which is what the plan asks. Opening `/forgot-password` directly still draws the form. On the local file the API returns 400 because that file has no mail. Streamlit has no forgot screen at all in local mode.
 13. **Gap 13. Landing is unreadable in the commit, and create-account is untested.** `Gate` calls `landingPath` from the missing `web/lib/landing.ts`. The e2e only checks sign-in: current season → `/home`, no season → `/start`. `GET /seasons/current` already 404s when every goal date is before today (`api/season_service.py` `open_season`), so that split can match Streamlit if `landingPath` sends 404 to `/start` and 200 to `/home`. The test never uses a goal date of today, and it never walks intro or easy pace.
 14. **Gap 14. Empty fields use the browser, not RIO's sentence.** Login and create mark the inputs `required`. An empty submit can stop on the browser bubble. Streamlit submits and shows "Enter a name.", "Enter an email address.", or "Use at least 8 characters."
-15. **Gap 15. Later pages are still placeholders.** Library, More, Profile, Past seasons, Admin, and About and Creators still say "Coming in the next step." Activity and Last Session are the step 3.4 pages. Settings shows the Strava block; the rest of Settings is still the next step. Plan is step 3.2. Session is step 3.3.
+15. **Gap 15. Later pages are still placeholders.** More, Profile, Past seasons, Admin, and About and Creators still say "Coming in the next step." Library is the step 3.5 page. Activity and Last Session are the step 3.4 pages. Settings shows the Strava block; the rest of Settings is still the next step. Plan is step 3.2. Session is step 3.3.
 16. **Gap 16. Motion.** Home staggers its blocks by 200ms (`web/app/globals.css` `.rio-stagger`). The splash fade, the nav underline that does not replay on the same page, and the hold that skips a same-page rerun are not there.
 
 ## Routes main still calls "not built"
@@ -1211,7 +1211,8 @@ The frozen menu. It does not change. Search does not call a model.
 **Now:** `page_library`
 **API:** `GET /library`
 **Step 3:** 3.5
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/library.spec.ts` "a failed menu is the exception sentence, not an empty list" and `tests/test_api_step3_library.py` `test_a_failed_menu_is_the_exception_sentence`. The heading is Library. There is no photo on the page.
 **Verify:** The heading is Library. A load error is the exception sentence, escaped.
 
 ### M2. Search, family, phase
@@ -1220,7 +1221,8 @@ The frozen menu. It does not change. Search does not call a model.
 **Now:** `page_library`; `ui/library.py` `filter_workouts`
 **API:** `GET /library?q=&family=&phase=`. `q` matches name, id, or capacity. Empty filters stay open.
 **Step 3:** 3.5
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/library.spec.ts` "the menu, a search, an empty result, and a load error" and `tests/test_api_step3_library.py` `test_search_matches_the_shown_name_and_filters_stay_open`.
 **Verify:** Each filter narrows the list. Clearing them restores the full menu. The menu ids do not change between loads.
 
 ### M3. Count and rows
@@ -1229,7 +1231,8 @@ The frozen menu. It does not change. Search does not call a model.
 **Now:** `page_library`, `_library_html`; `ui/library.py` `library_rows`
 **API:** `GET /library` `count`, `workouts`, `families`
 **Step 3:** 3.5
-**Status:** not started
+**Status:** done
+**Evidence:** `web/e2e/library.spec.ts` and `tests/test_api_step3_library.py` `test_library_lists_every_template_and_sorts_families`. Ids follow `prefs.show_ids`.
 **Verify:** Search for a nonsense word: "No workouts." Search for a known id: that row. Template ids are hidden unless Settings "Show template ids" is on (admin only, Settings G5).
 
 ---
@@ -1720,7 +1723,7 @@ Screen-specific sentences are on their items (T8, W2, Y3, M3, U1, Settings G10).
 **API:** `GET /seasons/current` `404` "No current season." `GET /home` `copy` when `season` is null.
 **Step 3:** Each page's step. Home's version is done in PR #61 (H2).
 **Status:** partial
-**Gap:** Home, Plan, Session, and Activity send a person with no season to Start. Library, Profile, and Settings export are still later steps.
+**Gap:** Home, Plan, Session, and Activity send a person with no season to Start. Library loads the menu with no season, so it has no prompt. Profile and Settings export are still later steps.
 **Verify:** On each of those pages, with no season, the person can get to Start. They never see a blank plan.
 
 ### X2. An em dash for an empty value
@@ -1730,7 +1733,7 @@ Screen-specific sentences are on their items (T8, W2, Y3, M3, U1, Settings G10).
 **API:** The season and screen routes use "—" in labels the contract already names (`next_days.label`, focus, phase).
 **Step 3:** Each page's step
 **Status:** partial
-**Gap:** Home, Plan, Session, and Activity use "—" for an empty value. A rest day on Home stays "Rest day" (H10). Library and the later pages are still open.
+**Gap:** Home, Plan, Session, and Activity use "—" for an empty value. A rest day on Home stays "Rest day" (H10). Library uses "—" for a missing name or capacity, and "No workouts." when a search matches nothing (M3). Profile and the later pages are still open.
 **Verify:** A missing focus tile is "—". A rest day is not.
 
 ### X3. Intervals file body
@@ -1898,7 +1901,7 @@ The live app keeps a signed token for one day. Refreshing does not extend it. Lo
 **API:** MISSING (static)
 **Step 3:** Each page's step. Home's stagger is the partial stand-in.
 **Status:** partial
-**Gap:** Gap 16. Home staggers children. It does not suppress the animation on a same-page reload, and the other pages are placeholders with no motion.
+**Gap:** Gap 16. Home staggers children. It does not suppress the animation on a same-page reload. Library fades once and its rows rise about 8px; a filter on that page does not replay it. Profile and the later pages are still open.
 **Verify:** Open Home, then refresh Home. The second time does not replay the rise. Open Plan from Home. Plan fades once.
 
 ### A3. Nav underline

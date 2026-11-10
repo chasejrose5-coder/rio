@@ -88,8 +88,9 @@ def plan(request: Request, month: str | None = None) -> dict:
 
 @router.get("/library")
 def library(request: Request, q: str = "", family: str = "", phase: int | None = None) -> dict:
-    _resolved(request)
-    return library_view(q, family, phase)
+    _who, resolved = _resolved(request)
+    units = str(resolved["prefs"].get("units") or "miles")
+    return library_view(q, family, phase, units)
 
 
 @router.get("/activities")

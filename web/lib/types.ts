@@ -15,6 +15,7 @@ export type Athlete = {
     intro_seen?: boolean | null;
     date_format?: string;
     show_ids?: boolean;
+    compact?: boolean;
     preferred?: string;
     [key: string]: unknown;
   };
@@ -332,6 +333,20 @@ export type SeasonWrite = {
   committed?: boolean;
   strava_offer?: boolean;
   plan?: unknown;
+};
+
+export type LibraryWorkout = {
+  id: string;
+  description: string;
+  capacity: string;
+  family: string;
+  phases: number[];
+};
+
+export type LibraryResponse = {
+  count: number;
+  workouts: LibraryWorkout[];
+  families: { id: string; label: string }[];
 };
 
 export type AuthResult = {

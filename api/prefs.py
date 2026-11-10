@@ -130,6 +130,8 @@ def prefs_payload(resolved: dict) -> dict:
         "intro_seen": resolved.get("intro_seen"),
         "strava_prompt_seen": resolved.get("strava_prompt_seen") is True,
         "preferred": resolved.get("preferred") or "",
+        "show_ids": prefs.get("show_ids") is True,
+        "compact": prefs.get("compact") is True,
     }
 
 
