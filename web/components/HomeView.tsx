@@ -235,7 +235,9 @@ function HomeMain({
             <Link className="rio-hit" href={`/session?date=${season.next.date || ""}`}>
               <WorkoutFacts card={season.next} title={todayWorkout ? "Today's workout" : "Next workout"} />
             </Link>
-            {season.logging === "done" ? <Watchless card={season.next} onSaved={reload} /> : null}
+            {season.logging === "done" ? (
+              <Watchless card={season.next} confirmAdapt={home.athlete.prefs.confirm_adapt === true} onSaved={reload} />
+            ) : null}
           </>
         ) : (
           <p className="rio-empty">No workout left in this plan.</p>
@@ -380,26 +382,63 @@ function isHard(card: WorkoutCard): boolean {
   return (day === "Tuesday" || day === "Thursday") && Boolean(id) && !id.startsWith("aer_");
 }
 
-function Watchless({ card, onSaved }: { card: WorkoutCard; onSaved: () => void }) {
+function Watchless({
+  card,
+  confirmAdapt,
+  onSaved,
+}: {
+  card: WorkoutCard;
+  confirmAdapt: boolean;
+  onSaved: () => void;
+}) {
   const [choice, setChoice] = useState("");
   const [time, setTime] = useState("");
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
   const hard = isHard(card);
   const day = card.date || "";
+  const saved = card.actual && card.actual.template_id === card.template_id ? card.actual : null;
+  if (saved?.completed) {
+    const parts = ["Completed"];
+    if (saved.mark === "not_hitting") parts.push("Behind");
+    if (saved.mark === "on_track") parts.push("On target");
+    if (saved.mark === "smashing") parts.push("Ahead");
+    if (saved.text) parts.push(saved.text);
+    return <p className="rio-week-meta">{parts.join(" · ")}</p>;
+  }
 
   async function send(missed: boolean) {
+    if (!missed && hard && choice !== "Behind" && choice !== "On target" && choice !== "Ahead") {
+      setError("Choose behind, on target, or ahead.");
+      return;
+    }
     setError("");
     try {
       await api.watchless({ date: day, outcome: choice, time, missed });
+      setPending(false);
       onSaved();
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : "That workout could not be saved.");
     }
   }
 
+  function done() {
+    if (hard && choice !== "Behind" && choice !== "On target" && choice !== "Ahead") {
+      setError("Choose behind, on target, or ahead.");
+      return;
+    }
+    if (hard && confirmAdapt && time.trim()) {
+      setPending(true);
+      setError("");
+      return;
+    }
+    void send(false);
+  }
+
   return (
     <div className="rio-watchless">
+      {saved?.missed ? <p className="rio-settings-note">Couldn&apos;t finish. Done still completes this workout.</p> : null}
       {hard ? (
         <div className="rio-done-choices">
           {[
@@ -421,7 +460,7 @@ function Watchless({ card, onSaved }: { card: WorkoutCard; onSaved: () => void }
         </>
       ) : null}
       <div className="rio-done-row">
-        <button type="button" className="rio-primary" onClick={() => void send(false)}>
+        <button type="button" className="rio-primary" onClick={done}>
           Done
         </button>
         <button type="button" className="rio-secondary" onClick={() => void send(true)}>
@@ -431,6 +470,17 @@ function Watchless({ card, onSaved }: { card: WorkoutCard; onSaved: () => void }
           Add a time
         </button>
       </div>
+      {pending ? (
+        <div className="rio-confirm">
+          <p className="rio-week-meta">Confirm this workout before the plan changes.</p>
+          <button type="button" className="rio-primary" onClick={() => void send(false)}>
+            Confirm
+          </button>
+          <button type="button" className="rio-secondary" onClick={() => setPending(false)}>
+            Cancel
+          </button>
+        </div>
+      ) : null}
       {error ? <p className="rio-error">{error}</p> : null}
     </div>
   );

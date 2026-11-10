@@ -5,6 +5,7 @@ export type Athlete = {
   role: string;
   kind: "hosted" | "local" | string;
   today: string;
+  next_session?: string | null;
   prefs: {
     timezone?: string;
     pace_units?: string;
@@ -23,6 +24,7 @@ export type Prescription = {
   line: string;
   tolerance: string;
   block: string;
+  average?: string;
 };
 
 export type WorkoutFacts = {
@@ -40,6 +42,13 @@ export type WorkoutCard = {
   label?: string;
   facts?: WorkoutFacts | null;
   prescription?: Prescription | null;
+  actual?: {
+    template_id?: string;
+    completed?: boolean;
+    missed?: boolean;
+    mark?: string;
+    text?: string;
+  } | null;
 };
 
 export type PhaseDay = {
@@ -89,6 +98,7 @@ export type HomeSeason = {
     viewed: boolean;
   }[];
   logging?: string;
+  next_session?: string | null;
 };
 
 export type HomeResponse = {
@@ -98,6 +108,7 @@ export type HomeResponse = {
   strava_offer: boolean;
   copy: string;
   season: HomeSeason | null;
+  next_session?: string | null;
 };
 
 export type CurrentSeason = {
@@ -185,10 +196,67 @@ export type ActivityRow = {
   id?: string;
 };
 
+export type LoggedActivity = {
+  id: string;
+  date: string;
+  name: string;
+  matched: boolean;
+  reps: string;
+  volume: string;
+  heart_rate: string;
+};
+
 export type ActivitiesResponse = {
   rows: ActivityRow[];
   all: ActivityRow[];
   notice?: string | null;
+  logged?: LoggedActivity[];
+};
+
+export type SessionResponse = {
+  date: string;
+  session: {
+    date?: string;
+    day_of_week?: string;
+    template_id?: string;
+    week_number?: number;
+    reason_codes?: string[];
+    target_outcome?: string;
+  };
+  actual: {
+    template_id?: string;
+    completed?: boolean;
+    missed?: boolean;
+    mark?: string;
+    text?: string;
+    numbers?: unknown[];
+    slots?: unknown[];
+  } | null;
+  quality: boolean;
+  note: { headline?: string; body?: string; carry_forward?: string } | null;
+  viewed: boolean | null;
+  digest: string;
+  label: string;
+  structure: string;
+  target: string;
+  reasons: string[];
+  shown_date: string;
+  facts?: WorkoutFacts | null;
+  prescription?: Prescription | null;
+  logging: string;
+  confirm_adapt: boolean;
+  show_id: boolean;
+  boxes: number;
+  seed: (number | null)[];
+  summary: string;
+  match: { reps: string; work: string; heart_rate: string } | null;
+  heart_rate: string;
+};
+
+export type ResultWrite = SeasonWrite & {
+  committed?: boolean;
+  insight?: { status?: string; date?: string; id?: string };
+  actuals?: Record<string, { mark?: string; numbers?: unknown[]; text?: string }>;
 };
 
 export type SeasonWrite = {

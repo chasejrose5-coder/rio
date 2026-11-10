@@ -158,7 +158,7 @@ def put_goal(body: GoalBody, request: Request) -> dict:
 def one_session(day: str, request: Request) -> dict:
     who, resolved = _resolved(request)
     season = open_season(who, request.app.state.directory, resolved["today"])
-    found = session_view(season, day)
+    found = session_view(season, day, resolved)
     if found is None:
         raise ApiError(404, "That day is not in this season.")
     return found

@@ -65,6 +65,7 @@ function StartBody() {
 
 function DifferentSeason({ link }: { link: SeasonInputs }) {
   const router = useRouter();
+  const { refresh } = useAuth();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -77,6 +78,7 @@ function DifferentSeason({ link }: { link: SeasonInputs }) {
         setError(SCORE);
         return;
       }
+      await refresh();
       const inputs = saved.inputs || link;
       router.push(`/home?${homeQuery(inputs, false)}`);
     } catch (caught) {
@@ -99,6 +101,7 @@ function DifferentSeason({ link }: { link: SeasonInputs }) {
 
 function StartFields({ today, behavior }: { today: string; behavior: string }) {
   const router = useRouter();
+  const { refresh } = useAuth();
   const defaults = startFormDefaults(today, behavior);
   const [currentTime, setCurrentTime] = useState(defaults.currentTime);
   const [startDate, setStartDate] = useState(defaults.startDate);
@@ -123,6 +126,7 @@ function StartFields({ today, behavior }: { today: string; behavior: string }) {
         setError(SCORE);
         return;
       }
+      await refresh();
       const inputs = saved.inputs || submitted;
       router.push(`/home?${homeQuery(inputs, true)}`);
     } catch (caught) {

@@ -88,7 +88,11 @@ async function installApi(
       if (!signed) return json(route, { detail: "Sign in again." }, 401);
       const pace = options.easyPace === undefined ? "7:45" : options.easyPace;
       const seen = options.introSeen === undefined ? true : options.introSeen;
-      return json(route, { ...athlete, prefs: { ...athlete.prefs, easy_pace: pace, intro_seen: seen } });
+      return json(route, {
+        ...athlete,
+        next_session: options.season ? "2026-11-10" : null,
+        prefs: { ...athlete.prefs, easy_pace: pace, intro_seen: seen },
+      });
     }
     if (path === "/auth/google") {
       if (options.hosted) return json(route, { url: "https://example.test/google", redirect_uri: "http://localhost:3000/" });
@@ -332,12 +336,12 @@ test("showing the intro again stops on the guide", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
 });
 
-test("start session uses today in the settings time zone", async ({ page }) => {
+test("start session opens the next planned day after the settings today", async ({ page }) => {
   await installApi(page, { hosted: false, season: true });
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill("ada@example.com");
   await page.getByLabel("Password").fill("correct-horse");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page).toHaveURL(/\/home$/);
-  await expect(page.getByRole("link", { name: "Start session" })).toHaveAttribute("href", "/session?date=2026-11-09");
+  await expect(page.getByRole("link", { name: "Start session" })).toHaveAttribute("href", "/session?date=2026-11-10");
 });

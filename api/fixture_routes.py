@@ -71,6 +71,35 @@ def names(request: Request) -> dict:
     return {"fixtures": [path.stem for path in _paths()]}
 
 
+@router.get("/intervals")
+def interval_names(request: Request) -> dict:
+    """JSON names under tests/fixtures/intervals. Rep times are not in this list."""
+    _admin(request)
+    from ui.last_session import intervals_json_paths
+
+    return {"files": [path.name for path in intervals_json_paths()]}
+
+
+@router.get("/intervals/{name}")
+def interval_fill(name: str, request: Request) -> dict:
+    """WORK elapsed times from one local JSON file. Nothing is requested from Intervals.icu."""
+    _admin(request)
+    from ui.last_session import IntervalsFileError, intervals_json_paths, quality_fill
+
+    text = name.strip()
+    if not text or "/" in text or "\\" in text or text.startswith("."):
+        raise ApiError(404, "That file is not on this server.")
+    paths = intervals_json_paths()
+    chosen = next((path for path in paths if path.name == text), None)
+    if chosen is None:
+        raise ApiError(404, "That file is not on this server.")
+    try:
+        times, source = quality_fill(chosen)
+    except IntervalsFileError as exc:
+        raise ApiError(400, str(exc)) from exc
+    return {"name": chosen.name, "times": times, "source": source}
+
+
 @router.post("/classify")
 def post_classify(body: ClassifyBody, request: Request) -> dict:
     _admin(request)
