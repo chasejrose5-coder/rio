@@ -7041,6 +7041,7 @@ st.markdown(
 # A season whose goal date is today or later, in the Settings time zone,
 # opens Home. No season, or a season that has already ended, opens Start.
 # Start keeps its own path when Home is the root, so the nav item still opens it.
+# The RIO wordmark opens that same root: Home when a season is current, Start otherwise.
 _load_local()
 _home_first = landing_target(_stored_season_keys(), _athlete_today()) == "Home"
 if _home_first:
@@ -7050,7 +7051,7 @@ else:
     _start_page = st.Page(_with_plan(page_start), title="Start", default=True)
     _root_home = None
 _session_page = st.Page(_with_plan(page_session), title="Session", url_path="session")
-_HOME_PAGE = _start_page
+_HOME_PAGE = _root_home or _start_page
 _SESSION_PAGE = _session_page
 _admin_page = st.Page(_with_plan(page_admin), title="Admin", url_path="admin")
 _signed = _account_identity()
