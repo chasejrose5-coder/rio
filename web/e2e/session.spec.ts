@@ -141,7 +141,7 @@ test("a quality day states the rep time, the average, and asks before it saves",
   await expect(page.getByRole("heading", { name: "Tuesday" })).toBeVisible();
   await expect(page.getByText("6 × 400 m near goal 800 pace, 90 s rest")).toBeVisible();
   await expect(page.getByText("6 × 400 m @ 71.2 s, 90 s rest")).toBeVisible();
-  await expect(page.getByText("Average 71.2 s")).toBeVisible();
+  await expect(page.getByText(/^Average /)).toHaveCount(0);
   await expect(page.getByText("Tolerance 68.0-74.4 s")).toBeVisible();
   await expect(page.getByText("Block 12:06.0")).toBeVisible();
   await expect(page.getByText("Pre-warm-up")).toBeVisible();
@@ -174,8 +174,15 @@ test("an easy run uses the saved pace and does not ask for a rep time", async ({
   await expect(page.getByText("Run at 7:45 per mile")).toBeVisible();
   await expect(page.getByText("1.55")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Behind" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Done" })).toHaveCount(0);
+  await expect(page.getByText("Times save as you type.")).toHaveCount(0);
   await expect(page.getByLabel("Rep 1")).toHaveCount(0);
+  await expect(page.getByLabel("Time")).toHaveCount(0);
   await expect(page.getByText("Result")).toHaveCount(0);
+  await page.reload();
+  await expect(page).toHaveURL(/\/session\?date=2026-11-12$/);
+  await expect(page.getByText("Run at 7:45 per mile")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Done" })).toHaveCount(0);
 });
 
 test("no-watch shows Done and the confirm dialog only when a time is entered", async ({ page }) => {

@@ -1015,6 +1015,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** `GET /sessions/{date}` `prescription` (`line`, `tolerance`, `block`, `average`). Easy pace comes from the saved pace and is not an input to `sequence()`.
 **Step 3:** 3.3
 **Status:** done
+**Evidence:** `web/e2e/session.spec.ts` "a quality day states the rep time, the average, and asks before it saves" keeps Tolerance and Block and does not draw "Average …". Streamlit `_split_html` does not print the average. The API still returns `prescription.average` for `tests/test_api_step3_session.py`.
 **Verify:** A 6×400 shows a tolerance band and a block clock. An easy run uses the saved pace, never the 1.55 aerobic fraction. `tests/test_api_step3_session.py` `test_session_uses_easy_pace_and_states_the_rep_and_the_average`. `web/e2e/session.spec.ts` "an easy run uses the saved pace". Full-page screenshots `session-quality-side-by-side.png` and `session-easy-side-by-side.png`. Both show "The higher capacity weight won" on the Tuesday, which is the plain form of `capacity_weight`. The Tuesday is 2026-11-10 and the Monday is 2026-11-09, today in America/Los_Angeles while the server clock was 2026-11-10 UTC.
 
 ### W6. Matched activity beside the template
@@ -1033,6 +1034,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** `POST /seasons/current/results` body `{date, text, slots, intervals, note}`. `400` when the date is not in the season or the result cannot be judged. The response includes `insight` (`pending`, `ready`, or `skipped`) and does not wait for the model.
 **Step 3:** 3.3
 **Status:** done
+**Evidence:** `web/e2e/session.spec.ts` "an easy run uses the saved pace and does not ask for a rep time". A Wednesday-style easy day, with the watch toggle off, has no Result, no Time box, no "Times save as you type.", and no Done. That matches Streamlit `page_session`, which draws result boxes only for a quality day and Done only when no-watch is on.
 **Verify:** Type a rep time. It saves without a separate Save button. A hard day can change later weeks. An easy day does not call adapt. The plan is stored before any note runs. `tests/test_api_step3_session.py` `test_a_quality_result_adapts_and_an_easy_done_does_not`. `web/e2e/session.spec.ts` "a quality day states the rep time" (no Save button; Confirm is W8). Easy days render no result boxes.
 
 ### W8. Confirm before later weeks change
@@ -1182,7 +1184,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** `GET /strava/status`, `GET /strava/connect`, `POST /strava/disconnect`. Disconnect deauthorizes and deletes tokens and activities. The response has no `access_token` and no `refresh_token`.
 **Step 3:** 3.7 for the Settings block. The return URL is part of `GET /strava/callback` (lands on `/settings?strava=connected` or `?strava=error`).
 **Status:** done
-**Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Fresh side-by-sides on PR #66: activity, the error state with the stored runs still showing, and Last Session laps.
+**Evidence:** `web/e2e/activity.spec.ts` "connect opens Strava and disconnect clears the name" and `web/e2e/settings.spec.ts` for the not-configured sentence. `GET /strava/status` is `configured` only when `RIO_STRAVA_CLIENT_ID` and `RIO_STRAVA_CLIENT_SECRET` are both set (`ui/strava.py` `configured`). The authorize redirect is `RIO_STRAVA_REDIRECT_URI` when set, otherwise `{RIO_CALLBACK_BASE_URL}/strava/callback` (`api/strava_flow.py` `redirect_for_api`). For rio-one-mocha.vercel.app that callback domain is `rio-one-mocha.vercel.app`.
 **Verify:** Connect, see the name, Disconnect, and the runs leave Activity. View the network response and confirm it has no token.
 
 ### Y10. Opening a page pulls recent runs
@@ -1874,7 +1876,7 @@ The live app keeps a signed token for one day. Refreshing does not extend it. Lo
 **API:** none for the rule. The page's own GET is what it reloads.
 **Step 3:** PR #61 for the shell. Each page must keep it.
 **Status:** done
-**Evidence:** `web/e2e/plan.spec.ts` opens `/plan` while signed in and stays on Plan. `/` still chooses Home or Start (`web/lib/landing.ts`).
+**Evidence:** `web/e2e/plan.spec.ts` opens `/plan` while signed in and stays on Plan. `/` still chooses Home or Start (`web/lib/landing.ts`). `web/e2e/session.spec.ts` "an easy run uses the saved pace and does not ask for a rep time" reloads `/session?date=2026-11-12` and stays on that session.
 **Verify:** Signed in, open `/plan` directly. Stay on Plan. Open `/`. Go to Home or Start by the goal date, not always Home.
 
 ---

@@ -187,7 +187,6 @@ function Workout({ session, onSaved }: { session: SessionResponse; onSaved: () =
         {prescription?.line ? (
           <div className="rio-pace">
             <p className="rio-pace-line">{prescription.line}</p>
-            {prescription.average ? <p className="rio-pace-range">Average {prescription.average}</p> : null}
             {prescription.tolerance ? <p className="rio-pace-range">Tolerance {prescription.tolerance}</p> : null}
             {prescription.block ? <p className="rio-pace-block">Block {prescription.block}</p> : null}
           </div>
