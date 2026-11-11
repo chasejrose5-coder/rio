@@ -1,17 +1,17 @@
 # Parity audit
 
-Independent check of the Streamlit app against FastAPI and Next.js, on `main` at `674b637` (after #72 and #73). The checklist in `parity-checklist.md` says 188/188 done. This audit does not use that count as evidence. The inventory was read from `ui/streamlit_app.py` and the modules it draws. Both apps were then run locally against one account file, with the athlete time zone set to America/Los_Angeles. No production Supabase project was opened. No product gap is fixed in this change.
+Independent check of the Streamlit app against FastAPI and Next.js, on `main` at `674b637` (after #72 and #73). The checklist in `parity-checklist.md` says 188/188 done. This audit does not use that count as evidence. The inventory was read from `ui/streamlit_app.py` and the modules it draws. Both apps were then run locally against one account file, with the athlete time zone set to America/Los_Angeles. No production Supabase project was opened. The original audit fixed nothing. Gaps 1 and 2 are closed in the auth-mail change; the counts below include that. Gaps 3 and 4 are unchanged.
 
 ## Counts
 
 | Status | Count |
 | --- | --- |
-| PASS | 188 |
-| GAP | 4 |
+| PASS | 190 |
+| GAP | 2 |
 | N/A | 1 |
 | Rows | 193 |
 
-188 of those rows are the checklist items. One of them is a gap (P2). The other five rows are things the checklist does not name: two display effects, the signup confirmation redirect, the unrouted Progress page, and the ontology papers.
+188 of those rows are the checklist items. P2 was the checklist gap; the reset mail now opens Next and that row is PASS. The other five rows are things the checklist does not name: two display effects, the signup confirmation redirect, the unrouted Progress page, and the ontology papers. Signup confirmation now points at the Next origin, so that row is PASS. Compact mode and template ids are still gaps.
 
 ## What was compared
 
@@ -29,28 +29,37 @@ The checklist's 188 rows cover the screens. These behaviors are real in Streamli
 
 - Compact mode is global CSS in `ui/streamlit_app.py` (`_COMPACT_CSS`). Next applies `is-compact` on Settings, Library, Profile, More, Past seasons, About, and Creators only.
 - Show template ids paints the id on the Home track, the Plan day row, the Plan day card, and the Session page (`_id_html`). Next paints it on Session, Library, and the legacy Activity table.
-- Hosted signup confirmation uses `email_redirect_to` of the Streamlit origin (`ui/cloud_store.py`).
+- Hosted signup confirmation from the API uses `email_redirect_to` of `{RIO_FRONTEND_ORIGIN}/`. Streamlit's own sign-up still uses `auth_redirect_base() + "/"` (`ui/cloud_store.py`).
 - `page_progress` is implemented and is not in `st.navigation`. Next does not add it. That is N/A.
 
 ## Gaps
 
-Do not fix these in this PR.
+Gaps 1 and 2 are closed. Gaps 3 and 4 are not.
 
 ### 1. Password reset mail still opens Streamlit
 
-Severity: high for a hosted cutover.
+Severity: high for a hosted cutover. Closed.
 
-`request_reset` sends `redirect_to` of `auth_redirect_base() + "/?reset=password"`. That base is `RIO_APP_URL`, or the hosted Streamlit site when the variable is unset. Next's reset form is `/reset-password` and reads `token` or `token_hash` from the query. It does not read a Supabase hash fragment, and `/` does not open the reset form.
+Streamlit's own forgot screen still sends `redirect_to` of `auth_redirect_base() + "/?reset=password"`. That base is `RIO_APP_URL`, or the hosted Streamlit site when the variable is unset. The API's `POST /auth/forgot-password` sends `{RIO_FRONTEND_ORIGIN}/reset-password`. The local account file still sends no mail.
 
-Proposed fix: send the mail at the Next origin's `/reset-password`, read the same token fields Streamlit already accepts, and add that URL to the Supabase redirect allow list. Keep the local file with no mail, which both apps already do.
+`/reset-password` reads the same fields Streamlit reads: `token`, `token_hash`, and `type`, from the query or the hash. Supabase's implicit redirect puts `access_token`, `refresh_token`, `token_type`, and `type=recovery` in the hash. That fragment sets the password on the recovery session. A fragment whose `type` is not `recovery` does not.
+
+Evidence: `tests/test_auth_mail.py`; `web/e2e/reset-link.spec.ts`; `web/lib/reset-link.test.ts`; `docs/migration/parity-evidence/side/reset-password.jpg`. The side-by-side is one full-page shot of each reset form after the fade, in America/Los_Angeles. It is not stitched.
+
+Supabase Auth redirect allow list. Add these two URLs. `RIO_FRONTEND_ORIGIN` is the exact Next origin, scheme and host, no path and no trailing slash. Do not remove the Streamlit entries while that app is still running. Jay adds them in the dashboard. This change does not.
+
+- `{RIO_FRONTEND_ORIGIN}/reset-password`
+- `{RIO_FRONTEND_ORIGIN}/`
+
+When the variable is unset the API uses `http://localhost:3000`, so those are `http://localhost:3000/reset-password` and `http://localhost:3000/`. `{RIO_FRONTEND_ORIGIN}/**` also covers both.
 
 ### 2. Signup confirmation mail still opens Streamlit
 
-Severity: high if email confirmation stays on and Streamlit is turned off.
+Severity: high if email confirmation stays on and Streamlit is turned off. Closed.
 
-`sign_up` sets `email_redirect_to` to `auth_redirect_base() + "/"`. A confirmation link follows the Streamlit site. The confirm screen itself stays hidden on both apps.
+Streamlit's own sign-up still sets `email_redirect_to` to `auth_redirect_base() + "/"`. The API's `POST /auth/sign-up` sets it to `{RIO_FRONTEND_ORIGIN}/`. The confirm screen itself stays hidden on both apps. No copy change.
 
-Proposed fix: point that redirect at the Next origin and allow it in Supabase. No copy change.
+The allow-list entry is the same `{RIO_FRONTEND_ORIGIN}/` named above. Evidence: `tests/test_auth_mail.py`.
 
 ### 3. Compact mode does not tighten Home, Plan, Session, or Activity
 
@@ -94,7 +103,7 @@ No new environment name is required. These have to be set on the host before Str
 | `RIO_STRAVA_CLIENT_ID`, `RIO_STRAVA_CLIENT_SECRET` | The same Strava app. |
 | `RIO_ADMIN_EMAIL` | The one address that sees Admin. Unset means nobody is admin. |
 | `RIO_HERO_PATH` | A writable file for the startup photo rotation. It must survive a restart. |
-| `RIO_APP_URL` | Still the Streamlit origin for password reset and signup confirmation until gaps 1 and 2 are fixed. |
+| `RIO_APP_URL` | Still the Streamlit origin. Streamlit's own reset and confirmation links use it. The API mail uses `RIO_FRONTEND_ORIGIN` instead. |
 | `RIO_GOOGLE_REDIRECT_URI` | Unset keeps the Streamlit callback. The Google button stays hidden on both apps. |
 
 Strava: in the Strava app settings, register `{RIO_CALLBACK_BASE_URL}/strava/callback`. Leave the Streamlit callback registered until that app is off, then remove it. No code change picks the URI. The variable does.
@@ -149,7 +158,7 @@ PASS means the same thing is reachable with the same words or the same workout. 
 | N8. Helper line | docs/migration/parity-evidence/side/create.jpg; docs/migration/parity-evidence/text/create.diff | PASS |
 | N9. Create account photo, credit, footer | docs/migration/parity-evidence/side/create.jpg; docs/migration/parity-evidence/text/create.diff | PASS |
 | P1. Forgot password screen | web/e2e/auth-home.spec.ts | PASS |
-| P2. Reset from the link | docs/migration/parity-audit.md#gaps | GAP |
+| P2. Reset from the link | tests/test_auth_mail.py; web/e2e/reset-link.spec.ts; docs/migration/parity-evidence/side/reset-password.jpg | PASS |
 | P3. New password | web/e2e/auth-home.spec.ts | PASS |
 | I1. Intro card | docs/migration/parity-evidence/side/intro.jpg; docs/migration/parity-evidence/text/intro.diff | PASS |
 | I2. Step 1 | docs/migration/parity-evidence/side/intro.jpg; docs/migration/parity-evidence/text/intro.diff | PASS |
@@ -307,6 +316,6 @@ PASS means the same thing is reachable with the same words or the same workout. 
 | Z8. Planned versus actual | docs/migration/parity-evidence/side/plan-week.jpg | PASS |
 | Compact mode on Home, Plan, Session, and Activity | web/components/HomeView.tsx has no `is-compact`; web/app/globals.css | GAP |
 | Template ids on the Home track and Plan cards | ui/streamlit_app.py `_id_html`; web/components/PlanView.tsx `DayCard` | GAP |
-| Signup confirmation redirect | ui/cloud_store.py `email_redirect_to` | GAP |
+| Signup confirmation redirect | tests/test_auth_mail.py; ui/cloud_store.py `email_redirect_to` | PASS |
 | Progress page | ui/streamlit_app.py `page_progress` is not registered in `st.navigation` | N/A |
 | Ontology papers | tests/test_parity_plan.py `test_papers_have_one_copy_and_both_apps_load_it` | PASS |

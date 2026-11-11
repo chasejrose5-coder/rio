@@ -82,10 +82,34 @@ def open_hosted(directory, session: dict) -> tuple[str, int]:
     return sid, issued
 
 
-def sign_up_hosted(directory, email: str, password: str, name: str) -> dict:
-    """Create the account. A confirmation-only project returns no session."""
+def mail_origin(origin: str) -> str:
+    """The Next origin the API puts in auth mail. No path and no trailing slash."""
+    return origin.strip().rstrip("/")
+
+
+def reset_redirect_url(origin: str) -> str:
+    """Password reset mail opens the Next page. Streamlit keeps its own link."""
+    return mail_origin(origin) + "/reset-password"
+
+
+def confirm_redirect_url(origin: str) -> str:
+    """Signup confirmation mail opens the Next origin. Streamlit keeps its own link."""
+    return mail_origin(origin) + "/"
+
+
+def sign_up_hosted(directory, email: str, password: str, name: str, origin: str) -> dict:
+    """Create the account. A confirmation-only project returns no session.
+
+    The confirmation link uses the Next origin. Streamlit's own sign-up
+    does not pass that origin, so its mail still opens Streamlit.
+    """
     try:
-        session = directory.sign_up(email, password, name)
+        session = directory.sign_up(
+            email,
+            password,
+            name,
+            email_redirect_to=confirm_redirect_url(origin),
+        )
     except CloudAuthError as exc:
         if str(exc) == SIGNUP_CONFIRM:
             return {"confirm": True, "message": SIGNUP_CONFIRM}
@@ -106,8 +130,12 @@ def sign_up_hosted(directory, email: str, password: str, name: str) -> dict:
     }
 
 
-def forgot_password(directory, email: str) -> dict:
-    """Send the reset mail. An unknown address gets the same sentence."""
+def forgot_password(directory, email: str, origin: str) -> dict:
+    """Send the reset mail to the Next page. An unknown address gets the same sentence.
+
+    The local account file has no directory and sends no mail. Streamlit's
+    own forgot screen calls request_reset without this origin.
+    """
     from ui.accounts import normalize_email
 
     if directory is None:
@@ -115,17 +143,31 @@ def forgot_password(directory, email: str) -> dict:
     if normalize_email(email) is None:
         raise ApiError(400, "Enter an email address.")
     try:
-        directory.request_reset(email)
+        directory.request_reset(email, redirect_to=reset_redirect_url(origin))
     except CloudAuthError as exc:
         raise_auth(exc)
     return {"ok": True, "message": "Check your email for the reset link."}
 
 
-def reset_password(directory, token: str, password: str) -> dict:
+def reset_password(
+    directory,
+    token: str,
+    password: str,
+    *,
+    access_token: str = "",
+    refresh_token: str = "",
+    recovery_type: str = "",
+) -> dict:
     if directory is None:
         raise ApiError(400, "Password reset is not available for this account.")
     try:
-        directory.reset_password(token, password)
+        directory.reset_password(
+            token,
+            password,
+            access_token=access_token,
+            refresh_token=refresh_token,
+            recovery_type=recovery_type,
+        )
     except CloudAuthError as exc:
         raise_auth(exc)
     return {"ok": True, "message": "Password updated. Log in with the new one."}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Footer, PhotoCredit } from "./Footer";
 import { ApiError, api } from "@/lib/api";
+import { recoveryReady, type RecoveryLink } from "@/lib/reset-link";
 import { useAuth } from "@/lib/auth";
 
 const SIGNUP_FAILED = "The account could not be created.";
@@ -329,14 +330,19 @@ export function ForgotScreen() {
   );
 }
 
-export function ResetScreen({ token }: { token: string }) {
+export function ResetScreen({ link }: { link: RecoveryLink }) {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const ready = recoveryReady(link);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (!ready) {
+      setError("That reset link is no longer valid.");
+      return;
+    }
     if (password.length < 8) {
       setError("Use at least 8 characters.");
       return;
@@ -344,7 +350,13 @@ export function ResetScreen({ token }: { token: string }) {
     setBusy(true);
     setError("");
     try {
-      const saved = await api.reset(token, password);
+      const saved = await api.reset({
+        token: link.token,
+        password,
+        access_token: link.token ? "" : link.accessToken,
+        refresh_token: link.token ? "" : link.refreshToken,
+        type: link.type,
+      });
       router.replace(`/sign-in?note=${encodeURIComponent(saved.message || "Password updated. Log in with the new one.")}`);
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : "That reset link is no longer valid.");
@@ -354,7 +366,7 @@ export function ResetScreen({ token }: { token: string }) {
   }
 
   return (
-    <AuthFrame title="New password" error={error || (token ? "" : "That reset link is no longer valid.")}>
+    <AuthFrame title="New password" error={error || (ready ? "" : "That reset link is no longer valid.")}>
       <form onSubmit={onSubmit} noValidate>
         <label htmlFor="password">New password</label>
         <PasswordField
@@ -364,7 +376,7 @@ export function ResetScreen({ token }: { token: string }) {
           value={password}
           onChange={setPassword}
         />
-        <button className="rio-primary" type="submit" disabled={busy || !token}>
+        <button className="rio-primary" type="submit" disabled={busy || !ready}>
           Save password
         </button>
       </form>
