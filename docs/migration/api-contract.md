@@ -108,9 +108,11 @@ No cookie. Body: `{"email": ""}`.
 
 `200` `{"ok": true, "message": "Check your email for the reset link."}`. An address with no account gets the same body. The reset token is not in the JSON. `400` when the text is not an email, or when this process is the local account file (that file has no mail). `400` when the reset mail could not be sent.
 
+The link in that mail is `{RIO_FRONTEND_ORIGIN}/reset-password`. `RIO_FRONTEND_ORIGIN` is the Next origin, scheme and host, no path. Streamlit's own forgot screen still sends `{RIO_APP_URL}/?reset=password` (or `https://riotraining.streamlit.app/?reset=password` when `RIO_APP_URL` is unset). Add `{RIO_FRONTEND_ORIGIN}/reset-password` to the Supabase Auth redirect allow list. Leave the Streamlit URLs there while that app is still on.
+
 ### `POST /auth/reset-password`
 
-No cookie. Body: `{"token": "", "password": ""}`. `token` is the `token_hash` from the reset link, the same value Streamlit reads.
+No cookie. Body: `{"token": "", "password": "", "access_token": "", "refresh_token": "", "type": ""}`. `token` is `token_hash` or `token` from the reset link, the same values Streamlit reads, from the query or the hash. When the mail comes back as Supabase's implicit fragment, `access_token`, `refresh_token`, and `type=recovery` are sent instead of `token`, and the password is set on that recovery session. A `type` other than `recovery` does not use the fragment.
 
 `200` `{"ok": true, "message": "Password updated. Log in with the new one."}`. `400` when the token is no longer valid, the password is shorter than 8 characters, or this process is the local account file.
 

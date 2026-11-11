@@ -59,8 +59,10 @@ class MemoryDirectory:
         self.plans: dict[str, list] = {}
         self.results: dict[str, list] = {}
         self.hosted: dict[str, dict] = {}
+        self.email_redirect_to = ""
+        self.reset_redirect_to = ""
 
-    def sign_up(self, email: object, password: object, name: object) -> dict:
+    def sign_up(self, email: object, password: object, name: object, *, email_redirect_to: str | None = None) -> dict:
         cleaned = normalize_email(email)
         stored_name = normalize_name(name)
         if cleaned is None:
@@ -69,6 +71,9 @@ class MemoryDirectory:
             raise CloudAuthError("Enter a name.")
         if not password_ok(password) or not isinstance(password, str):
             raise CloudAuthError("Use at least 8 characters.")
+        # The local file has no mail. The value is kept so a test can see
+        # which origin the API asked for. Nothing is sent.
+        self.email_redirect_to = email_redirect_to.strip() if isinstance(email_redirect_to, str) else ""
         if cleaned in self.by_email:
             raise CloudAuthError("An account with that email already exists.")
         user_id = secrets.token_hex(8)
@@ -121,24 +126,51 @@ class MemoryDirectory:
             return self.sign_up(email, "google-password-1", "Athlete")
         return self._open(self.by_email[email])
 
-    def request_reset(self, email: object) -> str:
+    def request_reset(self, email: object, *, redirect_to: str | None = None) -> str:
         cleaned = normalize_email(email)
         user_id = self.by_email.get(cleaned or "")
+        self.reset_redirect_to = redirect_to.strip() if isinstance(redirect_to, str) else ""
         if user_id is None:
             return ""
+        # No message is sent. The hosted client is what uses redirect_to.
         token = secrets.token_hex(8)
         self.resets[token] = user_id
         return token
 
-    def reset_password(self, token: object, password: object) -> None:
-        user_id = self.resets.get(token) if isinstance(token, str) else None
+    def reset_password(
+        self,
+        token: object,
+        password: object,
+        *,
+        access_token: object = None,
+        refresh_token: object = None,
+        recovery_type: object = None,
+    ) -> None:
+        if isinstance(token, str) and token:
+            user_id = self.resets.get(token)
+            user = self.users.get(user_id or "")
+            if user is None:
+                raise CloudAuthError("That reset link is no longer valid.")
+            if not password_ok(password) or not isinstance(password, str):
+                raise CloudAuthError("Use at least 8 characters.")
+            user["password"] = password
+            self.resets.pop(token, None)
+            return
+        # The implicit recovery fragment is access_token, refresh_token, and type.
+        linked = (
+            recovery_type == "recovery"
+            and isinstance(access_token, str)
+            and access_token
+            and isinstance(refresh_token, str)
+            and self.refreshes.get(refresh_token) == access_token
+        )
+        user_id = self.sessions.get(access_token) if linked else None
         user = self.users.get(user_id or "")
         if user is None:
             raise CloudAuthError("That reset link is no longer valid.")
         if not password_ok(password) or not isinstance(password, str):
             raise CloudAuthError("Use at least 8 characters.")
         user["password"] = password
-        self.resets.pop(str(token), None)
 
     def change_password(self, access_token: object, current: object, new: object) -> None:
         """Replace the password after the current one matches. The token stays."""
@@ -611,7 +643,14 @@ class SupabaseDirectory:
             raise CloudAuthError("Accounts could not be reached.") from exc
         return create_client(self.url, key, options=_fresh_options())
 
-    def sign_up(self, email: object, password: object, name: object) -> dict:
+    def sign_up(
+        self,
+        email: object,
+        password: object,
+        name: object,
+        *,
+        email_redirect_to: str | None = None,
+    ) -> dict:
         cleaned = normalize_email(email)
         if cleaned is None:
             raise CloudAuthError(SIGNUP_EMAIL)
@@ -622,6 +661,11 @@ class SupabaseDirectory:
             raise CloudAuthError(SIGNUP_PASSWORD)
         from ui.cloud_config import auth_redirect_base
 
+        # Streamlit calls this with no override, so its mail stays on RIO_APP_URL.
+        # The API passes the Next origin. A blank override does not replace the default.
+        redirect = auth_redirect_base() + "/"
+        if isinstance(email_redirect_to, str) and email_redirect_to.strip():
+            redirect = email_redirect_to.strip()
         try:
             response = self._client(self.anon_key).auth.sign_up(
                 {
@@ -629,7 +673,7 @@ class SupabaseDirectory:
                     "password": password,
                     "options": {
                         "data": {"display_name": stored_name},
-                        "email_redirect_to": auth_redirect_base() + "/",
+                        "email_redirect_to": redirect,
                     },
                 }
             )
@@ -718,26 +762,54 @@ class SupabaseDirectory:
         except Exception as exc:
             raise CloudAuthError("This role could not be saved.") from exc
 
-    def request_reset(self, email: object) -> str:
+    def request_reset(self, email: object, *, redirect_to: str | None = None) -> str:
         cleaned = normalize_email(email)
         if cleaned is None:
             raise CloudAuthError("Enter an email address.")
         from ui.cloud_config import auth_redirect_base
 
+        # Streamlit calls this with no override: /?reset=password on RIO_APP_URL.
+        # The API passes the Next /reset-password page. A blank override stays on Streamlit.
+        target = auth_redirect_base() + "/?reset=password"
+        if isinstance(redirect_to, str) and redirect_to.strip():
+            target = redirect_to.strip()
         try:
             self._client(self.anon_key).auth.reset_password_for_email(
                 cleaned,
-                {"redirect_to": auth_redirect_base() + "/?reset=password"},
+                {"redirect_to": target},
             )
         except Exception as exc:
             raise CloudAuthError("The reset email could not be sent.") from exc
         return ""
 
-    def reset_password(self, token: object, password: object) -> None:
+    def reset_password(
+        self,
+        token: object,
+        password: object,
+        *,
+        access_token: object = None,
+        refresh_token: object = None,
+        recovery_type: object = None,
+    ) -> None:
         if not password_ok(password) or not isinstance(password, str):
             raise CloudAuthError("Use at least 8 characters.")
-        if not isinstance(token, str) or not token:
-            raise CloudAuthError("That reset link is no longer valid.")
+        if isinstance(token, str) and token:
+            self._reset_with_token(token, password)
+            return
+        # Supabase's implicit redirect puts the session in the hash fragment:
+        # access_token, refresh_token, token_type, type=recovery.
+        if (
+            recovery_type == "recovery"
+            and isinstance(access_token, str)
+            and access_token
+            and isinstance(refresh_token, str)
+            and refresh_token
+        ):
+            self._reset_with_session(access_token, refresh_token, password)
+            return
+        raise CloudAuthError("That reset link is no longer valid.")
+
+    def _reset_with_token(self, token: str, password: str) -> None:
         try:
             client = self._client(self.anon_key)
             verified = client.auth.verify_otp({"token_hash": token, "type": "recovery"})
@@ -747,6 +819,16 @@ class SupabaseDirectory:
             if not access or not refresh:
                 raise CloudAuthError("That reset link is no longer valid.")
             client.auth.set_session(str(access), str(refresh))
+            client.auth.update_user({"password": password})
+        except CloudAuthError:
+            raise
+        except Exception as exc:
+            raise CloudAuthError("That reset link is no longer valid.") from exc
+
+    def _reset_with_session(self, access_token: str, refresh_token: str, password: str) -> None:
+        try:
+            client = self._client(self.anon_key)
+            client.auth.set_session(access_token, refresh_token)
             client.auth.update_user({"password": password})
         except CloudAuthError:
             raise

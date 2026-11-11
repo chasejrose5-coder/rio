@@ -104,10 +104,16 @@ export const api = {
       body: JSON.stringify({ email }),
     }),
 
-  reset: (token: string, password: string) =>
+  reset: (body: {
+    token: string;
+    password: string;
+    access_token?: string;
+    refresh_token?: string;
+    type?: string;
+  }) =>
     request<{ ok: boolean; message: string }>("/auth/reset-password", {
       method: "POST",
-      body: JSON.stringify({ token, password }),
+      body: JSON.stringify(body),
     }),
 
   accountMode: () => request<{ mode: "hosted" | "local" | "unconfigured" }>("/auth/availability"),

@@ -50,6 +50,9 @@ class EmailBody(BaseModel):
 class ResetBody(BaseModel):
     token: str = ""
     password: str = ""
+    access_token: str = ""
+    refresh_token: str = ""
+    type: str = ""
 
 
 class PasswordBody(BaseModel):
@@ -106,7 +109,13 @@ def sign_up(body: SignUpBody, request: Request, response: Response) -> dict:
             "kind": "local",
             "confirm": False,
         }
-    outcome = sign_up_hosted(directory, body.email, body.password, body.name)
+    outcome = sign_up_hosted(
+        directory,
+        body.email,
+        body.password,
+        body.name,
+        request.app.state.settings.frontend_origin,
+    )
     if outcome.get("confirm") is True:
         return {"confirm": True, "message": outcome.get("message") or ""}
     set_session_cookie(response, request.app.state.settings, outcome["sid"], outcome["issued"])
@@ -120,12 +129,23 @@ def sign_up(body: SignUpBody, request: Request, response: Response) -> dict:
 
 @router.post("/forgot-password")
 def forgot(body: EmailBody, request: Request) -> dict:
-    return forgot_password(request.app.state.directory, body.email)
+    return forgot_password(
+        request.app.state.directory,
+        body.email,
+        request.app.state.settings.frontend_origin,
+    )
 
 
 @router.post("/reset-password")
 def reset(body: ResetBody, request: Request) -> dict:
-    return reset_password(request.app.state.directory, body.token, body.password)
+    return reset_password(
+        request.app.state.directory,
+        body.token,
+        body.password,
+        access_token=body.access_token,
+        refresh_token=body.refresh_token,
+        recovery_type=body.type,
+    )
 
 
 @router.post("/password")

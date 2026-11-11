@@ -23,7 +23,7 @@ Settings come from the environment. A `.env` file in the repository root is read
 | `RIO_SUPABASE_URL` | Hosted accounts. When this and the anon key are set, sign-in uses Supabase. |
 | `RIO_SUPABASE_ANON_KEY` | The anon key. It stays on the server. |
 | `RIO_SUPABASE_SERVICE_ROLE_KEY` | Required for the hosted session table. It is not sent to the browser. |
-| `RIO_APP_URL` | Already used by the Streamlit app for redirects. |
+| `RIO_APP_URL` | Streamlit's own confirmation and reset links. The API does not use it for those mails. |
 | `RIO_ACCOUNTS_PATH` | Local account file when Supabase is not configured. Tests set this. |
 
 When the Supabase URL or anon key is missing, sign-in uses the local account file, the same accounts the Streamlit app uses on a laptop.
@@ -34,7 +34,14 @@ When the Supabase URL or anon key is missing, sign-in uses the local account fil
 
 `GET /auth/me` returns the signed-in athlete. `POST /auth/sign-out` drops the server session and clears the cookie. The cookie lasts the rest of the original 24 hours. Refreshing the Supabase token does not extend it.
 
-`POST /auth/sign-up` creates an account and sets the same cookie when a session comes back. `POST /auth/forgot-password` and `POST /auth/reset-password` are the reset mail. `POST /auth/password` and `POST /auth/email` change this account. `POST /auth/delete` requires `confirm: true`. `GET /auth/google` and `GET /auth/google/callback` are Google sign-in. `RIO_GOOGLE_REDIRECT_URI` defaults to the Streamlit callback.
+`POST /auth/sign-up` creates an account and sets the same cookie when a session comes back. Its confirmation link is `{RIO_FRONTEND_ORIGIN}/`. `POST /auth/forgot-password` sends reset mail to `{RIO_FRONTEND_ORIGIN}/reset-password`, and `POST /auth/reset-password` sets the password from `token` or from a recovery hash (`access_token`, `refresh_token`, `type=recovery`). Streamlit's own screens still use `RIO_APP_URL`. The local account file sends no mail. `POST /auth/password` and `POST /auth/email` change this account. `POST /auth/delete` requires `confirm: true`. `GET /auth/google` and `GET /auth/google/callback` are Google sign-in. `RIO_GOOGLE_REDIRECT_URI` defaults to the Streamlit callback.
+
+Supabase Auth, URL configuration, redirect allow list. Add these two, using the exact `RIO_FRONTEND_ORIGIN` (scheme and host, no path, no trailing slash). Do not remove the Streamlit entries while that app is still running. This process does not edit the allow list.
+
+- `{RIO_FRONTEND_ORIGIN}/reset-password`
+- `{RIO_FRONTEND_ORIGIN}/`
+
+When `RIO_FRONTEND_ORIGIN` is unset it is `http://localhost:3000`, so those two are `http://localhost:3000/reset-password` and `http://localhost:3000/`. A wildcard `{RIO_FRONTEND_ORIGIN}/**` also covers both, the same way the Streamlit list uses `/**`. Signup confirmation uses the first origin with a trailing slash. Password reset uses `/reset-password`.
 
 ## Seasons
 
