@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { LoadingScreen } from "./LoadingScreen";
 import { ApiError, api } from "@/lib/api";
 
 export function StravaCallback() {
@@ -26,9 +27,9 @@ export function StravaCallback() {
   }, [params, router]);
 
   return (
-    <main className="page-plain">
-      <p className="rio-wait">Connecting Strava</p>
+    <>
+      <LoadingScreen label="Connecting Strava" />
       {problem ? <p className="rio-error">{problem}</p> : null}
-    </main>
+    </>
   );
 }
