@@ -141,6 +141,10 @@ def test_sign_in_sets_an_httponly_cookie_and_me_returns_the_athlete() -> None:
     lowered = cookie.lower()
     if "httponly" not in lowered or "secure" not in lowered or "samesite=lax" not in lowered:
         raise AssertionError(cookie)
+    if "domain=" in lowered:
+        raise AssertionError(cookie)
+    if "path=/" not in lowered:
+        raise AssertionError(cookie)
     if "rio_hosted=rio1." not in cookie:
         raise AssertionError(cookie)
     token = next(iter(directory.sessions))

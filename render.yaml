@@ -1,0 +1,46 @@
+# Render blueprint for the FastAPI process. Streamlit stays the live site.
+# Names only. Values are entered in the Render dashboard (sync: false).
+# No persistent disk: explain spend belongs in Supabase (migration 011),
+# and the hero JSON ships in the repo. See docs/migration/deploy-test.md.
+
+services:
+  - type: web
+    name: rio-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt -r api/requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.11"
+      - key: RIO_SUPABASE_URL
+        sync: false
+      - key: RIO_SUPABASE_ANON_KEY
+        sync: false
+      - key: RIO_SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: RIO_FRONTEND_ORIGIN
+        sync: false
+      - key: RIO_CALLBACK_BASE_URL
+        sync: false
+      - key: RIO_ADMIN_EMAIL
+        sync: false
+      - key: RIO_STRAVA_CLIENT_ID
+        sync: false
+      - key: RIO_STRAVA_CLIENT_SECRET
+        sync: false
+      - key: RIO_EXPLAIN_API_KEY
+        sync: false
+      - key: RIO_EXPLAIN_MODEL
+        sync: false
+      - key: RIO_EXPLAIN_BASE_URL
+        sync: false
+      - key: RIO_EXPLAIN_INPUT_USD_PER_MILLION
+        sync: false
+      - key: RIO_EXPLAIN_OUTPUT_USD_PER_MILLION
+        sync: false
+      - key: RIO_INTERVALS_API_KEY
+        sync: false
+      - key: RIO_INTERVALS_ATHLETE_ID
+        sync: false

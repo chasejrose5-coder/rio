@@ -11,7 +11,7 @@ pip install -r requirements.txt -r api/requirements.txt
 uvicorn api.main:app --reload --port 8000
 ```
 
-Open `http://127.0.0.1:8000/health`. It returns `{"ok": true}`.
+Open `http://127.0.0.1:8000/health`. It returns `{"ok": true}`. That same `GET /health` is the Render health check. The test deploy is `docs/migration/deploy-test.md`. The browser calls `/api/*` on the Next host, which rewrites to this process. It does not call the Render host itself.
 
 Settings come from the environment. A `.env` file in the repository root is read the same way the Streamlit app reads it, and an existing environment value wins. Do not commit that file.
 
