@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Footer, PhotoCredit } from "./Footer";
-import { ApiError, api } from "@/lib/api";
+import { ApiError, afterSignIn, api } from "@/lib/api";
 import { recoveryReady, type RecoveryLink } from "@/lib/reset-link";
 import { useAuth } from "@/lib/auth";
 
@@ -162,7 +162,11 @@ export function SignInScreen() {
     setError("");
     try {
       await api.signIn(email, password);
-      await refresh();
+      const stuck = afterSignIn(await refresh());
+      if (stuck) {
+        setError(stuck);
+        return;
+      }
       router.replace("/");
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : "Email or password does not match.");

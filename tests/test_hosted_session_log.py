@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import sys
 import time
 from pathlib import Path
@@ -18,8 +19,8 @@ from fastapi.testclient import TestClient
 
 from api.identity import _refresh_hosted, _remember_hosted, principal_from_cookie
 from api.main import create_app
-from ui.cloud_session import new_hosted_sid
-from ui.cloud_store import CloudAuthError, SupabaseDirectory, auth_health
+from ui.cloud_session import hosted_hash, new_hosted_sid
+from ui.cloud_store import CloudAuthError, SupabaseDirectory, auth_health, open_session_secret, seal_session_secret
 
 ANON = "super-secret-anon-key-value"
 SECRET = "sb_secret_" + ("k" * 24)
@@ -464,3 +465,186 @@ def test_a_normal_token_refresh_is_not_logged() -> None:
         raise AssertionError(who)
     if any("hosted session" in record.getMessage() for record in records):
         raise AssertionError(_blob(records))
+    if any("session step failed" in record.getMessage() for record in records):
+        raise AssertionError(_blob(records))
+
+
+SESSION_KEY = "super-secret-session-key-value"
+OTHER_KEY = "other-secret-session-key-value"
+REFRESH = "refresh-token-should-not-leak"
+
+
+def _step_text(records: list[logging.LogRecord]) -> str:
+    lines = [
+        record.getMessage()
+        for record in records
+        if record.levelno >= logging.WARNING and record.getMessage().startswith("session step failed:")
+    ]
+    return "\n".join(lines)
+
+
+def _assert_step(records: list[logging.LogRecord], step: str) -> None:
+    text = _step_text(records)
+    _secrets_absent(text)
+    for secret in (SESSION_KEY, OTHER_KEY, REFRESH, "f2.", "rio1."):
+        if secret in text:
+            raise AssertionError(text)
+    prefix = hosted_hash(SID)[:12]
+    needle = f"session step failed: step={step} sid_hash={prefix}"
+    if needle not in text:
+        raise AssertionError(text)
+
+
+def test_session_step_logs_name_the_failure_and_hide_secrets() -> None:
+    previous = os.environ.get("RIO_SESSION_KEY")
+    try:
+        os.environ["RIO_SESSION_KEY"] = SESSION_KEY
+        sealed = seal_session_secret(TOKEN)
+        if not sealed.startswith("f2.") or TOKEN in sealed or SESSION_KEY in sealed:
+            raise AssertionError("the token was not sealed")
+
+        def opened():
+            if open_session_secret(sealed, SID) != TOKEN:
+                raise AssertionError("a sealed token did not open")
+
+        _value, records = _logged(opened)
+        if any("session step failed" in record.getMessage() for record in records):
+            raise AssertionError(_blob(records))
+
+        def plain():
+            if open_session_secret(TOKEN, SID) != TOKEN:
+                raise AssertionError("plaintext stopped opening")
+
+        _value, records = _logged(plain)
+        if any("session step failed" in record.getMessage() for record in records):
+            raise AssertionError(_blob(records))
+
+        os.environ["RIO_SESSION_KEY"] = OTHER_KEY
+
+        def decrypt_failed():
+            if open_session_secret(sealed, SID) != "":
+                raise AssertionError("a changed key still opened the token")
+
+        _value, records = _logged(decrypt_failed)
+        _assert_step(records, "decrypt failed or empty")
+        if sealed in _step_text(records):
+            raise AssertionError("the ciphertext reached the log")
+
+        os.environ["RIO_SESSION_KEY"] = "   "
+
+        def key_missing():
+            if open_session_secret(sealed, SID) != "":
+                raise AssertionError("a blank key still opened the token")
+
+        _value, records = _logged(key_missing)
+        _assert_step(records, "encryption key missing")
+
+        os.environ.pop("RIO_SESSION_KEY", None)
+        if auth_health(None)["session_key_configured"] is not False:
+            raise AssertionError(auth_health(None))
+        os.environ["RIO_SESSION_KEY"] = SESSION_KEY
+        present = auth_health(None)
+        if present["session_key_configured"] is not True or SESSION_KEY in str(present):
+            raise AssertionError(present)
+
+        class _Gone:
+            def load_hosted_session(self, _sid):
+                return None
+
+        def missing():
+            return principal_from_cookie(SimpleNamespace(), _Gone(), None, SID)
+
+        who, records = _logged(missing)
+        if who is not None:
+            raise AssertionError(who)
+        _assert_step(records, "row missing")
+
+        def load_error():
+            return principal_from_cookie(SimpleNamespace(), _directory({"select"}), None, SID)
+
+        who, records = _logged(load_error)
+        if who is not None:
+            raise AssertionError(who)
+        _assert_step(records, "row load error")
+        if "hosted session load failed:" not in _blob(records):
+            raise AssertionError(_blob(records))
+        _secrets_absent(_blob(records))
+
+        class _Empty:
+            def load_hosted_session(self, _sid):
+                return {
+                    "access_token": "",
+                    "refresh_token": REFRESH,
+                    "user_id": "user-1",
+                    "email": EMAIL,
+                    "display_name": "Ada",
+                    "issued_at": int(time.time()),
+                }
+
+        def empty():
+            return principal_from_cookie(SimpleNamespace(), _Empty(), None, SID)
+
+        who, records = _logged(empty)
+        if who is not None:
+            raise AssertionError(who)
+        _assert_step(records, "decrypt failed or empty")
+
+        class _Reject:
+            def load_hosted_session(self, _sid):
+                return {
+                    "access_token": TOKEN,
+                    "refresh_token": REFRESH,
+                    "user_id": "user-1",
+                    "email": EMAIL,
+                    "display_name": "Ada",
+                    "issued_at": int(time.time()),
+                }
+
+            def user_id(self, _token):
+                raise CloudAuthError("Sign in again.")
+
+            def refresh_session(self, _refresh):
+                raise CloudAuthError("Sign in again.")
+
+            def drop_hosted_session(self, _sid):
+                return None
+
+        def rejected():
+            return principal_from_cookie(SimpleNamespace(), _Reject(), None, SID)
+
+        who, records = _logged(rejected)
+        if who is not None:
+            raise AssertionError(who)
+        _assert_step(records, "token rejected")
+        _assert_step(records, "refresh failed")
+        _secrets_absent(_blob(records))
+
+        class _Ready:
+            def load_hosted_session(self, _sid):
+                return {
+                    "access_token": TOKEN,
+                    "refresh_token": REFRESH,
+                    "user_id": "user-1",
+                    "email": EMAIL,
+                    "display_name": "Ada",
+                    "issued_at": int(time.time()),
+                }
+
+            def user_id(self, token):
+                if token != TOKEN:
+                    raise AssertionError("the access token changed")
+                return "user-1"
+
+        def ready():
+            return principal_from_cookie(SimpleNamespace(), _Ready(), None, SID)
+
+        who, records = _logged(ready)
+        if who is None or who.token != TOKEN or who.email != EMAIL:
+            raise AssertionError(who)
+        if any("session step failed" in record.getMessage() for record in records):
+            raise AssertionError(_blob(records))
+    finally:
+        if previous is None:
+            os.environ.pop("RIO_SESSION_KEY", None)
+        else:
+            os.environ["RIO_SESSION_KEY"] = previous

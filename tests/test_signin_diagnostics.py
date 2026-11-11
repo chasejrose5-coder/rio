@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import inspect
 import logging
+import os
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -301,6 +302,7 @@ def test_health_auth_is_closed_without_a_project() -> None:
         "service_key_configured": False,
         "service_key_format": "other",
         "sessions_ok": {"ok": False, "code": None, "message": None},
+        "session_key_configured": bool(os.environ.get("RIO_SESSION_KEY", "").strip()),
     }
     if auth_health(MemoryDirectory()) != blank:
         raise AssertionError(auth_health(MemoryDirectory()))
@@ -340,6 +342,7 @@ def test_health_auth_reports_the_settings_status_without_secrets() -> None:
         "service_key_configured": True,
         "service_key_format": "other",
         "sessions_ok": {"ok": True, "code": None, "message": None},
+        "session_key_configured": bool(os.environ.get("RIO_SESSION_KEY", "").strip()),
     }
     if body != ready:
         raise AssertionError(body)
@@ -357,6 +360,7 @@ def test_health_auth_reports_the_settings_status_without_secrets() -> None:
         "service_key_configured": True,
         "service_key_format": "other",
         "sessions_ok": {"ok": True, "code": None, "message": None},
+        "session_key_configured": bool(os.environ.get("RIO_SESSION_KEY", "").strip()),
     }
     if response.json() != refused:
         raise AssertionError(response.text)

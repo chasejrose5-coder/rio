@@ -29,6 +29,8 @@ export function Gate() {
   const { status, athlete, refresh } = useAuth();
   const router = useRouter();
   const [splash, setSplash] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [seasonProblem, setSeasonProblem] = useState(false);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -64,11 +66,13 @@ export function Gate() {
         }
       }
       if (live) router.replace(landingPath(season));
+    }).catch(() => {
+      if (live) setSeasonProblem(true);
     });
     return () => {
       live = false;
     };
-  }, [status, athlete, refresh, router]);
+  }, [status, athlete, refresh, router, attempt]);
 
   if (splash) {
     return (
@@ -79,6 +83,23 @@ export function Gate() {
           if (status === "out") router.replace("/sign-in?skip=1");
         }}
       />
+    );
+  }
+  if (seasonProblem) {
+    return (
+      <div className="rio-gate-retry">
+        <p className="rio-error">The season could not be loaded.</p>
+        <button
+          type="button"
+          className="rio-primary"
+          onClick={() => {
+            setSeasonProblem(false);
+            setAttempt((current) => current + 1);
+          }}
+        >
+          Retry
+        </button>
+      </div>
     );
   }
   return <p className="rio-wait">Loading</p>;

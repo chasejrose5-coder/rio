@@ -88,13 +88,14 @@ No cookie. `200`. The anon key is checked with `GET /auth/v1/settings`. The serv
   "status": 200,
   "service_key_configured": true,
   "service_key_format": "sb_secret",
-  "sessions_ok": {"ok": true, "code": null, "message": null}
+  "sessions_ok": {"ok": true, "code": null, "message": null},
+  "session_key_configured": true
 }
 ```
 
-`service_key_format` is `sb_secret`, `jwt`, or `other`. `sessions_ok.ok` is false when the service key is missing or that select fails. On failure, `code` and `message` are the PostgREST or GoTrue error, otherwise null.
+`service_key_format` is `sb_secret`, `jwt`, or `other`. `sessions_ok.ok` is false when the service key is missing or that select fails. On failure, `code` and `message` are the PostgREST or GoTrue error, otherwise null. `session_key_configured` is true when `RIO_SESSION_KEY` is non-empty. It is only a boolean. The value is not returned.
 
-A hosted session save, load, update, drop, or refresh that fails is still `401` `{"detail": "Sign in again."}` on the route that needed the row. The same failure is a WARNING on the `rio.cloud` logger: exception class, HTTP status, error code, error message, whether the service key is set, and the key format. The log does not include the key, a token, a session id, or an email.
+A hosted session save, load, update, drop, or refresh that fails is still `401` `{"detail": "Sign in again."}` on the route that needed the row. The same failure is a WARNING on the `rio.cloud` logger: exception class, HTTP status, error code, error message, whether the service key is set, and the key format. The log does not include the key, a token, a session id, or an email. A rejected hosted cookie also logs `session step failed` with `step` set to `row missing`, `row load error`, `decrypt failed or empty`, `encryption key missing`, `token rejected`, or `refresh failed`, and `sid_hash` set to the first 12 hex characters of the session id's hash, or `-` when the id is not available. The cookie value is not logged.
 
 ## Auth
 

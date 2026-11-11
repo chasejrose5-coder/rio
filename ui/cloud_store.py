@@ -1518,7 +1518,7 @@ class SupabaseDirectory:
             self._purge_expired_sessions()
             return None
         self._purge_expired_sessions()
-        return _open_hosted_row(row)
+        return _open_hosted_row(row, sid if isinstance(sid, str) else None)
 
     def update_hosted_session(self, sid: object, record: object) -> None:
         if not hosted_sid(sid) or not isinstance(record, dict) or not self.service_key:
@@ -1906,6 +1906,26 @@ def log_hosted_session(action: str, exc: BaseException, directory: object | None
         "set" if configured else "missing",
         service_key_format(key) if configured else "other",
     )
+
+
+_SESSION_STEPS = (
+    "row missing",
+    "row load error",
+    "decrypt failed or empty",
+    "encryption key missing",
+    "token rejected",
+    "refresh failed",
+)
+
+
+def log_session_step(step: str, sid: object = None) -> None:
+    """One rejected cookie step. The cookie, token, key, and email stay out."""
+    if step not in _SESSION_STEPS:
+        return
+    label = "-"
+    if isinstance(sid, str) and sid:
+        label = hosted_hash(sid)[:12]
+    logging.getLogger("rio.cloud").warning("session step failed: step=%s sid_hash=%s", step, label)
 
 
 def _exc_text(exc: BaseException) -> str:
@@ -2319,6 +2339,11 @@ def fetch_auth_settings(url: str, anon_key: str, timeout: float = 5.0, *, opener
     return _status_int(getattr(response, "status_code", None))
 
 
+def session_key_configured() -> bool:
+    """True when RIO_SESSION_KEY is non-empty. The value is not returned."""
+    return bool(os.environ.get("RIO_SESSION_KEY", "").strip())
+
+
 def _service_key_state(directory: object) -> tuple[bool, str]:
     if not isinstance(directory, SupabaseDirectory):
         return False, "other"
@@ -2352,6 +2377,7 @@ def _auth_health_body(
         "service_key_configured": service_configured,
         "service_key_format": service_format,
         "sessions_ok": _sessions_ok(directory),
+        "session_key_configured": session_key_configured(),
     }
 
 
@@ -2440,7 +2466,7 @@ def seal_session_secret(value: str) -> str:
     return "f2." + box.encrypt(value.encode("utf-8")).decode("ascii")
 
 
-def open_session_secret(value: object) -> str:
+def open_session_secret(value: object, sid: str | None = None) -> str:
     """Open a sealed token. An older plaintext row still opens."""
     if not isinstance(value, str) or not value:
         return ""
@@ -2448,11 +2474,17 @@ def open_session_secret(value: object) -> str:
         return value
     box = _session_fernet()
     if box is None:
+        log_session_step("encryption key missing", sid)
         return ""
     try:
-        return box.decrypt(value[3:].encode("ascii")).decode("utf-8")
+        opened = box.decrypt(value[3:].encode("ascii")).decode("utf-8")
     except Exception:
+        log_session_step("decrypt failed or empty", sid)
         return ""
+    if not opened:
+        log_session_step("decrypt failed or empty", sid)
+        return ""
+    return opened
 
 
 def _hosted_record(record: dict, issued: int) -> dict:
@@ -2468,10 +2500,10 @@ def _hosted_record(record: dict, issued: int) -> dict:
     }
 
 
-def _open_hosted_row(row: dict) -> dict:
+def _open_hosted_row(row: dict, sid: str | None = None) -> dict:
     opened = dict(row)
-    opened["access_token"] = open_session_secret(row.get("access_token"))
-    opened["refresh_token"] = open_session_secret(row.get("refresh_token"))
+    opened["access_token"] = open_session_secret(row.get("access_token"), sid)
+    opened["refresh_token"] = open_session_secret(row.get("refresh_token"), sid)
     return opened
 
 

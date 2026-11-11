@@ -23,7 +23,7 @@ from ui.accounts import (
     read_local,
 )
 from ui.cloud_session import cookie_max_age, hosted_hash, hosted_sid, new_hosted_sid
-from ui.cloud_store import CloudAuthError, log_hosted_session
+from ui.cloud_store import CloudAuthError, log_hosted_session, log_session_step
 
 _SESSION_SECONDS = 24 * 60 * 60
 
@@ -204,8 +204,10 @@ def principal_from_cookie(app, directory, accounts_path: Path | None, raw: objec
             row = directory.load_hosted_session(sid)
         except CloudAuthError as exc:
             log_hosted_session("load", exc, directory)
-            row = None
+            log_session_step("row load error", sid)
+            return None
         if not isinstance(row, dict):
+            log_session_step("row missing", sid)
             return None
         issued = row.get("issued_at")
         if isinstance(issued, str) and issued.isdigit():
@@ -218,12 +220,15 @@ def principal_from_cookie(app, directory, accounts_path: Path | None, raw: objec
             return None
         token = row.get("access_token")
         if not isinstance(token, str) or not token:
+            log_session_step("decrypt failed or empty", sid)
             return None
         try:
             directory.user_id(token)
         except CloudAuthError:
             refreshed = _refresh_hosted(directory, sid, row)
             if refreshed is None:
+                log_session_step("token rejected", sid)
+                log_session_step("refresh failed", sid)
                 try:
                     directory.drop_hosted_session(sid)
                 except CloudAuthError as exc:

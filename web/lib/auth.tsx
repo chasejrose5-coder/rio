@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { ApiError, api } from "./api";
+import { api, refreshSession } from "./api";
 import type { Athlete } from "./types";
 
 type Status = "loading" | "in" | "out";
@@ -20,18 +20,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [athlete, setAthlete] = useState<Athlete | null>(null);
 
   const refresh = useCallback(async (): Promise<Athlete | null> => {
-    try {
-      const next = await api.me();
-      setAthlete(next);
-      setStatus("in");
-      return next;
-    } catch (error) {
-      if (!(error instanceof ApiError) || error.status === 401 || error.status === 0) {
-        setAthlete(null);
-        setStatus("out");
-      }
-      return null;
-    }
+    const next = await refreshSession();
+    setAthlete(next.athlete);
+    setStatus(next.status);
+    return next.athlete;
   }, []);
 
   const signOut = useCallback(async () => {
