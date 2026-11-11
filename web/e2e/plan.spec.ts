@@ -186,6 +186,27 @@ async function signIn(page: Page) {
   await page.getByRole("button", { name: "Log in" }).click();
 }
 
+test("the calendar and this week stay visible when entrance motion is paused", async ({ page }) => {
+  await page.addInitScript(() => {
+    const style = document.createElement("style");
+    style.textContent = "*,*::before,*::after{animation-play-state:paused !important}";
+    document.documentElement.appendChild(style);
+  });
+  await installApi(page, { season: true });
+  await signIn(page);
+  await page.goto("/plan");
+  await expect(page.locator("details.rio-weeks summary")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "November 2026" })).toBeVisible();
+  await expect(page.getByLabel("Month")).toBeVisible();
+  await expect(page.locator(".rio-cal-today")).toBeVisible();
+  const opacity = await page.locator(".rio-plan-view").evaluate((el) => getComputedStyle(el).opacity);
+  expect(Number(opacity)).toBeGreaterThan(0.9);
+  await page.getByRole("radio", { name: "This week" }).click();
+  await expect(page.getByRole("heading", { name: "Week 1" })).toBeVisible();
+  await expect(page.getByLabel("Week", { exact: true })).toBeVisible();
+  await expect(page.getByText("Recap")).toBeVisible();
+});
+
 test("no season offers Start and does not draw an empty calendar", async ({ page }) => {
   await installApi(page, { season: false });
   await signIn(page);

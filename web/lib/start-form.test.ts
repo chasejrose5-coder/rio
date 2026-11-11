@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { linkFromParams, monthsLater, planHasScore, sameSeason, startFormDefaults, startOn } from "./start-form.ts";
+import { linkFromParams, monthsLater, planHasScore, sameSeason, startFormDefaults, startOn, startShouldGoHome } from "./start-form.ts";
 
 test("goal date is five calendar months later, and a short month keeps its last day", () => {
   assert.equal(monthsLater("2026-11-01", 5), "2027-04-01");
@@ -35,6 +35,14 @@ test("a link is a different season until the four strings match", () => {
   assert.equal(sameSeason({ current_time: "2:05.0", start_date: "2026-11-10", goal_time: "1:58.0", goal_date: "2027-04-10" }, link), false);
   assert.equal(sameSeason(link, link), true);
   assert.equal(linkFromParams(new URLSearchParams("current_time=2:10.0")), null);
+});
+
+test("a current season leaves Start unless the link names another season", () => {
+  assert.equal(startShouldGoHome("2027-07-08", "2026-11-11", false), true);
+  assert.equal(startShouldGoHome("2026-11-11", "2026-11-11", false), true);
+  assert.equal(startShouldGoHome("2026-11-10", "2026-11-11", false), false);
+  assert.equal(startShouldGoHome("2027-07-08", "2026-11-11", true), false);
+  assert.equal(startShouldGoHome(undefined, "2026-11-11", false), false);
 });
 
 test("a plan with a score is rejected", () => {

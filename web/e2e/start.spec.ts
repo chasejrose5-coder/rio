@@ -38,6 +38,7 @@ test("sunday start, generate errors, a scored plan, and a failed link stay on St
   let stored = saved.inputs;
   let dismissed = false;
   let failSave = false;
+  let hasSeason = false;
   await page.route("**/*", async (route) => {
     const url = new URL(route.request().url());
     if (url.port !== "8000") {
@@ -49,7 +50,8 @@ test("sunday start, generate errors, a scored plan, and a failed link stay on St
     if (path === "/auth/me") return json(route, athlete);
     if (path === "/auth/google") return json(route, { detail: "Accounts are not available." }, 503);
     if (path === "/seasons/current") {
-      return json(route, { ...saved, inputs: stored });
+      if (!hasSeason) return json(route, { detail: "No current season." }, 404);
+      return json(route, { ...saved, inputs: stored, today: athlete.today });
     }
     if (path === "/seasons" && method === "POST") {
       const body = route.request().postDataJSON() as {
@@ -66,6 +68,7 @@ test("sunday start, generate errors, a scored plan, and a failed link stay on St
       const problem = problemFor(body);
       if (problem) return json(route, { detail: problem }, 400);
       stored = body;
+      hasSeason = true;
       return json(route, { inputs: body, committed: true, plan: { ontology_version: "v0.1", sessions: [] }, strava_offer: !dismissed });
     }
     if (path === "/home") {
@@ -302,10 +305,8 @@ test("a brand-new local account generates from Start and can dismiss Strava", as
   });
 
   await page.goto("/start");
-  await page.getByLabel("Your 800 m time today").fill("2:08.0");
-  await page.getByLabel("800 m time you're aiming for").fill("1:57.0");
-  await page.getByRole("button", { name: "Generate season plan" }).click();
-  await expect(page).toHaveURL(/just_generated=true/);
+  await expect(page).toHaveURL(/\/home$/);
+  await expect(page.getByRole("button", { name: "Generate season plan" })).toHaveCount(0);
   await expect(page.getByText("Your plan is ready.")).toHaveCount(0);
 });
 
@@ -339,6 +340,48 @@ async function currentInputs(page: Page): Promise<Record<string, string> | null>
     return body.inputs;
   });
 }
+
+test("a current season opens Home instead of the generate form", async ({ page }) => {
+  await page.route("**/*", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.port !== "8000") {
+      await route.continue();
+      return;
+    }
+    const path = url.pathname;
+    if (path === "/auth/me") return json(route, athlete);
+    if (path === "/auth/google") return json(route, { detail: "Accounts are not available." }, 503);
+    if (path === "/seasons/current") return json(route, saved);
+    if (path === "/home") {
+      return json(route, {
+        today: athlete.today,
+        athlete,
+        hello: "Hey, Ada",
+        strava_offer: false,
+        copy: "",
+        season: {
+          inputs: saved.inputs,
+          digest: "abc",
+          view: { days_remaining: 130, phase: "1", mark: null, focus: "—" },
+          phase: null,
+          pace_status: "No runs yet",
+          next: null,
+          upcoming: [],
+          next_days: [],
+          notes: [],
+        },
+      });
+    }
+    return json(route, { detail: "Not mocked." }, 404);
+  });
+  await page.goto("/start");
+  await expect(page).toHaveURL(/\/home$/);
+  await expect(page.getByRole("button", { name: "Generate season plan" })).toHaveCount(0);
+  await page.goto("/start?current_time=2:10.0&start_date=2026-12-06&goal_time=1:59.0&goal_date=2027-05-06");
+  await expect(page).toHaveURL(/\/start\?/);
+  await expect(page.getByText("This link names a different season. Your saved season was left as it is.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Generate season plan" })).toBeVisible();
+});
 
 test("splash continue opens log in, and a new tab shows it again", async ({ page }) => {
   await page.goto("/");

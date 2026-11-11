@@ -2,10 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { LoadingScreen } from "./LoadingScreen";
 import { Splash } from "./Splash";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { landingPath } from "@/lib/landing";
+import { landingPath, rememberLanding } from "@/lib/landing";
 import type { Athlete, CurrentSeason } from "@/lib/types";
 
 const SPLASH_KEY = "rio_startup_seen";
@@ -65,7 +66,11 @@ export function Gate() {
           /* A missed flag still opens Home. The guide can show next time. */
         }
       }
-      if (live) router.replace(landingPath(season));
+      if (live) {
+        const path = landingPath(season);
+        rememberLanding(path);
+        router.replace(path);
+      }
     }).catch(() => {
       if (live) setSeasonProblem(true);
     });
@@ -102,5 +107,5 @@ export function Gate() {
       </div>
     );
   }
-  return <p className="rio-wait">Loading</p>;
+  return <LoadingScreen />;
 }

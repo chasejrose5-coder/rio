@@ -588,6 +588,7 @@ Four fields. Generate calls `engines/season.py` `sequence` and opens Home. The n
 **API:** none
 **Step 3:** 3.1
 **Status:** done
+**Evidence:** `web/e2e/start.spec.ts` "a current season opens Home instead of the generate form". A goal date of today or later leaves `/start` for Home. A URL that names a different season stays on Start with the generate form.
 **Verify:** Heading and subtitle match. No "SYNTHETIC / DEMO" badge.
 
 ### T3. Your 800 m time today
@@ -888,6 +889,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** `GET /plan` `weeks` (`meters`, `volume`, `days_remaining`, `status`)
 **Step 3:** 3.2
 **Status:** done
+**Evidence:** `web/e2e/plan.spec.ts` "the calendar and this week stay visible when entrance motion is paused". The Weeks expander is in the first paint. The plan entrance fade no longer starts that block at opacity 0.
 **Verify:** Collapsed on first open. A week with no file shows no distance, not template meters.
 
 ### B7. Month calendar
@@ -897,6 +899,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** `GET /plan?month=YYYY-MM`. Omitted month is the month that contains today. `400` when `month` is not `YYYY-MM`. `404` with no season.
 **Step 3:** 3.2
 **Status:** done
+**Evidence:** `web/e2e/plan.spec.ts` "the calendar and this week stay visible when entrance motion is paused" and "a season shows the hero, phases, weeks, and all three views". November, the Month select, and today's cell are visible on the first visit, including when CSS animations are paused.
 **Verify:** Today has the today style. Clicking a workout opens that date. An off-month cell has no link.
 
 ### B8. This week
@@ -906,6 +909,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** `GET /seasons/current` `plan.sessions`, plus `GET /plan` `weeks`
 **Step 3:** 3.2
 **Status:** done
+**Evidence:** `web/e2e/plan.spec.ts` "the calendar and this week stay visible when entrance motion is paused". Choosing This week shows the week heading, the Week select, and Recap without a reload.
 **Verify:** Changing the select changes the seven days. Dates use the saved format.
 
 ### B9. Recap
@@ -1432,7 +1436,7 @@ Changes to name, time zone, and the toggles save as they are edited. There is no
 **API:** `GET /seasons/past` (`today`, `seasons[].inputs`, `seasons[].stats`, `open[]` for a goal date of today or later). Dates use the saved date format. Opening a row is `GET /plan` with the four inputs. That read does not call `sequence()` and does not save.
 **Step 3:** 3.8
 **Status:** done
-**Evidence:** `web/e2e/past-seasons.spec.ts` "two stored seasons list start, goal, and time" and "opening a past season loads those inputs". `tests/test_api_step3_past.py` `test_the_list_keeps_the_current_season_beside_past_ones` and `test_opening_a_stored_season_does_not_build_a_new_one`. Short dates are "Jan 6, 2020". ISO stays `2020-01-06`. An unreadable file shows "This account's seasons could not be read." Empty is "No seasons on this account."
+**Evidence:** `web/e2e/past-seasons.spec.ts` "two stored seasons list start, goal, and time" and "opening a past season loads those inputs". `tests/test_api_step3_past.py` `test_the_list_keeps_the_current_season_beside_past_ones` and `test_opening_a_stored_season_does_not_build_a_new_one`. Short dates are "Jan 6, 2020". ISO stays `2020-01-06`. The open link's visible text is the stored start date, goal date, and goal time (`2020-01-06 2020-04-06 1:55.0`), and it loads that plan. An unreadable file shows "This account's seasons could not be read." Empty is "No seasons on this account."
 **Verify:** Two stored seasons. Each row's three values match Start. Opening one does not build a new season. It loads those four inputs.
 
 ### U2. Current season has no delete

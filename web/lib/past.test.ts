@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { formatDate } from "./plan.ts";
-import { formatSeasonDate, isPastSeason, planQuery, rowLabel, seasonRows, unreadableMessage } from "./past.ts";
+import { formatSeasonDate, isPastSeason, openLabel, planQuery, rowLabel, seasonRows, unreadableMessage } from "./past.ts";
 import type { StoredSeason } from "./types.ts";
 
 function row(start: string, goal: string, time = "1:55.0", current = "2:05.0"): StoredSeason {
@@ -39,6 +39,7 @@ test("short dates are the link text and the plan query keeps the four inputs", (
   assert.equal(formatSeasonDate("2020-01-06", "iso"), formatDate("2020-01-06", "iso"));
   assert.equal(rowLabel(inputs, "short"), "Jan 6, 2020 Apr 6, 2020 1:55.0");
   assert.equal(rowLabel(inputs, "iso"), "2020-01-06 2020-04-06 1:55.0");
+  assert.equal(openLabel(inputs), "2020-01-06 2020-04-06 1:55.0");
   const query = planQuery(inputs);
   assert.match(query, /current_time=2%3A05.0/);
   assert.match(query, /start_date=2020-01-06/);

@@ -7,7 +7,7 @@ import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { isPastSeason, planQuery, rowLabel, rowValues, seasonKey, seasonRows, unreadableMessage } from "@/lib/past";
+import { isPastSeason, openLabel, planQuery, rowLabel, rowValues, seasonKey, seasonRows, unreadableMessage } from "@/lib/past";
 import type { StoredSeason } from "@/lib/types";
 
 const DELETE_NOTE = "This permanently deletes this season and the workouts stored with it. It can't be undone.";
@@ -109,7 +109,7 @@ function PastSeasonsBody() {
               const open = pending === key;
               return (
                 <section className="rio-past-item" key={key}>
-                  <Link className="rio-past-row" href={planQuery(row.inputs)} aria-label={rowLabel(row.inputs, dateFormat)}>
+                  <div className="rio-past-row">
                     <span className="rio-past-cell">
                       <span className="rio-past-k">Start date</span>
                       <span className="rio-past-v">{shown.start}</span>
@@ -122,6 +122,9 @@ function PastSeasonsBody() {
                       <span className="rio-past-k">Goal time</span>
                       <span className="rio-past-v">{shown.time}</span>
                     </span>
+                  </div>
+                  <Link className="rio-past-open" href={planQuery(row.inputs)} aria-label={rowLabel(row.inputs, dateFormat)}>
+                    {openLabel(row.inputs)}
                   </Link>
                   {past ? (
                     <button

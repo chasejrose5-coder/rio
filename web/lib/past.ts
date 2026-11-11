@@ -73,6 +73,11 @@ export function rowValues(inputs: SeasonInputs, dateFormat: string): { start: st
   };
 }
 
+/** Start date, goal date, and goal time as stored. This is the open-season link. */
+export function openLabel(inputs: SeasonInputs): string {
+  return `${inputs.start_date} ${inputs.goal_date} ${inputs.goal_time}`;
+}
+
 export function rowLabel(inputs: SeasonInputs, dateFormat: string): string {
   const shown = rowValues(inputs, dateFormat);
   return `${shown.start} ${shown.goal} ${shown.time}`;

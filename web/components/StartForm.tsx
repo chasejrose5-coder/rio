@@ -3,16 +3,19 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Footer, PhotoCredit } from "./Footer";
+import { LoadingScreen } from "./LoadingScreen";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { rememberLanding } from "@/lib/landing";
 import {
   homeQuery,
   linkFromParams,
   planHasScore,
   sameSeason,
   startFormDefaults,
+  startShouldGoHome,
   type SeasonInputs,
 } from "@/lib/start-form";
 import type { CurrentSeason } from "@/lib/types";
@@ -29,8 +32,9 @@ export function StartForm() {
 
 function StartBody() {
   const { athlete } = useAuth();
+  const router = useRouter();
   const [season, setSeason] = useState<CurrentSeason | null | undefined>(undefined);
-  const [link, setLink] = useState<SeasonInputs | null>(null);
+  const [link, setLink] = useState<SeasonInputs | null | undefined>(undefined);
 
   useEffect(() => {
     // The four inputs live in the URL. They are read once, the way a shared link arrives.
@@ -39,8 +43,19 @@ function StartBody() {
     void api.currentSeason().then(setSeason).catch(() => setSeason(null));
   }, []);
 
-  if (!athlete?.today || season === undefined) {
-    return <p className="rio-wait">Loading</p>;
+  const today = athlete?.today;
+  const differs = link != null && link !== undefined && !sameSeason(season?.inputs, link);
+  const goHome = startShouldGoHome(season?.inputs?.goal_date, today, differs);
+
+  useEffect(() => {
+    if (!today || season === undefined || link === undefined) return;
+    const active = Boolean(season?.inputs?.goal_date && season.inputs.goal_date >= today);
+    rememberLanding(active ? "/home" : "/start");
+    if (goHome) router.replace("/home");
+  }, [today, season, link, goHome, router]);
+
+  if (!athlete?.today || season === undefined || link === undefined || goHome) {
+    return <LoadingScreen />;
   }
 
   const behavior = athlete.prefs.start_date === "sunday" ? "sunday" : "today";
