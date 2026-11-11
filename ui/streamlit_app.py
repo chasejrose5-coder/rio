@@ -89,6 +89,7 @@ from ui.settings import (
     suggested_timezone,
 )
 from ui.start_form import start_form_defaults
+from ui.moved import render_moved
 from ui.startup import acknowledge_startup, render_startup, startup_pending
 from ui import theme
 from ui.access import viewer_is_admin
@@ -7011,6 +7012,10 @@ st.set_page_config(
     page_icon="🏃",
     layout="centered",
 )
+# The moved screen is the whole visit. The old app below is unchanged.
+# Remove the next two lines to bring those screens back.
+render_moved()
+st.stop()
 load_local_env()
 _apply_session_reset()
 _session_was_open = _account_identity() is not None
