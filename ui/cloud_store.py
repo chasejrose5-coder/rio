@@ -12,12 +12,15 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import logging
 import os
+import re
 import secrets
 import time
 from copy import deepcopy
 from datetime import datetime, timezone
-from urllib.parse import quote
+from types import SimpleNamespace
+from urllib.parse import quote, urlparse
 
 from engines.pace import canonical_easy_pace
 from ui.accounts import normalize_email, normalize_name, password_ok
@@ -43,6 +46,7 @@ SIGNUP_PROFILE = (
 SIGNUP_DISABLED = "New accounts are turned off right now."
 SIGNIN_RATE = "Too many sign-in attempts. Wait a few minutes and try again."
 SIGNIN_MISMATCH = "Email or password does not match."
+SIGNIN_UNAVAILABLE = "Sign-in is not available right now. Try again later."
 ACCOUNTS_UNAVAILABLE = "Accounts aren't set up yet. Try again in a minute."
 
 
@@ -696,6 +700,12 @@ class SupabaseDirectory:
         except CloudAuthError:
             raise
         except Exception as exc:
+            # The athlete still sees a generic sentence. The cause stays in the log.
+            _log_sign_in_failure(
+                self.url,
+                exc,
+                (password, cleaned, self.anon_key, self.service_key),
+            )
             raise CloudAuthError(signin_error_message(exc)) from exc
         session = _session_dict(response, "")
         signed_user = _response_parts(response)[1]
@@ -1788,6 +1798,193 @@ def signup_error_message(exc: BaseException) -> str:
     return SIGNUP_FAILED
 
 
+_CONNECTION_NAMES = {
+    "AuthRetryableError",
+    "CloseError",
+    "ConnectError",
+    "ConnectTimeout",
+    "ConnectTimeoutError",
+    "ConnectionError",
+    "InvalidURL",
+    "LocalProtocolError",
+    "NetworkError",
+    "PoolTimeout",
+    "ProtocolError",
+    "ProxyError",
+    "ReadError",
+    "ReadTimeout",
+    "ReadTimeoutError",
+    "RemoteProtocolError",
+    "SSLError",
+    "Timeout",
+    "TimeoutError",
+    "TimeoutException",
+    "URLError",
+    "UnsupportedProtocol",
+    "WriteError",
+    "WriteTimeout",
+    "gaierror",
+}
+_CONNECTION_TEXT = (
+    "certificate verify failed",
+    "connection aborted",
+    "connection refused",
+    "connection reset",
+    "failed to establish a new connection",
+    "getaddrinfo",
+    "host is unreachable",
+    "invalid url",
+    "name or service not known",
+    "name resolution",
+    "network is unreachable",
+    "nodename nor servname",
+    "server disconnected",
+    "temporary failure in name resolution",
+    "timed out",
+    "timeout",
+)
+_APIKEY_TEXT = (
+    "invalid api key",
+    "invalid apikey",
+    "no api key",
+)
+_APIKEY_CODES = {"bad_api_key", "invalid_api_key", "no_api_key"}
+_CREDENTIAL_TEXT = (
+    "invalid credentials",
+    "invalid grant",
+    "invalid login",
+    "invalid_credentials",
+    "invalid_grant",
+    "wrong password",
+)
+_NET_ERRNOS = {101, 103, 104, 110, 111, 113}
+_SAFE_CODE = re.compile(r"^[A-Za-z0-9_-]{1,40}$")
+_STATUS_IN_TEXT = re.compile(r"'([1-5]\d{2})\s|^(?:HTTP\s+)?([1-5]\d{2})\b")
+_EMAIL = re.compile(r"[A-Za-z0-9._%+\-]+@([A-Za-z0-9.\-]+\.[A-Za-z]{2,})")
+_JWT = re.compile(r"eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{4,}")
+_LONG_TOKEN = re.compile(r"\b[A-Za-z0-9_-]{24,}\b")
+_PASSWORD_JSON = re.compile(r'("password"\s*:\s*")([^"]*)(")', re.IGNORECASE)
+_PASSWORD_PAIR = re.compile(r"(?i)(password\s*[=:]\s*)(\S+)")
+_SECRET_PAIR = re.compile(
+    r"(?i)((?:apikey|api_key|authorization|refresh_token|access_token)\s*[=:]\s*)(\S+)"
+)
+_BEARER = re.compile(r"(?i)(bearer\s+)\S+")
+
+
+def _sources(exc: object) -> list[object]:
+    """This error and the cause it names. An unrelated context is left out."""
+    sources: list[object] = []
+    current: object = exc
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen and len(sources) < 6:
+        seen.add(id(current))
+        sources.append(current)
+        if not isinstance(current, BaseException):
+            break
+        original = getattr(current, "original_error", None)
+        current = original if isinstance(original, BaseException) else current.__cause__
+    return sources or [exc]
+
+
+def _status_int(value: object) -> int | None:
+    if isinstance(value, bool) or isinstance(value, str) or not isinstance(value, int):
+        return None
+    if value == 0 or 100 <= value <= 599:
+        return value
+    return None
+
+
+def _http_status(exc: object) -> int | None:
+    """The HTTP status on this error, if the client recorded one."""
+    for source in _sources(exc):
+        for attr in ("status", "status_code"):
+            found = _status_int(getattr(source, attr, None))
+            if found is not None:
+                return found
+        code = getattr(source, "code", None)
+        if not isinstance(code, str):
+            found = _status_int(code)
+            if found is not None:
+                return found
+        response = getattr(source, "response", None)
+        if response is not None:
+            found = _status_int(getattr(response, "status_code", None))
+            if found is not None:
+                return found
+    for source in _sources(exc):
+        values = [getattr(source, "message", None)]
+        if isinstance(source, BaseException):
+            values.append(str(source))
+        for value in values:
+            found = _status_from_sentence(value)
+            if found is not None:
+                return found
+    return None
+
+
+def _status_from_sentence(value: object) -> int | None:
+    """A status written into the sentence when the client did not keep the number."""
+    if not isinstance(value, str):
+        return None
+    match = _STATUS_IN_TEXT.search(value.strip())
+    if match is None:
+        return None
+    raw = match.group(1) or match.group(2)
+    return _status_int(int(raw))
+
+
+def _error_codes(exc: object) -> set[str]:
+    found: set[str] = set()
+    for source in _sources(exc):
+        for attr in ("code", "error_code", "error"):
+            value = getattr(source, attr, None)
+            if isinstance(value, str) and _SAFE_CODE.match(value.strip()):
+                found.add(value.strip().casefold())
+    return found
+
+
+def _is_credential_rejection(text: str) -> bool:
+    return any(token in text for token in _CREDENTIAL_TEXT)
+
+
+def _is_transport_exception(exc: object) -> bool:
+    for source in _sources(exc):
+        if type(source).__name__ in _CONNECTION_NAMES:
+            return True
+        if isinstance(source, OSError) and getattr(source, "errno", None) in _NET_ERRNOS:
+            return True
+    return False
+
+
+def _is_api_key_failure(exc: object, text: str) -> bool:
+    if _error_codes(exc) & _APIKEY_CODES:
+        return True
+    return any(token in text for token in _APIKEY_TEXT)
+
+
+def _signin_unavailable(exc: object, text: str) -> bool:
+    """A dead project, a rejected anon key, or a network failure.
+
+    A wrong password is a 400 from GoTrue, and it stays a mismatch even when
+    the client labels it 401. A 401 or 403 without that text is the gateway
+    refusing the anon key.
+    """
+    status = _http_status(exc)
+    if status == 0 or (isinstance(status, int) and status >= 500):
+        return True
+    if _is_transport_exception(exc):
+        return True
+    if _is_credential_rejection(text):
+        return False
+    if any(token in text for token in _CONNECTION_TEXT):
+        return True
+    if _is_api_key_failure(exc, text):
+        return True
+    if status in (401, 403):
+        return True
+    return False
+
+
 def signin_error_message(exc: BaseException) -> str:
     """A human message for a sign-in failure. A wrong password stays generic."""
     text = _exc_text(exc)
@@ -1798,9 +1995,188 @@ def signin_error_message(exc: BaseException) -> str:
     ):
         return SIGNUP_CONFIRM
     status = getattr(exc, "status", None)
-    if status == 429 or "rate limit" in text or "too many" in text:
+    if status == 429 or "rate limit" in text or "rate_limit" in text or "too many" in text:
         return SIGNIN_RATE
+    if _signin_unavailable(exc, text):
+        return SIGNIN_UNAVAILABLE
     return SIGNIN_MISMATCH
+
+
+def _supabase_host(url: object) -> str | None:
+    """The hostname only. Userinfo, path, and query stay out of the logs."""
+    if not isinstance(url, str) or not url.strip():
+        return None
+    try:
+        host = urlparse(url.strip()).hostname
+    except ValueError:
+        return None
+    if not host:
+        return None
+    return host
+
+
+def _https_origin(url: object) -> str | None:
+    """https://host[:port] with no userinfo and no path. None when it is not that."""
+    if not isinstance(url, str) or not url.strip():
+        return None
+    try:
+        parsed = urlparse(url.strip())
+    except ValueError:
+        return None
+    host = parsed.hostname
+    if parsed.scheme != "https" or not host or parsed.username or parsed.password:
+        return None
+    bracket = f"[{host}]" if ":" in host else host
+    if parsed.port and parsed.port != 443:
+        return f"https://{bracket}:{parsed.port}"
+    return f"https://{bracket}"
+
+
+def _redact_detail(text: str, secrets: tuple[str, ...]) -> str:
+    """A short failure sentence. Passwords, keys, tokens, and full emails stay out."""
+    if not text:
+        return ""
+    cleaned = " ".join(text.split())
+    cleaned = _PASSWORD_JSON.sub(r"\1[redacted]\3", cleaned)
+    cleaned = _PASSWORD_PAIR.sub(r"\1[redacted]", cleaned)
+    cleaned = _BEARER.sub(r"\1[redacted]", cleaned)
+    cleaned = _SECRET_PAIR.sub(r"\1[redacted]", cleaned)
+    ordered = sorted(
+        (secret for secret in secrets if isinstance(secret, str) and len(secret) >= 8),
+        key=len,
+        reverse=True,
+    )
+    for secret in ordered:
+        cleaned = cleaned.replace(secret, "[redacted]")
+    cleaned = _EMAIL.sub(lambda match: "@" + match.group(1), cleaned)
+    cleaned = _JWT.sub("[redacted]", cleaned)
+    cleaned = _LONG_TOKEN.sub("[redacted]", cleaned)
+    for secret in secrets:
+        if isinstance(secret, str) and len(secret) >= 4 and secret in cleaned:
+            return ""
+    return cleaned[:200]
+
+
+def _sign_in_detail(exc: object, secrets: tuple[str, ...]) -> str:
+    """The Supabase code and message. The request body is not one of them."""
+    code = ""
+    message = ""
+    for source in _sources(exc):
+        if not code:
+            for attr in ("code", "error_code", "error"):
+                value = getattr(source, attr, None)
+                if isinstance(value, str) and _SAFE_CODE.match(value.strip()):
+                    code = value.strip()
+                    break
+        if not message:
+            for attr in ("message", "error_description"):
+                value = getattr(source, attr, None)
+                if isinstance(value, str) and value.strip():
+                    message = value.strip()
+                    break
+    if not message:
+        raw = str(exc).strip()
+        if raw and raw != type(exc).__name__ and len(raw) <= 180:
+            message = raw
+    if any(isinstance(secret, str) and len(secret) >= 4 and secret in code for secret in secrets):
+        code = ""
+    message = _redact_detail(message, secrets)
+    if code and message and code.casefold() not in message.casefold():
+        return f"{code}: {message}"[:200]
+    return (message or code)[:200]
+
+
+def _log_sign_in_failure(url: object, exc: BaseException, secrets: tuple[str, ...]) -> None:
+    """The real sign-in failure. Render keeps this. The athlete does not see it."""
+    status = _http_status(exc)
+    detail = _sign_in_detail(exc, secrets)
+    host = _supabase_host(url) or "-"
+    for secret in secrets:
+        if (
+            isinstance(secret, str)
+            and len(secret) >= 8
+            and host != "-"
+            and secret.casefold() in host.casefold()
+        ):
+            host = "-"
+            break
+    logging.getLogger("rio.cloud").warning(
+        "supabase sign-in failed: error=%s status=%s detail=%s host=%s",
+        type(exc).__name__,
+        "-" if status in (None, 0) else status,
+        detail or "-",
+        host,
+    )
+
+
+def _httpx_get(url: str, headers: dict | None = None, timeout: float | None = None, follow_redirects: bool = False):
+    """One GET. Redirects would send the anon key to another host, so they are ignored."""
+    import httpx
+
+    if follow_redirects:
+        raise RuntimeError("auth settings does not follow redirects")
+    with httpx.Client(timeout=timeout, follow_redirects=False) as client:
+        response = client.get(url, headers=headers)
+        return SimpleNamespace(status_code=response.status_code)
+
+
+def fetch_auth_settings(url: str, anon_key: str, timeout: float = 5.0, *, opener=None) -> int | None:
+    """GET /auth/v1/settings. The status, or None when the host cannot be reached.
+
+    The anon key is a header on that one read. It is not written and not returned.
+    """
+    origin = _https_origin(url)
+    if origin is None or not isinstance(anon_key, str) or not anon_key.strip():
+        return None
+    endpoint = origin + "/auth/v1/settings"
+    if anon_key.casefold() in endpoint.casefold():
+        return None
+    request = opener if opener is not None else _httpx_get
+    try:
+        response = request(
+            endpoint,
+            headers={
+                "apikey": anon_key,
+                "Authorization": "Bearer " + anon_key,
+                "Accept": "application/json",
+            },
+            timeout=timeout,
+            follow_redirects=False,
+        )
+    except Exception as exc:
+        logging.getLogger("rio.cloud").warning(
+            "supabase auth settings failed: error=%s host=%s",
+            type(exc).__name__,
+            _supabase_host(url) or "-",
+        )
+        return None
+    return _status_int(getattr(response, "status_code", None))
+
+
+def auth_health(directory: object) -> dict:
+    """Whether the configured URL and anon key are accepted. No secrets, no writes."""
+    blank = {"configured": False, "url_host": None, "auth_reachable": False, "status": None}
+    if not isinstance(directory, SupabaseDirectory):
+        return blank
+    url = directory.url if isinstance(directory.url, str) else ""
+    anon = directory.anon_key if isinstance(directory.anon_key, str) else ""
+    service = directory.service_key if isinstance(directory.service_key, str) else ""
+    host = _supabase_host(url)
+    if host and any(
+        len(secret) >= 8 and secret.casefold() in host.casefold() for secret in (anon, service)
+    ):
+        host = None
+    configured = bool(url.strip() and anon.strip())
+    if not configured:
+        return {"configured": False, "url_host": host, "auth_reachable": False, "status": None}
+    status = fetch_auth_settings(url, anon)
+    reachable = isinstance(status, int) and 200 <= status < 300
+    return {
+        "configured": True,
+        "url_host": host,
+        "auth_reachable": reachable,
+        "status": status,
+    }
 
 
 def _response_parts(response: object) -> tuple[object, object]:
