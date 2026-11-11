@@ -386,7 +386,12 @@ test("a current season opens Home instead of the generate form", async ({ page }
 test("splash continue opens log in, and a new tab shows it again", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Your Race, Your Plan, Your Result" })).toBeVisible();
+  await expect(page.getByText(/“Most plans tell you what to run/)).toBeVisible();
   await expect(page.getByText("Photo by Giant Asparagus on Pexels")).toBeVisible();
+  const credit = await page.locator(".rio-splash .rio-photo-credit").evaluate((el) => getComputedStyle(el).position);
+  const contact = await page.locator(".rio-splash .rio-contact").evaluate((el) => getComputedStyle(el).position);
+  expect(credit).toBe("fixed");
+  expect(contact).toBe("fixed");
   await expect(page.getByText("chasejrose5@gmail.com")).toBeVisible();
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page).toHaveURL(/\/sign-in\?skip=1$/);

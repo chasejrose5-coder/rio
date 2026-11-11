@@ -206,7 +206,7 @@ test("timezone, pace, and each toggle are saved", async ({ page }) => {
   await openSettings(page);
   await page.locator("#settings-timezone").selectOption("Pacific/Auckland");
   await expect.poll(() => state.user.prefs.timezone).toBe("Pacific/Auckland");
-  await page.locator("summary", { hasText: "Logging" }).click();
+  await expect(page.getByLabel("I don't use a watch")).toBeVisible();
   await page.getByLabel("I don't use a watch").check();
   await page.locator("summary", { hasText: "Preferences" }).click();
   await page.getByLabel("per km").check();
@@ -227,8 +227,11 @@ test("timezone, pace, and each toggle are saved", async ({ page }) => {
   ]);
   await page.reload();
   await expect(page.locator("#settings-timezone")).toHaveValue("Pacific/Auckland");
-  await page.locator("summary", { hasText: "Logging" }).click();
   await expect(page.getByLabel("I don't use a watch")).toBeChecked();
+  await page.locator("#settings-current-password").fill("secret");
+  await expect(page.locator("#settings-current-password")).toHaveAttribute("type", "password");
+  await page.getByRole("button", { name: "Show password" }).first().click();
+  await expect(page.locator("#settings-current-password")).toHaveAttribute("type", "text");
 });
 
 test("show intro guide opens the guide again", async ({ page }) => {

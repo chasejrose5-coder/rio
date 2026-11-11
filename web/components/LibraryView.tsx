@@ -107,7 +107,10 @@ function LibraryBody() {
             </label>
             <div className="rio-library-filters">
               <label htmlFor="library-capacity">
-                What it trains
+                <span className="rio-filter-label">
+                  What it trains
+                  <HelpTip text={FAMILY_HELP} />
+                </span>
                 <select id="library-capacity" value={family} onChange={(event) => setFamily(event.target.value)}>
                   <option value="All">All</option>
                   {families.map((item) => (
@@ -116,10 +119,12 @@ function LibraryBody() {
                     </option>
                   ))}
                 </select>
-                <span className="rio-field-help">{FAMILY_HELP}</span>
               </label>
               <label htmlFor="library-phase">
-                Phase
+                <span className="rio-filter-label">
+                  Phase
+                  <HelpTip text={PHASE_HELP} />
+                </span>
                 <select id="library-phase" value={phase} onChange={(event) => setPhase(event.target.value)}>
                   <option value="All">All</option>
                   {PHASES.map((item) => (
@@ -128,7 +133,6 @@ function LibraryBody() {
                     </option>
                   ))}
                 </select>
-                <span className="rio-field-help">{PHASE_HELP}</span>
               </label>
             </div>
           </form>
@@ -157,5 +161,18 @@ function LibraryBody() {
         <Footer />
       </main>
     </div>
+  );
+}
+
+function HelpTip({ text }: { text: string }) {
+  return (
+    <span className="rio-help">
+      <button type="button" className="rio-help-btn" aria-label="Help">
+        ?
+      </button>
+      <span className="rio-help-tip" role="tooltip">
+        {text}
+      </span>
+    </span>
   );
 }

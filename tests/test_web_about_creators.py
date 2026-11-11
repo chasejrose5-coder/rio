@@ -156,8 +156,10 @@ def about_index_color() -> str:
 
 
 def about_index_is_shown() -> bool:
-    """Ink on the dark stadium photo does not read. Orange and paper do."""
-    return about_index_color().lower() not in {"#121110", "#0e0e0e"}
+    """The About banner includes the index. The orange rule is the dash in front of it."""
+    app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
+    page = app[app.index("def page_about(") : app.index("\ndef page_settings(")]
+    return "rio-index-light" in page and ">About</p>" in page
 
 
 def next_shows_about_index(view: str) -> bool:

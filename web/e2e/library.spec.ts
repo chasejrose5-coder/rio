@@ -107,7 +107,10 @@ test("the menu, a search, an empty result, and a load error", async ({ page }) =
   await expect(page.getByText("DEMO")).toHaveCount(0);
   await expect(page.locator("img")).toHaveCount(0);
   await expect(page.getByLabel("Search")).toHaveAttribute("placeholder", "Search workouts");
+  await expect(page.getByText("The quality that workout builds, such as speed or endurance.")).toBeHidden();
+  await page.getByRole("button", { name: "Help" }).first().hover();
   await expect(page.getByText("The quality that workout builds, such as speed or endurance.")).toBeVisible();
+  await page.getByRole("button", { name: "Help" }).nth(1).focus();
   await expect(page.getByText("A phase is a training block. The season moves through eight of them.")).toBeVisible();
   await expect(page.getByLabel("What it trains")).toContainText("Aerobic power");
   await expect(page.getByLabel("Phase")).toContainText("Phase 8");
