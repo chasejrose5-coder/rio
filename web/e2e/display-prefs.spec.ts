@@ -34,7 +34,14 @@ const home = {
     inputs: { current_time: "2:08.0", start_date: "2026-11-08", goal_time: "1:59.0", goal_date: "2027-04-18" },
     digest: "digest-1",
     view: { days_remaining: 159, phase: "4", mark: null, focus: "Speed" },
-    phase: null,
+    phase: {
+      collapsed: "This week sits in phase 1, week 1 of 4, because the season still needs aerobic.",
+    },
+    next_days: [
+      { date: "2026-11-11", shown_date: "2026-11-11", day_of_week: "Wednesday", template_id: "aer_5000_r0_x1", label: "3.1 mi easy" },
+      { date: "2026-11-12", shown_date: "2026-11-12", day_of_week: "Thursday", template_id: "mv_60_r120_x10", label: "10 × 60 m" },
+      { date: "2026-11-13", shown_date: "2026-11-13", day_of_week: "Friday", template_id: "", label: "Rest day" },
+    ],
     pace_status: "No runs yet",
     next: {
       date: "2026-11-10",
@@ -46,7 +53,6 @@ const home = {
       prescription: { line: "8 × 150 m @ 23.0 s, 150 s rest", tolerance: "22.0-24.0 s", block: "" },
     },
     upcoming: [],
-    next_days: [],
     notes: [],
   },
 };
@@ -176,6 +182,9 @@ test("compact mode tightens home, plan, session, and activity", async ({ page })
   await page.goto("/home");
   await expect(page.locator(".page-home")).toHaveClass(/is-compact/);
   await expect(page.locator(".rio-track-id")).toHaveText(template);
+  await expect(page.getByText("03  /  Next 3 days")).toBeVisible();
+  const attachment = await page.locator(".page-home").evaluate((node) => getComputedStyle(node).backgroundAttachment);
+  expect(attachment).not.toContain("fixed");
 
   await page.goto("/plan");
   await expect(page.locator(".page-plan")).toHaveClass(/is-compact/);
@@ -187,6 +196,8 @@ test("compact mode tightens home, plan, session, and activity", async ({ page })
   await page.goto("/session?date=2026-11-10");
   await expect(page.locator(".page-session")).toHaveClass(/is-compact/);
   await expect(page.locator(".rio-template-id")).toHaveText(template);
+  await expect(page.getByText("Average 23.0 s")).toBeVisible();
+  await expect(page.locator(".page-session .rio-card").first()).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
 
   await page.goto("/activity");
   await expect(page.locator(".page-activity")).toHaveClass(/is-compact/);
@@ -198,6 +209,7 @@ test("template ids stay off the track and the plan cards when the setting is off
   await page.goto("/home");
   await expect(page.locator(".page-home")).not.toHaveClass(/is-compact/);
   await expect(page.getByText("8 × 150 m @ 23.0 s, 150 s rest")).toBeVisible();
+  await expect(page.getByText("03  /  Next 3 days")).toBeVisible();
   await expect(page.locator(".rio-template-id")).toHaveCount(0);
 
   await page.goto("/plan");

@@ -206,7 +206,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   background-image: var(--shade), image-set(url("/photos/home-aerial.webp") type("image/webp"), url("/photos/home-aerial.jpg") type("image/jpeg"));
   background-size: cover, cover;
   background-position: center, center;
-  background-attachment: fixed, fixed;
+  background-repeat: no-repeat;
+  /* Scroll, not fixed, so the aerial covers the whole page, including the
+     next-3-days cards, the links, the credit, and the footer. */
+  background-attachment: scroll, scroll;
   color: var(--paper);
 }
 .page-home .rio-hero { background: transparent; padding: 2.4rem 0 1.2rem; }
@@ -1004,13 +1007,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .page-session .rio-hero h1 { font-size: clamp(2.6rem, 6vw, 4.4rem); color: var(--paper); max-width: 16ch; }
 .page-session .rio-range { color: #d7d2cb; }
 .page-session .rio-card {
-  margin-top: 1.2rem;
-  background: #fff;
-  border: 1px solid #dadada;
-  border-radius: 18px;
-  padding: 1.15rem 1.4rem 1.2rem;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid #dcd6cc;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 2.2rem 0 1.4rem;
 }
-/* Home paints these labels cream for the dark hero. On this page they sit on white. */
+/* Home paints these labels cream for the dark hero. On this page they sit on the paper. */
 .page-session .rio-mark-label {
   margin: 0;
   padding: 0.9rem 0 0.4rem;
@@ -2208,7 +2213,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .page-session.is-compact .rio-hero { padding: 1.35rem 5vw 0.85rem; }
 .page-session.is-compact .rio-hero h1 { font-size: 2.35rem; margin-top: 0.35rem; }
 .page-session.is-compact .rio-range { margin-top: 0.4rem; }
-.page-session.is-compact .rio-card { padding: 0.85rem 1.1rem 0.7rem; margin-bottom: 0.7rem; }
+.page-session.is-compact .rio-card {
+  padding: 0.85rem 1.1rem 0.7rem;
+  margin-bottom: 0.7rem;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid #dcd6cc;
+  border-radius: 0;
+  box-shadow: none;
+}
 
 .page-activity.is-compact .rio-hero { padding: 1.35rem 5vw 0.85rem; }
 .page-activity.is-compact .rio-hero h1 { font-size: 2.35rem; margin-top: 0.35rem; }
