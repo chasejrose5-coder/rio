@@ -75,6 +75,79 @@ def test_an_ended_season_lands_on_start() -> None:
         raise AssertionError("a current season was ignored because an older one had ended")
 
 
+class _Page:
+    def __init__(self, _body, *, title, url_path=None, default=False):
+        self.title = title
+        self.url_path = url_path
+        self.default = default
+
+
+def _root_pages(boot: str, home_first: bool) -> tuple[_Page, _Page | None, _Page]:
+    """Run the root assignment. The wordmark is the first page."""
+    start = boot.index("if _home_first:")
+    end = boot.index("\n_SESSION_PAGE", start)
+    snippet = boot[start:end]
+    space = {
+        "_home_first": home_first,
+        "_with_plan": lambda page: page,
+        "page_start": "page_start",
+        "page_dashboard": "page_dashboard",
+        "page_session": "page_session",
+        "st": type("Streamlit", (), {"Page": _Page}),
+    }
+    exec(snippet, space)
+    wordmark = space["_HOME_PAGE"]
+    root = space["_root_home"]
+    start_page = space["_start_page"]
+    if not isinstance(wordmark, _Page) or not isinstance(start_page, _Page):
+        raise AssertionError("the wordmark is not a page")
+    if root is not None and not isinstance(root, _Page):
+        raise AssertionError("the root is not a page")
+    return wordmark, root, start_page
+
+
+def test_the_wordmark_opens_the_root() -> None:
+    """RIO opens Home when a season is current, and Start when it is not.
+
+    /start, Past seasons, and reset still open Start.
+    """
+    app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
+    boot = app[app.index("\nst.set_page_config(") :]
+    nav = _function(app, "_render_nav")
+    brand = nav[nav.index('key="rio-brand"') : nav.index('key="rio-links"')]
+    if "home = _HOME_PAGE" not in nav or "st.page_link(\n                home," not in brand:
+        raise AssertionError("RIO does not open the wordmark page")
+    if 'label="RIO"' not in brand:
+        raise AssertionError("the wordmark is not RIO")
+    current_flag = landing_target([storage_key(_IN_PROGRESS)], _TODAY) == "Home"
+    today_flag = landing_target([storage_key(_ENDS_TODAY)], _TODAY) == "Home"
+    if not current_flag or not today_flag:
+        raise AssertionError("a current season was not Home")
+    for flag in (current_flag, today_flag):
+        wordmark, root, start = _root_pages(boot, flag)
+        if wordmark is not root or wordmark.title != "Home" or wordmark.default is not True:
+            raise AssertionError("a current season sends the wordmark to Start")
+        if wordmark.url_path is not None:
+            raise AssertionError("the wordmark left the root")
+        if start.title != "Start" or start.url_path != "start":
+            raise AssertionError("Start cannot be opened on purpose once Home is the root")
+    for keys in ([], [storage_key(_ENDED)], None):
+        flag = landing_target(keys, _TODAY) == "Home"
+        if flag:
+            raise AssertionError("no season or an ended season was not Start")
+        wordmark, root, start = _root_pages(boot, flag)
+        if root is not None or wordmark is not start or wordmark.title != "Start":
+            raise AssertionError("no season or an ended season sends the wordmark to Home")
+        if wordmark.default is not True:
+            raise AssertionError("Start is not the root when no season is current")
+    if 'url_path="past-seasons"' not in app:
+        raise AssertionError("Past seasons was removed")
+    if "st.switch_page(_start_page)" not in _function(app, "_reset_saved_plan"):
+        raise AssertionError("reset no longer opens Start")
+    if 'label="Generate season plan"' not in app or "_start_page," not in app:
+        raise AssertionError("Start was removed from the app")
+
+
 def test_sign_in_and_the_root_url_use_that_rule() -> None:
     """Hosted and local seasons share one check. Deep links and Start stay put."""
     app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
@@ -132,6 +205,7 @@ def main() -> None:
     test_a_season_in_progress_lands_on_home()
     test_no_current_season_lands_on_start()
     test_an_ended_season_lands_on_start()
+    test_the_wordmark_opens_the_root()
     test_sign_in_and_the_root_url_use_that_rule()
     print("landing ok")
 
