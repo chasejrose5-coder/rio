@@ -99,7 +99,10 @@ def test_the_photo_is_the_track_without_the_infield() -> None:
 
 
 def test_startup_page_renders_and_leads_to_login() -> None:
-    """A fresh session shows the track page. Continue opens the existing Log in."""
+    """The track page is still in the file, ahead of login.
+
+    A visit now stops on the moved screen, so Continue is not what opens.
+    """
     if HEADLINE != "RIO headline goes here":
         raise AssertionError(HEADLINE)
     if CREATOR_STATEMENT != "Personal creator statement goes here.":
@@ -167,6 +170,8 @@ def test_startup_page_renders_and_leads_to_login() -> None:
     if "localStorage" in (ROOT / "ui" / "startup.py").read_text(encoding="utf-8"):
         raise AssertionError("startup is stored in this browser")
 
+    from ui.moved import ACCOUNT, BUTTON_LABEL, FASTER, NEW_HOME
+    from ui.moved import HEADLINE as MOVED_HEADLINE
     from streamlit.testing.v1 import AppTest
 
     script = ROOT / "ui" / "streamlit_app.py"
@@ -174,39 +179,19 @@ def test_startup_page_renders_and_leads_to_login() -> None:
         at = AppTest.from_file(str(script), default_timeout=60).run(timeout=60)
         if _failure(at):
             raise AssertionError(_failure(at))
-        shown = _page_text(at)
-        if HEADLINE not in shown or CREATOR_STATEMENT not in shown or PHOTO_CREDIT not in shown:
-            raise AssertionError("the startup page did not render")
-        if "Placeholder" not in shown or "rio-startup-shade" not in shown:
-            raise AssertionError("the placeholder or the overlay did not render")
-        if CONTINUE_LABEL not in _labels(at.button):
+        shown = _page_text(at) + "\n" + "\n".join(block.value for block in at.html)
+        if MOVED_HEADLINE not in shown or FASTER not in shown or ACCOUNT not in shown:
+            raise AssertionError("the moved screen did not render")
+        if NEW_HOME not in shown or BUTTON_LABEL not in shown:
+            raise AssertionError("the new site link is missing")
+        if 'target="_blank"' in shown:
+            raise AssertionError("the link opens a new tab")
+        if HEADLINE in shown or CREATOR_STATEMENT in shown or "rio-startup-shade" in shown:
+            raise AssertionError("the startup page rendered")
+        if CONTINUE_LABEL in _labels(at.button) or "Log in" in _labels(at.button):
             raise AssertionError(_labels(at.button))
-        if at.text_input or "Log in" in _labels(at.button):
-            raise AssertionError("Log in showed before Continue")
-        if at.session_state.get(SEEN_KEY) is True:
-            raise AssertionError("a fresh session was already past the startup page")
-
-        opened = at.button[0].click().run(timeout=60)
-        if opened.session_state.get(SEEN_KEY) is not True:
-            raise AssertionError("Continue did not leave the startup page")
-        if "Email" not in _labels(opened.text_input):
-            opened = opened.run(timeout=60)
-        if _failure(opened):
-            raise AssertionError(_failure(opened))
-        labels = _labels(opened.text_input)
-        if labels != ["Email", "Password"]:
-            raise AssertionError(labels)
-        buttons = _labels(opened.button)
-        if "Log in" not in buttons or "Create account" not in buttons:
-            raise AssertionError(buttons)
-        if CONTINUE_LABEL in buttons or HEADLINE in _page_text(opened):
-            raise AssertionError("the startup page stayed up after Continue")
-
-        again = AppTest.from_file(str(script), default_timeout=60).run(timeout=60)
-        if HEADLINE not in _page_text(again) or CONTINUE_LABEL not in _labels(again.button):
-            raise AssertionError("a new session did not show the startup page")
-        if again.session_state.get(SEEN_KEY) is True:
-            raise AssertionError("a new session kept Continue")
+        if at.text_input:
+            raise AssertionError("Log in showed on the moved screen")
 
 
 def main() -> None:
