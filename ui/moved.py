@@ -3,8 +3,10 @@
 """RIO has a new home. This page does not sign in, load a plan, or call Strava.
 
 streamlit_app.py draws this and then stops. The old screens are still in
-that file. They run again if those two lines are removed. The links leave
-the Streamlit Cloud frame in this same tab.
+that file. They run again if those two lines are removed. Both links open
+https://rio-one-mocha.vercel.app in a new browser tab. Community Cloud
+keeps that new-tab target and ignores a same-window target, so the new
+site would otherwise load inside the Streamlit frame.
 """
 
 from __future__ import annotations
@@ -36,8 +38,11 @@ OWNED = "Runner Intelligence Owned"
 
 
 def moved_html() -> str:
-    """The wordmark, the note, and links that leave the Cloud frame in this tab."""
+    """The wordmark, the note, and two links that open the new site in a new tab."""
     url = escape(NEW_HOME, quote=True)
+    # Streamlit 1.66.1 keeps this target on markdown links and on st.html.
+    # A same-window target is dropped or ignored on Community Cloud.
+    link = f'href="{url}" target="_blank" rel="noopener noreferrer"'
     return f"""
 <section class="rio-moved">
   <p class="rio-moved-mark">RIO</p>
@@ -46,9 +51,9 @@ def moved_html() -> str:
   <p class="rio-moved-lead">{escape(FASTER)}</p>
   <p class="rio-moved-account">{escape(ACCOUNT)}</p>
   <p class="rio-moved-action">
-    <a class="rio-moved-go" href="{url}" target="_top">{escape(BUTTON_LABEL)}</a>
+    <a class="rio-moved-go" {link}>{escape(BUTTON_LABEL)}</a>
   </p>
-  <p class="rio-moved-url"><a href="{url}" target="_top">{escape(NEW_HOME)}</a></p>
+  <p class="rio-moved-url"><a {link}>{escape(NEW_HOME)}</a></p>
 </section>
 """
 
@@ -209,5 +214,6 @@ a.rio-moved-go:hover {{
 def render_moved() -> None:
     """Draw the moved screen. The caller stops the script after this."""
     st.markdown(moved_css(), unsafe_allow_html=True)
-    # st.html keeps only a new-tab target. Markdown keeps target="_top".
+    # LinkWithTargetBlank keeps an explicit new-tab target and the rel.
+    # anchors=False keeps the markdown heading chrome off the headline.
     st.markdown(moved_html(), unsafe_allow_html=True, anchors=False)

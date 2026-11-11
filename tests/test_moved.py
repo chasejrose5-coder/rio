@@ -24,8 +24,8 @@ def _boot(source: str) -> str:
     return source[source.index("\nst.set_page_config(") :]
 
 
-def test_the_screen_names_the_new_site_and_keeps_the_same_tab() -> None:
-    """The copy, the brand colors, and a same-tab link that leaves the Cloud frame."""
+def test_the_screen_names_the_new_site_and_opens_a_new_tab() -> None:
+    """The copy, the brand colors, and a new-tab link Cloud will keep."""
     html = moved_html()
     css = moved_css()
     for piece in (HEADLINE, FASTER, ACCOUNT, BUTTON_LABEL, NEW_HOME, "RIO"):
@@ -37,18 +37,21 @@ def test_the_screen_names_the_new_site_and_keeps_the_same_tab() -> None:
         raise AssertionError(ACCOUNT)
     if html.count(f'href="{NEW_HOME}"') != 2:
         raise AssertionError("the button and the address are not both links")
-    if html.count('target="_top"') != 2:
-        raise AssertionError("the link does not leave the iframe in this tab")
-    if 'target="_blank"' in html or 'target="_blank"' in css:
-        raise AssertionError("the link opens a new tab")
-    if 'target="_self"' in html or 'target="_self"' in css:
-        raise AssertionError("the link stays inside the Cloud iframe")
+    if html.count('target="_blank"') != 2:
+        raise AssertionError("the button and the address do not both open a new tab")
+    if html.count('rel="noopener noreferrer"') != 2:
+        raise AssertionError("the new-tab links are missing rel")
     source = (ROOT / "ui" / "moved.py").read_text(encoding="utf-8")
+    for forbidden in ('target="_self"', 'target="_top"'):
+        if forbidden in html or forbidden in css or forbidden in source:
+            raise AssertionError(forbidden)
     render = source[source.index("def render_moved") :]
     if "st.markdown(moved_html(), unsafe_allow_html=True, anchors=False)" not in render:
         raise AssertionError("the links are not in the app frame")
     if "st.html(" in render:
-        raise AssertionError("st.html drops every target except a new tab")
+        raise AssertionError("the links are not the markdown anchors")
+    if "onclick" in html.lower() or "window.top" in html or "window.location" in html:
+        raise AssertionError("the link depends on script the sanitizer drops")
     if "reconnect" in html.lower() or "strava" in html.lower():
         raise AssertionError("the screen claims a Strava step it does not need")
     button = css[css.index("a.rio-moved-go") : css.index(".rio-moved-url")]
@@ -95,7 +98,7 @@ def test_the_old_app_is_still_there_and_does_not_run() -> None:
 
 
 def main() -> None:
-    test_the_screen_names_the_new_site_and_keeps_the_same_tab()
+    test_the_screen_names_the_new_site_and_opens_a_new_tab()
     test_the_old_app_is_still_there_and_does_not_run()
     print("moved screen ok")
 
