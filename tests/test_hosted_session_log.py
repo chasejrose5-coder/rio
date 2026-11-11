@@ -464,3 +464,74 @@ def test_a_normal_token_refresh_is_not_logged() -> None:
         raise AssertionError(who)
     if any("hosted session" in record.getMessage() for record in records):
         raise AssertionError(_blob(records))
+
+
+def _wire_headers(cloud_store, httpx, key: str) -> list:
+    """One mocked transport. Returns the app_sessions requests, select then upsert."""
+    seen: list = []
+
+    def handler(request):
+        seen.append(request)
+        return httpx.Response(200, json=[])
+
+    cloud_store._HTTP_POOL = httpx.Client(
+        transport=httpx.MockTransport(handler),
+        timeout=8.0,
+        follow_redirects=True,
+    )
+    directory = SupabaseDirectory(URL, ANON, key)
+    probed = directory.probe_app_sessions()
+    if probed != {"ok": True, "code": None, "message": None}:
+        raise AssertionError("the mocked select was treated as a failure")
+    directory.save_hosted_session(_record())
+    return seen
+
+
+def _auth_headers(request) -> dict[str, str]:
+    return {name.lower(): value for name, value in request.headers.items()}
+
+
+def _assert_app_sessions_wire(request, key: str, *, method: str, bearer: bool) -> None:
+    if request.method != method or request.url.path != "/rest/v1/app_sessions":
+        raise AssertionError("the request was not app_sessions")
+    headers = _auth_headers(request)
+    if headers.get("apikey") != key:
+        raise AssertionError("apikey was missing or was not this key")
+    authorization = headers.get("authorization")
+    if bearer:
+        if authorization != "Bearer " + key:
+            raise AssertionError("a legacy JWT was not sent as Bearer")
+    elif authorization is not None:
+        raise AssertionError("a non-JWT key was sent as Authorization")
+    for name, value in headers.items():
+        if name == "apikey" or (bearer and name == "authorization"):
+            continue
+        if key in value:
+            raise AssertionError("the key appeared in another header")
+
+
+def test_app_sessions_requests_send_the_key_only_as_apikey_when_it_is_not_a_jwt() -> None:
+    """Outgoing bytes, not the client object. A mocked transport records the headers."""
+    import httpx
+
+    import ui.cloud_store as cloud_store
+
+    previous = cloud_store._HTTP_POOL
+    try:
+        secret_requests = _wire_headers(cloud_store, httpx, SECRET)
+        if len(secret_requests) != 2:
+            raise AssertionError(len(secret_requests))
+        select, upsert = secret_requests
+        query = str(select.url.query)
+        if "select=sid_hash" not in query or "limit=0" not in query:
+            raise AssertionError("the health probe was not a limit 0 select")
+        _assert_app_sessions_wire(select, SECRET, method="GET", bearer=False)
+        _assert_app_sessions_wire(upsert, SECRET, method="POST", bearer=False)
+
+        jwt_requests = _wire_headers(cloud_store, httpx, JWT)
+        if len(jwt_requests) != 2:
+            raise AssertionError(len(jwt_requests))
+        _assert_app_sessions_wire(jwt_requests[0], JWT, method="GET", bearer=True)
+        _assert_app_sessions_wire(jwt_requests[1], JWT, method="POST", bearer=True)
+    finally:
+        cloud_store._HTTP_POOL = previous
