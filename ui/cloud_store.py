@@ -831,6 +831,12 @@ class SupabaseDirectory:
             raise CloudAuthError("Sign in again.") from exc
         return _session_dict(response, "")
 
+    def user_id(self, access_token: object) -> str:
+        """Who this access token is. An expired or invalid token is refused."""
+        if not isinstance(access_token, str) or not access_token:
+            raise CloudAuthError("Sign in again.")
+        return self._token_user(self._user_client(access_token), access_token)
+
     def set_role(self, user_id: object, role: object, service_key: object) -> None:
         """Set a role with the server key. The signed-in client cannot do this."""
         if not isinstance(service_key, str) or not service_key.strip():

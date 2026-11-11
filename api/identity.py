@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from functools import wraps
 from pathlib import Path
 
 from fastapi import Response
@@ -194,6 +195,21 @@ def _refresh_hosted(directory, sid: str, row: dict) -> dict | None:
     return updated
 
 
+def _principal_guard(read):
+    """An unexpected failure signs the athlete out. The route answers 401."""
+
+    @wraps(read)
+    def wrapped(app, directory, accounts_path, raw):
+        try:
+            return read(app, directory, accounts_path, raw)
+        except Exception as exc:
+            log_hosted_session("resolve", exc, directory)
+            return None
+
+    return wrapped
+
+
+@_principal_guard
 def principal_from_cookie(app, directory, accounts_path: Path | None, raw: object) -> Principal | None:
     """The athlete for this cookie, or None when it is missing or expired."""
     if not hosted_sid(raw):
