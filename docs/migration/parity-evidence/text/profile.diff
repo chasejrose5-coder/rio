@@ -1,0 +1,5 @@
+--- streamlit/profile
++++ next/profile
+@@ -1,16 +1,3 @@
+-RIO-HOME-PLAN-ACTIVITY-LIBRARY-MORE-START SESSION-LOG OUT-Past seasons-Profile-Settings-About-Creators Profile START HERE Your easy pace@@ -25,13 +12,13 @@
+ Four values from Start. Current 800, the start date, and the goal date stay with the season. Goal 800m time is the one you can change. STARTING POINT Your current 800, and the day this season began.-Current 800 time+CURRENT 800 TIME 2:08.0-Start date+START DATE 2026-11-08 THE RACE The day you are training toward, and the 800 time you want that day. The date stays with the season.-Goal date+GOAL DATE 2027-04-18 Goal 800m time Minutes, seconds, and tenths, like 1:55.0.

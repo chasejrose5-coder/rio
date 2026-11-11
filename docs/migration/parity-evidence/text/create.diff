@@ -1,0 +1,4 @@
+--- streamlit/create
++++ next/create
+@@ -3,9 +3,6 @@
+ Name Email Password-visibility Create account+First name is enough. At least 8 characters. Saved on this machine. Back to log in-First name is enough. At least 8 characters. Saved on this machine.-Photo by Steve Pancrate on Pexels-Questions or feedback? Email chasejrose5@gmail.com
