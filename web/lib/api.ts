@@ -53,6 +53,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     response = await fetch(`${apiBase()}${path}`, {
       ...init,
       credentials: "include",
+      signal: AbortSignal.timeout(15000),
       headers: {
         ...(init?.body ? { "Content-Type": "application/json" } : {}),
         ...(init?.headers ?? {}),
@@ -337,3 +338,26 @@ export const api = {
       { headers: { "X-RIO-Response": "json" } },
     ),
 };
+
+export const SESSION_STUCK = "Signed in, but the session didn't stick. Try again.";
+
+export type SessionView = {
+  athlete: Athlete | null;
+  status: "in" | "out";
+};
+
+/** Any /auth/me failure, including 500 and a timed-out request, ends loading. */
+export async function refreshSession(): Promise<SessionView> {
+  try {
+    const athlete = await api.me();
+    return { athlete, status: "in" };
+  } catch {
+    return { athlete: null, status: "out" };
+  }
+}
+
+/** The sign-in screen stays put when the cookie did not become a session. */
+export function afterSignIn(athlete: Athlete | null): string | null {
+  if (athlete == null) return SESSION_STUCK;
+  return null;
+}
