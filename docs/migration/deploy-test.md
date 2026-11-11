@@ -37,11 +37,11 @@ Manual path, if you are not using the blueprint: **New**, **Web Service**, same 
 
 1. In Vercel, choose **Add New**, then **Project**.
 2. Import the `rio` repository. Pick the same branch you gave Render.
-3. **Root Directory**: **Edit**, set it to `web`. This is the only service whose root is `web`.
+3. **Root Directory**: **Edit**, set it to `web`. This is the only service whose root is `web`. Leave **Include source files outside of the Root Directory in the Build Step** enabled. It is on by default. The Next build reads `ui/static` from the repository root. If that switch is off, the build stops and tells you to turn it on.
 4. **Framework Preset**: Next.js.
 5. **Node.js Version**: 22.x, the version CI uses.
 6. **Install Command**: `npm ci` if the field is shown. Otherwise leave the default.
-7. **Build Command**: `npm run build`. That script is `next build`. Leave **Output Directory** empty.
+7. **Build Command**: `npm run build`. Leave **Output Directory** empty. npm runs `prebuild` before `next build`. That step copies `ui/static/fonts` and `ui/static/photos` into `web/public` as real files. Do not set the command to `next build`. That skips the copy.
 8. Leave the start command empty. Vercel runs the Next server. A custom start is not required.
 9. Open **Environment Variables** and add these two for Production (and Preview, if you will open a preview URL):
 
