@@ -50,9 +50,10 @@ function headline(days: number | null | undefined, goal: string): ReactNode {
   return "—";
 }
 
-function WorkoutFacts({ card, title }: { card: WorkoutCard; title: string }) {
+function WorkoutFacts({ card, title, showId }: { card: WorkoutCard; title: string; showId: boolean }) {
   const facts = card.facts;
   const prescription = card.prescription;
+  const templateId = (card.template_id || "").trim();
   return (
     <div className="rio-track-facts">
       <div className="rio-track-fact">
@@ -66,6 +67,7 @@ function WorkoutFacts({ card, title }: { card: WorkoutCard; title: string }) {
       <Fact label="Pace" value={facts?.pace || "—"} />
       <Fact label="Rest" value={facts?.rest || "—"} />
       <Fact label="Reps" value={facts?.reps || "—"} />
+      {showId && templateId ? <div className="rio-template-id rio-track-id">{templateId}</div> : null}
       {prescription?.line ? <p className="rio-pace-line">{prescription.line}</p> : null}
       {prescription?.tolerance ? <p className="rio-pace-range">Tolerance {prescription.tolerance}</p> : null}
       {prescription?.block ? <p className="rio-pace-block">Block {prescription.block}</p> : null}
@@ -136,8 +138,9 @@ function HomeBody() {
     });
   }, [router]);
 
+  const compact = home?.athlete.prefs.compact === true;
   return (
-    <div className="page-home">
+    <div className={compact ? "page-home is-compact" : "page-home"}>
       <Nav />
       <main className={rise ? "rio-stagger" : undefined}>
         {readOnly || home?.preview?.active ? <PreviewBanner banner={home?.preview?.banner} /> : null}
@@ -276,7 +279,11 @@ function HomeMain({
         {season.next ? (
           <>
             <Link className="rio-hit" href={`/session?date=${season.next.date || ""}`}>
-              <WorkoutFacts card={season.next} title={todayWorkout ? "Today's workout" : "Next workout"} />
+              <WorkoutFacts
+                card={season.next}
+                title={todayWorkout ? "Today's workout" : "Next workout"}
+                showId={home.athlete.prefs.show_ids === true}
+              />
             </Link>
             {season.logging === "done" ? (
               <Watchless

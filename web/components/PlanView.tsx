@@ -179,8 +179,9 @@ function PlanBody() {
       ? `${formatDate(plan.inputs.start_date, plan.prefs.date_format || "iso")} — ${formatDate(plan.inputs.goal_date, plan.prefs.date_format || "iso")}`
       : "";
 
+  const compact = plan?.prefs.compact === true;
   return (
-    <div className="page-plan">
+    <div className={compact ? "page-plan is-compact" : "page-plan"}>
       <Nav active="Plan" />
       <main className={rise ? "rio-stagger" : undefined}>
         {plan?.preview?.active || previewing() ? <PreviewBanner banner={plan?.preview?.banner} /> : null}
@@ -258,6 +259,7 @@ function PlanReady({
   onCancel: () => void;
 }) {
   const format = plan.prefs.date_format || "iso";
+  const showIds = plan.prefs.show_ids === true;
   const units = plan.prefs.units || "miles";
   const today = plan.prefs.today || "";
   const length = plan.weeks.length;
@@ -329,6 +331,7 @@ function PlanReady({
             units={units}
             activities={activities}
             activityNote={activityNote}
+            showIds={showIds}
             pending={pending}
             markError={markError}
             onWeek={onWeek}
@@ -341,6 +344,7 @@ function PlanReady({
           <FullSeason
             plan={plan}
             format={format}
+            showIds={showIds}
             pending={pending}
             markError={markError}
             onChoose={onChoose}
@@ -425,6 +429,7 @@ function ThisWeek({
   units,
   activities,
   activityNote,
+  showIds,
   pending,
   markError,
   onWeek,
@@ -439,6 +444,7 @@ function ThisWeek({
   units: string;
   activities: ActivitiesResponse | null;
   activityNote: string;
+  showIds: boolean;
   pending: Pending | null;
   markError: string;
   onWeek: (week: number) => void;
@@ -490,7 +496,7 @@ function ThisWeek({
         </dl>
       </section>
       {days.length === 0 ? <p className="rio-empty">—</p> : days.map((session) => (
-        <DayCard key={session.date} session={session} detail={matchedDetail(activities, session.date)} />
+        <DayCard key={session.date} session={session} detail={matchedDetail(activities, session.date)} showIds={showIds} />
       ))}
       {extras.length > 0 ? (
         <div className="rio-extras">
@@ -517,6 +523,7 @@ function ThisWeek({
 function FullSeason({
   plan,
   format,
+  showIds,
   pending,
   markError,
   onChoose,
@@ -525,6 +532,7 @@ function FullSeason({
 }: {
   plan: PlanResponse;
   format: string;
+  showIds: boolean;
   pending: Pending | null;
   markError: string;
   onChoose: (week: number, choice: string) => void;
@@ -553,7 +561,7 @@ function FullSeason({
               <>
                 <div className="rio-days">
                   {days.map((session, index) => (
-                    <DayRow key={session.date} session={session} first={index === 0} format={format} />
+                    <DayRow key={session.date} session={session} first={index === 0} format={format} showIds={showIds} />
                   ))}
                 </div>
                 <Expander className="rio-reasons-box" title="Reasons">
@@ -594,14 +602,16 @@ function FullSeason({
   );
 }
 
-function DayCard({ session, detail }: { session: PlanSession; detail: string }) {
+function DayCard({ session, detail, showIds }: { session: PlanSession; detail: string; showIds: boolean }) {
   const work = session.label || "—";
   const name = `${session.day_of_week || "Day"} ${session.date}. ${work}`;
+  const templateId = (session.template_id || "").trim();
   const card = (
     <div className="rio-daycard">
       <div className="rio-daycard-dow">{session.day_of_week}</div>
       <div className="rio-daycard-date">{session.shown_date || session.date}</div>
       <div className="rio-daycard-work">{work}</div>
+      {showIds && templateId ? <div className="rio-template-id rio-daycard-id">{templateId}</div> : null}
       <PaceLines session={session} />
       <div className="rio-daycard-target">{session.target || "—"}</div>
       {detail ? <div className="rio-daycard-actual">{detail}</div> : null}
@@ -615,10 +625,21 @@ function DayCard({ session, detail }: { session: PlanSession; detail: string }) 
   );
 }
 
-function DayRow({ session, first, format }: { session: PlanSession; first: boolean; format: string }) {
+function DayRow({
+  session,
+  first,
+  format,
+  showIds,
+}: {
+  session: PlanSession;
+  first: boolean;
+  format: string;
+  showIds: boolean;
+}) {
   const work = session.label || "—";
   const status = statusLabel(session.reason_codes);
   const name = `${session.day_of_week || "Day"} ${session.date}. ${work}`;
+  const templateId = (session.template_id || "").trim();
   const row = (
     <div className={first ? "rio-day" : "rio-day rio-day-next"}>
       <div className="rio-when">
@@ -627,6 +648,7 @@ function DayRow({ session, first, format }: { session: PlanSession; first: boole
       </div>
       <div className="rio-work">
         <div className="rio-name">{work}</div>
+        {showIds && templateId ? <div className="rio-template-id">{templateId}</div> : null}
         <PaceLines session={session} />
         <div className="rio-target">{session.target || "—"}</div>
       </div>

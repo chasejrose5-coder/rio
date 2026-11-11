@@ -1,17 +1,17 @@
 # Parity audit
 
-Independent check of the Streamlit app against FastAPI and Next.js, on `main` at `674b637` (after #72 and #73). The checklist in `parity-checklist.md` says 188/188 done. This audit does not use that count as evidence. The inventory was read from `ui/streamlit_app.py` and the modules it draws. Both apps were then run locally against one account file, with the athlete time zone set to America/Los_Angeles. No production Supabase project was opened. The original audit fixed nothing. Gaps 1 and 2 are closed in the auth-mail change; the counts below include that. Gaps 3 and 4 are unchanged.
+Independent check of the Streamlit app against FastAPI and Next.js, on `main` at `674b637` (after #72 and #73). The checklist in `parity-checklist.md` says 188/188 done. This audit does not use that count as evidence. The inventory was read from `ui/streamlit_app.py` and the modules it draws. Both apps were then run locally against one account file, with the athlete time zone set to America/Los_Angeles. No production Supabase project was opened. The original audit fixed nothing. All four gaps are closed: reset and confirmation mail in the auth change, compact mode and template ids in the settings-effect change. The counts below include both. The Session side-by-side is finished.
 
 ## Counts
 
 | Status | Count |
 | --- | --- |
-| PASS | 190 |
-| GAP | 2 |
+| PASS | 192 |
+| GAP | 0 |
 | N/A | 1 |
 | Rows | 193 |
 
-188 of those rows are the checklist items. P2 was the checklist gap; the reset mail now opens Next and that row is PASS. The other five rows are things the checklist does not name: two display effects, the signup confirmation redirect, the unrouted Progress page, and the ontology papers. Signup confirmation now points at the Next origin, so that row is PASS. Compact mode and template ids are still gaps.
+188 of those rows are the checklist items. P2 was the checklist gap; the reset mail now opens Next and that row is PASS. The other five rows are things the checklist does not name: two display effects, the signup confirmation redirect, the unrouted Progress page, and the ontology papers. Signup confirmation, compact mode, and template ids are PASS. Progress stays N/A.
 
 ## What was compared
 
@@ -27,14 +27,14 @@ A new account was recorded on Next: splash, create account, easy pace, intro, St
 
 The checklist's 188 rows cover the screens. These behaviors are real in Streamlit and are not their own rows there:
 
-- Compact mode is global CSS in `ui/streamlit_app.py` (`_COMPACT_CSS`). Next applies `is-compact` on Settings, Library, Profile, More, Past seasons, About, and Creators only.
-- Show template ids paints the id on the Home track, the Plan day row, the Plan day card, and the Session page (`_id_html`). Next paints it on Session, Library, and the legacy Activity table.
+- Compact mode is global CSS in `ui/streamlit_app.py` (`_COMPACT_CSS`). Next adds `is-compact` on Home, Plan, Session, and Activity as well as Settings, Library, Profile, More, Past seasons, About, and Creators.
+- Show template ids paints the id on the Home track, the Plan day row, the Plan day card, and the Session page (`_id_html`). Next paints `rio-template-id` on the Home track and the Plan day row and day card when the setting is on, and already painted it on Session, Library, and the legacy Activity table.
 - Hosted signup confirmation from the API uses `email_redirect_to` of `{RIO_FRONTEND_ORIGIN}/`. Streamlit's own sign-up still uses `auth_redirect_base() + "/"` (`ui/cloud_store.py`).
 - `page_progress` is implemented and is not in `st.navigation`. Next does not add it. That is N/A.
 
 ## Gaps
 
-Gaps 1 and 2 are closed. Gaps 3 and 4 are not.
+All four gaps are closed.
 
 ### 1. Password reset mail still opens Streamlit
 
@@ -63,19 +63,21 @@ The allow-list entry is the same `{RIO_FRONTEND_ORIGIN}/` named above. Evidence:
 
 ### 3. Compact mode does not tighten Home, Plan, Session, or Activity
 
-Severity: low.
+Severity: low. Closed.
 
-The toggle saves on both apps. Streamlit injects `_COMPACT_CSS` on every signed-in page (hero, cards, day cards, track). Next adds `is-compact` only on Settings, Library, Profile, More, Past seasons, About, and Creators. `web/app/globals.css` has no `.page-home.is-compact`, `.page-plan.is-compact`, `.page-session.is-compact`, or `.page-activity.is-compact`.
+The toggle saves on both apps. Streamlit injects `_COMPACT_CSS` on every signed-in page. Next adds `is-compact` on Home, Plan, Session, and Activity, with the same hero, card, day-card, day-row, track, and chart padding. The stored value is unchanged.
 
-Proposed fix: add the class on those pages and the same padding rules. Do not change the setting's stored value.
+The Home aerial covers the whole page in compact and normal mode, including the next-3-days cards, the links, the credit, and the footer. The `03  /  Next 3 days` label stays on that photo.
+
+Evidence: `web/e2e/display-prefs.spec.ts`; `docs/migration/parity-evidence/side/home.jpg`; `docs/migration/parity-evidence/side/home-compact.jpg`; `docs/migration/parity-evidence/side/plan-week-compact.jpg`; `docs/migration/parity-evidence/side/activity-compact.jpg`; `docs/migration/parity-evidence/side/session-compact.jpg`. Each pair is one full-page shot of each app after the fade, in America/Los_Angeles. They are not stitched.
 
 ### 4. Template ids stay off the Home track and the Plan cards
 
-Severity: low. Admin only.
+Severity: low. Admin only. Closed.
 
-With Show template ids on, Streamlit's `_id_html` draws the id on the Home track, the Plan day row, and the Plan day card. Session already shows it on Next when `show_id` is true. Library shows it. The visible Activity cards keep the id in a hidden span on both apps; the legacy table shows it when the setting is on.
+With Show template ids on, both apps draw `rio-template-id` on the Home track (`rio-track-id`), the Plan day row, and the Plan day card (`rio-daycard-id`). Session already showed it on Next when `show_id` is true. Library shows it. The visible Activity cards keep the id in a hidden span on both apps; the legacy table shows it when the setting is on. The id stays off when the setting is off.
 
-Proposed fix: when `prefs.show_ids` is true, render the id on the Home track and the Plan day row and day card, in the same `rio-template-id` style.
+Evidence: `web/e2e/display-prefs.spec.ts`; `docs/migration/parity-evidence/side/home-compact.jpg`; `docs/migration/parity-evidence/side/plan-week-compact.jpg`; `docs/migration/parity-evidence/side/plan-season-compact.jpg`.
 
 ## Schema
 
@@ -118,7 +120,7 @@ Hosting: Next serves the public origin. The API is a separate process with the e
 
 `tests/test_parity_plan.py` generates six seasons through `POST /seasons` and compares every session to `sequence()`: week, day, date, template, reasons, target, and `ontology_version`. The Saturday long-run ids are the same list and each id is on the frozen 500 m ladder. Easy pace `7:25` per mile and `4:36` per kilometer change the continuous line to `Run at 7:25 per mile` and `Run at 4:36 per kilometer`. With no pace saved, that line is `Set your easy pace before this run.` Quality rep lines, tolerances, and the average do not change when the easy pace changes. Per km changes a continuous distance and does not change a rep clock. Today follows `America/Los_Angeles` and `Pacific/Auckland` through the same `local_today` Streamlit uses.
 
-The plan week side-by-side shows the same lines on screen, including `8 × 150 m @ 23.0 s, 150 s rest`, `Run at 7:25 per mile`, and the long-run miles (`5.9`, `6.2`, `6.5`, then up the ladder). The dedicated Session side-by-side did not finish: Start session on Streamlit was still the Home shot when the capture stopped. The clocks on that day are the plan week lines above, and `average_rep_text` is asserted on `GET /sessions/{date}`.
+The plan week side-by-side shows the same lines on screen, including `8 × 150 m @ 23.0 s, 150 s rest`, `Run at 7:25 per mile`, and the long-run miles (`5.9`, `6.2`, `6.5`, then up the ladder). The dedicated Session side-by-side is `docs/migration/parity-evidence/side/session.jpg`. Both apps show Tuesday 2026-11-10, `8 × 150 m @ 23.0 s, 150 s rest`, `Average 23.0 s`, tolerance `22.8-23.2 s`, and the prep notes. The workout block sits flat on the page. It is one full-page shot of each app after the fade, in America/Los_Angeles, not stitched. `average_rep_text` is still asserted on `GET /sessions/{date}`.
 
 ## Feature table
 
@@ -314,8 +316,8 @@ PASS means the same thing is reachable with the same words or the same workout. 
 | Z6. Jay Rose placeholder | docs/migration/parity-evidence/text/creators.hidden.diff | PASS |
 | Z7. Legacy activity tables | web/components/ActivityView.tsx `rio-legacy-activity` | PASS |
 | Z8. Planned versus actual | docs/migration/parity-evidence/side/plan-week.jpg | PASS |
-| Compact mode on Home, Plan, Session, and Activity | web/components/HomeView.tsx has no `is-compact`; web/app/globals.css | GAP |
-| Template ids on the Home track and Plan cards | ui/streamlit_app.py `_id_html`; web/components/PlanView.tsx `DayCard` | GAP |
+| Compact mode on Home, Plan, Session, and Activity | web/e2e/display-prefs.spec.ts; docs/migration/parity-evidence/side/home.jpg; docs/migration/parity-evidence/side/home-compact.jpg; docs/migration/parity-evidence/side/plan-week-compact.jpg; docs/migration/parity-evidence/side/activity-compact.jpg; docs/migration/parity-evidence/side/session-compact.jpg | PASS |
+| Template ids on the Home track and Plan cards | web/e2e/display-prefs.spec.ts; docs/migration/parity-evidence/side/home-compact.jpg; docs/migration/parity-evidence/side/plan-week-compact.jpg; docs/migration/parity-evidence/side/plan-season-compact.jpg | PASS |
 | Signup confirmation redirect | tests/test_auth_mail.py; ui/cloud_store.py `email_redirect_to` | PASS |
 | Progress page | ui/streamlit_app.py `page_progress` is not registered in `st.navigation` | N/A |
 | Ontology papers | tests/test_parity_plan.py `test_papers_have_one_copy_and_both_apps_load_it` | PASS |

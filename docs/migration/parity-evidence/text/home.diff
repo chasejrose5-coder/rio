@@ -1,6 +1,5 @@
 --- streamlit/home
 +++ next/home
-@@ -1,11 +1,3 @@
--RIO-HOME-PLAN-ACTIVITY-LIBRARY-MORE-START SESSION-LOG OUT 159 days to 1:59.0 Hey, Parity Parity's plan@@ -21,7 +13,6 @@
- A timed effort is a run you logged. Times use minutes:seconds.tenths, like 2:05.0. 01 / CURRENT PHASE-keyboard_arrow_right This week sits in phase 1, week 1 of 4, because the season still needs aerobic. 02 / TODAY'S WORKOUT TODAY'S WORKOUT@@ -37,19 +28,16 @@
+@@ -21,7 +21,6 @@
+ A timed effort is a run you logged. Times use minutes:seconds.tenths, like 2:05.0. 01 / CURRENT PHASE-keyboard_arrow_right This week sits in phase 1, week 1 of 4, because the season still needs aerobic. 02 / TODAY'S WORKOUT TODAY'S WORKOUT@@ -37,19 +36,16 @@
  8 8 × 150 m @ 23.0 s, 150 s rest Tolerance 22.8-23.2 s-Tuesday 2026-11-10. 8 × 150 m at or faster than goal 800 pace, long rest 03 / NEXT 3 DAYS Wednesday 2026-11-11 3.1 mi easy, Zone 2, talkable the whole way Run at 7:25 per mile-Wednesday 2026-11-11. 3.1 mi easy, Zone 2, talkable the whole way Thursday 2026-11-12 10 × 60 m fast, rolling start, full rest 10 × 60 m @ 7.9 s, 120 s rest Tolerance 7.7-8.1 s-Thursday 2026-11-12. 10 × 60 m fast, rolling start, full rest Friday 2026-11-13 Rest day

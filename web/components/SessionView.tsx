@@ -104,8 +104,10 @@ function SessionBody() {
         : "Session";
   const range = mode === "activity" && extra ? extra.date : mode === "ready" && session ? session.shown_date : "";
 
+  const { athlete } = useAuth();
+  const compact = athlete?.prefs.compact === true;
   return (
-    <div className="page-session">
+    <div className={compact ? "page-session is-compact" : "page-session"}>
       <Nav />
       <main className={rise ? "rio-stagger" : undefined}>
         <header className="rio-hero">
