@@ -184,8 +184,10 @@ def test_startup_page_renders_and_leads_to_login() -> None:
             raise AssertionError("the moved screen did not render")
         if NEW_HOME not in shown or BUTTON_LABEL not in shown:
             raise AssertionError("the new site link is missing")
-        if 'target="_blank"' in shown:
-            raise AssertionError("the link opens a new tab")
+        if shown.count('target="_blank"') != 2 or shown.count('rel="noopener noreferrer"') != 2:
+            raise AssertionError("the links do not open a new tab")
+        if 'target="_top"' in shown or 'target="_self"' in shown:
+            raise AssertionError("the link stays in the Cloud frame")
         if HEADLINE in shown or CREATOR_STATEMENT in shown or "rio-startup-shade" in shown:
             raise AssertionError("the startup page rendered")
         if CONTINUE_LABEL in _labels(at.button) or "Log in" in _labels(at.button):
