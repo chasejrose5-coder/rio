@@ -146,6 +146,7 @@ Shown once per browser session until Continue, unless this session already holds
 **API:** MISSING (static)
 **Step 3:** Unassigned
 **Status:** done
+**Evidence:** `web/e2e/start.spec.ts` "splash continue opens log in, and a new tab shows it again" expects the curly-quoted sentence from `ui/startup.py`.
 **Verify:** Screenshot the splash copy, including the quote and the attribution.
 
 ### S3. Splash credit
@@ -192,6 +193,7 @@ Shown once per browser session until Continue, unless this session already holds
 **API:** MISSING (static)
 **Step 3:** Unassigned
 **Status:** done
+**Evidence:** `web/e2e/start.spec.ts` "splash continue opens log in, and a new tab shows it again". The credit and the contact line are `position: fixed` on the splash, outside the fading copy so the fade's transform does not pin them to the button.
 **Verify:** The address is on the splash, in light type on the photo.
 
 ### S8. Splash fade
@@ -710,6 +712,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** MISSING (static)
 **Step 3:** PR #61
 **Status:** done
+**Evidence:** `web/e2e/display-prefs.spec.ts` "compact mode tightens home, plan, session, and activity". Desktop Home uses `background-attachment: fixed` and `center center`, the same viewport framing as Streamlit. Screens under 1200px still scroll.
 **Verify:** `/home` uses `home-aerial.webp` (800 and 480 on small screens) and the Gaby Lopez line. e2e checks the credit.
 
 ### H2. No season
@@ -1230,7 +1233,7 @@ The frozen menu. It does not change. Search does not call a model.
 **API:** `GET /library?q=&family=&phase=`. `q` matches name, id, or capacity. Empty filters stay open.
 **Step 3:** 3.5
 **Status:** done
-**Evidence:** `web/e2e/library.spec.ts` "the menu, a search, an empty result, and a load error" and `tests/test_api_step3_library.py` `test_search_matches_the_shown_name_and_filters_stay_open`.
+**Evidence:** `web/e2e/library.spec.ts` "the menu, a search, an empty result, and a load error" and `tests/test_api_step3_library.py` `test_search_matches_the_shown_name_and_filters_stay_open`. The family and phase help are tooltips on a ? control, shown on hover or focus, matching Streamlit's select help.
 **Verify:** Each filter narrows the list. Clearing them restores the full menu. The menu ids do not change between loads.
 
 ### M3. Count and rows
@@ -1332,7 +1335,7 @@ Changes to name, time zone, and the toggles save as they are edited. There is no
 **API:** `PATCH /settings` `no_watch`. `prefs.logging` becomes `done` when that is true, otherwise `times`.
 **Step 3:** 3.7. The Session behavior is W9.
 **Status:** done
-**Evidence:** `web/e2e/settings.spec.ts` "timezone, pace, and each toggle are saved" posts `no_watch`. `tests/test_api_step3_settings.py` `test_the_saved_zone_decides_today_on_home_and_plan` keeps the session ids. Session already reads `logging`.
+**Evidence:** `web/e2e/settings.spec.ts` "timezone, pace, and each toggle are saved" posts `no_watch` with Logging open on arrival, and the password fields have a show/hide control. `tests/test_api_step3_settings.py` `test_the_saved_zone_decides_today_on_home_and_plan` keeps the session ids. Session already reads `logging`.
 **Verify:** Turn it on. Session shows Done, not rep boxes. Turn it off. Rep boxes return. The plan is not rewritten.
 
 ### G5. Pace units, intro, start date, ids, compact, dates, confirm
@@ -1474,7 +1477,7 @@ Locked copy. Step 3.9 does not rewrite it. About shows the short paragraphs. The
 **API:** MISSING (static)
 **Step 3:** 3.9
 **Status:** done
-**Evidence:** `web/e2e/about-creators.spec.ts` "about shows the stadium photo, the credit, and the eight phases". The heading is "About" and the credit is "Photo by Botond Dobozi on Pexels". The markup in `page_about` still has `rio-index rio-index-light`, and `ui/static/app.css` then paints every `.rio-index` `#121110`. That ink sits on the dark photo, so the eyebrow is not shown. The light color is only under `.rio-home-hero`. Next does not paint the eyebrow. `tests/test_web_about_creators.py` diffs the visible lines, so a shown eyebrow fails.
+**Evidence:** `web/e2e/about-creators.spec.ts` "about shows the stadium photo, the credit, and the eight phases". The index "About" sits above the heading in `#E25A32`, with the same orange rule Streamlit draws in front of `.rio-index`. The credit is "Photo by Botond Dobozi on Pexels". `tests/test_web_about_creators.py` keeps the sentences in step with Streamlit.
 **Verify:** Credit is on the banner. See C6.
 
 ### O2. Eight phases

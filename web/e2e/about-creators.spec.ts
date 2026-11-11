@@ -48,7 +48,7 @@ async function install(page: Page, options: { compact?: boolean } = {}) {
 }
 
 function aboutVisible(): string[] {
-  const lines: string[] = [ABOUT.heading, ABOUT.credit];
+  const lines: string[] = ["About", ABOUT.heading, ABOUT.credit];
   for (const section of ABOUT.sections) {
     lines.push(section.title, ...section.visible);
     for (const row of section.rows) lines.push(row.label, row.line);
@@ -69,7 +69,8 @@ test("about shows the stadium photo, the credit, and the eight phases", async ({
   expect(photo).toContain("/photos/about");
   expect(photo).not.toContain("chase-blocks");
   expect(photo).not.toContain("home-aerial");
-  await expect(page.locator(".page-about .rio-index")).toHaveCount(0);
+  await expect(page.locator(".page-about .rio-index")).toHaveText("About");
+  await expect(page.locator(".page-about .rio-index")).toHaveCSS("color", "rgb(226, 90, 50)");
   await expect(page.locator(".page-about .rio-about-title h1")).toHaveCSS("color", "rgb(244, 241, 236)");
   await expect(page.locator(".page-about .rio-photo-credit")).toHaveCSS("color", "rgb(244, 241, 236)");
   await expect(page.locator(".page-about .rio-mark-label").first()).toHaveCSS("color", "rgb(60, 58, 54)");

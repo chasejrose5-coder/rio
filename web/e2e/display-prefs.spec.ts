@@ -184,7 +184,7 @@ test("compact mode tightens home, plan, session, and activity", async ({ page })
   await expect(page.locator(".rio-track-id")).toHaveText(template);
   await expect(page.getByText("03  /  Next 3 days")).toBeVisible();
   const attachment = await page.locator(".page-home").evaluate((node) => getComputedStyle(node).backgroundAttachment);
-  expect(attachment).not.toContain("fixed");
+  expect(attachment).toContain("fixed");
 
   await page.goto("/plan");
   await expect(page.locator(".page-plan")).toHaveClass(/is-compact/);

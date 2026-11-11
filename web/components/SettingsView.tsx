@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Expander } from "./Expander";
+import { SecretField } from "./SecretField";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
@@ -449,22 +450,20 @@ function SettingsBody() {
           <form onSubmit={changePassword} noValidate>
             <label className="rio-stack" htmlFor="settings-current-password">
               Current password
-              <input
+              <SecretField
                 id="settings-current-password"
-                type="password"
                 autoComplete="current-password"
                 value={currentPassword}
-                onChange={(event) => setCurrentPassword(event.target.value)}
+                onChange={setCurrentPassword}
               />
             </label>
             <label className="rio-stack" htmlFor="settings-new-password">
               New password
-              <input
+              <SecretField
                 id="settings-new-password"
-                type="password"
                 autoComplete="new-password"
                 value={newPassword}
-                onChange={(event) => setNewPassword(event.target.value)}
+                onChange={setNewPassword}
               />
             </label>
             <button className="rio-primary" type="submit" disabled={busy}>
@@ -473,7 +472,7 @@ function SettingsBody() {
           </form>
         </Expander>
 
-        <Expander title="Logging">
+        <Expander title="Logging" defaultOpen>
           <p className="rio-mark-label">Logging</p>
           <label className="rio-toggle">
             <input type="checkbox" checked={noWatch} onChange={(event) => void commitNoWatch(event.target.checked)} />
@@ -575,12 +574,11 @@ function SettingsBody() {
             </label>
             <label className="rio-stack" htmlFor="settings-email-password">
               Password
-              <input
+              <SecretField
                 id="settings-email-password"
-                type="password"
                 autoComplete="current-password"
                 value={emailPassword}
-                onChange={(event) => setEmailPassword(event.target.value)}
+                onChange={setEmailPassword}
               />
             </label>
             <button className="rio-primary" type="submit" disabled={busy}>
@@ -640,11 +638,11 @@ function SettingsBody() {
               </label>
               <label className="rio-stack" htmlFor="settings-delete-password">
                 Password
-                <input
+                <SecretField
                   id="settings-delete-password"
-                  type="password"
+                  autoComplete="current-password"
                   value={deletePassword}
-                  onChange={(event) => setDeletePassword(event.target.value)}
+                  onChange={setDeletePassword}
                 />
               </label>
             </>

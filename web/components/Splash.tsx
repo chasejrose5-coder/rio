@@ -11,15 +11,15 @@ export function Splash({ onContinue }: { onContinue: () => void }) {
         <h1>Your Race, Your Plan, Your Result</h1>
         <p className="rio-reason-line">Every rep has a reason</p>
         <blockquote>
-          <p>Most plans tell you what to run. RIO shows you why, and adjusts when the season doesn&apos;t go to script.</p>
+          <p>“Most plans tell you what to run. RIO shows you why, and adjusts when the season doesn&apos;t go to script.”</p>
           <p className="rio-founder-by">— Chase Rose, Founder</p>
         </blockquote>
         <button type="button" className="rio-primary rio-splash-go" onClick={onContinue}>
           Continue
         </button>
-        <PhotoCredit onPhoto>Photo by Giant Asparagus on Pexels</PhotoCredit>
-        <Footer onPhoto />
       </section>
+      <PhotoCredit onPhoto>Photo by Giant Asparagus on Pexels</PhotoCredit>
+      <Footer onPhoto />
     </div>
   );
 }
