@@ -293,7 +293,15 @@ def test_existing_sign_in_failures_stay_401() -> None:
 
 
 def test_health_auth_is_closed_without_a_project() -> None:
-    blank = {"configured": False, "url_host": None, "auth_reachable": False, "status": None}
+    blank = {
+        "configured": False,
+        "url_host": None,
+        "auth_reachable": False,
+        "status": None,
+        "service_key_configured": False,
+        "service_key_format": "other",
+        "sessions_ok": {"ok": False, "code": None, "message": None},
+    }
     if auth_health(MemoryDirectory()) != blank:
         raise AssertionError(auth_health(MemoryDirectory()))
     if auth_health(None) != blank:
@@ -311,6 +319,7 @@ def test_health_auth_is_closed_without_a_project() -> None:
 
 def test_health_auth_reports_the_settings_status_without_secrets() -> None:
     directory = SupabaseDirectory(URL + "/rest/v1?apikey=" + ANON, ANON, SERVICE)
+    directory.probe_app_sessions = lambda: {"ok": True, "code": None, "message": None}  # type: ignore[method-assign]
     seen: dict = {}
 
     def fake(url: str, anon_key: str, timeout: float = 5.0):
@@ -323,7 +332,16 @@ def test_health_auth_reports_the_settings_status_without_secrets() -> None:
         body = auth_health(directory)
     if seen["url"] != directory.url or seen["anon_key"] != ANON or SERVICE in str(seen):
         raise AssertionError(seen)
-    if body != {"configured": True, "url_host": HOST, "auth_reachable": True, "status": 200}:
+    ready = {
+        "configured": True,
+        "url_host": HOST,
+        "auth_reachable": True,
+        "status": 200,
+        "service_key_configured": True,
+        "service_key_format": "other",
+        "sessions_ok": {"ok": True, "code": None, "message": None},
+    }
+    if body != ready:
         raise AssertionError(body)
     _secrets_absent(str(body))
     client = _client(directory)
@@ -331,12 +349,28 @@ def test_health_auth_reports_the_settings_status_without_secrets() -> None:
         response = client.get("/health/auth")
     if response.status_code != 200:
         raise AssertionError(response.text)
-    if response.json() != {"configured": True, "url_host": HOST, "auth_reachable": False, "status": 401}:
+    refused = {
+        "configured": True,
+        "url_host": HOST,
+        "auth_reachable": False,
+        "status": 401,
+        "service_key_configured": True,
+        "service_key_format": "other",
+        "sessions_ok": {"ok": True, "code": None, "message": None},
+    }
+    if response.json() != refused:
         raise AssertionError(response.text)
     _secrets_absent(response.text)
     with patch("ui.cloud_store.fetch_auth_settings", lambda *_args, **_kwargs: None):
         missed = auth_health(directory)
-    if missed["auth_reachable"] is not False or missed["status"] is not None or missed["configured"] is not True:
+    if (
+        missed["auth_reachable"] is not False
+        or missed["status"] is not None
+        or missed["configured"] is not True
+        or missed["service_key_configured"] is not True
+        or missed["service_key_format"] != "other"
+        or missed["sessions_ok"] != {"ok": True, "code": None, "message": None}
+    ):
         raise AssertionError(missed)
 
 

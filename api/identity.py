@@ -23,7 +23,7 @@ from ui.accounts import (
     read_local,
 )
 from ui.cloud_session import cookie_max_age, hosted_hash, hosted_sid, new_hosted_sid
-from ui.cloud_store import CloudAuthError
+from ui.cloud_store import CloudAuthError, log_hosted_session
 
 _SESSION_SECONDS = 24 * 60 * 60
 
@@ -108,6 +108,7 @@ def _remember_hosted(directory, session: dict, *, missing: str) -> tuple[str, in
     except CloudAuthError:
         raise
     except Exception as exc:
+        log_hosted_session("save", exc, directory)
         raise CloudAuthError("Sign in again.") from exc
     return sid, issued, session
 
@@ -158,8 +159,8 @@ def sign_out(app, directory, sid: str | None) -> None:
     if directory is not None and hosted_sid(sid):
         try:
             directory.drop_hosted_session(sid)
-        except CloudAuthError:
-            pass
+        except CloudAuthError as exc:
+            log_hosted_session("drop", exc, directory)
     _local_sessions(app).pop(hosted_hash(sid), None)
 
 
@@ -167,7 +168,8 @@ def _refresh_hosted(directory, sid: str, row: dict) -> dict | None:
     refresh = row.get("refresh_token")
     try:
         session = directory.refresh_session(refresh)
-    except CloudAuthError:
+    except CloudAuthError as exc:
+        log_hosted_session("refresh", exc, directory)
         return None
     if not isinstance(session, dict) or not session.get("access_token"):
         return None
@@ -186,7 +188,8 @@ def _refresh_hosted(directory, sid: str, row: dict) -> dict | None:
     }
     try:
         directory.update_hosted_session(sid, updated)
-    except CloudAuthError:
+    except CloudAuthError as exc:
+        log_hosted_session("update", exc, directory)
         return None
     return updated
 
@@ -199,7 +202,8 @@ def principal_from_cookie(app, directory, accounts_path: Path | None, raw: objec
     if directory is not None:
         try:
             row = directory.load_hosted_session(sid)
-        except CloudAuthError:
+        except CloudAuthError as exc:
+            log_hosted_session("load", exc, directory)
             row = None
         if not isinstance(row, dict):
             return None
@@ -209,8 +213,8 @@ def principal_from_cookie(app, directory, accounts_path: Path | None, raw: objec
         if _expired(issued):
             try:
                 directory.drop_hosted_session(sid)
-            except CloudAuthError:
-                pass
+            except CloudAuthError as exc:
+                log_hosted_session("drop", exc, directory)
             return None
         token = row.get("access_token")
         if not isinstance(token, str) or not token:
@@ -222,8 +226,8 @@ def principal_from_cookie(app, directory, accounts_path: Path | None, raw: objec
             if refreshed is None:
                 try:
                     directory.drop_hosted_session(sid)
-                except CloudAuthError:
-                    pass
+                except CloudAuthError as exc:
+                    log_hosted_session("drop", exc, directory)
                 return None
             row = refreshed
             token = str(row.get("access_token") or "")
