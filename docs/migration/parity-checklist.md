@@ -241,7 +241,7 @@ Hosted (Supabase configured) uses `ui/cloud_ui.py`. Otherwise the form in `ui/st
 
 **Sees:** Primary "Log in", full width. Success opens the app (Home or Start, then the gates).
 **Now:** `_render_sign_in` then `open_cloud_session`; local `_enter_account`
-**API:** `POST /auth/sign-in` sets the `rio_hosted` cookie. `401` `{"detail": "Sign in again."}` when a later call has no cookie. Wrong password is `401`.
+**API:** `POST /auth/sign-in` sets the `rio_hosted` cookie (`HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`, no `Domain`). The Vercel `/api` rewrite leaves that Set-Cookie on the Next host, and the next `/api` call sends it back. `401` `{"detail": "Sign in again."}` when a later call has no cookie, or when the hosted session row cannot be saved or read. Wrong password is `401` with "Email or password does not match." A failed save, load, update, drop, or refresh is a WARNING on logger `rio.cloud` (exception class, HTTP status, PostgREST or GoTrue code and message, whether the service key is set, and `sb_secret` / `jwt` / `other`). The log has no key, token, session id, or email. `GET /health/auth` adds `service_key_configured`, `service_key_format`, and `sessions_ok` (service-role `app_sessions` select, `limit` 0; on failure, the error code and message, no row values).
 **Step 3:** PR #61
 **Status:** done
 **Gap:** Where they land is Gap 2 and Gap 13, not this button. The button itself signs in and goes to `/`.
@@ -1848,7 +1848,7 @@ The live app keeps a signed token for one day. Refreshing does not extend it. Lo
 
 **Sees:** Close the tab and come back the same day: still signed in. Come back after 24 hours from the original sign-in: Log in. Reloading at 23 hours does not buy another day.
 **Now:** `ui/accounts.py` `issue_session`, `open_session` (`_SESSION_MAX_AGE` is 86400). Hosted: `ui/cloud_session.py` `cookie_max_age`, `SESSION_SECONDS`. The browser key for a local token is `rio.session.v1`. The hosted cookie name is `rio_hosted`.
-**API:** `POST /auth/sign-in` sets `rio_hosted` (`HttpOnly`, `Secure`, `SameSite=Lax`) with `max_age` from `cookie_max_age` (`api/identity.py` `set_session_cookie`). A missing or expired cookie is `401` "Sign in again." The token and the seal are not in the cookie and not in these responses.
+**API:** `POST /auth/sign-in` sets `rio_hosted` (`HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`, no `Domain`) with `max_age` from `cookie_max_age` (`api/identity.py` `set_session_cookie`). No `Domain` keeps the cookie on the Next host when `/api` is rewritten to Render. A missing or expired cookie is `401` "Sign in again." The token and the seal are not in the cookie and not in these responses.
 **Step 3:** PR #61
 **Status:** done
 **Evidence:** `tests/test_api_step3_10.py` `test_reloading_does_not_mint_a_new_session_cookie`. `GET /auth/me` does not set a cookie and the body has no token. The cookie is set on sign-in (`tests/test_api_step2c.py` `test_sign_up_sets_the_cookie_and_hides_the_token`) with the one-day max age.

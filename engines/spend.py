@@ -202,9 +202,9 @@ def supabase_rpc():
         return None
 
     def call(name: str, args: dict):
-        from supabase import create_client
+        from ui.cloud_store import supabase_client
 
-        client = create_client(url, service)
+        client = supabase_client(url, service)
         found = client.rpc(name, args).execute()
         return getattr(found, "data", None)
 

@@ -602,6 +602,76 @@ def _fresh_options():
     )
 
 
+def service_key_format(key: object) -> str:
+    """sb_secret, jwt, or other. The key itself is not returned."""
+    if not isinstance(key, str):
+        return "other"
+    text = key.strip()
+    if text.startswith("sb_secret_"):
+        return "sb_secret"
+    if text.startswith("eyJ") and text.count(".") == 2 and " " not in text:
+        return "jwt"
+    return "other"
+
+
+def _bearer_is_key(value: object, key: str) -> bool:
+    if not isinstance(value, str) or len(value) < 7:
+        return False
+    if value[:7].lower() != "bearer ":
+        return False
+    return value[7:] == key
+
+
+def _header_bag(headers: object) -> bool:
+    return hasattr(headers, "items") and hasattr(headers, "__delitem__")
+
+
+def _header_bags(client: object) -> list:
+    bags = []
+    options = getattr(client, "options", None)
+    headers = getattr(options, "headers", None) if options is not None else None
+    if _header_bag(headers):
+        bags.append(headers)
+    auth = getattr(client, "auth", None)
+    if auth is not None:
+        own = getattr(auth, "_headers", None)
+        if _header_bag(own):
+            bags.append(own)
+        admin = getattr(auth, "admin", None)
+        admin_headers = getattr(admin, "_headers", None) if admin is not None else None
+        if _header_bag(admin_headers) and admin_headers is not own:
+            bags.append(admin_headers)
+    return bags
+
+
+def _drop_non_jwt_authorization(client: object, key: str) -> None:
+    """supabase-py puts the key in Authorization: Bearer as well as apikey.
+
+    A legacy service-role JWT has to stay in both. sb_secret_ and any other
+    non-JWT key are not tokens. The platform tries to parse that Bearer
+    value as a JWT and rejects the request. The apikey header is enough.
+    """
+    if service_key_format(key) == "jwt" or not isinstance(key, str) or not key:
+        return
+    for headers in _header_bags(client):
+        doomed = [
+            name
+            for name, value in list(headers.items())
+            if str(name).lower() == "authorization" and _bearer_is_key(value, key)
+        ]
+        for name in doomed:
+            del headers[name]
+
+
+def supabase_client(url: str, key: str, options=None):
+    """A Supabase client. Non-JWT keys are not copied into Authorization."""
+    from supabase import create_client
+
+    client = create_client(url, key, options=options)
+    _drop_non_jwt_authorization(client, key)
+    return client
+
+
 def pkce_challenge(verifier: str) -> str:
     """S256 challenge. The verifier itself is not in the URL."""
     digest = hashlib.sha256(verifier.encode("ascii")).digest()
@@ -642,10 +712,9 @@ class SupabaseDirectory:
     def _client(self, key: str):
         """A new client. Auth state from another visitor is not reused."""
         try:
-            from supabase import create_client
+            return supabase_client(self.url, key, _fresh_options())
         except ImportError as exc:
             raise CloudAuthError("Accounts could not be reached.") from exc
-        return create_client(self.url, key, options=_fresh_options())
 
     def sign_up(
         self,
@@ -758,6 +827,7 @@ class SupabaseDirectory:
         try:
             response = self._client(self.anon_key).auth.refresh_session(refresh_token)
         except Exception as exc:
+            log_hosted_session("refresh", exc, self)
             raise CloudAuthError("Sign in again.") from exc
         return _session_dict(response, "")
 
@@ -1423,6 +1493,7 @@ class SupabaseDirectory:
         try:
             self._client(self.service_key).table("app_sessions").upsert(row).execute()
         except Exception as exc:
+            log_hosted_session("save", exc, self)
             raise CloudAuthError("Sign in again.") from exc
         return sid
 
@@ -1439,6 +1510,7 @@ class SupabaseDirectory:
                 .execute()
             )
         except Exception as exc:
+            log_hosted_session("load", exc, self)
             raise CloudAuthError("Sign in again.") from exc
         if not isinstance(row, dict) or _hosted_expired(row):
             if isinstance(row, dict):
@@ -1461,6 +1533,7 @@ class SupabaseDirectory:
         try:
             self._client(self.service_key).table("app_sessions").upsert(row).execute()
         except Exception as exc:
+            log_hosted_session("update", exc, self)
             raise CloudAuthError("Sign in again.") from exc
 
     def _purge_expired_sessions(self) -> None:
@@ -1471,7 +1544,8 @@ class SupabaseDirectory:
             self._client(self.service_key).table("app_sessions").delete().lt(
                 "expires_at", datetime.now(timezone.utc).isoformat()
             ).execute()
-        except Exception:
+        except Exception as exc:
+            log_hosted_session("purge", exc, self)
             return
 
     def drop_hosted_session(self, sid: object) -> None:
@@ -1482,6 +1556,7 @@ class SupabaseDirectory:
                 "sid_hash", hosted_hash(str(sid))
             ).execute()
         except Exception as exc:
+            log_hosted_session("drop", exc, self)
             raise CloudAuthError("Sign in again.") from exc
 
     def _drop_hosted_for_user(self, user_id: str) -> None:
@@ -1490,8 +1565,26 @@ class SupabaseDirectory:
             return
         try:
             self._client(self.service_key).table("app_sessions").delete().eq("user_id", user_id).execute()
-        except Exception:
+        except Exception as exc:
+            log_hosted_session("drop", exc, self)
             return
+
+    def probe_app_sessions(self) -> dict:
+        """One service-role select of no rows. Values from the table are not returned."""
+        key = self.service_key if isinstance(self.service_key, str) else ""
+        if not key.strip():
+            return {"ok": False, "code": None, "message": None}
+        try:
+            self._client(key).table("app_sessions").select("sid_hash").limit(0).execute()
+        except Exception as exc:
+            log_hosted_session("sessions", exc, self)
+            _status, code, message = hosted_failure_fields(exc, _directory_secrets(self))
+            return {
+                "ok": False,
+                "code": None if code == "-" else code,
+                "message": None if message == "-" else message,
+            }
+        return {"ok": True, "code": None, "message": None}
 
     def _user_client(self, access_token: object):
         if not isinstance(access_token, str) or not access_token:
@@ -1740,6 +1833,79 @@ def _log_store(action: str, exc: BaseException) -> None:
     import logging
 
     logging.getLogger("rio.cloud").warning("supabase %s failed: %s", action, type(exc).__name__)
+
+
+def _directory_secrets(directory: object) -> tuple[str, ...]:
+    found: list[str] = []
+    for name in ("service_key", "anon_key"):
+        value = getattr(directory, name, None)
+        if isinstance(value, str) and value:
+            found.append(value)
+    return tuple(found)
+
+
+def _reported_exception(exc: BaseException) -> BaseException:
+    """The PostgREST or GoTrue error under a CloudAuthError wrapper."""
+    reported = exc
+    for source in _sources(exc):
+        if isinstance(source, BaseException) and not isinstance(source, CloudAuthError):
+            reported = source
+    return reported
+
+
+def hosted_failure_fields(exc: BaseException, secrets: tuple[str, ...]) -> tuple[str, str, str]:
+    """Status, code, and message safe to log. Keys and tokens are removed."""
+    status = _http_status(exc)
+    status_text = "-" if status in (None, 0) else str(status)
+    code = ""
+    message = ""
+    for source in _sources(exc):
+        if not code:
+            for attr in ("code", "error_code", "error"):
+                value = getattr(source, attr, None)
+                if isinstance(value, str) and _SAFE_CODE.match(value.strip()):
+                    code = value.strip()
+                    break
+        if not message:
+            for attr in ("message", "error_description"):
+                value = getattr(source, attr, None)
+                if isinstance(value, str) and value.strip() and value.strip() != "Sign in again.":
+                    message = value.strip()
+                    break
+    if not message:
+        for source in reversed(_sources(exc)):
+            if not isinstance(source, BaseException):
+                continue
+            raw = str(source).strip()
+            if raw and raw != type(source).__name__ and raw != "Sign in again.":
+                message = raw
+                break
+    if any(isinstance(secret, str) and len(secret) >= 4 and secret in code for secret in secrets):
+        code = ""
+    message = _redact_detail(message, secrets)
+    return status_text, code or "-", message or "-"
+
+
+def log_hosted_session(action: str, exc: BaseException, directory: object | None = None) -> None:
+    """A hosted session failure. The key, token, session id, and email stay out."""
+    secrets = _directory_secrets(directory) if directory is not None else ()
+    key = ""
+    if directory is not None:
+        found = getattr(directory, "service_key", None)
+        if isinstance(found, str):
+            key = found
+    configured = bool(key.strip())
+    status, code, message = hosted_failure_fields(exc, secrets)
+    logging.getLogger("rio.cloud").warning(
+        "hosted session %s failed: error=%s status=%s code=%s message=%s service_key=%s format=%s",
+        action,
+        type(_reported_exception(exc)).__name__,
+        status,
+        code,
+        message,
+        "set" if configured else "missing",
+        service_key_format(key) if configured else "other",
+    )
 
 
 def _exc_text(exc: BaseException) -> str:
@@ -2153,11 +2319,46 @@ def fetch_auth_settings(url: str, anon_key: str, timeout: float = 5.0, *, opener
     return _status_int(getattr(response, "status_code", None))
 
 
+def _service_key_state(directory: object) -> tuple[bool, str]:
+    if not isinstance(directory, SupabaseDirectory):
+        return False, "other"
+    key = directory.service_key if isinstance(directory.service_key, str) else ""
+    if not key.strip():
+        return False, "other"
+    return True, service_key_format(key)
+
+
+def _sessions_ok(directory: object) -> dict:
+    configured, _fmt = _service_key_state(directory)
+    if not configured or not isinstance(directory, SupabaseDirectory):
+        return {"ok": False, "code": None, "message": None}
+    return directory.probe_app_sessions()
+
+
+def _auth_health_body(
+    directory: object,
+    *,
+    configured: bool,
+    host: str | None,
+    reachable: bool,
+    status: int | None,
+) -> dict:
+    service_configured, service_format = _service_key_state(directory)
+    return {
+        "configured": configured,
+        "url_host": host,
+        "auth_reachable": reachable,
+        "status": status,
+        "service_key_configured": service_configured,
+        "service_key_format": service_format,
+        "sessions_ok": _sessions_ok(directory),
+    }
+
+
 def auth_health(directory: object) -> dict:
     """Whether the configured URL and anon key are accepted. No secrets, no writes."""
-    blank = {"configured": False, "url_host": None, "auth_reachable": False, "status": None}
     if not isinstance(directory, SupabaseDirectory):
-        return blank
+        return _auth_health_body(directory, configured=False, host=None, reachable=False, status=None)
     url = directory.url if isinstance(directory.url, str) else ""
     anon = directory.anon_key if isinstance(directory.anon_key, str) else ""
     service = directory.service_key if isinstance(directory.service_key, str) else ""
@@ -2168,15 +2369,10 @@ def auth_health(directory: object) -> dict:
         host = None
     configured = bool(url.strip() and anon.strip())
     if not configured:
-        return {"configured": False, "url_host": host, "auth_reachable": False, "status": None}
+        return _auth_health_body(directory, configured=False, host=host, reachable=False, status=None)
     status = fetch_auth_settings(url, anon)
     reachable = isinstance(status, int) and 200 <= status < 300
-    return {
-        "configured": True,
-        "url_host": host,
-        "auth_reachable": reachable,
-        "status": status,
-    }
+    return _auth_health_body(directory, configured=True, host=host, reachable=reachable, status=status)
 
 
 def _response_parts(response: object) -> tuple[object, object]:

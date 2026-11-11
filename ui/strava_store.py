@@ -77,16 +77,14 @@ class SupabaseStrava:
         self.access_token = access_token
 
     def _service(self):
-        from supabase import create_client
-        from ui.cloud_store import _fresh_options
+        from ui.cloud_store import _fresh_options, supabase_client
 
-        return create_client(self.url, self.service_key, options=_fresh_options())
+        return supabase_client(self.url, self.service_key, _fresh_options())
 
     def _owner_client(self):
-        from supabase import create_client
-        from ui.cloud_store import _fresh_options
+        from ui.cloud_store import _fresh_options, supabase_client
 
-        client = create_client(self.url, self.anon_key, options=_fresh_options())
+        client = supabase_client(self.url, self.anon_key, _fresh_options())
         client.postgrest.auth(self.access_token)
         return client
 
@@ -95,10 +93,9 @@ class SupabaseStrava:
 
     def owner_id(self) -> str:
         """The auth user for this access token. A caller-supplied id is not trusted."""
-        from supabase import create_client
-        from ui.cloud_store import _fresh_options
+        from ui.cloud_store import _fresh_options, supabase_client
 
-        client = create_client(self.url, self.anon_key, options=_fresh_options())
+        client = supabase_client(self.url, self.anon_key, _fresh_options())
         user = client.auth.get_user(self.access_token)
         found = getattr(user, "user", user)
         user_id = getattr(found, "id", None)
