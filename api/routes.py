@@ -36,7 +36,7 @@ from api.season_service import (
     viewer,
 )
 from ui.accounts import AccountError
-from ui.cloud_store import CloudAuthError
+from ui.cloud_store import SIGNIN_UNAVAILABLE, CloudAuthError, auth_health
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
 season_router = APIRouter(prefix="/seasons", tags=["seasons"])
@@ -173,6 +173,12 @@ def health() -> dict:
     return {"ok": True}
 
 
+@health_router.get("/health/auth")
+def health_auth(request: Request) -> dict:
+    """Whether this process's anon key is accepted. The key is not returned."""
+    return auth_health(request.app.state.directory)
+
+
 @auth_router.post("/sign-in")
 def sign_in(body: SignInBody, request: Request, response: Response) -> dict:
     directory = request.app.state.directory
@@ -189,7 +195,8 @@ def sign_in(body: SignInBody, request: Request, response: Response) -> dict:
             )
             kind = "local"
     except CloudAuthError as exc:
-        raise ApiError(401, str(exc)) from exc
+        status = 503 if str(exc) == SIGNIN_UNAVAILABLE else 401
+        raise ApiError(status, str(exc)) from exc
     except AccountError as exc:
         raise ApiError(401, str(exc)) from exc
     set_session_cookie(response, request.app.state.settings, sid, issued)
