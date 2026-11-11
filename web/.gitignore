@@ -43,3 +43,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Generated from ../ui/static by scripts/copy-static.mjs. ui/static stays the source of truth.
+/public/fonts/
+/public/photos/
