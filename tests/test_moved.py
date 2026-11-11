@@ -25,7 +25,7 @@ def _boot(source: str) -> str:
 
 
 def test_the_screen_names_the_new_site_and_keeps_the_same_tab() -> None:
-    """The copy, the brand colors, and a same-tab link. No new window."""
+    """The copy, the brand colors, and a same-tab link that leaves the Cloud frame."""
     html = moved_html()
     css = moved_css()
     for piece in (HEADLINE, FASTER, ACCOUNT, BUTTON_LABEL, NEW_HOME, "RIO"):
@@ -37,10 +37,18 @@ def test_the_screen_names_the_new_site_and_keeps_the_same_tab() -> None:
         raise AssertionError(ACCOUNT)
     if html.count(f'href="{NEW_HOME}"') != 2:
         raise AssertionError("the button and the address are not both links")
+    if html.count('target="_top"') != 2:
+        raise AssertionError("the link does not leave the iframe in this tab")
     if 'target="_blank"' in html or 'target="_blank"' in css:
         raise AssertionError("the link opens a new tab")
-    if 'target="_self"' not in html:
-        raise AssertionError("the link does not stay in this tab")
+    if 'target="_self"' in html or 'target="_self"' in css:
+        raise AssertionError("the link stays inside the Cloud iframe")
+    source = (ROOT / "ui" / "moved.py").read_text(encoding="utf-8")
+    render = source[source.index("def render_moved") :]
+    if "st.markdown(moved_html(), unsafe_allow_html=True, anchors=False)" not in render:
+        raise AssertionError("the links are not in the app frame")
+    if "st.html(" in render:
+        raise AssertionError("st.html drops every target except a new tab")
     if "reconnect" in html.lower() or "strava" in html.lower():
         raise AssertionError("the screen claims a Strava step it does not need")
     button = css[css.index("a.rio-moved-go") : css.index(".rio-moved-url")]

@@ -3,7 +3,8 @@
 """RIO has a new home. This page does not sign in, load a plan, or call Strava.
 
 streamlit_app.py draws this and then stops. The old screens are still in
-that file. They run again if those two lines are removed.
+that file. They run again if those two lines are removed. The links leave
+the Streamlit Cloud frame in this same tab.
 """
 
 from __future__ import annotations
@@ -35,7 +36,7 @@ OWNED = "Runner Intelligence Owned"
 
 
 def moved_html() -> str:
-    """The wordmark, the note, and a same-tab link. No new window."""
+    """The wordmark, the note, and links that leave the Cloud frame in this tab."""
     url = escape(NEW_HOME, quote=True)
     return f"""
 <section class="rio-moved">
@@ -45,9 +46,9 @@ def moved_html() -> str:
   <p class="rio-moved-lead">{escape(FASTER)}</p>
   <p class="rio-moved-account">{escape(ACCOUNT)}</p>
   <p class="rio-moved-action">
-    <a class="rio-moved-go" href="{url}" target="_self">{escape(BUTTON_LABEL)}</a>
+    <a class="rio-moved-go" href="{url}" target="_top">{escape(BUTTON_LABEL)}</a>
   </p>
-  <p class="rio-moved-url"><a href="{url}" target="_self">{escape(NEW_HOME)}</a></p>
+  <p class="rio-moved-url"><a href="{url}" target="_top">{escape(NEW_HOME)}</a></p>
 </section>
 """
 
@@ -86,6 +87,8 @@ header {{
 .rio-moved p,
 .rio-moved a {{
   font-family: {FONT} !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
 }}
 .rio-moved {{
   margin: 0;
@@ -113,6 +116,7 @@ header {{
 }}
 .rio-moved h1 {{
   margin: 0 0 0.85rem !important;
+  padding: 0 !important;
   color: {TEXT} !important;
   font-family: {DISPLAY} !important;
   max-width: 12ch;
@@ -180,6 +184,11 @@ a.rio-moved-go:hover {{
   text-decoration: underline !important;
   text-underline-offset: 0.18em !important;
 }}
+[data-testid="stMarkdownContainer"]:has(.rio-moved),
+[data-testid="stHeadingWithActionElements"] {{
+  margin: 0 !important;
+  padding: 0 !important;
+}}
 @media (max-width: 640px) {{
   [data-testid="stMainBlockContainer"],
   .block-container {{
@@ -200,4 +209,5 @@ a.rio-moved-go:hover {{
 def render_moved() -> None:
     """Draw the moved screen. The caller stops the script after this."""
     st.markdown(moved_css(), unsafe_allow_html=True)
-    st.html(moved_html())
+    # st.html keeps only a new-tab target. Markdown keeps target="_top".
+    st.markdown(moved_html(), unsafe_allow_html=True, anchors=False)
