@@ -199,6 +199,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   line-height: 1.45;
 }
 .rio-error { color: var(--ink); font-size: 0.95rem; }
+.rio-loading {
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+}
+.rio-loading main { padding: 2.4rem 5vw 3.5rem; }
 .rio-gate-retry {
   box-sizing: border-box;
   max-width: 28rem;
@@ -885,6 +891,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .rio-segments input { position: absolute; opacity: 0; inset: 0; margin: 0; }
 .rio-plan-gap { height: 1.25rem; }
 .rio-plan-view { animation: rio-rise 200ms var(--ease) both; }
+/* The calendar and week cards arrive after the first paint. An entrance
+   fade that starts at opacity 0 can stay there until a reload skips it. */
+.page-plan main.rio-stagger,
+.page-plan main.rio-stagger > * {
+  animation: none;
+  opacity: 1;
+  transform: none;
+}
 .rio-weeks { margin: 0.2rem 0 1rem; }
 .rio-weeks summary, .rio-reasons-box summary {
   cursor: pointer;
@@ -1761,6 +1775,22 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   color: #121110;
 }
 .page-past .rio-past-row:hover { transform: translateY(-2px); }
+.page-past .rio-past-open {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 2.55rem;
+  margin: 0.4rem 0 0.1rem;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid #d0cbc3;
+  border-radius: 999px;
+  background: #fff;
+  color: #121110;
+  font-variant-numeric: tabular-nums;
+}
+.page-past .rio-past-open:hover { border-color: #e25a32; }
 .page-past .rio-stagger .rio-past-row { animation: rio-rise 200ms var(--ease) both; }
 .page-past .rio-past-k {
   display: block;

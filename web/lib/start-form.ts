@@ -90,6 +90,16 @@ export function sameSeason(
   );
 }
 
+/** Home when this season is still current and the URL does not name another one. */
+export function startShouldGoHome(
+  goalDate: string | undefined,
+  today: string | undefined,
+  linkDiffers: boolean,
+): boolean {
+  if (linkDiffers || !goalDate || !today) return false;
+  return goalDate >= today;
+}
+
 export function planHasScore(value: unknown): boolean {
   if (!value || typeof value !== "object") return false;
   if (Array.isArray(value)) return value.some(planHasScore);

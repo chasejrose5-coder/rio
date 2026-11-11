@@ -138,7 +138,9 @@ test("two stored seasons list start, goal, and time", async ({ page }) => {
   await install(page);
   await page.goto("/past-seasons");
   await expect(page.getByRole("link", { name: "Mar 2, 2019 Jun 1, 2019 1:59.0" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Jan 6, 2020 Apr 6, 2020 1:55.0" })).toBeVisible();
+  const opened = page.getByRole("link", { name: "Jan 6, 2020 Apr 6, 2020 1:55.0" });
+  await expect(opened).toBeVisible();
+  await expect(opened).toHaveText("2020-01-06 2020-04-06 1:55.0");
   await expect(page.getByRole("link", { name: "Aug 2, 2026 Nov 10, 2026 1:56.0" })).toBeVisible();
   await expect(page.getByText("Start date").first()).toBeVisible();
   await expect(page.getByText("Goal date").first()).toBeVisible();

@@ -162,6 +162,10 @@ test("sign-in with a current season opens Home", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/home$/);
   await expect(page.getByRole("button", { name: "Continue" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "RIO" })).toHaveAttribute("href", "/home");
+  await page.getByRole("link", { name: "RIO" }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  await expect(page.getByRole("heading", { name: /days to/ })).toBeVisible();
 });
 
 test("sign-in without a current season opens Start", async ({ page }) => {
@@ -174,6 +178,7 @@ test("sign-in without a current season opens Start", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Start" })).toBeVisible();
   await expect(page.getByLabel("Your 800 m time today")).toHaveValue("");
   await expect(page.getByText("Coming in the next step.")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "RIO" })).toHaveAttribute("href", "/start");
 });
 
 test("a blank name says Enter a name", async ({ page }) => {
