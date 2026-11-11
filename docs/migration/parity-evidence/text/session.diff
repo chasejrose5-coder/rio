@@ -1,0 +1,5 @@
+--- streamlit/session
++++ next/session
+@@ -11,6 +11,7 @@
+ WORKOUT 8 × 150 m at or faster than goal 800 pace, long rest 8 × 150 m @ 23.0 s, 150 s rest+Average 23.0 s Tolerance 22.8-23.2 s STRUCTURE 8 × 150 m at or faster than goal 800 pace, 150 s rest.@@ -61,11 +62,11 @@
+ RESULT Enter the time for each rep. Rep 1+Rep 2 Rep 3+Rep 4 Rep 5+Rep 6 Rep 7-Rep 2-Rep 4-Rep 6 Rep 8 Questions or feedback? Email chasejrose5@gmail.com

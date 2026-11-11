@@ -1061,6 +1061,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .rio-session-split { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(12rem, 0.8fr); gap: 1.2rem; }
 .rio-supplied { padding-left: 1rem; border-left: 1px solid #dadada; }
 .rio-template-id { margin: 0.2rem 0 0; color: #6b6b6b; font-size: 0.78rem; }
+.rio-track-id { grid-column: 1 / -1; }
+.rio-daycard-id { margin-top: 0.45rem; }
 .page-session .rio-prep {
   margin: 0.85rem 0 0.15rem;
   padding-top: 0.15rem;
@@ -2183,3 +2185,35 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   .page-admin .rio-admin-views { grid-template-columns: 1fr; }
   .page-fixture .rio-fields { grid-template-columns: 1fr; }
 }
+
+/* Compact mode. Streamlit injects these paddings on every signed-in page. */
+.page-home.is-compact .rio-hero { padding: 1.35rem 0 0.85rem; }
+.page-home.is-compact .rio-hero h1 { font-size: 2.35rem; margin-top: 0.35rem; }
+.page-home.is-compact .rio-track-facts { padding-top: 0.45rem; }
+.page-home.is-compact .rio-home-today { margin-bottom: 0.85rem; }
+.page-home.is-compact .rio-glossary,
+.page-home.is-compact .rio-card { padding: 0.85rem 1.1rem 0.7rem; margin-bottom: 0.7rem; }
+
+.page-plan.is-compact .rio-plan-hero { padding: 1.35rem 5vw 0.85rem; min-height: 0; }
+.page-plan.is-compact .rio-plan-hero h1 { font-size: 2.35rem; margin-top: 0.35rem; }
+.page-plan.is-compact .rio-plan-hero .rio-range { margin-top: 0.4rem; }
+.page-plan.is-compact .rio-card { padding: 0.85rem 1.1rem 0.7rem; margin-bottom: 0.7rem; }
+.page-plan.is-compact .rio-daycard { padding: 0.95rem 1.1rem 0.8rem; margin-bottom: 0.5rem; }
+.page-plan.is-compact .rio-daycard-work { margin-top: 0.7rem; font-size: 1.05rem; }
+.page-plan.is-compact .rio-daycard-target { margin-top: 0.55rem; padding-top: 0.55rem; }
+.page-plan.is-compact .rio-day { padding: 0.5rem 0; }
+.page-plan.is-compact .rio-week { padding: 0.85rem 0 0.65rem; margin-bottom: 0.85rem; }
+.page-plan.is-compact .rio-pick { margin-bottom: 0.85rem; }
+
+.page-session.is-compact .rio-hero { padding: 1.35rem 5vw 0.85rem; }
+.page-session.is-compact .rio-hero h1 { font-size: 2.35rem; margin-top: 0.35rem; }
+.page-session.is-compact .rio-range { margin-top: 0.4rem; }
+.page-session.is-compact .rio-card { padding: 0.85rem 1.1rem 0.7rem; margin-bottom: 0.7rem; }
+
+.page-activity.is-compact .rio-hero { padding: 1.35rem 5vw 0.85rem; }
+.page-activity.is-compact .rio-hero h1 { font-size: 2.35rem; margin-top: 0.35rem; }
+.page-activity.is-compact .rio-range { margin-top: 0.4rem; }
+.page-activity.is-compact .rio-card { padding: 0.85rem 1.1rem 0.7rem; margin-bottom: 0.7rem; }
+.page-activity.is-compact .rio-volume,
+.page-activity.is-compact .rio-heart { padding: 0.7rem 0.95rem 0.4rem; margin-bottom: 0.7rem; }
+.page-activity.is-compact .rio-week { margin-bottom: 0.85rem; }

@@ -127,8 +127,9 @@ function ActivityBody() {
   const synced =
     connected && when !== null && typeof count === "number" ? `Last synced ${formatSynced(when, zone)}, ${count} runs imported` : "";
 
+  const compact = athlete?.prefs.compact === true;
   return (
-    <div className="page-activity">
+    <div className={compact ? "page-activity is-compact" : "page-activity"}>
       <Nav active="Activity" />
       <main className={rise ? "rio-stagger" : undefined}>
         {body?.preview?.active || previewing() ? <PreviewBanner banner={body?.preview?.banner} /> : null}

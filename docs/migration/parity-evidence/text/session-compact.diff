@@ -1,0 +1,6 @@
+--- streamlit/session-compact
++++ next/session-compact
+@@ -3,8 +3,8 @@
+ PLAN ACTIVITY LIBRARY+MORE ADMIN-MORE START SESSION LOG OUT Tuesday@@ -13,6 +13,7 @@
+ 8 × 150 m at or faster than goal 800 pace, long rest spd_150_r150_x8 8 × 150 m @ 23.0 s, 150 s rest+Average 23.0 s Tolerance 22.8-23.2 s STRUCTURE 8 × 150 m at or faster than goal 800 pace, 150 s rest.@@ -62,13 +63,16 @@
+ Times save as you type. RESULT Intervals file+—+synthetic_autosplit_no_rest.json+synthetic_se_400_with_recovery.json Enter the time for each rep. Rep 1+Rep 2 Rep 3+Rep 4 Rep 5+Rep 6 Rep 7-Rep 2-Rep 4-Rep 6 Rep 8 Questions or feedback? Email chasejrose5@gmail.com
