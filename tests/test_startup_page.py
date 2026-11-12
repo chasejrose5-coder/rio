@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from html import unescape
 from pathlib import Path
 from unittest.mock import patch
 
@@ -170,7 +171,7 @@ def test_startup_page_renders_and_leads_to_login() -> None:
     if "localStorage" in (ROOT / "ui" / "startup.py").read_text(encoding="utf-8"):
         raise AssertionError("startup is stored in this browser")
 
-    from ui.moved import ACCOUNT, BUTTON_LABEL, FASTER, NEW_HOME
+    from ui.moved import ACCOUNT, COPY, FASTER, NEW_HOME
     from ui.moved import HEADLINE as MOVED_HEADLINE
     from streamlit.testing.v1 import AppTest
 
@@ -179,32 +180,27 @@ def test_startup_page_renders_and_leads_to_login() -> None:
         at = AppTest.from_file(str(script), default_timeout=60).run(timeout=60)
         if _failure(at):
             raise AssertionError(_failure(at))
-        srcdocs = []
         for node in at.main:
-            if getattr(node, "type", "") != "iframe":
-                continue
-            srcdoc = getattr(getattr(node, "proto", None), "srcdoc", "")
-            if srcdoc:
-                srcdocs.append(srcdoc)
-        if len(srcdocs) != 1:
-            raise AssertionError("the moved screen is not one nested iframe")
-        srcdoc = srcdocs[0]
-        page = _page_text(at) + "\n" + "\n".join(block.value for block in at.html)
-        shown = page + "\n" + srcdoc
-        if f'href="{NEW_HOME}"' in page or "<form" in page.lower():
-            raise AssertionError("the clickable control is in the app document")
-        if 'target="_blank"' in page or 'target="_top"' in page or 'target="_self"' in page:
-            raise AssertionError("the app document still carries a navigation target")
-        if MOVED_HEADLINE not in srcdoc or FASTER not in srcdoc or ACCOUNT not in srcdoc:
+            if getattr(node, "type", "") == "iframe":
+                raise AssertionError("the moved screen is still an iframe")
+        shown = unescape(_page_text(at) + "\n" + "\n".join(block.value for block in at.html))
+        if MOVED_HEADLINE not in shown or FASTER not in shown or ACCOUNT not in shown:
             raise AssertionError("the moved screen did not render")
-        if NEW_HOME not in srcdoc or BUTTON_LABEL not in srcdoc or "Copy link" not in srcdoc:
-            raise AssertionError("the new site link is missing")
-        if srcdoc.count('target="_blank"') != 2 or srcdoc.count('rel="noopener noreferrer"') != 2:
-            raise AssertionError("the form and the address do not both ask for a new tab")
-        if f'action="{NEW_HOME}"' not in srcdoc or 'method="GET"' not in srcdoc:
-            raise AssertionError("the button is not a form inside the iframe")
-        if 'target="_top"' in srcdoc or 'target="_self"' in srcdoc:
-            raise AssertionError("the link stays in the Cloud frame")
+        if NEW_HOME not in shown or COPY not in shown:
+            raise AssertionError("the address to copy is missing")
+        if "Open the new RIO" in shown:
+            raise AssertionError("the open button is still on the screen")
+        for forbidden in (
+            'target="_blank"',
+            'target="_top"',
+            'target="_self"',
+            "window.open",
+            "<iframe",
+            "<form",
+            f'href="{NEW_HOME}"',
+        ):
+            if forbidden in shown:
+                raise AssertionError(forbidden)
         if HEADLINE in shown or CREATOR_STATEMENT in shown or "rio-startup-shade" in shown:
             raise AssertionError("the startup page rendered")
         if CONTINUE_LABEL in _labels(at.button) or "Log in" in _labels(at.button):
