@@ -4220,9 +4220,35 @@ def _home_credit() -> None:
     st.markdown(theme.credit_html(theme.HOME_CREDIT), unsafe_allow_html=True)
 
 
+_CONTACT_EMAIL = "chasejrose5@gmail.com"
+
+
 def _contact_footer() -> None:
-    """Photo credits stay on each page. There is no personal contact address."""
-    return
+    """Muted line under the page. Photo credits stay where each page put them.
+
+    The rules also live in app.css. This tag covers the startup page, which
+    stops before that stylesheet is sent.
+    """
+    address = _esc(_CONTACT_EMAIL)
+    st.markdown(
+        '<style>'
+        '.rio-contact{margin:0.35rem auto 1.75rem !important;padding:0 !important;'
+        'background:transparent !important;border:none !important;box-shadow:none !important;'
+        'color:#6E6A64 !important;font-size:0.78rem !important;font-weight:400 !important;'
+        'line-height:1.4 !important;text-align:center;position:relative;z-index:6;}'
+        '.rio-contact a{color:#6E6A64 !important;font-weight:500;text-decoration:underline;'
+        'text-underline-offset:0.12em;}'
+        '.stApp:has(.rio-on-photo) .rio-contact,.stApp:has(.rio-page-shade) .rio-contact,'
+        '.stApp:has(.rio-startup-shade) .rio-contact{color:rgba(244,241,236,0.82) !important;}'
+        '.stApp:has(.rio-on-photo) .rio-contact a,.stApp:has(.rio-page-shade) .rio-contact a,'
+        '.stApp:has(.rio-startup-shade) .rio-contact a{color:#F4F1EC !important;}'
+        '.stApp:has(.rio-startup-credit) .rio-contact{position:fixed;left:0;right:0;'
+        'bottom:3.15rem;z-index:5;margin:0 auto !important;}'
+        '</style>'
+        '<p class="rio-contact">Questions or feedback? Email '
+        f'<a href="mailto:{address}">{address}</a></p>',
+        unsafe_allow_html=True,
+    )
 
 
 def page_dashboard() -> None:

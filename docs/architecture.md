@@ -53,7 +53,7 @@ The two JSON files in `tests/fixtures/intervals/` are synthetic. A file whose na
 
 `rio/v0.1/adaptations.yml` lists useful, fade, recovery, and evidence notes per capacity. No Python file reads it. Season adaptation is the code in `adapt()`, not this file.
 
-`docs/goal.md` is a second goal, for athlete Chase Rose: current 2:02.9 on 4.19.26, target 1:55.0 on 3.19.27, meet Stanford Invitational qualifying standard, secondary event 400 m unscored, limiting capacity written as Speed Endurance. `classify()` still reads the `Target 800` line when no other goal is passed, and uses it as the pace the rules compare against. The season builder does not read this file. Start leaves the times blank. A generated season uses the signed-in athlete's own current time, goal time, and dates. Editing `docs/goal.md` changes classification pace for that engine path. It does not change a generated season.
+`docs/goal.md` is a second goal, for athlete Chase Rose: current 2:02.9 on 4.19.26, target 1:55.0 on 3.19.27, meet Stanford Invitational qualifying standard, secondary event 400 m unscored, limiting capacity written as Speed Endurance. `classify()` reads the `Target 800` line and uses it as the pace the rules compare against. The season builder does not read this file. `show_season()` prints those same numbers only because they are the function's default arguments. The Start form uses the same numbers as hardcoded defaults. Editing `docs/goal.md` changes classification pace. It does not change a generated season unless someone types the new values into Start.
 
 `docs/intervals_field_map.md` is the field list Activity data's detail groups follow. It is not parsed.
 
