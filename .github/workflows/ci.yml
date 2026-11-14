@@ -2,6 +2,7 @@ name: tests
 
 on:
   pull_request:
+    branches: [main]
   push:
     branches: [main]
 
@@ -21,7 +22,8 @@ jobs:
   web:
     runs-on: ubuntu-latest
     defaults:
-      working-directory: web
+      run:
+        working-directory: web
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -38,5 +40,6 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm test
+      - run: npm run test:unit
+      - run: npx playwright test
       - run: npm run build
