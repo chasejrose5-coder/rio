@@ -26,9 +26,13 @@ from ui.accounts import (
 from ui.cloud_config import app_url
 from ui.cloud_store import (
     ACCOUNTS_UNAVAILABLE,
+    CONFIRM_INVALID,
+    RESEND_SENT,
+    RESET_SENT,
     SIGNUP_CONFIRM,
     CloudAuthError,
     MemoryDirectory,
+    _is_absent_account,
 )
 GOOGLE_REDIRECT_ENV = "RIO_GOOGLE_REDIRECT_URI"
 
@@ -93,8 +97,11 @@ def reset_redirect_url(origin: str) -> str:
 
 
 def confirm_redirect_url(origin: str) -> str:
-    """Signup confirmation mail opens the Next origin. Streamlit keeps its own link."""
-    return mail_origin(origin) + "/"
+    """Signup and email-change mail open the Next confirm page.
+
+    Streamlit's own sign-up does not use this. It still opens RIO_APP_URL.
+    """
+    return mail_origin(origin) + "/confirm"
 
 
 def sign_up_hosted(directory, email: str, password: str, name: str, origin: str) -> dict:
@@ -145,8 +152,12 @@ def forgot_password(directory, email: str, origin: str) -> dict:
     try:
         directory.request_reset(email, redirect_to=reset_redirect_url(origin))
     except CloudAuthError as exc:
+        # The directory already hides a missing account. This is the same
+        # sentence if a stand-in still raises the raw "user not found" text.
+        if _is_absent_account(exc):
+            return {"ok": True, "message": RESET_SENT}
         raise_auth(exc)
-    return {"ok": True, "message": "Check your email for the reset link."}
+    return {"ok": True, "message": RESET_SENT}
 
 
 def reset_password(
@@ -199,12 +210,66 @@ def change_password_for(app, directory, principal: Principal, current: str, new:
     return {"ok": True, "message": "Password updated."}
 
 
-def change_email_for(app, directory, principal: Principal, password: str, new_email: str) -> dict:
+def resend_confirmation(directory, email: str, origin: str) -> dict:
+    """Send the signup confirmation again. A missing account gets the same sentence."""
+    from ui.accounts import normalize_email
+
+    if directory is None:
+        raise ApiError(400, "Email confirmation is not available for this account.")
+    if normalize_email(email) is None:
+        raise ApiError(400, "Enter an email address.")
+    try:
+        directory.resend_signup(email, redirect_to=confirm_redirect_url(origin))
+    except CloudAuthError as exc:
+        if _is_absent_account(exc):
+            return {"ok": True, "message": RESEND_SENT}
+        raise_auth(exc)
+    return {"ok": True, "message": RESEND_SENT}
+
+
+def confirm_email(
+    directory,
+    token: str,
+    *,
+    access_token: str = "",
+    refresh_token: str = "",
+    link_type: str = "",
+) -> dict:
+    """Finish a signup or email-change link. The browser still has to log in."""
+    if directory is None:
+        raise ApiError(400, "Email confirmation is not available for this account.")
+    try:
+        outcome = directory.confirm_link(
+            token,
+            access_token=access_token,
+            refresh_token=refresh_token,
+            link_type=link_type,
+        )
+    except CloudAuthError as exc:
+        raise_auth(exc)
+    if not isinstance(outcome, dict):
+        raise ApiError(400, CONFIRM_INVALID)
+    return outcome
+
+
+def change_email_for(
+    app,
+    directory,
+    principal: Principal,
+    password: str,
+    new_email: str,
+    origin: str,
+) -> dict:
     if principal.kind == "hosted":
         if directory is None or not isinstance(principal.token, str):
             raise ApiError(401, "Sign in again.")
         try:
-            updated = directory.change_email(principal.token, password, new_email)
+            updated = directory.change_email(
+                principal.token,
+                password,
+                new_email,
+                redirect_to=confirm_redirect_url(origin),
+            )
         except CloudAuthError as exc:
             raise_auth(exc)
         _rewrite_hosted_email(directory, principal.sid, updated)

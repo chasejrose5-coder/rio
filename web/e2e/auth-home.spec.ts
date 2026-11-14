@@ -98,6 +98,9 @@ async function installApi(
       if (options.hosted) return json(route, { url: "https://example.test/google", redirect_uri: "http://localhost:3000/" });
       return json(route, { detail: "Accounts are not available." }, 503);
     }
+    if (path === "/auth/availability") {
+      return json(route, { mode: options.hosted ? "hosted" : "local" });
+    }
     if (path === "/auth/sign-in") {
       signed = true;
       return json(route, { email: athlete.email, display_name: athlete.display_name, kind: "local" });

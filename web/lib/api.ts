@@ -1,3 +1,4 @@
+import type { ConfirmLink } from "./confirm-link";
 import type {
   ActivitiesResponse,
   Athlete,
@@ -84,6 +85,23 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
+const confirmInflight = new Map<string, Promise<{ ok: boolean; kind: string; message: string; refreshed?: boolean }>>();
+
+/** One request per link. A remounted page reuses it instead of burning the token twice. */
+export function confirmOnce(link: ConfirmLink) {
+  const key = [link.type, link.token, link.accessToken, link.refreshToken].join("\n");
+  const found = confirmInflight.get(key);
+  if (found) return found;
+  const pending = api.confirm({
+    token: link.token,
+    access_token: link.accessToken,
+    refresh_token: link.refreshToken,
+    type: link.type,
+  });
+  confirmInflight.set(key, pending);
+  return pending;
+}
+
 export const api = {
   me: () => request<Athlete>("/auth/me"),
 
@@ -103,6 +121,23 @@ export const api = {
     request<{ ok: boolean; message: string }>("/auth/forgot-password", {
       method: "POST",
       body: JSON.stringify({ email }),
+    }),
+
+  resend: (email: string) =>
+    request<{ ok: boolean; message: string }>("/auth/resend-confirmation", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
+  confirm: (body: {
+    token: string;
+    access_token?: string;
+    refresh_token?: string;
+    type?: string;
+  }) =>
+    request<{ ok: boolean; kind: string; message: string; refreshed?: boolean }>("/auth/confirm", {
+      method: "POST",
+      body: JSON.stringify(body),
     }),
 
   reset: (body: {

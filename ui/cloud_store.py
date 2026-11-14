@@ -48,6 +48,17 @@ SIGNIN_RATE = "Too many sign-in attempts. Wait a few minutes and try again."
 SIGNIN_MISMATCH = "Email or password does not match."
 SIGNIN_UNAVAILABLE = "Sign-in is not available right now. Try again later."
 ACCOUNTS_UNAVAILABLE = "Accounts aren't set up yet. Try again in a minute."
+MAIL_RATE = "Too many attempts. Wait a few minutes and try again."
+RESET_SENT = "Check your email for the reset link."
+RESET_FAILED = "The reset email could not be sent."
+CONFIRM_INVALID = "That confirmation link is no longer valid."
+CONFIRM_SIGNUP = "Email confirmed. You can log in."
+CONFIRM_EMAIL = (
+    "This address is confirmed. If a second email is still waiting, open that one too. Then log in."
+)
+RESEND_FAILED = "The confirmation email could not be sent."
+RESEND_SENT = "If that address still needs confirmation, we sent another email."
+CONFIRM_KINDS = ("signup", "email", "email_change")
 
 
 class MemoryDirectory:
@@ -65,6 +76,11 @@ class MemoryDirectory:
         self.hosted: dict[str, dict] = {}
         self.email_redirect_to = ""
         self.reset_redirect_to = ""
+        self.confirm_redirect_to = ""
+        self.email_change_redirect_to = ""
+        self.confirms: dict[str, dict] = {}
+        self.last_confirm_token = ""
+        self.last_resend_email = ""
 
     def sign_up(self, email: object, password: object, name: object, *, email_redirect_to: str | None = None) -> dict:
         cleaned = normalize_email(email)
@@ -141,6 +157,69 @@ class MemoryDirectory:
         self.resets[token] = user_id
         return token
 
+    def resend_signup(self, email: object, *, redirect_to: str | None = None) -> str:
+        """Remember a confirmation resend. An unknown address is not an error.
+
+        Nothing is sent. The same empty result is what a missing account gets,
+        so a caller cannot tell the two apart.
+        """
+        cleaned = normalize_email(email)
+        if cleaned is None:
+            raise CloudAuthError("Enter an email address.")
+        self.confirm_redirect_to = redirect_to.strip() if isinstance(redirect_to, str) else ""
+        self.last_resend_email = cleaned
+        if cleaned not in self.by_email:
+            return ""
+        token = secrets.token_hex(8)
+        self.confirms[token] = {"type": "signup", "email": cleaned}
+        self.last_confirm_token = token
+        return ""
+
+    def confirm_link(
+        self,
+        token: object,
+        *,
+        access_token: object = None,
+        refresh_token: object = None,
+        link_type: object = None,
+    ) -> dict:
+        """Mark the address confirmed. A bad or used token is the same error."""
+        kind = link_type if isinstance(link_type, str) else ""
+        if kind not in CONFIRM_KINDS:
+            raise CloudAuthError(CONFIRM_INVALID)
+        if isinstance(token, str) and token:
+            found = self.confirms.get(token)
+            if not isinstance(found, dict) or found.get("type") != kind:
+                raise CloudAuthError(CONFIRM_INVALID)
+            email = found.get("email")
+            user_id = self.by_email.get(email if isinstance(email, str) else "")
+            user = self.users.get(user_id or "")
+            if user is None:
+                raise CloudAuthError(CONFIRM_INVALID)
+            pending = found.get("pending")
+            if kind == "email_change" and isinstance(pending, str) and pending:
+                self.by_email.pop(user["email"], None)
+                user["email"] = pending
+                self.by_email[pending] = user_id
+                email = pending
+            user["email_confirmed_at"] = datetime.now(timezone.utc).isoformat()
+            self.confirms.pop(token, None)
+            return _confirm_body(kind, email if isinstance(email, str) else user["email"])
+        linked = (
+            isinstance(access_token, str)
+            and access_token
+            and isinstance(refresh_token, str)
+            and refresh_token
+            and self.refreshes.get(refresh_token) == access_token
+        )
+        user_id = self.sessions.get(access_token) if linked else None
+        user = self.users.get(user_id or "")
+        if user is None:
+            raise CloudAuthError(CONFIRM_INVALID)
+        if not user.get("email_confirmed_at"):
+            user["email_confirmed_at"] = datetime.now(timezone.utc).isoformat()
+        return _confirm_body(kind, user["email"])
+
     def reset_password(
         self,
         token: object,
@@ -186,8 +265,20 @@ class MemoryDirectory:
             raise CloudAuthError("Use at least 8 characters.")
         user["password"] = new
 
-    def change_email(self, access_token: object, password: object, new_email: object) -> str:
-        """Move this athlete to another email. profiles.email is this stand-in's email field."""
+    def change_email(
+        self,
+        access_token: object,
+        password: object,
+        new_email: object,
+        *,
+        redirect_to: str | None = None,
+    ) -> str:
+        """Move this athlete to another email. profiles.email is this stand-in's email field.
+
+        This stand-in has no mail, so the address changes now. The redirect is
+        kept so a test can see which page the API asked for.
+        """
+        self.email_change_redirect_to = redirect_to.strip() if isinstance(redirect_to, str) else ""
         user_id = self.user_id(access_token)
         user = self.users.get(user_id)
         if user is None or not isinstance(password, str) or not password_ok(password) or user["password"] != password:
@@ -595,9 +686,12 @@ def _fresh_options():
     """No shared session and no automatic refresh. One visitor cannot replace another."""
     from supabase import ClientOptions
 
+    # Implicit, not PKCE. A confirmation or reset link is opened in a browser
+    # that never held the code verifier this process would have discarded.
     return ClientOptions(
         persist_session=False,
         auto_refresh_token=False,
+        flow_type="implicit",
         httpx_client=_http_pool(),
     )
 
@@ -864,9 +958,88 @@ class SupabaseDirectory:
                 cleaned,
                 {"redirect_to": target},
             )
+        except CloudAuthError:
+            raise
         except Exception as exc:
-            raise CloudAuthError("The reset email could not be sent.") from exc
+            if _is_mail_rate(exc):
+                raise CloudAuthError(MAIL_RATE) from exc
+            if _is_unconfirmed(exc):
+                raise CloudAuthError(SIGNUP_CONFIRM) from exc
+            # A missing account gets the same empty result as a sent mail.
+            if _is_absent_account(exc):
+                return ""
+            raise CloudAuthError(RESET_FAILED) from exc
         return ""
+
+    def resend_signup(self, email: object, *, redirect_to: str | None = None) -> str:
+        """Ask auth to send the signup confirmation again.
+
+        An unknown address and an address that is already confirmed return
+        the same empty result. The caller uses one sentence for both.
+        """
+        cleaned = normalize_email(email)
+        if cleaned is None:
+            raise CloudAuthError(SIGNUP_EMAIL)
+        redirect = redirect_to.strip() if isinstance(redirect_to, str) and redirect_to.strip() else ""
+        body: dict = {"type": "signup", "email": cleaned}
+        if redirect:
+            body["options"] = {"email_redirect_to": redirect}
+        try:
+            self._client(self.anon_key).auth.resend(body)
+        except CloudAuthError:
+            raise
+        except Exception as exc:
+            if _is_mail_rate(exc):
+                raise CloudAuthError(MAIL_RATE) from exc
+            if _is_absent_account(exc) or _already_confirmed(exc):
+                return ""
+            raise CloudAuthError(RESEND_FAILED) from exc
+        return ""
+
+    def confirm_link(
+        self,
+        token: object,
+        *,
+        access_token: object = None,
+        refresh_token: object = None,
+        link_type: object = None,
+    ) -> dict:
+        """Verify a signup or email-change link. Recovery stays on reset."""
+        kind = link_type if isinstance(link_type, str) else ""
+        if kind not in CONFIRM_KINDS:
+            raise CloudAuthError(CONFIRM_INVALID)
+        client = self._client(self.anon_key)
+        if isinstance(token, str) and token:
+            try:
+                verified = client.auth.verify_otp({"token_hash": token, "type": kind})
+            except CloudAuthError:
+                raise
+            except Exception as exc:
+                if _is_mail_rate(exc):
+                    raise CloudAuthError(MAIL_RATE) from exc
+                raise CloudAuthError(CONFIRM_INVALID) from exc
+            return _confirm_body(kind, _email_from_auth(verified))
+        if (
+            isinstance(access_token, str)
+            and access_token
+            and isinstance(refresh_token, str)
+            and refresh_token
+        ):
+            try:
+                found = client.auth.get_user(access_token)
+            except CloudAuthError:
+                raise
+            except Exception as exc:
+                if _is_mail_rate(exc):
+                    raise CloudAuthError(MAIL_RATE) from exc
+                raise CloudAuthError(CONFIRM_INVALID) from exc
+            record = _plain_auth_user(getattr(found, "user", found))
+            if not record.get("id"):
+                raise CloudAuthError(CONFIRM_INVALID)
+            if kind != "email_change" and not record.get("email_confirmed_at"):
+                raise CloudAuthError(CONFIRM_INVALID)
+            return _confirm_body(kind, record.get("email") or "")
+        raise CloudAuthError(CONFIRM_INVALID)
 
     def reset_password(
         self,
@@ -948,12 +1121,20 @@ class SupabaseDirectory:
         except Exception as exc:
             raise CloudAuthError("This account could not be saved.") from exc
 
-    def change_email(self, access_token: object, password: object, new_email: object) -> str:
+    def change_email(
+        self,
+        access_token: object,
+        password: object,
+        new_email: object,
+        *,
+        redirect_to: str | None = None,
+    ) -> str:
         """Ask auth to change the email. profiles.email stays locked by migration 005.
 
-        The signed-in client is not granted an update of that column. A project
-        with secure email change sends a confirmation and keeps the old address
-        until that mail is confirmed.
+        The signed-in client is not granted an update of that column. Secure
+        email change sends a confirmation and keeps the old address until that
+        mail is confirmed, so this returns the current address, not the new one.
+        The confirmation link opens redirect_to.
         """
         if not isinstance(access_token, str) or not access_token:
             raise CloudAuthError("Sign in again.")
@@ -972,14 +1153,16 @@ class SupabaseDirectory:
             self.sign_in(email, password)
         except CloudAuthError as exc:
             raise CloudAuthError("Password does not match.") from exc
+        redirect = redirect_to.strip() if isinstance(redirect_to, str) and redirect_to.strip() else ""
         try:
             client = self._user_client(access_token)
-            client.auth.update_user({"email": target})
+            options = {"email_redirect_to": redirect} if redirect else {}
+            client.auth.update_user({"email": target}, options)
         except CloudAuthError:
             raise
         except Exception as exc:
-            raise CloudAuthError("This account could not be saved.") from exc
-        return target
+            raise CloudAuthError(email_change_error_message(exc)) from exc
+        return email
 
     def reset_seasons(self, access_token: object) -> None:
         """Delete this athlete's plans, results, and season state. The profile stays.
@@ -1944,6 +2127,77 @@ def _exc_text(exc: BaseException) -> str:
     if status is not None:
         parts.append(str(status))
     return " ".join(parts).casefold()
+
+
+def _is_mail_rate(exc: BaseException) -> bool:
+    text = _exc_text(exc)
+    status = getattr(exc, "status", None)
+    return (
+        status == 429
+        or "429" in text
+        or "rate limit" in text
+        or "rate_limit" in text
+        or "too many" in text
+        or "over_email_send_rate_limit" in text
+        or "over_request_rate_limit" in text
+        or "only request this once" in text
+    )
+
+
+def _is_absent_account(exc: BaseException) -> bool:
+    """A missing auth user. The sentence we raise must not be this text."""
+    text = _exc_text(exc)
+    return any(
+        token in text
+        for token in (
+            "user_not_found",
+            "user not found",
+            "email not found",
+            "no user found",
+        )
+    )
+
+
+def _is_unconfirmed(exc: BaseException) -> bool:
+    text = _exc_text(exc)
+    return "not confirmed" in text or "email_not_confirmed" in text
+
+
+def _already_confirmed(exc: BaseException) -> bool:
+    text = _exc_text(exc)
+    return "already confirmed" in text or "already been confirmed" in text
+
+
+def _confirm_body(kind: str, email: str) -> dict:
+    message = CONFIRM_EMAIL if kind == "email_change" else CONFIRM_SIGNUP
+    return {"ok": True, "kind": kind, "email": email, "message": message}
+
+
+def _email_from_auth(response: object) -> str:
+    _session, user = _response_parts(response)
+    email = _attr(user, "email")
+    return email if isinstance(email, str) else ""
+
+
+def email_change_error_message(exc: BaseException) -> str:
+    """A human message for a failed email change. The raw response is not shown."""
+    text = _exc_text(exc)
+    if _is_mail_rate(exc):
+        return MAIL_RATE
+    if any(
+        token in text
+        for token in (
+            "already registered",
+            "already been registered",
+            "already exists",
+            "email_exists",
+            "duplicate",
+        )
+    ):
+        return SIGNUP_EXISTS
+    if "invalid" in text and "email" in text:
+        return SIGNUP_EMAIL
+    return "This account could not be saved."
 
 
 def signup_error_message(exc: BaseException) -> str:

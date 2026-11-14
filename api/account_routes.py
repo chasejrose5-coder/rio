@@ -16,13 +16,16 @@ from pydantic import BaseModel
 from api.account_flow import (
     change_email_for,
     change_password_for,
+    confirm_email,
     delete_account_for,
     forgot_password,
     google_finish,
     google_start,
     raise_auth,
+    resend_confirmation,
     reset_password,
     sign_up_hosted,
+    _rewrite_hosted_email,
 )
 from api.errors import ApiError
 from api.identity import (
@@ -45,6 +48,13 @@ class SignUpBody(BaseModel):
 
 class EmailBody(BaseModel):
     email: str
+
+
+class ConfirmBody(BaseModel):
+    token: str = ""
+    access_token: str = ""
+    refresh_token: str = ""
+    type: str = ""
 
 
 class ResetBody(BaseModel):
@@ -148,6 +158,57 @@ def reset(body: ResetBody, request: Request) -> dict:
     )
 
 
+@router.post("/resend-confirmation")
+def resend(body: EmailBody, request: Request) -> dict:
+    return resend_confirmation(
+        request.app.state.directory,
+        body.email,
+        request.app.state.settings.frontend_origin,
+    )
+
+
+@router.post("/confirm")
+def confirm(body: ConfirmBody, request: Request) -> dict:
+    outcome = confirm_email(
+        request.app.state.directory,
+        body.token,
+        access_token=body.access_token,
+        refresh_token=body.refresh_token,
+        link_type=body.type,
+    )
+    refreshed = _apply_confirmed_email(request, outcome)
+    return {
+        "ok": True,
+        "kind": outcome.get("kind") or "",
+        "message": outcome.get("message") or "",
+        "refreshed": refreshed,
+    }
+
+
+def _apply_confirmed_email(request: Request, outcome: dict) -> bool:
+    """After an email-change link, the open session shows the new address.
+
+    Signup confirmation does not start a session. A link opened on another
+    browser leaves the old session until the next sign-in.
+    """
+    if outcome.get("kind") != "email_change":
+        return False
+    email = outcome.get("email")
+    if not isinstance(email, str) or not email:
+        return False
+    try:
+        who = _principal(request)
+    except ApiError:
+        return False
+    if who.kind != "hosted" or not who.sid:
+        return False
+    if email.casefold() == who.email.casefold():
+        return False
+    directory = request.app.state.directory
+    _rewrite_hosted_email(directory, who.sid, email)
+    return True
+
+
 @router.post("/password")
 def password(body: PasswordBody, request: Request) -> dict:
     who = _principal(request)
@@ -169,6 +230,7 @@ def email(body: ChangeEmailBody, request: Request) -> dict:
         who,
         body.password,
         body.email,
+        request.app.state.settings.frontend_origin,
     )
 
 
