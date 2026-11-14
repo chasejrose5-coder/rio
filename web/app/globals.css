@@ -531,6 +531,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   padding: 0.4rem 0;
   font-weight: 500;
 }
+button.rio-text-link {
+  cursor: pointer;
+  font: inherit;
+}
+button.rio-text-link:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
 .rio-photo-credit {
   width: fit-content;
   margin: 0.9rem auto 0.4rem;

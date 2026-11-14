@@ -68,7 +68,7 @@ On the Render service, **Environment**. Set these two, then save. Render redeplo
 
 No path. No trailing slash. The two strings are the same origin.
 
-`RIO_FRONTEND_ORIGIN` is the only browser origin CORS allows. A wildcard is refused. Reset mail opens `{RIO_FRONTEND_ORIGIN}/reset-password`. Confirmation mail opens `{RIO_FRONTEND_ORIGIN}/`. Strava's redirect, when `RIO_STRAVA_REDIRECT_URI` is unset, is `{RIO_CALLBACK_BASE_URL}/strava/callback`. After Strava returns, the API sends the browser to `{RIO_FRONTEND_ORIGIN}/settings?strava=connected` or `?strava=error`. The Next page at `/strava/callback` calls the API with `X-RIO-Response: json` and then opens Settings.
+`RIO_FRONTEND_ORIGIN` is the only browser origin CORS allows. A wildcard is refused. Reset mail opens `{RIO_FRONTEND_ORIGIN}/reset-password`. Signup confirmation and email-change mail open `{RIO_FRONTEND_ORIGIN}/confirm`. Strava's redirect, when `RIO_STRAVA_REDIRECT_URI` is unset, is `{RIO_CALLBACK_BASE_URL}/strava/callback`. After Strava returns, the API sends the browser to `{RIO_FRONTEND_ORIGIN}/settings?strava=connected` or `?strava=error`. The Next page at `/strava/callback` calls the API with `X-RIO-Response: json` and then opens Settings.
 
 Leave `RIO_APP_URL` unset on Render. Streamlit Cloud keeps its own value, `https://riotraining.streamlit.app`. The API does not use `RIO_APP_URL` for reset or confirmation mail. Leave `RIO_GOOGLE_REDIRECT_URI` unset. Google sign-in stays hidden, and the Streamlit Google redirect stays the Streamlit callback. Leave `RIO_STRAVA_REDIRECT_URI` unset so the callback base above is what Strava sees.
 
@@ -83,6 +83,7 @@ Leave the existing redirect URLs in place, including `https://riotraining.stream
 Add these two, using the exact Vercel origin from step 3:
 
 - `https://<vercel-host>/reset-password`
+- `https://<vercel-host>/confirm`
 - `https://<vercel-host>/`
 
 Save. The app does not write this list. A redirect that is not on the list is ignored and the mail falls back to the Site URL, which is still Streamlit.
@@ -198,7 +199,7 @@ If a column is false, open that file and run it in the SQL editor, then run the 
 
 1. Open `https://<render-host>/health`. Body: `{"ok":true}`.
 2. Open `https://<vercel-host>/api/health`. Body: `{"ok":true}`. That is the rewrite. If this one fails while the Render URL is still waking, wait and try once more. The free instance sleeps after about 15 minutes of no traffic, and the first hit can take about a minute. Vercel allows a proxied request about two minutes.
-3. Open `https://<vercel-host>`. Create an account or sign in with an account on this Supabase project. If confirmation mail is on, the link opens the Vercel origin, then you log in. The create-account screen still uses the existing sentence when a session does not come back.
+3. Open `https://<vercel-host>`. Create an account or sign in with an account on this Supabase project. If confirmation mail is on, Create account shows Check your email. The link opens `https://<vercel-host>/confirm`, then you log in. The steps for Resend and the templates are in `docs/email-setup.md`.
 4. Open Settings. A loaded page means `rio_hosted` was stored for the Vercel host and sent again to `/api`.
 5. **Forgot password**. The mail link opens `https://<vercel-host>/reset-password` and the new-password form. It does not open Streamlit.
 6. If step 7 is done: **Connect Strava**. After you approve, the browser lands on `https://<vercel-host>/settings?strava=connected` or `?strava=error`.
