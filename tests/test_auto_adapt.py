@@ -322,22 +322,14 @@ def test_live_pages_pull_recent_and_judge() -> None:
         (ROOT / "services" / "season_commit.py").read_text(encoding="utf-8"),
         "apply_activity_marks",
     )
-    if pull.count("_apply_activity_marks(") != 1:
-        raise AssertionError("a live page does not judge a match once")
-    if "if opened:" not in pull or "_apply_activity_marks(plan)" not in pull:
-        raise AssertionError("opening a live page does not judge")
-    if 'if page_name == "page_activity":\n            _apply_activity_marks(plan)' in pull:
-        raise AssertionError("only activity data judges a match")
+    if "_apply_activity_marks(" in pull or "sync_recent(" in pull or "sync_all(" in pull:
+        raise AssertionError("opening a page fetches or judges from another activity source")
+    if "NOT_CONNECTED_NOTICE" not in pull:
+        raise AssertionError("a disconnected account does not say Strava is missing")
     if 'st.session_state.get("activity-refresh") is True' not in pull_shell:
         raise AssertionError("refresh does not read activities again")
     if "run_activity_pull(" not in pull_shell:
-        raise AssertionError("opening a live page does not judge")
-    branches = pull.split("if refresh:", 1)[1]
-    history, recent = branches.split("else:", 1)
-    if "sync_all(" not in history or "sync_recent(" not in recent:
-        raise AssertionError("opening a live page does not use the recent adapter")
-    if "sync_recent(" in history:
-        raise AssertionError("refresh stopped reading every activity")
+        raise AssertionError("opening a live page does not restore runs")
     if "auto_adapt(" not in apply:
         raise AssertionError("the match does not call adapt()")
     if "explain(" in apply or "print(" in apply or "SPEND_CAP" in apply:

@@ -771,7 +771,7 @@ def insight_inputs_ok(payload: object) -> bool:
         return False
     if set(payload) - set(INSIGHT_FIELDS):
         return False
-    if payload.get("tone") != "chase" or payload.get("max_sentences") != 4:
+    if payload.get("tone") != "plain" or payload.get("max_sentences") != 4:
         return False
     if payload.get("result_band") not in INSIGHT_BANDS:
         return False
@@ -899,7 +899,7 @@ def complete_insight(inputs: object) -> dict | None:
     prompt = (
         "Reply with one JSON object and no other text. "
         "Keys are headline, body, carry_forward, and used_result_band. "
-        "Voice is Chase. Short sentences. No run-ons. "
+        "Short sentences. No run-ons. "
         "used_result_band must equal result_band. "
         "Do not invent a number. Do not change the plan or name a new workout. "
         "Do not mention Strava, GPS, laps, or AI. No medical claims. "

@@ -96,7 +96,7 @@ test("about shows the stadium photo, the credit, and the eight phases", async ({
   await expect(page.getByText("The short fast reps step up from phase 1.")).toBeVisible();
   await expect(page.getByText("The taper stays fresh. No hard speed endurance or anaerobic work.")).toBeVisible();
   await expect(page.locator(".page-about .rio-field")).toHaveCount(8);
-  await expect(page.getByText("chasejrose5@gmail.com")).toBeVisible();
+  await expect(page.getByText("chasejrose5@gmail.com")).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => window.sessionStorage.getItem("rio-motion-page"))).toBe("about");
 });
 
@@ -128,7 +128,7 @@ test("creators shows Chase and keeps the Jay Rose placeholder in a comment", asy
   await expect(page.locator(".rio-creator-bio").first()).toHaveCSS("color", "rgb(18, 17, 16)");
   await expect(page.locator(".rio-creator-close")).toHaveCSS("color", "rgb(226, 90, 50)");
   await expect(page.getByText("Every rep has a reason.")).toBeVisible();
-  await expect(page.getByText("chasejrose5@gmail.com")).toBeVisible();
+  await expect(page.getByText("chasejrose5@gmail.com")).toHaveCount(0);
 });
 
 test("More opens About and Creators", async ({ page }) => {

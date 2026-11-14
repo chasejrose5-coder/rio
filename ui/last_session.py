@@ -1,14 +1,14 @@
-# last_session.py — open one local Intervals JSON file. Display input only.
+# last_session.py — open one local workout JSON file. Display input only.
 
 """Read one JSON file from tests/fixtures/intervals.
 
-to_normalize_input builds the lap payload. The page then runs normalize,
-classify, and explain on that payload and shows the same fields as a fixture.
-quality_fill reads the same file for a quality session: WORK elapsed times,
-and the activity id or the filename. Activity distance and average heart
-rate are read from the same local file for display. Volume distance is
-the sum of WORK interval distances in that file. Warm-up and cool-down
-stay out. This file does not call the network.
+to_normalize_input builds the lap payload from the file's step list. The
+page then runs normalize, classify, and explain on that payload and shows
+the same fields as a fixture. quality_fill reads the same file for a quality
+session: WORK elapsed times, and the activity id or the filename. Activity
+distance and average heart rate are read from the same local file for
+display. Volume distance is the sum of WORK interval distances in that file.
+Warm-up and cool-down stay out. This file does not call the network.
 
 No scores. Prose spend stays capped at $25 where explain already records it.
 """
@@ -21,8 +21,6 @@ import re
 from datetime import date
 from pathlib import Path
 
-from adapters.intervals_icu import to_normalize_input
-
 ROOT = Path(__file__).resolve().parent.parent
 INTERVALS_DIR = ROOT / "tests" / "fixtures" / "intervals"
 
@@ -32,6 +30,53 @@ _SYNTHETIC_WORD = re.compile(r"(?<![A-Za-z])synthetic(?![A-Za-z])", re.IGNORECAS
 _TEXT_KEYS = ("note", "name", "description", "source")
 # The browser record keeps an activity id or a filename at this length.
 _SOURCE_LIMIT = 120
+
+# RECOVERY becomes the rest role normalize() already attaches to the previous
+# work lap. Other types are only lowercased. Nothing is dropped.
+_ROLE_NAMES = {
+    "work": "work",
+    "recovery": "rest",
+}
+
+
+def to_normalize_input(activity_json: dict) -> dict:
+    """Build {"intervals": [...]} from a local file's icu_intervals, in order.
+
+    Distance is meters (distance_m). elapsed_time becomes seconds. WORK is the
+    work role and RECOVERY is the rest role. Missing and null fields stay off
+    the step. Label fields are not copied. Laps are not dropped, merged, or filled in.
+    """
+    if not isinstance(activity_json, dict):
+        raise TypeError("activity JSON must be an object")
+    raw_intervals = activity_json.get("icu_intervals")
+    if raw_intervals is None:
+        raw_intervals = []
+    if not isinstance(raw_intervals, list):
+        raise TypeError("icu_intervals must be a list")
+    return {"intervals": [_step(raw) for raw in raw_intervals]}
+
+
+def _step(raw: object) -> dict:
+    if not isinstance(raw, dict):
+        raise TypeError("each interval must be an object")
+    step: dict = {}
+    role = _role_name(raw.get("type"))
+    if role is not None:
+        step["role"] = role
+    if "distance" in raw and raw["distance"] is not None:
+        step["distance_m"] = raw["distance"]
+    if "elapsed_time" in raw and raw["elapsed_time"] is not None:
+        step["seconds"] = raw["elapsed_time"]
+    return step
+
+
+def _role_name(icu_type: object) -> str | None:
+    if icu_type is None:
+        return None
+    text = str(icu_type).strip().lower().replace(" ", "_").replace("-", "_")
+    if text in {"", "none", "null"}:
+        return None
+    return _ROLE_NAMES.get(text, text)
 
 
 class IntervalsFileError(ValueError):
@@ -69,7 +114,7 @@ def open_intervals(path: Path) -> tuple[dict, str | None]:
 def quality_fill(path: Path) -> tuple[list[float | None], str]:
     """WORK elapsed times, and the activity id or the filename.
 
-    The file is read from disk. Nothing is requested from Intervals.icu.
+    The file is read from disk. Nothing is requested from the network.
     """
     file = Path(path)
     activity = _load_activity(file)

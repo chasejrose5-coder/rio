@@ -297,7 +297,7 @@ Body: `{"scope": "recent"}` or `{"scope": "all"}`. `recent` continues from the l
 
 `429` when Strava's rate limit is hit. `400` when `scope` is neither `recent` nor `all`. `404` when there is no current season.
 
-When Strava is not connected, the same route runs the Intervals fallback (`sync_recent` or `sync_all`) through `services/activity_pull.py`. There is no Intervals OAuth. A missing Intervals key comes back as `synced: false` and a notice.
+When Strava is not connected, the same route does not import runs. It returns `synced: false`, `count: 0`, and `notice` `Strava is not configured.` Stored seasons are left as they are.
 
 ## Insights
 
@@ -422,7 +422,7 @@ These are the reads and writes Home, Plan, Activity, Library, Profile, Settings,
 | `summary` | This week's distance, run count, and status counts |
 | `weekly_meters` | Completed meters for each plan week |
 | `heart` | `[{"date": "", "bpm": 0}]` |
-| `notice` | `null` when the activity pull succeeded, or when Strava is connected (Intervals is skipped). Otherwise the `PullError` text from the same pull Plan runs. A missing Intervals key is `RIO_INTERVALS_API_KEY is not set. …`. The page prints "Strava isn't connected" only when that text contains "is not set" or "not configured". Any other notice prints "Runs could not be loaded. Try Refresh in a moment." |
+| `notice` | `null` when Strava is connected. Otherwise `Strava is not configured.` The page prints "Strava isn't connected" when that text contains "is not set" or "not configured". Any other notice prints "Runs could not be loaded. Try Refresh in a moment." |
 | `figures` | `distance` (completed work, pace unit) and `heart` (the figure Streamlit puts on "Latest heart rate", or "—") |
 | `length` | Season length in weeks, or `0` when the plan has no positive length |
 | `start_date`, `goal_date` | The season range, `YYYY-MM-DD`. The page formats them with the saved date format. They are calendar dates, not server UTC. |
@@ -543,7 +543,7 @@ Admin. `200` `{"files": ["synthetic_se_400_with_recovery.json"]}`. Names only. A
 
 ### `GET /fixtures/intervals/{name}`
 
-Admin. `200` `{"name": "", "times": [], "source": "", "laps": [], "rows": [], "distance_heading": "Distance (m)", "date": "", "banner": null, "family": "", "confidence": "", "reason_codes": [], "prose": ""}`. `times` are the WORK elapsed seconds. `laps` are the normalized laps (`distance_m`, `seconds`, `rest_s`), including rest. Warm-up and cool-down stay out of both. `rows` is the lap table in the Settings distance unit. `prose` is the rules paragraph from `explain`. `400` `{"detail": "{name} is not JSON."}` or `Could not read {name}.` `404` when the name is not in that folder. Nothing is requested from Intervals.icu.
+Admin. `200` `{"name": "", "times": [], "source": "", "laps": [], "rows": [], "distance_heading": "Distance (m)", "date": "", "banner": null, "family": "", "confidence": "", "reason_codes": [], "prose": ""}`. `times` are the WORK elapsed seconds. `laps` are the normalized laps (`distance_m`, `seconds`, `rest_s`), including rest. Warm-up and cool-down stay out of both. `rows` is the lap table in the Settings distance unit. `prose` is the rules paragraph from `explain`. `400` `{"detail": "{name} is not JSON."}` or `Could not read {name}.` `404` when the name is not in that folder. Nothing is requested from the network.
 
 ### `GET /fixtures/session?name=`
 

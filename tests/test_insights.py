@@ -50,7 +50,7 @@ _INPUTS = {
     },
     "later_weeks_effect": "eased",
     "easy_hr_note": None,
-    "tone": "chase",
+    "tone": "plain",
     "max_sentences": 4,
 }
 

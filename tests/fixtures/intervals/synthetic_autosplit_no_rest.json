@@ -1,5 +1,5 @@
 {
-  "note": "SYNTHETIC. Chase did not run this. Same 400 m WORK laps as the recovery fixture, with warm-up and cool-down, and no RECOVERY intervals.",
+  "note": "SYNTHETIC. Practice sample. Same 400 m WORK laps as the recovery fixture, with warm-up and cool-down, and no RECOVERY steps.",
   "id": "synthetic-autosplit-no-rest",
   "name": "Synthetic 6 x 400 m autosplit",
   "start_date_local": "2026-10-25T08:00:00",

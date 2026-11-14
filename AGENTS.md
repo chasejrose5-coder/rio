@@ -1,4 +1,4 @@
-- Intervals.icu is an adapter, not the product.
+- Strava is the only activity source.
 - AI writes prose only. Classification is rules, not a model.
 - Every classification stores ontology_version.
 - No goal probability and no readiness score.

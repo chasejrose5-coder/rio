@@ -20,7 +20,7 @@ from api.screens import (
     activity_view,
     apply_settings,
     home_view,
-    intervals_pull,
+    connection_notice,
     library_view,
     plan_view,
     profile_view,
@@ -203,15 +203,9 @@ def activities(request: Request) -> dict:
         return _stamp(body, runs)
     season = open_season(who, request.app.state.directory, resolved["today"])
     found = status(request.app, who)
-    sessions = season.plan.get("sessions") if isinstance(season.plan, dict) else []
-    if not isinstance(sessions, list):
-        sessions = []
-    # Strava connected: Intervals is not called. Otherwise the same pull Plan uses.
-    season.activities, notice = intervals_pull(
+    season.activities, notice = connection_notice(
         found["connected"] is True,
-        sessions,
         season.activities,
-        resolved["today"],
     )
     attach_activities(request.app, who, season)
     body = activity_view(

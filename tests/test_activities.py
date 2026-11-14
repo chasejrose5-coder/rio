@@ -12,21 +12,17 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from adapters.intervals_icu import IntervalsIcuError
 from engines.explain import SPEND_CAP_MICRO_USD
 from ui.activities import (
     HISTORY_START,
-    MAX_FETCH,
+    NOT_CONNECTED_NOTICE,
     WINDOW_DAYS,
-    PullError,
     activity_history,
     activity_window,
     extras_between,
     load_local_env,
     match_activities,
     merge_activities,
-    sync_all,
-    sync_recent,
     with_matched_distances,
 )
 from ui.plan_store import dump_record, load_record
@@ -142,234 +138,16 @@ def test_history_covers_every_activity_through_today() -> None:
         raise AssertionError("activity data still uses the 14-day window")
 
 
-def test_pull_all_lists_every_activity_and_matches_by_date() -> None:
-    """The list is the whole history. An older planned day still matches.
-
-    WORK distance and the activity heart rate are kept. Warm-up and the
-    activity total stay out. A day with no planned session stays extra.
-    """
-    planned = [
-        {"date": "2024-06-02", "template_id": "se_400_r90_x6", "day_of_week": "Sunday"},
-        {"date": "2026-10-20", "template_id": "aer_8000_r0_x1", "day_of_week": "Tuesday"},
-    ]
-    seen = {"env": False, "listed": None, "fetched": []}
-
-    def load_env() -> None:
-        seen["env"] = True
-
-    def list_fn(oldest: str, newest: str) -> list[dict]:
-        if seen["env"] is not True:
-            raise AssertionError("the list ran before the local key was loaded")
-        seen["listed"] = (oldest, newest)
-        return [
-            {"id": "old", "start_date_local": "2024-06-02T08:00:00"},
-            {"id": "extra", "start_date_local": "2024-06-03T08:00:00"},
-            {"id": "new", "start_date_local": "2026-10-20T08:00:00"},
-        ]
-
-    def fetch_fn(activity_id: object) -> dict:
-        seen["fetched"].append(activity_id)
-        days = {"old": "2024-06-02", "extra": "2024-06-03", "new": "2026-10-20"}
-        return _run(days[str(activity_id)], activity_id, "08:00:00")
-
-    rows = sync_all(planned, [], TODAY, list_fn=list_fn, fetch_fn=fetch_fn, load_env=load_env)
-    if seen["listed"] != activity_history(TODAY):
-        raise AssertionError(seen["listed"])
-    if seen["listed"] == activity_window(TODAY):
-        raise AssertionError("the list was the last 14 days")
-    if sorted(seen["fetched"]) != ["extra", "new", "old"]:
-        raise AssertionError(seen["fetched"])
-    by_id = {row["id"]: row for row in rows}
-    matched = by_id["old"]
-    if matched["matched"] is not True or matched["date"] != "2024-06-02":
-        raise AssertionError(matched)
-    if matched["template_id"] != "se_400_r90_x6" or matched["work_m"] != 800:
-        raise AssertionError(matched)
-    if matched["heart_rate"] != 148 or matched["work_m"] == 99999:
-        raise AssertionError("warm-up or the activity total replaced WORK distance")
-    if matched.get("distance") != 99999 or by_id["extra"].get("distance") != 99999:
-        raise AssertionError("the activity distance was not stored")
-    if by_id["extra"]["matched"] is not False or "template_id" in by_id["extra"]:
-        raise AssertionError(by_id["extra"])
-    if by_id["new"]["matched"] is not True or by_id["new"]["work_m"] != 800:
-        raise AssertionError(by_id["new"])
-
-
-def test_pull_all_fetches_every_listed_activity() -> None:
-    """The 14-day cap does not drop an older activity."""
-    fetched = []
-    count = MAX_FETCH + 3
-
-    def list_fn(oldest: str, newest: str) -> list[dict]:
-        if (oldest, newest) != activity_history(TODAY):
-            raise AssertionError((oldest, newest))
-        return [
-            {
-                "id": f"id-{number:02d}",
-                "start_date_local": f"2020-01-01T00:{number % 60:02d}:00",
-                "type": "Run",
-            }
-            for number in range(count)
-        ]
-
-    def fetch_fn(activity_id: object) -> dict:
-        fetched.append(activity_id)
-        return {
-            "id": activity_id,
-            "name": str(activity_id),
-            "start_date_local": "2020-01-01T08:00:00",
-            "type": "Run",
-        }
-
-    sync_all([], [], TODAY, list_fn=list_fn, fetch_fn=fetch_fn, load_env=lambda: None)
-    if len(fetched) != count:
-        raise AssertionError(len(fetched))
-    if "id-00" not in fetched:
-        raise AssertionError("an older activity was left out")
-
-
-def test_a_failed_history_list_keeps_stored_matches() -> None:
-    """A list failure leaves the stored matches in place. The message has no key."""
+def test_a_stored_match_survives_a_reload_and_a_window_merge() -> None:
+    """Rows outside a window stay. A reload keeps reps, work, and distance."""
     stored = match_activities(PLANNED, [_run("2026-10-20", "44521", "08:00:00")])
-    secret = "local-athlete-key"
-
-    def list_fn(oldest: str, newest: str) -> list[dict]:
-        raise IntervalsIcuError("Intervals.icu returned 401 Unauthorized. Check RIO_INTERVALS_API_KEY.")
-
-    try:
-        sync_all(PLANNED, stored, TODAY, list_fn=list_fn, load_env=lambda: None)
-    except PullError as exc:
-        message = str(exc)
-    else:
-        raise AssertionError("a failed list still returned rows")
-    if secret in message:
-        raise AssertionError("the failure included a key")
-    oldest, newest = activity_history(TODAY)
-    kept = merge_activities(stored, [], "2026-10-26", "2026-10-26")
-    if kept != stored:
-        raise AssertionError("a day after today was treated as part of the history")
-    replaced = merge_activities(stored, [], oldest, newest)
-    if replaced:
-        raise AssertionError("a successful empty history pull did not replace the stored day")
-
-
-def test_pull_lists_the_window_and_fetches_each_activity() -> None:
-    """The list call is the last 14 days. Each id is fetched. The local env is read first."""
-    seen = {"env": False, "listed": None, "fetched": []}
-
-    def load_env() -> None:
-        seen["env"] = True
-
-    def list_fn(oldest: str, newest: str) -> list[dict]:
-        if seen["env"] is not True:
-            raise AssertionError("the list ran before the local key was loaded")
-        seen["listed"] = (oldest, newest)
-        return [
-            {"id": "a", "start_date_local": "2026-10-20T08:00:00"},
-            {"id": "b", "start_date_local": "2026-10-21T08:00:00"},
-        ]
-
-    def fetch_fn(activity_id: object) -> dict:
-        seen["fetched"].append(activity_id)
-        day = "2026-10-20" if activity_id == "a" else "2026-10-21"
-        return _run(day, activity_id, "08:00:00")
-
-    rows = sync_recent(PLANNED, [], TODAY, list_fn=list_fn, fetch_fn=fetch_fn, load_env=load_env)
-    if seen["listed"] != activity_window(TODAY):
-        raise AssertionError(seen["listed"])
-    if seen["fetched"] != ["b", "a"] and sorted(seen["fetched"]) != ["a", "b"]:
-        raise AssertionError(seen["fetched"])
-    matched = [row for row in rows if row["id"] == "a"][0]
-    if matched["matched"] is not True or matched["work_m"] != 800:
-        raise AssertionError(matched)
-
-
-def test_a_failed_detail_keeps_the_listed_row() -> None:
-    """One activity that will not open still occupies its day. The others are kept."""
-
-    def list_fn(oldest: str, newest: str) -> list[dict]:
-        return [
-            {"id": "good", "name": "Good", "start_date_local": "2026-10-20T08:00:00", "type": "Run"},
-            {"id": "bad", "name": "Bad", "start_date_local": "2026-10-21T08:00:00", "type": "Run"},
-        ]
-
-    def fetch_fn(activity_id: object) -> dict:
-        if activity_id == "bad":
-            raise IntervalsIcuError("Intervals.icu returned 404 Not Found.")
-        return _run("2026-10-20", "good", "08:00:00")
-
-    rows = sync_recent(
-        PLANNED,
-        [],
-        TODAY,
-        list_fn=list_fn,
-        fetch_fn=fetch_fn,
-        load_env=lambda: None,
-    )
-    by_id = {row["id"]: row for row in rows}
-    if "reps" in by_id["bad"] or by_id["bad"]["matched"] is not False:
-        raise AssertionError(by_id["bad"])
-    if by_id["good"]["reps"] != [57.5, 58]:
-        raise AssertionError(by_id["good"])
-
-
-def test_fetch_stops_after_the_newest_forty() -> None:
-    """A long list does not fetch every id. The newest days are the ones kept."""
-    fetched = []
-
-    def list_fn(oldest: str, newest: str) -> list[dict]:
-        rows = []
-        for number in range(MAX_FETCH + 1):
-            rows.append(
-                {
-                    "id": f"id-{number:02d}",
-                    "start_date_local": f"2026-10-01T00:{number:02d}:00" if number < 60 else "2026-09-01T00:00:00",
-                    "type": "Run",
-                }
-            )
-        return rows
-
-    def fetch_fn(activity_id: object) -> dict:
-        fetched.append(activity_id)
-        return {
-            "id": activity_id,
-            "name": str(activity_id),
-            "start_date_local": "2026-10-21T08:00:00",
-            "type": "Run",
-        }
-
-    sync_recent([], [], TODAY, list_fn=list_fn, fetch_fn=fetch_fn, load_env=lambda: None)
-    if len(fetched) != MAX_FETCH:
-        raise AssertionError(len(fetched))
-    if "id-00" in fetched:
-        raise AssertionError("the oldest activity was fetched past the cap")
-
-
-def test_reload_keeps_matches_outside_a_failed_pull() -> None:
-    """A list failure leaves the stored matches in place. The message has no key."""
-    stored = match_activities(PLANNED, [_run("2026-10-20", "44521", "08:00:00")])
-    secret = "local-athlete-key"
-
-    def list_fn(oldest: str, newest: str) -> list[dict]:
-        raise IntervalsIcuError("Intervals.icu returned 401 Unauthorized. Check RIO_INTERVALS_API_KEY.")
-
-    try:
-        sync_recent(PLANNED, stored, TODAY, list_fn=list_fn, load_env=lambda: None)
-    except PullError as exc:
-        message = str(exc)
-    else:
-        raise AssertionError("a failed list still returned rows")
-    if secret in message or "local-athlete-key" in message:
-        raise AssertionError("the failure included a key")
-    if "401" not in message:
-        raise AssertionError(message)
     oldest, newest = activity_window(TODAY)
     kept = merge_activities(stored, [], "2026-10-01", "2026-10-01")
     if kept != stored:
         raise AssertionError("a range that misses the stored day dropped it")
     replaced = merge_activities(stored, [], oldest, newest)
     if replaced:
-        raise AssertionError("the window was not the part a successful empty pull replaces")
+        raise AssertionError("the window was not the part an empty pull replaces")
     raw = dump_record({}, {}, stored)
     _marks, _actuals, activities = load_record(raw)
     if activities != load_record(dump_record({}, {}, activities))[2]:
@@ -396,107 +174,40 @@ def test_matched_distance_fills_completed_volume() -> None:
         raise AssertionError(extras)
 
 
-def test_local_env_keeps_an_existing_key_and_reads_the_athlete() -> None:
-    """A key already in the environment wins. An unset athlete id comes from that file."""
-    previous = {
-        "RIO_INTERVALS_API_KEY": os.environ.get("RIO_INTERVALS_API_KEY"),
-        "RIO_INTERVALS_ATHLETE_ID": os.environ.get("RIO_INTERVALS_ATHLETE_ID"),
-    }
-    os.environ["RIO_INTERVALS_API_KEY"] = "already-set"
-    os.environ.pop("RIO_INTERVALS_ATHLETE_ID", None)
+def test_local_env_keeps_an_existing_value() -> None:
+    """A value already in the environment wins over the same name in a file."""
+    name = "RIO_TEST_ENV_SAMPLE"
+    previous = os.environ.get(name)
+    os.environ[name] = "already-set"
     try:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / ".env"
-            path.write_text(
-                "\n".join(
-                    [
-                        "# comment",
-                        "export RIO_INTERVALS_API_KEY=\"from-file\"",
-                        "RIO_INTERVALS_ATHLETE_ID='athlete-9'",
-                        "",
-                    ]
-                ),
-                encoding="utf-8",
-            )
+            path.write_text(f'export {name}="from-file"\n', encoding="utf-8")
             load_local_env([path])
-        if os.environ.get("RIO_INTERVALS_API_KEY") != "already-set":
-            raise AssertionError("an existing key was replaced")
-        if os.environ.get("RIO_INTERVALS_ATHLETE_ID") != "athlete-9":
-            raise AssertionError(os.environ.get("RIO_INTERVALS_ATHLETE_ID"))
-    finally:
-        for name, value in previous.items():
-            if value is None:
-                os.environ.pop(name, None)
-            else:
-                os.environ[name] = value
-
-
-def test_unprefixed_env_names_fill_the_rio_names() -> None:
-    """INTERVALS_API_KEY in .env is the local key when the RIO_ name is unset."""
-    names = (
-        "RIO_INTERVALS_API_KEY",
-        "RIO_INTERVALS_ATHLETE_ID",
-        "INTERVALS_API_KEY",
-        "INTERVALS_ATHLETE_ID",
-    )
-    previous = {name: os.environ.get(name) for name in names}
-    for name in names:
-        os.environ.pop(name, None)
-    try:
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / ".env"
-            path.write_text(
-                "INTERVALS_API_KEY=alias-key\nINTERVALS_ATHLETE_ID=athlete-4\n",
-                encoding="utf-8",
-            )
+            if os.environ.get(name) != "already-set":
+                raise AssertionError("an existing value was replaced")
+            os.environ.pop(name, None)
             load_local_env([path])
-        if os.environ.get("RIO_INTERVALS_API_KEY") != "alias-key":
-            raise AssertionError("the local key was not read")
-        if os.environ.get("RIO_INTERVALS_ATHLETE_ID") != "athlete-4":
-            raise AssertionError("the local athlete id was not read")
-        os.environ["RIO_INTERVALS_API_KEY"] = "already-set"
-        os.environ["INTERVALS_API_KEY"] = "other-key"
-        load_local_env([path])
-        if os.environ.get("RIO_INTERVALS_API_KEY") != "already-set":
-            raise AssertionError("an existing key was replaced")
+            if os.environ.get(name) != "from-file":
+                raise AssertionError(os.environ.get(name))
     finally:
-        for name, value in previous.items():
-            if value is None:
-                os.environ.pop(name, None)
-            else:
-                os.environ[name] = value
+        if previous is None:
+            os.environ.pop(name, None)
+        else:
+            os.environ[name] = previous
 
 
-def test_pull_uses_the_adapter_and_does_not_spend() -> None:
-    """The app asks for the last 14 days when a live page opens.
-
-    Dashboard, Weekly, Session, Progress, and Activity data use that pull.
-    Refresh on Activity data lists every activity. The page functions stay
-    off the network. Engines are not used for the match. Prose spend stays
-    capped at $25.
-    """
+def test_pages_do_not_fetch_another_activity_source() -> None:
+    """Opening a page restores stored runs. It does not call another service."""
     if SPEND_CAP_MICRO_USD != 25_000_000:
         raise AssertionError("spend cap is not $25")
+    if NOT_CONNECTED_NOTICE != "Strava is not configured.":
+        raise AssertionError(NOT_CONNECTED_NOTICE)
     source = (ROOT / "ui" / "activities.py").read_text(encoding="utf-8")
-    pull = _function(source, "_pull")
-    recent = _function(source, "pull_recent")
-    history = _function(source, "pull_all")
-    if "list_activities(oldest, newest)" not in pull:
-        raise AssertionError("the pull does not call list_activities")
-    if "fetch_activity(activity_id)" not in pull:
-        raise AssertionError("the pull does not read the activity")
-    if "load_local_env" not in pull:
-        raise AssertionError("the pull does not load the local key")
-    if "activity_window(today)" not in recent or "limit=MAX_FETCH" not in recent:
-        raise AssertionError("the 14-day pull changed")
-    if "activity_history(today)" not in history or "limit=None" not in history:
-        raise AssertionError("activity data does not ask for every activity")
-    if "MAX_FETCH" in history or "activity_window" in history:
-        raise AssertionError("activity data still uses the 14-day window")
+    if "list_activities" in source or "fetch_activity" in source or "sync_recent" in source or "sync_all" in source:
+        raise AssertionError("activities.py still fetches from another source")
     if "from engines" in source or "explain(" in source or "print(" in source:
-        raise AssertionError("the pull started prose spend or printed a value")
-    if "athlete_id" in pull or "api_key" in pull:
-        raise AssertionError("the pull picks an athlete or a key of its own")
+        raise AssertionError("the match started prose spend or printed a value")
     app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
     block = app[app.index("_PULL_PAGES"):app.index("def _pull_for(")]
     for name in (
@@ -516,14 +227,12 @@ def test_pull_uses_the_adapter_and_does_not_spend() -> None:
     )
     if 'st.session_state.get("activity-refresh") is True' not in pull_shell:
         raise AssertionError("refresh does not read activities again")
-    branches = pull_for.split("if refresh:", 1)[1]
-    history, recent = branches.split("else:", 1)
-    if "sync_all(" not in history or "sync_recent(" in history:
-        raise AssertionError("refresh does not read every activity")
-    if "sync_recent(" not in recent:
-        raise AssertionError("opening a live page does not read the last 14 days")
-    if "_pull_for(" not in wrapper or "run_activity_pull(" not in pull_shell or "sync_recent=" not in pull_shell:
-        raise AssertionError("opening a page does not pull")
+    if "sync_recent(" in pull_for or "sync_all(" in pull_for:
+        raise AssertionError("opening a page still syncs another source")
+    if "NOT_CONNECTED_NOTICE" not in pull_for:
+        raise AssertionError("a disconnected account does not say Strava is missing")
+    if "_pull_for(" not in wrapper or "run_activity_pull(" not in pull_shell:
+        raise AssertionError("opening a page does not restore runs")
     if wrapper.index("_pull_for(") > wrapper.index("_sync_browser_store("):
         raise AssertionError("matches are written before the pull")
     if '"load"' not in pull_for:
@@ -537,7 +246,7 @@ def test_pull_uses_the_adapter_and_does_not_spend() -> None:
         raise AssertionError("a reload drops the matches")
     if "list_activities" in app or "fetch_activity" in app or "urlopen" in app:
         raise AssertionError("the page calls the live API directly")
-    if "https://intervals.icu" in app or "SPEND_CAP" in app or "explain(" in pull_for:
+    if ("https://intervals" + ".icu") in app or "SPEND_CAP" in app or "explain(" in pull_for:
         raise AssertionError("the pull started spending")
     weekly = app[app.index("def page_weekly(") : app.index("\ndef page_season(")]
     progress = app[app.index("def page_progress(") : app.index("\ndef page_weekly(")]
@@ -554,7 +263,7 @@ def test_pull_uses_the_adapter_and_does_not_spend() -> None:
         raise AssertionError("progress calls the network or the model")
     supplied = _function(app, "_supplied_html")
     if "_supplied_html(" not in session or "rio-session-split" not in session:
-        raise AssertionError("Intervals data is not beside the template")
+        raise AssertionError("matched data is not beside the template")
     if "heart_rate_text(" not in session or "Avg HR" not in session:
         raise AssertionError("a matched day does not show heart rate")
     if "Reps" not in supplied or "Work" not in supplied or "Avg HR" not in supplied:
@@ -581,17 +290,10 @@ def main() -> None:
     test_history_covers_every_activity_through_today()
     test_a_run_on_a_planned_day_supplies_reps_volume_and_heart_rate()
     test_only_a_ride_still_matches_the_day()
-    test_pull_all_lists_every_activity_and_matches_by_date()
-    test_pull_all_fetches_every_listed_activity()
-    test_a_failed_history_list_keeps_stored_matches()
-    test_pull_lists_the_window_and_fetches_each_activity()
-    test_a_failed_detail_keeps_the_listed_row()
-    test_fetch_stops_after_the_newest_forty()
-    test_reload_keeps_matches_outside_a_failed_pull()
+    test_a_stored_match_survives_a_reload_and_a_window_merge()
     test_matched_distance_fills_completed_volume()
-    test_local_env_keeps_an_existing_key_and_reads_the_athlete()
-    test_unprefixed_env_names_fill_the_rio_names()
-    test_pull_uses_the_adapter_and_does_not_spend()
+    test_local_env_keeps_an_existing_value()
+    test_pages_do_not_fetch_another_activity_source()
     print("activities ok")
 
 

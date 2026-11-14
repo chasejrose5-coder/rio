@@ -308,7 +308,7 @@ def test_a_reload_restores_the_token_and_logout_clears_it() -> None:
     blob = enter + sign_out + restore + session_js
     if "probability" in blob.lower() or "readiness" in blob.lower():
         raise AssertionError("a score was added")
-    if "https://intervals.icu" in app or "SPEND_CAP" in app:
+    if ("https://intervals" + ".icu") in app or "SPEND_CAP" in app:
         raise AssertionError("login started a pull or spend")
 
 
@@ -355,7 +355,7 @@ def test_a_reload_opens_home_when_a_plan_is_still_ahead() -> None:
     blob = opened + route
     if "probability" in blob.lower() or "readiness" in blob.lower():
         raise AssertionError("a score was added")
-    if "https://intervals.icu" in app or "SPEND_CAP" in app:
+    if ("https://intervals" + ".icu") in app or "SPEND_CAP" in app:
         raise AssertionError("a reload started a pull or spend")
 
 
@@ -420,7 +420,7 @@ def test_accounts_stay_local_and_spend_stays_capped() -> None:
         enter + create + login + route
     ).lower():
         raise AssertionError("a score was added")
-    if "https://intervals.icu" in app or "SPEND_CAP" in app:
+    if ("https://intervals" + ".icu") in app or "SPEND_CAP" in app:
         raise AssertionError("login started a pull or spend")
     for path in (ROOT / "engines").glob("*.py"):
         body = path.read_text(encoding="utf-8")

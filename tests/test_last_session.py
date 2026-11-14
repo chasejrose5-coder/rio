@@ -135,7 +135,7 @@ def test_real_file_has_no_synthetic_banner() -> None:
 
 def test_note_marks_a_real_name_synthetic() -> None:
     activity = {
-        "note": "SYNTHETIC. Chase did not run this.",
+        "note": "SYNTHETIC. Practice sample.",
         "start_date_local": "not-a-date",
         "icu_intervals": [],
     }
@@ -439,8 +439,8 @@ def test_quality_session_prefills_from_the_file() -> None:
         raise AssertionError("quality days lost the result boxes")
     if "fetch_activity" in app or "list_activities" in app or "urlopen" in app:
         raise AssertionError("the session page calls the live API")
-    if "https://intervals.icu" in app:
-        raise AssertionError("the session page calls Intervals.icu")
+    if ("https://intervals" + ".icu") in app:
+        raise AssertionError("the session page calls a removed activity host")
     if "explain(" in page or "SPEND_CAP" in page:
         raise AssertionError("the session page started spending")
     reader = (ROOT / "ui" / "last_session.py").read_text(encoding="utf-8")
@@ -534,8 +534,8 @@ def test_page_keeps_the_fixture_dropdown_and_stays_offline() -> None:
         raise AssertionError("Last Session has no Intervals file picker")
     if "fetch_activity" in app or "list_activities" in app or "urlopen" in app:
         raise AssertionError("Last Session calls the live API")
-    if "https://intervals.icu" in app:
-        raise AssertionError("Last Session calls Intervals.icu")
+    if ("https://intervals" + ".icu") in app:
+        raise AssertionError("Last Session calls a removed activity host")
     reader = (ROOT / "ui" / "last_session.py").read_text(encoding="utf-8")
     if "fetch_activity" in reader or "list_activities" in reader or "urlopen" in reader:
         raise AssertionError("the file reader calls the live API")

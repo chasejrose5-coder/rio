@@ -17,9 +17,8 @@ import time
 from datetime import datetime, timezone
 
 from api.errors import ApiError
-from services.activity_pull import run_activity_pull
 from services.season_commit import apply_activity_marks
-from ui.activities import PullError, sync_all, sync_recent
+from ui.activities import NOT_CONNECTED_NOTICE
 from ui.cloud_config import read_setting
 from ui.result import goal_seconds
 from ui.strava import (
@@ -493,50 +492,8 @@ def sync(app, principal, directory, today, season, scope: str) -> dict:
                 count = len(runs)
                 imported = True
     else:
-        box = {"notice": None, "updated": False}
-
-        def _notice(text: str) -> None:
-            box["notice"] = text
-
-        def _clear() -> None:
-            box["notice"] = None
-
-        def _set(updated) -> None:
-            if isinstance(updated, list):
-                season.activities = updated
-                box["updated"] = True
-
-        def _marks(_plan) -> None:
-            return None
-
-        recent = getattr(app.state, "intervals_sync_recent", None) or sync_recent
-        every = getattr(app.state, "intervals_sync_all", None) or sync_all
-        try:
-            run_activity_pull(
-                page_name="page_activity",
-                test_preview=False,
-                refresh=scope == "all",
-                already_pulled=False,
-                activities_loaded=False,
-                activities_trigger=None,
-                plan=season.plan,
-                activities=lambda: season.activities,
-                today=lambda: today,
-                strava_connected=lambda: False,
-                strava_gate_pending=lambda: False,
-                sync_all=every,
-                sync_recent=recent,
-                restore_rows=lambda: None,
-                on_notice=_notice,
-                clear_notice=_clear,
-                on_activities=_set,
-                _apply_activity_marks=_marks,
-                on_loaded=lambda _trigger: None,
-            )
-        except PullError as exc:
-            box["notice"] = str(exc)
-        notice = box["notice"]
-        imported = box["updated"] and not notice
+        notice = NOT_CONNECTED_NOTICE
+        imported = False
         if imported:
             count = len(season.activities)
     changed = False

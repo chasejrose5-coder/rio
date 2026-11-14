@@ -1,1 +1,1 @@
-"""Adapters. Intervals.icu is an adapter, not the product."""
+"""Adapters. Strava is the activity source."""

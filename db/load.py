@@ -11,7 +11,7 @@ SCHEMA_PATH = ROOT / "db" / "schema.sql"
 DB_PATH = ROOT / "data" / "rio.sqlite"
 FIXTURES_DIR = ROOT / "tests" / "fixtures"
 SEED_DIR = ROOT / "data" / "seed"
-ATHLETE_NAME = "Chase"
+ATHLETE_NAME = "Athlete"
 
 SKIP_SEED_NAMES = {".gitkeep"}
 
