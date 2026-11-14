@@ -1,4 +1,4 @@
-# insights.py — Chase's season notes. Fill-ins come from the stored plan.
+# insights.py — season notes. Fill-ins come from the stored plan.
 
 """Authored paragraphs for a season that already exists.
 
@@ -159,7 +159,7 @@ def season_thesis(*, current_mark: str, goal: str, race_date: str) -> dict[str, 
         "Easy days protect that work."
     )
     expanded = (
-        f"I'm Chase. RIO doesn't hand you a random mix of miles. "
+        "RIO doesn't hand you a random mix of miles. "
         f"It builds toward one race. Your mark is {mark}. "
         f"Your goal is {target} on {day}.\n\n"
         "An 800 asks for several things at once. "
@@ -568,7 +568,7 @@ def workout_inputs(
         "hard_days_this_week": counts,
         "later_weeks_effect": later_effect(mark, phase),
         "easy_hr_note": None,
-        "tone": "chase",
+        "tone": "plain",
         "max_sentences": 4,
     }
     name = str(first_name or "").strip()

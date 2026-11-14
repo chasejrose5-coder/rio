@@ -608,7 +608,7 @@ def test_the_page_lists_matched_activities_and_does_not_spend() -> None:
     if "from engines" in source or "explain(" in source or "classify(" in source:
         raise AssertionError("the view calls an engine")
     if "urlopen" in source or "fetch_activity" in source or "list_activities" in source:
-        raise AssertionError("the view calls Intervals.icu")
+        raise AssertionError("the view calls a removed activity host")
     if "probability" in source.lower() or "readiness" in source.lower():
         raise AssertionError("the view adds a score")
     if "work_meters" in source:
@@ -656,12 +656,10 @@ def test_the_page_lists_matched_activities_and_does_not_spend() -> None:
     pull_for = pull_for[pull_for.index("def run_activity_pull(") :]
     if 'st.session_state.get("activity-refresh") is True' not in pull_shell:
         raise AssertionError("refresh does not read activities again")
-    branches = pull_for.split("if refresh:", 1)[1]
-    history, recent = branches.split("else:", 1)
-    if "sync_all(" not in history or "sync_recent(" in history:
-        raise AssertionError("refresh does not read every activity")
-    if "sync_recent(" not in recent:
-        raise AssertionError("opening Activity data does not read the last 14 days")
+    if "sync_all(" in pull_for or "sync_recent(" in pull_for:
+        raise AssertionError("opening Activity still fetches from another source")
+    if "NOT_CONNECTED_NOTICE" not in pull_for:
+        raise AssertionError("a disconnected account does not say Strava is missing")
     if "explain(" in page or "classify(" in page or "sequence(" in page or "adapt(" in page:
         raise AssertionError("the page spends or classifies")
     if "fetch_activity" in page or "urlopen" in page or "list_activities" in page:

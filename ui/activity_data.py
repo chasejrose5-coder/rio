@@ -21,7 +21,7 @@ Distance, elapsed time, the interval rows, the rest of the heart-rate
 summary, and stream samples say "not pulled." An empty stream list means
 the activity has no streams, so that group stays off.
 
-This file does not call Intervals.icu. No model. No spend. No scores.
+This file does not fetch activities. No model. No spend. No scores.
 """
 
 from __future__ import annotations

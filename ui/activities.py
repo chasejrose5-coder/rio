@@ -1,21 +1,14 @@
-# activities.py — pull Intervals activities and match them by date.
+# activities.py — match stored activities by date, and load a local .env.
 
-"""Read activities and attach each one to the planned day.
+"""Attach an activity record to the planned day it landed on.
 
-The last 14 days are the Dashboard and Weekly window. Activity data asks
-for every activity through today. list_activities asks Intervals.icu for
-that range. The key and the athlete id come from the local environment,
-filled from .env when a value is not already set. fetch_activity then reads
-each activity. The earliest run on a planned date fills that session. Any
-other activity is an extra session.
+Strava is the only activity source. When it is not connected, pages use
+NOT_CONNECTED_NOTICE and do not fetch runs. The earliest run on a planned
+date fills that session. Any other activity is an extra session.
 
 A matched day keeps that activity's WORK elapsed times, WORK distance, and
 average heart rate. Warm-up and cool-down stay out of the WORK distance.
-The activity distance is stored beside that and is not the volume. Lap
-heart rates stay on the laps.
-
-The browser record stores the match. A reload shows it again. Another
-athlete opening the same link uses the key on their own machine.
+The activity distance is stored beside that and is not the volume.
 
 No model. No spend. No scores. Engines are not used.
 """
@@ -26,11 +19,6 @@ import os
 from datetime import date, timedelta
 from pathlib import Path
 
-from adapters.intervals_icu import (
-    IntervalsIcuError,
-    fetch_activity,
-    list_activities,
-)
 from ui.last_session import (
     activity_distance,
     activity_heart_rate,
@@ -40,18 +28,13 @@ from ui.last_session import (
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# The adapter reads the RIO_ names. A local file may use the shorter names.
-_ENV_ALIASES = (
-    ("RIO_INTERVALS_API_KEY", "INTERVALS_API_KEY"),
-    ("RIO_INTERVALS_ATHLETE_ID", "INTERVALS_ATHLETE_ID"),
-)
+# Shown when Strava is not connected. The web card looks for "not configured".
+NOT_CONNECTED_NOTICE = "Strava is not configured."
 
 # Today and the 13 days before it. oldest and newest are both included.
 WINDOW_DAYS = 14
-# Activity data asks from this day through today. Both ends are included.
+# A full history asks from this day through today. Both ends are included.
 HISTORY_START = date(1970, 1, 1)
-# A 14-day list does not turn into an unbounded fetch. Activity data has no cap.
-MAX_FETCH = 40
 _ID_LIMIT = 120
 _NAME_LIMIT = 120
 _START_LIMIT = 40
@@ -99,163 +82,6 @@ def load_local_env(paths: list[Path] | None = None) -> None:
             continue
         seen.add(resolved)
         _apply_env_file(file)
-    _alias_env()
-
-
-def pull_recent(
-    sessions: list,
-    today: date,
-    *,
-    list_fn=None,
-    fetch_fn=None,
-    load_env=None,
-) -> list[dict]:
-    """Activities in the last 14 days, each matched or marked extra.
-
-    The default list and fetch call Intervals.icu with the local key.
-    At most MAX_FETCH activities are read. A failed detail read keeps the
-    listed row. A failed list raises PullError from sync_recent. Nothing
-    is written here.
-    """
-    oldest, newest = activity_window(today)
-    return _pull(
-        sessions,
-        oldest,
-        newest,
-        limit=MAX_FETCH,
-        list_fn=list_fn,
-        fetch_fn=fetch_fn,
-        load_env=load_env,
-    )
-
-
-def pull_all(
-    sessions: list,
-    today: date,
-    *,
-    list_fn=None,
-    fetch_fn=None,
-    load_env=None,
-) -> list[dict]:
-    """Every activity through today, each matched or marked extra.
-
-    The default list and fetch call Intervals.icu with the local key.
-    Each listed activity is read. A failed detail read keeps the listed row.
-    A failed list raises PullError from sync_all. Nothing is written here.
-    """
-    oldest, newest = activity_history(today)
-    return _pull(
-        sessions,
-        oldest,
-        newest,
-        limit=None,
-        list_fn=list_fn,
-        fetch_fn=fetch_fn,
-        load_env=load_env,
-    )
-
-
-def sync_recent(
-    sessions: list,
-    stored: object,
-    today: date,
-    *,
-    list_fn=None,
-    fetch_fn=None,
-    load_env=None,
-) -> list[dict]:
-    """Pull the last 14 days and replace stored activities inside that window.
-
-    Activities outside the window stay. A list failure raises PullError and
-    leaves the caller holding the previous record.
-    """
-    try:
-        pulled = pull_recent(
-            sessions,
-            today,
-            list_fn=list_fn,
-            fetch_fn=fetch_fn,
-            load_env=load_env,
-        )
-    except IntervalsIcuError as exc:
-        raise PullError(str(exc)) from exc
-    oldest, newest = activity_window(today)
-    return merge_activities(stored, pulled, oldest, newest)
-
-
-def sync_all(
-    sessions: list,
-    stored: object,
-    today: date,
-    *,
-    list_fn=None,
-    fetch_fn=None,
-    load_env=None,
-) -> list[dict]:
-    """Pull every activity through today and replace stored rows in that range.
-
-    Activities after today stay. A list failure raises PullError and leaves
-    the caller holding the previous record.
-    """
-    try:
-        pulled = pull_all(
-            sessions,
-            today,
-            list_fn=list_fn,
-            fetch_fn=fetch_fn,
-            load_env=load_env,
-        )
-    except IntervalsIcuError as exc:
-        raise PullError(str(exc)) from exc
-    oldest, newest = activity_history(today)
-    return merge_activities(stored, pulled, oldest, newest)
-
-
-def _pull(
-    sessions: list,
-    oldest: str,
-    newest: str,
-    *,
-    limit: int | None,
-    list_fn=None,
-    fetch_fn=None,
-    load_env=None,
-) -> list[dict]:
-    """List the range, read each activity, and match by date.
-
-    limit caps how many listed rows are read, newest first. None reads every
-    listed activity. The local key is loaded before the list call.
-    """
-    if load_env is None:
-        load_env = load_local_env
-    load_env()
-    if list_fn is None:
-        summaries = list_activities(oldest, newest)
-    else:
-        summaries = list_fn(oldest, newest)
-    if not isinstance(summaries, list):
-        raise IntervalsIcuError("Intervals.icu activity list was not a JSON array.")
-    ordered = _newest_first(summaries)
-    if limit is not None:
-        ordered = ordered[:limit]
-    details = []
-    for summary in ordered:
-        activity_id = summary.get("id")
-        if activity_id is None or str(activity_id).strip() == "":
-            continue
-        if fetch_fn is None:
-            try:
-                fetched = fetch_activity(activity_id)
-            except IntervalsIcuError:
-                fetched = summary
-        else:
-            try:
-                fetched = fetch_fn(activity_id)
-            except IntervalsIcuError:
-                fetched = summary
-        if isinstance(fetched, dict):
-            details.append(fetched)
-    return match_activities(sessions, details)
 
 
 def match_activities(sessions: list, activities: list) -> list[dict]:
@@ -421,24 +247,11 @@ def activity_day(activity: object) -> str:
     return ""
 
 
-def _alias_env() -> None:
-    """Copy shorter .env names onto the names list_activities reads.
-
-    An existing RIO_ value wins. The values are never printed.
-    """
-    for canonical, alias in _ENV_ALIASES:
-        if os.environ.get(canonical, "").strip():
-            continue
-        found = os.environ.get(alias, "").strip()
-        if found:
-            os.environ[canonical] = found
-
-
 def _apply_env_file(path: Path) -> None:
     try:
         lines = path.read_text(encoding="utf-8-sig").splitlines()
     except OSError as exc:
-        raise IntervalsIcuError(f"Could not read .env: {path}") from exc
+        raise OSError(f"Could not read .env: {path}") from exc
     for raw in lines:
         line = raw.strip()
         if not line or line.startswith("#"):
@@ -456,20 +269,9 @@ def _apply_env_file(path: Path) -> None:
             os.environ[name] = value
 
 
-def _newest_first(rows: list) -> list[dict]:
-    """Latest start first. A missing start stays at the end of the fetch list."""
-    found = [row for row in rows if isinstance(row, dict)]
-    return sorted(found, key=_newest_key, reverse=True)
-
-
 def _oldest_key(activity: dict) -> tuple:
     start = _start_text(activity.get("start_date_local"))
     return (start == "", start, _ident(activity))
-
-
-def _newest_key(activity: dict) -> tuple:
-    start = _start_text(activity.get("start_date_local"))
-    return (start != "", start, _ident(activity))
 
 
 def _ident(activity: dict) -> str:

@@ -2,7 +2,7 @@
 
 This is the code as it stands. RIO is a local running-intelligence layer for one 800 m season. Rules choose workouts and labels. A model is allowed only to rephrase a paragraph that the rules already wrote. The app does not compute a goal probability or a readiness score. A season plan that contains either field is rejected.
 
-Intervals.icu is a read-only adapter. The product is the season, the menu, and the labels.
+Strava is the only activity source. When it is not connected, the app shows a connect prompt and does not fetch runs from anywhere else. The product is the season, the menu, and the labels.
 
 ## Pathways
 
@@ -16,17 +16,16 @@ These are the paths that exist. They do not all meet.
 
 4. **Explain.** Last Session, Next, and Decisions ask `explain.py` for one paragraph. If the explain API is configured and recorded spend is under $25, the paragraph may be rephrased. A rephrase that changes the family, the template id, or the reasons is dropped. The rules text remains. No other page calls the model.
 
-5. **Pull activities.** Opening Dashboard, Weekly, Session, Progress, or Activity data asks Intervals for the last 14 days, matches each activity to a planned date, and then runs auto-adapt. The first open of any other page asks for that same 14-day window and does not judge a mark. Refresh on Activity data asks for every activity from 1970-01-01 through today, matches them, and then runs auto-adapt. The reduced rows are saved in this browser with the marks. The full activity JSON is not stored. Nothing is written back to Intervals.
+5. **Pull activities.** Strava is the only source. Opening Dashboard, Weekly, Session, Progress, or Activity data restores stored Strava rows. When Strava is not connected, the page says so and does not fetch runs. Marks are applied when a Strava sync succeeds. The reduced rows are saved with the marks. The full activity JSON is not stored.
 
 6. **Load fixtures into SQLite.** `db/load.py` can create `data/rio.sqlite` from `db/schema.sql` and the four YAML fixtures. The Streamlit app does not open that database.
 
-## Fixtures and Intervals
+## Fixtures and activities
 
-| Piece | Talks to Intervals | Stays on fixtures or local files |
+| Piece | Fetches runs | Stays on fixtures or local files |
 | --- | --- | --- |
-| `adapters/intervals_icu.py` | GET one activity, or GET a date range, when the API key is set | `to_normalize_input()` also runs on a JSON object already in memory |
-| `adapters/intervals_cli.py` | `--activity-id` and `--list` | `--file` reads a JSON file and does not use the network. `--save-json` writes the fetched body to disk |
-| `ui/activities.py` | `list_activities` and `fetch_activity` on Dashboard, Weekly, Session, Progress, Activity data, and app load | Tests pass fake list and fetch functions |
+| `ui/last_session.py` `to_normalize_input` | No | Reads a JSON object already on disk |
+| `ui/activities.py` | No. Matches records already in memory | Strava rows are restored by the Strava store |
 | `ui/auto_adapt.py` | No | Judges rows already stored from a pull or a test |
 | `ui/last_session.py` | No | Reads `tests/fixtures/intervals/*.json` |
 | `ui/activity_data.py` | No | Displays stored rows and, for a planned day with no match, a local JSON file named by the result |
@@ -36,7 +35,7 @@ These are the paths that exist. They do not all meet.
 | `engines/season.py`, `engines/prescribe.py`, `engines/classify.py` | No | Menu files, paper files, and fixture YAML |
 | `db/load.py` | No | Writes fixture workouts into SQLite |
 
-The two JSON files in `tests/fixtures/intervals/` are synthetic. The README there says real saves from `--save-json` would be named `real_<date>_<name>.json`. None of those are in the tree. A file whose name or text says synthetic is labeled `SYNTHETIC / FIXTURE` on Last Session.
+The two JSON files in `tests/fixtures/intervals/` are synthetic. A file whose name or text says synthetic is labeled `SYNTHETIC / FIXTURE` on Last Session.
 
 ## Paper files
 
@@ -70,7 +69,7 @@ The season places a subset. Phases 1–7 are a six-day week: Sunday, Monday, and
 
 Ladder and step ids (`*_up_*`, `*_py_*`, `*_dn_*`) and several other recipes stay on the menu for prescribe and the Library. They are not in those phase lists, so a generated season does not place them.
 
-The four practice fixtures in `tests/fixtures/` are separate from the menu. Each is one repeated lap: `easy.yml` (aerobic), `se_400.yml` (speed endurance), `vo2_800.yml` (aerobic power), `race_800.yml` (race readiness). The note on each says Chase did not run it. `expected_family` is on the file for tests. `normalize()` drops that field before classification.
+The four practice fixtures in `tests/fixtures/` are separate from the menu. Each is one repeated lap: `easy.yml` (aerobic), `se_400.yml` (speed endurance), `vo2_800.yml` (aerobic power), `race_800.yml` (race readiness). The note on each says it is a practice sample. `expected_family` is on the file for tests. `normalize()` drops that field before classification.
 
 `tests/fixtures/planned/aer_4000_r0_x1.yml` is the one accepted planned row. Source is `fixture`. Placeholder date is 2026-10-17.
 
@@ -171,29 +170,11 @@ Does not choose the workout. Does not write the ledger. Does not call Intervals.
 
 ### `adapters/__init__.py`
 
-Says Intervals.icu is an adapter, not the product. It exports nothing else.
+The package no longer contains an activity client. Strava is the activity source.
 
-### `adapters/intervals_icu.py`
+### Local workout files
 
-Read-only HTTP client and a JSON converter.
-
-Reads `RIO_INTERVALS_API_KEY` and `RIO_INTERVALS_ATHLETE_ID` from the environment. A blank athlete id becomes `"0"` (the key's own athlete). A missing key raises `IntervalsIcuError` and the message does not include the key.
-
-`fetch_activity()` GETs `https://intervals.icu/api/v1/activity/<id>?intervals=true`. One request, no retry. `list_activities(oldest, newest)` GETs `/athlete/<id>/activities` and returns only `id`, `name`, `start_date_local`, and `type` for each row. Auth is HTTP basic with username `API_KEY` and the key as the password. 401, 404, and 429 get fixed messages. 429 includes the `Retry-After` header or the word missing.
-
-`to_normalize_input()` builds `{"intervals": [...]}` from `icu_intervals`, in order. Distance stays meters on `distance_m`. `elapsed_time` becomes `seconds`. `moving_time` is not a fallback. `RECOVERY` becomes role `rest`. `WORK` becomes `work`. Other types are lowercased so warm-up and cool-down still match the skip roles in normalize. Missing and null fields stay off the step. Label fields are not copied. Laps are not dropped, merged, or filled in.
-
-Does not POST, PUT, or DELETE. Does not write the ledger, the season, or SQLite. Does not classify.
-
-### `adapters/intervals_cli.py`
-
-Command line: `python -m adapters.intervals_cli`.
-
-Reads one of `--file`, `--activity-id`, or `--list` with `--oldest` and `--newest`. A live command loads `.env` from the working directory and the project root. Existing environment values win. Values are never printed. `--save-json` is only valid with `--activity-id`.
-
-Writes stdout: for one activity, id, name, date, normalized laps, and the classify result. For a list, one line per activity with id, name, date, and type. `--save-json` writes the fetched activity JSON to the given path. Exit code 1 prints the adapter error on stderr.
-
-Does not store a live fetch unless `--save-json` is passed. Does not call prescribe, the season, explain, or the UI.
+`ui/last_session.py` `to_normalize_input()` builds `{"intervals": [...]}` from `icu_intervals` in a JSON file already on disk. Distance stays meters on `distance_m`. `elapsed_time` becomes `seconds`. `moving_time` is not a fallback. `RECOVERY` becomes role `rest`. `WORK` becomes `work`. Other types are lowercased so warm-up and cool-down still match the skip roles in normalize. Missing and null fields stay off the step. Label fields are not copied. Laps are not dropped, merged, or filled in. Nothing is requested from the network. Does not call prescribe, the season, explain, or the UI.
 
 ## Database
 
@@ -207,7 +188,7 @@ Apply the schema and load fixture workouts.
 
 Reads `db/schema.sql` and every `*.yml` or `*.yaml` directly in `tests/fixtures/`. Parses flat key-value lines. Counts files in `data/seed` that are not hidden and not `.gitkeep`. That folder is not in the tree, so the count is zero.
 
-Writes `data/rio.sqlite`. The file is deleted and recreated on each run, including journal sidecars. Inserts one athlete named Chase, then one `workouts` row per fixture (`source` `fixture`, title from the file stem, note from `note` and `detail`) and one `workout_steps` row per lap. Elapsed time includes rest between reps and not a rest after the last rep. Prints the seed count, the athlete name, the workout count, the step count, and the database path.
+Writes `data/rio.sqlite`. The file is deleted and recreated on each run, including journal sidecars. Inserts one athlete named Athlete, then one `workouts` row per fixture (`source` `fixture`, title from the file stem, note from `note` and `detail`) and one `workout_steps` row per lap. Elapsed time includes rest between reps and not a rest after the last rep. Prints the seed count, the athlete name, the workout count, the step count, and the database path.
 
 Does not classify, does not call a model, and does not insert goals, ontology versions, classifications, ledger entries, or prescriptions. Does not read Intervals. The UI imports only `parse_fixture` and `fixture_paths` from this file. It never opens the database. `*.db`, `db.sqlite3`, and `data/rio.sqlite` are gitignored.
 
@@ -221,12 +202,10 @@ Browser key is `rio.plan.v1` plus those four strings. The payload is JSON: `mark
 
 Pull rules inside the wrapper:
 
-- Dashboard, Weekly, Session, Progress, and Activity data call `sync_recent` for the last 14 days, at most 40 activities, newest first, and then `auto_adapt`.
-- The first open of any other page calls `sync_recent` once and does not judge a mark.
-- Refresh on Activity data calls `sync_all` from 1970-01-01 through today, with no cap, and then `auto_adapt`.
-- Opening one of those five pages again pulls the 14-day window again.
-- A failed list keeps the previous stored activities and shows the error. The key stays in the environment and is not printed.
-- Auto-adapt runs after a successful pull on those five pages, and after Refresh. It does not run on the first-load pull of another page.
+- Dashboard, Weekly, Session, Progress, and Activity data restore stored Strava rows.
+- When Strava is not connected, the page sets the notice `Strava is not configured.` and does not fetch runs.
+- A connected account does not fetch again inside this wrapper. Marks are applied by the Strava sync.
+- Opening one of those pages again in the same session does not repeat the check.
 
 Marks the user taps on Season or Weekly call `adapt()` for that week. A result on Session calls `judge()` and then the same adapt. Settings can require a confirm step before either of those. Auto-adapt does not use that confirm step.
 
@@ -282,15 +261,15 @@ Does not write a file, an account, or the network. Does not call a model. The Ja
 
 ### `ui/activities.py`
 
-Pull Intervals activities and match them by date.
+Match stored activities by date. Strava is the only source.
 
 Reads the plan's sessions, today's date, and optional stored rows. Loads `.env` the same way as the CLI, then copies `INTERVALS_API_KEY` and `INTERVALS_ATHLETE_ID` onto the `RIO_` names when those are empty. Calls `list_activities` and `fetch_activity` unless the caller passes substitutes. Uses `work_elapsed`, `work_distance`, `activity_distance`, and `activity_heart_rate` from `last_session.py`.
 
-Writes a list of reduced activity dicts. `sync_recent` replaces stored rows inside the 14-day window and keeps rows outside it. `sync_all` replaces rows from 1970-01-01 through today and keeps rows after today. The same id keeps one row.
+Writes a list of reduced activity dicts from records already in memory. `merge_activities` replaces stored rows inside a date window and keeps rows outside it. The same id keeps one row.
 
 Matching: group by the calendar date on `start_date_local` (then `start_date`, then `date`). The earliest activity whose type is `run` fills a planned date. A date with no run uses the earliest activity. Every other activity that day is extra (`matched` false). A date with no planned session is extra. A matched row copies the planned template id, WORK elapsed times (at most 32), WORK distance, activity distance, and average heart rate. Warm-up and cool-down stay out of WORK distance. A failed detail read keeps the listed summary. A failed list becomes `PullError` and the caller keeps the old record. The 14-day pull stops after 40 listed rows, newest first. The history pull reads every listed row.
 
-Does not call engines, explain, or `adapt()`. Does not write a file. Does not send anything to Intervals except the two GETs.
+Does not call engines, explain, or `adapt()`. Does not write a file. Does not fetch runs.
 
 ### `ui/auto_adapt.py`
 
@@ -416,6 +395,6 @@ There is no test module for `db/load.py`. There is no separate test module for `
 
 Wired into the running app: the season builder and `adapt()`, the menu, the weights file, the browser store, the activity pull, matching, auto-adapt on Dashboard, Weekly, Session, Progress, and Activity data, hand-entered results, local Intervals JSON for Last Session and for Session boxes, classify and normalize on Last Session, prescribe on Next, the planned YAML file on Decisions, the in-memory ledger on Ledger, `goal.yml` on Goal, and explain on the three prose pages.
 
-Present and used by a script, not by a page: `adapters/intervals_cli.py`, `db/load.py`, `engines/accept.py` as a writer (the page only reads what it wrote), and the stdout helpers on season and prescribe.
+Present and used by a script, not by a page: `db/load.py`, `engines/accept.py` as a writer (the page only reads what it wrote), and the stdout helpers on season and prescribe.
 
 Present and unused by the engines and the app: `rio/v0.1/events.yml`, `rio/v0.1/adaptations.yml`, and `docs/phase0_log.md`. `tests/labeled_sessions.yml` is read by two tests that check it stayed empty. The SQLite tables for goals, classifications, ledger entries, and prescriptions are never inserted. The schema allows an Intervals workout source. No loader inserts one.

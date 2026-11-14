@@ -116,8 +116,8 @@ Type values only in the Vercel and Render dashboards. The repo keeps the names.
 | `RIO_EXPLAIN_BASE_URL` | The provider base URL already used with that key. Leave unset with the key. |
 | `RIO_EXPLAIN_INPUT_USD_PER_MILLION` | Optional. Unset uses the built-in price. |
 | `RIO_EXPLAIN_OUTPUT_USD_PER_MILLION` | Optional. Unset uses the built-in price. |
-| `RIO_INTERVALS_API_KEY` | Optional. The Intervals.icu key already in Streamlit secrets, for the fallback when Strava is not connected. |
-| `RIO_INTERVALS_ATHLETE_ID` | Optional. The athlete id that goes with that key. Blank means the key's own athlete. |
+| `RIO_INTERVALS_API_KEY` | Unused. The app no longer reads it. Delete it from Render after this change is deployed. |
+| `RIO_INTERVALS_ATHLETE_ID` | Unused. The app no longer reads it. Delete it from Render after this change is deployed. |
 
 ### Leave unset on Render
 

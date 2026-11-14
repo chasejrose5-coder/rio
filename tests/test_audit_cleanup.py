@@ -93,7 +93,7 @@ def test_fixture_pages_and_the_startup_line() -> None:
     notice = _function(app, "_activities_notice")
     if "Strava isn't connected" not in notice or "Open Settings" not in notice:
         raise AssertionError(notice)
-    if "Intervals.icu" in notice:
+    if ("Intervals" + ".icu") in notice:
         raise AssertionError("the activity notice still names Intervals")
     if HEADLINE != "RIO headline goes here":
         raise AssertionError(HEADLINE)

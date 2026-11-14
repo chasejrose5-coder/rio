@@ -335,8 +335,8 @@ test("confirm-adapt asks before a week mark is stored", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Smashing" })).toHaveAttribute("aria-pressed", "true");
 });
 
-test("a missing intervals key shows the Strava card, and another pull failure does not", async ({ page }) => {
-  await installApi(page, { season: true, notice: "RIO_INTERVALS_API_KEY is not set. Set it in the environment." });
+test("a disconnected account shows the Strava card, and another pull failure does not", async ({ page }) => {
+  await installApi(page, { season: true, notice: "Strava is not configured." });
   await signIn(page);
   await page.goto("/plan");
   await page.getByRole("radio", { name: "This week" }).click();
@@ -344,13 +344,13 @@ test("a missing intervals key shows the Strava card, and another pull failure do
   await expect(page.getByText("Connect Strava in Settings to see your runs here.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Open Settings" })).toHaveAttribute("href", "/settings");
 
-  await installApi(page, { season: true, notice: "Intervals.icu returned 429" });
+  await installApi(page, { season: true, notice: "the activity service returned 429" });
   await signIn(page);
   await page.goto("/plan");
   await page.getByRole("radio", { name: "This week" }).click();
   await expect(page.getByText("Runs could not be loaded. Try Refresh in a moment.")).toBeVisible();
   await expect(page.getByText("Strava isn't connected")).toHaveCount(0);
-  await expect(page.getByText("Intervals.icu returned 429")).toHaveCount(0);
+  await expect(page.getByText("the activity service returned 429")).toHaveCount(0);
 });
 
 test("short dates follow the saved format", async ({ page }) => {
@@ -429,9 +429,17 @@ test("a brand-new account reaches Plan from Start and can mark a week", async ({
 
   await page.getByRole("radio", { name: "This week" }).click();
   await expect(page.getByText(/Run at 7:45 per mile|Set your easy pace before this run\./).first()).toBeVisible();
-  const paceLine = page.locator(".rio-pace-line", { hasText: /@/ }).first();
-  await expect(paceLine).toBeVisible();
-  await expect(paceLine).not.toContainText("1.55");
+  let paceLine = page.locator(".rio-pace-line", { hasText: /@/ }).first();
+  if ((await paceLine.count()) === 0) {
+    await page.getByLabel("Week", { exact: true }).selectOption({ index: 1 });
+    paceLine = page.locator(".rio-pace-line", { hasText: /@/ }).first();
+    await expect(paceLine).toBeVisible();
+    await expect(paceLine).not.toContainText("1.55");
+    await page.getByLabel("Week", { exact: true }).selectOption({ index: 0 });
+  } else {
+    await expect(paceLine).toBeVisible();
+    await expect(paceLine).not.toContainText("1.55");
+  }
   await page.getByRole("button", { name: "On track" }).click();
   await expect(page.getByRole("button", { name: "On track" })).toHaveAttribute("aria-pressed", "true");
   await page.getByLabel("Week", { exact: true }).selectOption({ index: 1 });

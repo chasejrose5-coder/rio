@@ -58,7 +58,7 @@ function activities(options: { connected?: boolean; notice?: string | null; card
     length: 12,
     start_date: "2026-04-19",
     goal_date: "2027-03-19",
-    notice: options.notice ?? (options.connected ? null : "RIO_INTERVALS_API_KEY is not set."),
+    notice: options.notice ?? (options.connected ? null : "Strava is not configured."),
     strava: {
       configured: true,
       connected: options.connected === true,
@@ -197,7 +197,7 @@ test("a bad plan is an em dash", async ({ page }) => {
 });
 
 test("a disconnected account shows the empty line and the Strava card", async ({ page }) => {
-  await install(page, { notice: "RIO_INTERVALS_API_KEY is not set." });
+  await install(page, { notice: "Strava is not configured." });
   await sign(page);
   await page.goto("/activity");
   await expect(page.getByText("2026-04-19 — 2027-03-19")).toBeVisible();
@@ -205,17 +205,17 @@ test("a disconnected account shows the empty line and the Strava card", async ({
   await expect(page.getByRole("link", { name: "Connect Strava in Settings" })).toHaveAttribute("href", "/settings");
   await expect(page.getByText("Strava isn't connected")).toBeVisible();
   await expect(page.getByRole("link", { name: "Open Settings" })).toBeVisible();
-  await expect(page.getByText("Intervals.icu")).toHaveCount(0);
+  await expect(page.getByText("Strava is not configured.")).toHaveCount(0);
   await expect(page.getByText("Refresh from Strava")).toHaveCount(0);
   await expect(page.locator(".rio-mark-label").first()).toHaveCSS("color", "rgb(60, 58, 54)");
 });
 
-test("an intervals failure stays off the raw adapter sentence and keeps the stored runs", async ({ page }) => {
-  await install(page, { notice: "Intervals.icu returned 429", cards: true });
+test("a pull failure stays off the raw sentence and keeps the stored runs", async ({ page }) => {
+  await install(page, { notice: "the activity service returned 429", cards: true });
   await sign(page);
   await page.goto("/activity");
   await expect(page.getByText("Runs could not be loaded. Try Refresh in a moment.")).toBeVisible();
-  await expect(page.getByText("Intervals.icu")).toHaveCount(0);
+  await expect(page.getByText("the activity service returned 429")).toHaveCount(0);
   await expect(page.getByText("Completed work")).toBeVisible();
   await expect(page.locator(".rio-stat-value", { hasText: "1.5 mi" })).toBeVisible();
   await expect(page.locator(".rio-stat-value", { hasText: "160 bpm" })).toBeVisible();

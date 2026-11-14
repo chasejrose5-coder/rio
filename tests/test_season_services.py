@@ -40,7 +40,7 @@ from services.season_store import (
     save_local_season,
 )
 from ui.accounts import AccountError, create_account, read_record
-from ui.activities import PullError
+from ui.activities import NOT_CONNECTED_NOTICE
 from ui.cloud_store import CloudAuthError, MemoryDirectory
 from ui.plan_store import storage_key
 from ui.result import goal_seconds
@@ -518,25 +518,12 @@ def test_deleted_season_lists_drop_only_that_season() -> None:
 
 
 def test_pull_branches() -> None:
-    """Refresh, a live page, Strava, and a failed pull keep the shell's order."""
+    """A live page restores stored runs. Without Strava it only says so."""
 
     def _run(**overrides):
-        calls = {"sync_all": 0, "sync_recent": 0, "restore": 0, "judge": 0, "today": 0, "connected": 0}
+        calls = {"restore": 0, "connected": 0}
         notices = []
-        stored = []
         loaded = []
-
-        def sync_all(sessions, activities, today):
-            calls["sync_all"] += 1
-            if activities != ["old"] or today != TODAY:
-                raise AssertionError((activities, today))
-            return ["all"]
-
-        def sync_recent(sessions, activities, today):
-            calls["sync_recent"] += 1
-            if overrides.get("explode"):
-                raise PullError("intervals down")
-            return ["recent"]
 
         values = {
             "page_name": "page_dashboard",
@@ -546,70 +533,52 @@ def test_pull_branches() -> None:
             "activities_loaded": None,
             "activities_trigger": None,
             "plan": {"sessions": [{"date": "2026-04-21"}]},
-            "activities": lambda: ["old"],
-            "today": lambda: calls.__setitem__("today", calls["today"] + 1) or TODAY,
             "strava_connected": lambda: calls.__setitem__("connected", calls["connected"] + 1) or False,
             "strava_gate_pending": lambda: False,
-            "sync_all": sync_all,
-            "sync_recent": sync_recent,
             "restore_rows": lambda: calls.__setitem__("restore", calls["restore"] + 1),
             "on_notice": notices.append,
-            "clear_notice": lambda: notices.append("clear"),
-            "on_activities": stored.append,
-            "apply_marks": lambda plan: calls.__setitem__("judge", calls["judge"] + 1),
             "on_loaded": loaded.append,
         }
         values.update(overrides)
-        apply_marks = values.pop("apply_marks")
-        explode = values.pop("explode", False)
-        run_activity_pull(_apply_activity_marks=apply_marks, **values)
-        return calls, notices, stored, loaded, explode
+        run_activity_pull(**values)
+        return calls, notices, loaded
 
-    calls, notices, stored, loaded, _ = _run(test_preview=True)
-    if any(calls.values()) or notices or stored or loaded:
+    calls, notices, loaded = _run(test_preview=True)
+    if any(calls.values()) or notices or loaded:
         raise AssertionError("a preview pulled")
-    calls, notices, stored, loaded, _ = _run(page_name="page_past_seasons")
+    calls, notices, loaded = _run(page_name="page_past_seasons")
     if any(calls.values()) or loaded:
         raise AssertionError("past seasons pulled")
-    calls, notices, stored, loaded, _ = _run(plan=None)
-    if calls["sync_recent"] or calls["connected"]:
+    calls, notices, loaded = _run(plan=None)
+    if calls["connected"] or notices or loaded:
         raise AssertionError("a missing plan pulled")
-    calls, notices, stored, loaded, _ = _run(already_pulled=True)
-    if calls["restore"] != 1 or calls["sync_recent"] or loaded:
+    calls, notices, loaded = _run(already_pulled=True)
+    if calls["restore"] != 1 or calls["connected"] or loaded or notices:
         raise AssertionError(calls)
-    calls, notices, stored, loaded, _ = _run()
-    if calls["sync_recent"] != 1 or calls["sync_all"] or stored != [["recent"]] or loaded != ["page_dashboard"]:
-        raise AssertionError((calls, stored, loaded))
-    if calls["judge"] != 1 or notices != ["clear"]:
-        raise AssertionError((calls, notices))
-    calls, notices, stored, loaded, _ = _run(page_name="page_activity", refresh=True, already_pulled=True)
-    if calls["sync_all"] != 1 or calls["sync_recent"] or stored != [["all"]] or calls["judge"] != 1:
-        raise AssertionError((calls, stored))
-    if loaded != ["page_activity"]:
-        raise AssertionError(loaded)
-    calls, notices, stored, loaded, _ = _run(page_name="page_library")
-    if calls["judge"] or loaded != ["load"] or stored != [["recent"]]:
-        raise AssertionError((calls, loaded, stored))
-    calls, notices, stored, loaded, _ = _run(
+    calls, notices, loaded = _run()
+    if calls["connected"] != 1 or calls["restore"] != 1 or loaded != ["page_dashboard"]:
+        raise AssertionError((calls, loaded))
+    if notices != [NOT_CONNECTED_NOTICE]:
+        raise AssertionError(notices)
+    calls, notices, loaded = _run(page_name="page_activity", refresh=True, already_pulled=True)
+    if loaded != ["page_activity"] or notices != [NOT_CONNECTED_NOTICE]:
+        raise AssertionError((loaded, notices))
+    calls, notices, loaded = _run(page_name="page_library")
+    if loaded != ["load"] or notices != [NOT_CONNECTED_NOTICE]:
+        raise AssertionError((calls, loaded, notices))
+    calls, notices, loaded = _run(
         page_name="page_library",
         activities_trigger="load",
         already_pulled=False,
     )
-    if calls["sync_recent"] or loaded:
+    if calls["connected"] or loaded or notices:
         raise AssertionError("the same load pulled twice")
-    calls, notices, stored, loaded, _ = _run(strava_connected=lambda: True)
-    if calls["sync_recent"] or calls["sync_all"] or calls["judge"] or calls["restore"] != 1:
+    calls, notices, loaded = _run(strava_connected=lambda: True)
+    if calls["restore"] != 1 or notices or loaded != ["page_dashboard"]:
+        raise AssertionError((calls, notices, loaded))
+    calls, notices, loaded = _run(strava_gate_pending=lambda: True)
+    if calls["connected"] or calls["restore"] or loaded or notices:
         raise AssertionError(calls)
-    if loaded != ["page_dashboard"]:
-        raise AssertionError(loaded)
-    calls, notices, stored, loaded, _ = _run(strava_gate_pending=lambda: True)
-    if calls["connected"] or calls["sync_recent"] or calls["restore"] or loaded:
-        raise AssertionError(calls)
-    calls, notices, stored, loaded, _ = _run(explode=True)
-    if notices != ["intervals down"] or stored or calls["judge"] or loaded != ["page_dashboard"]:
-        raise AssertionError((notices, stored, loaded, calls))
-    if calls["restore"] != 1:
-        raise AssertionError("a failed pull dropped the restore")
 
 
 def main() -> None:

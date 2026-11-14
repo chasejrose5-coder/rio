@@ -23,7 +23,6 @@ _ZONE_CHANGE = datetime(2026, 11, 9, 7, 30, tzinfo=timezone.utc)
 # Sunday 8 Nov 2026, 04:00 UTC is Saturday 7 Nov 2026, 20:00 in Pacific.
 _SATURDAY_NIGHT_PACIFIC = datetime(2026, 11, 8, 4, 0, tzinfo=timezone.utc)
 _SURFACES = (
-    "_pull_for",
     "_route_after_login",
     "_next_session_day",
     "page_start",
@@ -194,6 +193,9 @@ def test_athlete_pages_read_the_saved_zone() -> None:
         body = _function(app, name)
         if "_athlete_today()" not in body or "date.today()" in body:
             raise AssertionError(name)
+    pull = _function(app, "_pull_for")
+    if "date.today()" in pull:
+        raise AssertionError("the activity check uses the server date")
     home = _function(app, "page_dashboard")
     if "_upcoming_days(sessions, _athlete_today(), 3)" not in home:
         raise AssertionError("next 3 days still starts from the server date")

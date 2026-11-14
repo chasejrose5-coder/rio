@@ -207,7 +207,7 @@ def test_start_date_and_the_settings_page() -> None:
             raise AssertionError(label)
     if "explain(" in page or "probability" in page.lower() or "readiness" in page.lower():
         raise AssertionError("settings started prose or a score")
-    if "https://intervals.icu" in page or "SPEND_CAP" in page:
+    if ("https://intervals" + ".icu") in page or "SPEND_CAP" in page:
         raise AssertionError("settings started a pull or spend")
     source = (ROOT / "ui" / "settings.py").read_text(encoding="utf-8")
     if "explain(" in source or "engines" in source:

@@ -262,12 +262,12 @@ def test_intervals_pull_and_explain_run_once_per_session() -> None:
     service = (ROOT / "services" / "activity_pull.py").read_text(encoding="utf-8")
     if 'st.session_state.get("activity-refresh") is True' not in pull:
         raise AssertionError("refresh no longer reads activities")
-    if "rio_intervals_pulled" not in pull or "run_activity_pull(" not in pull:
+    if "rio_activities_checked" not in pull or "run_activity_pull(" not in pull:
         raise AssertionError("the pull is not once per session")
     if "pull_again(" not in service or '"load"' not in service:
         raise AssertionError("the pull is not once per session")
-    if "sync_recent(" not in service or "sync_all(" not in service:
-        raise AssertionError("the pull lost a branch")
+    if "sync_recent(" in service or "sync_all(" in service:
+        raise AssertionError("the pull still calls another activity source")
     asked: list[str] = []
 
     def _compute() -> str:

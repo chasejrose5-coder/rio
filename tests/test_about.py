@@ -193,8 +193,8 @@ def test_about_is_in_the_nav_and_does_not_spend() -> None:
     ):
         if token in page:
             raise AssertionError(token)
-    if "https://intervals.icu" in app:
-        raise AssertionError("About calls Intervals.icu")
+    if ("https://intervals" + ".icu") in app:
+        raise AssertionError("About calls a removed activity host")
 
 
 def main() -> None:

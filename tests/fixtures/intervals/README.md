@@ -1,10 +1,4 @@
-# Intervals.icu fixtures
+# Local workout files
 
-The JSON files here are synthetic. Chase did not run them.
-
-Real activities saved via `--save-json` go here, named like `real_<date>_<name>.json`.
-
-Environment variable names:
-
-- RIO_INTERVALS_API_KEY
-- RIO_INTERVALS_ATHLETE_ID
+The JSON files here are synthetic samples for the admin session fill.
+They are read from disk. Nothing is requested from a network.

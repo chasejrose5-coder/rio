@@ -426,7 +426,7 @@ export function linkError(params: URLSearchParams): string {
   return "";
 }
 
-/** Streamlit shows the Strava card only when the pull error says the key is missing. */
+/** The Strava card is shown when the notice says Strava is not configured. */
 export function activityNotice(notice: string | null | undefined): "missing" | "failed" | null {
   const text = (notice || "").trim();
   if (!text) return null;

@@ -56,7 +56,7 @@ INSIGHT = {
     },
     "later_weeks_effect": "eased",
     "easy_hr_note": None,
-    "tone": "chase",
+    "tone": "plain",
     "max_sentences": 4,
 }
 REPLY = {
@@ -274,11 +274,6 @@ def test_sync_uses_the_stored_base_and_a_failure_does_not_stick(monkeypatch) -> 
 
     monkeypatch.setattr("engines.explain.complete_insight", _model)
 
-    def _intervals(*_args, **_kwargs):
-        raise AssertionError("Strava was connected and Intervals was called")
-
-    client.app.state.intervals_sync_recent = _intervals
-    client.app.state.intervals_sync_all = _intervals
     _callback(client, _connect(client)["url"])
     first = client.post("/strava/sync", json={"scope": "all"})
     if first.status_code != 200:
@@ -362,81 +357,32 @@ def test_disconnect_removes_tokens_and_a_missing_setup_is_refused(monkeypatch) -
         raise AssertionError("status still says connected")
 
 
-def test_intervals_fallback_also_uses_the_stored_base(monkeypatch) -> None:
+def test_sync_without_strava_does_not_import(monkeypatch) -> None:
+    """A signed-in athlete with no Strava link is not given another person's runs."""
     monkeypatch.delenv("RIO_STRAVA_CLIENT_ID", raising=False)
     monkeypatch.delenv("RIO_STRAVA_CLIENT_SECRET", raising=False)
     _directory, client = _signed()
     original = _generate(client)["plan"]
-    tuesday = _session(original, 1, "Tuesday")
-    thursday = _session(original, 1, "Thursday")
-    box = {"calls": []}
-
-    def recent(sessions, stored, today, **_kwargs):
-        box["calls"].append("recent")
-        return [
-            {
-                "id": "tue",
-                "date": tuesday["date"],
-                "matched": True,
-                "template_id": tuesday["template_id"],
-                "name": "Run",
-                "reps": [None, 20],
-            }
-        ]
-
-    def every(sessions, stored, today, **_kwargs):
-        box["calls"].append("all")
-        return [
-            {
-                "id": "tue",
-                "date": tuesday["date"],
-                "matched": True,
-                "template_id": tuesday["template_id"],
-                "name": "Run",
-                "reps": [None, 20],
-            },
-            {
-                "id": "thu",
-                "date": thursday["date"],
-                "matched": True,
-                "template_id": thursday["template_id"],
-                "name": "Run",
-                "reps": [None, 20],
-            },
-        ]
-
-    client.app.state.intervals_sync_recent = recent
-    client.app.state.intervals_sync_all = every
+    before = client.get("/activities")
+    if before.status_code != 200:
+        raise AssertionError(before.text)
+    if "not configured" not in (before.json().get("notice") or ""):
+        raise AssertionError(before.text)
     first = client.post("/strava/sync", json={"scope": "recent"})
-    if first.status_code != 200 or first.json()["synced"] is not True:
+    if first.status_code != 200 or first.json()["synced"] is not False:
         raise AssertionError(first.text)
-    if box["calls"] != ["recent"]:
-        raise AssertionError(box["calls"])
+    if first.json()["notice"] != "Strava is not configured." or first.json()["committed"] is not False:
+        raise AssertionError(first.text)
     second = client.post("/strava/sync", json={"scope": "all"})
-    if second.status_code != 200 or box["calls"] != ["recent", "all"]:
+    if second.status_code != 200 or second.json()["synced"] is not False:
         raise AssertionError(second.text)
-    goal = goal_seconds("1:55.0")
-    marks = {int(key): value for key, value in first.json()["marks"].items()}
-    with_base = apply_activity_marks(
-        first.json()["plan"],
-        second.json()["activities"],
-        deepcopy(first.json()["actuals"]),
-        goal,
-        {1: plan_for_adapt(original)},
-        dict(marks),
-    )
-    without = apply_activity_marks(
-        first.json()["plan"],
-        second.json()["activities"],
-        deepcopy(first.json()["actuals"]),
-        goal,
-        {},
-        dict(marks),
-    )
-    if with_base.plan is None or without.plan is None or _six(with_base.plan) == _six(without.plan):
-        raise AssertionError("the fallback fixture did not separate the stored base")
-    if _six(second.json()["plan"]) != _six(with_base.plan):
-        raise AssertionError("the intervals sync did not use the stored quality base")
+    if second.json()["count"] != 0:
+        raise AssertionError(second.text)
+    current = client.get("/seasons/current")
+    if current.status_code != 200:
+        raise AssertionError(current.text)
+    if _six(current.json()["plan"]) != _six(original):
+        raise AssertionError("a disconnected sync changed the plan")
 
 
 def test_a_bad_insight_returns_before_the_model_and_a_score_is_rejected(monkeypatch) -> None:
@@ -631,35 +577,24 @@ def test_local_settings_use_the_account_file(tmp_path: Path) -> None:
         raise AssertionError(stored)
 
 
-def test_activities_notice_follows_the_plan_pull(monkeypatch) -> None:
-    """The card is the missing-key pull. A connected Strava account does not pull."""
-    from datetime import date
+def test_activities_notice_follows_the_plan_pull() -> None:
+    """The card is the disconnected account. A connected Strava account has no notice."""
+    from api.screens import connection_notice
 
-    from ui.activities import PullError
-
-    monkeypatch.delenv("RIO_INTERVALS_API_KEY", raising=False)
-    from api.screens import intervals_pull
-
-    _rows, notice = intervals_pull(False, [], [], date(2026, 11, 10))
-    if not isinstance(notice, str) or "is not set" not in notice:
+    _rows, notice = connection_notice(False, [])
+    if notice != "Strava is not configured.":
         raise AssertionError(notice)
-    kept, quiet = intervals_pull(True, [], [{"date": "2026-11-10"}], date(2026, 11, 10))
+    kept, quiet = connection_notice(True, [{"date": "2026-11-10"}])
     if quiet is not None or kept != [{"date": "2026-11-10"}]:
         raise AssertionError((quiet, kept))
 
     _directory, client = _signed("activities-notice@example.com")
     _generate(client)
     found = client.get("/activities")
-    if found.status_code != 200 or "is not set" not in (found.json().get("notice") or ""):
+    if found.status_code != 200 or "not configured" not in (found.json().get("notice") or ""):
         raise AssertionError(found.text)
-
-    def boom(*_args, **_kwargs):
-        raise PullError("Intervals.icu returned 429")
-
-    monkeypatch.setattr("ui.activities.sync_recent", boom)
-    _rows, other = intervals_pull(False, [], [], date(2026, 11, 10))
-    if other != "Intervals.icu returned 429":
-        raise AssertionError(other)
+    if "Intervals" in found.text:
+        raise AssertionError(found.text)
 
 
 def test_plan_pace_lines_and_month() -> None:

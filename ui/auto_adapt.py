@@ -8,7 +8,7 @@ runs for that week, and only later weeks change. A day that already
 has a mark is left as stored. Recovery days, long runs, and extra
 activities are skipped. Empty and missing rep times are ignored.
 
-This file does not call Intervals.icu. No model. No spend. No scores.
+This file does not fetch activities. No model. No spend. No scores.
 """
 
 from __future__ import annotations

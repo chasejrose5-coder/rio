@@ -58,8 +58,6 @@ def test_blueprint_has_names_and_no_secret_values() -> None:
         "RIO_EXPLAIN_BASE_URL",
         "RIO_EXPLAIN_INPUT_USD_PER_MILLION",
         "RIO_EXPLAIN_OUTPUT_USD_PER_MILLION",
-        "RIO_INTERVALS_API_KEY",
-        "RIO_INTERVALS_ATHLETE_ID",
     ]
     if keys != required:
         raise AssertionError(keys)

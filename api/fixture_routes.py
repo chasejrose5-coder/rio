@@ -217,7 +217,7 @@ def _interval_path(name: str):
 
 @router.get("/intervals/{name}")
 def interval_fill(name: str, request: Request) -> dict:
-    """WORK times and the lap table from one local JSON file. Nothing is requested from Intervals.icu."""
+    """WORK times and the lap table from one local JSON file. Nothing is requested from the network."""
     _admin(request)
     from ui.last_session import IntervalsFileError, open_intervals, quality_fill
 
