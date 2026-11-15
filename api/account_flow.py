@@ -1,4 +1,4 @@
-# account_flow.py — create, reset, change, and delete. Streamlit stays the live UI.
+# account_flow.py — create, reset, change, and delete for the Next app.
 
 """Hosted calls go through the directory. Local calls use the account file.
 

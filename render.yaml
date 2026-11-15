@@ -1,4 +1,6 @@
-# Render blueprint for the FastAPI process. Streamlit stays the live site.
+# Render blueprint for the FastAPI process.
+# The live site is https://www.riorunning.com.
+# RIO_FRONTEND_ORIGIN and RIO_CALLBACK_BASE_URL are that origin.
 # Names only. Values are entered in the Render dashboard (sync: false).
 # No persistent disk: explain spend belongs in Supabase (migration 011),
 # and the hero JSON ships in the repo. See docs/migration/deploy-test.md.

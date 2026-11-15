@@ -1,6 +1,6 @@
 # RIO web
 
-The Next.js app. Streamlit is still the live site. This folder does not replace it.
+The Next.js app. The live site is `https://www.riorunning.com`. Streamlit stays up at `https://riotraining.streamlit.app` and links here. `rio-one-mocha.vercel.app` and `rio-rio-44fa.vercel.app` serve this same build and show a note with that link. They are not redirected.
 
 ## Run it with the API
 

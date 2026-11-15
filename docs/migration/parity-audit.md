@@ -15,7 +15,7 @@ Independent check of the Streamlit app against FastAPI and Next.js, on `main` at
 
 ## What was compared
 
-The live Streamlit pages, widgets, gates, and copy were read from `ui/`. The Next routes under `web/app/` and the FastAPI routes under `api/` were matched to those pages. Plan generation is not reimplemented: `POST /seasons` calls `engines.season.sequence`, and the session clock calls `engines.pace.workout_times` and `average_rep_text`, which is what Streamlit's cards call.
+The Streamlit pages, widgets, gates, and copy were read from `ui/`. The Next routes under `web/app/` and the FastAPI routes under `api/` were matched to those pages. Plan generation is not reimplemented: `POST /seasons` calls `engines.season.sequence`, and the session clock calls `engines.pace.workout_times` and `average_rep_text`, which is what Streamlit's cards call.
 
 Both apps were started with Supabase unset, `RIO_ACCOUNTS_PATH` pointed at one local file, and `RIO_ADMIN_EMAIL=admin@example.com`. The seeded athlete is in America/Los_Angeles, with easy pace 7:25 per mile, a current season (`2:08.0`, start `2026-11-08`, goal `1:59.0`, `2027-04-18`), and a past season in 2020. Today in that zone was 2026-11-10. Home on both apps showed "159 days to 1:59.0" and Tuesday's `8 × 150 m @ 23.0 s`.
 
@@ -29,14 +29,14 @@ The checklist's 188 rows cover the screens. These behaviors are real in Streamli
 
 - Compact mode is global CSS in `ui/streamlit_app.py` (`_COMPACT_CSS`). Next adds `is-compact` on Home, Plan, Session, and Activity as well as Settings, Library, Profile, More, Past seasons, About, and Creators.
 - Show template ids paints the id on the Home track, the Plan day row, the Plan day card, and the Session page (`_id_html`). Next paints `rio-template-id` on the Home track and the Plan day row and day card when the setting is on, and already painted it on Session, Library, and the legacy Activity table.
-- Hosted signup confirmation from the API uses `email_redirect_to` of `{RIO_FRONTEND_ORIGIN}/`. Streamlit's own sign-up still uses `auth_redirect_base() + "/"` (`ui/cloud_store.py`).
+- Hosted signup confirmation from the API uses `email_redirect_to` of `{RIO_FRONTEND_ORIGIN}/confirm`. Streamlit's own sign-up still uses `auth_redirect_base() + "/"` (`ui/cloud_store.py`).
 - `page_progress` is implemented and is not in `st.navigation`. Next does not add it. That is N/A.
 
 ## Gaps
 
 All four gaps are closed.
 
-### 1. Password reset mail still opens Streamlit
+### 1. Password reset mail
 
 Severity: high for a hosted cutover. Closed.
 
@@ -46,20 +46,20 @@ Streamlit's own forgot screen still sends `redirect_to` of `auth_redirect_base()
 
 Evidence: `tests/test_auth_mail.py`; `web/e2e/reset-link.spec.ts`; `web/lib/reset-link.test.ts`; `docs/migration/parity-evidence/side/reset-password.jpg`. The side-by-side is one full-page shot of each reset form after the fade, in America/Los_Angeles. It is not stitched.
 
-Supabase Auth redirect allow list. Add these two URLs. `RIO_FRONTEND_ORIGIN` is the exact Next origin, scheme and host, no path and no trailing slash. Do not remove the Streamlit entries while that app is still running. Jay adds them in the dashboard. This change does not.
+Supabase Auth redirect allow list. The live origin is `https://www.riorunning.com`. Add these URLs. `RIO_FRONTEND_ORIGIN` is the exact Next origin, scheme and host, no path and no trailing slash. Leave the Streamlit URLs and the old Vercel URLs in place. Jay adds them in the dashboard. This change does not.
 
+- `https://www.riorunning.com/reset-password`
+- `https://www.riorunning.com/confirm`
 - `{RIO_FRONTEND_ORIGIN}/reset-password`
-- `{RIO_FRONTEND_ORIGIN}/`
+- `{RIO_FRONTEND_ORIGIN}/confirm`
 
-When the variable is unset the API uses `http://localhost:3000`, so those are `http://localhost:3000/reset-password` and `http://localhost:3000/`. `{RIO_FRONTEND_ORIGIN}/**` also covers both.
+When the variable is unset the API uses `http://localhost:3000`, so those are `http://localhost:3000/reset-password` and `http://localhost:3000/confirm`. `{RIO_FRONTEND_ORIGIN}/**` also covers both. Signup confirmation and email change use `/confirm`. Password reset uses `/reset-password`.
 
-### 2. Signup confirmation mail still opens Streamlit
+### 2. Signup confirmation mail
 
 Severity: high if email confirmation stays on and Streamlit is turned off. Closed.
 
-Streamlit's own sign-up still sets `email_redirect_to` to `auth_redirect_base() + "/"`. The API's `POST /auth/sign-up` sets it to `{RIO_FRONTEND_ORIGIN}/`. The confirm screen itself stays hidden on both apps. No copy change.
-
-The allow-list entry is the same `{RIO_FRONTEND_ORIGIN}/` named above. Evidence: `tests/test_auth_mail.py`.
+Streamlit's own sign-up still sets `email_redirect_to` to `auth_redirect_base() + "/"`. The API's `POST /auth/sign-up` sets it to `{RIO_FRONTEND_ORIGIN}/confirm`. Evidence: `tests/test_auth_mail.py`.
 
 ### 3. Compact mode does not tighten Home, Plan, Session, or Activity
 
@@ -98,9 +98,9 @@ No new environment name is required. These have to be set on the host before Str
 | Name | What to set |
 | --- | --- |
 | `RIO_SUPABASE_URL`, `RIO_SUPABASE_ANON_KEY`, `RIO_SUPABASE_SERVICE_ROLE_KEY` | The same project Streamlit uses. The service role stays on the API. |
-| `RIO_FRONTEND_ORIGIN` | The exact Next origin, scheme and host, no path and no wildcard. CORS allows that one origin and credentials. |
+| `RIO_FRONTEND_ORIGIN` | `https://www.riorunning.com`. Scheme and host, no path and no wildcard. CORS allows that one origin and credentials. |
 | `NEXT_PUBLIC_RIO_API_URL` | The API origin, baked into the Next build. The browser calls it with `credentials: "include"`. |
-| `RIO_CALLBACK_BASE_URL` | The Next origin. Strava's redirect becomes `{base}/strava/callback` when `RIO_STRAVA_REDIRECT_URI` is unset. |
+| `RIO_CALLBACK_BASE_URL` | `https://www.riorunning.com`. Strava's Authorization Callback Domain is `www.riorunning.com`, and the redirect is `{base}/strava/callback` when `RIO_STRAVA_REDIRECT_URI` is unset. |
 | `RIO_STRAVA_REDIRECT_URI` | Optional. A full URI here wins over the base. |
 | `RIO_STRAVA_CLIENT_ID`, `RIO_STRAVA_CLIENT_SECRET` | The same Strava app. |
 | `RIO_ADMIN_EMAIL` | The one address that sees Admin. Unset means nobody is admin. |
@@ -108,11 +108,11 @@ No new environment name is required. These have to be set on the host before Str
 | `RIO_APP_URL` | Still the Streamlit origin. Streamlit's own reset and confirmation links use it. The API mail uses `RIO_FRONTEND_ORIGIN` instead. |
 | `RIO_GOOGLE_REDIRECT_URI` | Unset keeps the Streamlit callback. The Google button stays hidden on both apps. |
 
-Strava: in the Strava app settings, register `{RIO_CALLBACK_BASE_URL}/strava/callback`. Leave the Streamlit callback registered until that app is off, then remove it. No code change picks the URI. The variable does.
+Strava: the live Authorization Callback Domain is `www.riorunning.com`. The redirect is `https://www.riorunning.com/strava/callback`. Leave `https://riotraining.streamlit.app`, `https://rio-one-mocha.vercel.app`, and `https://rio-rio-44fa.vercel.app` up. They are not the callback domain. No code change picks the URI. The variable does.
 
 Cookies: `rio_hosted` is `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`, with no `Domain`. It is host-only on the API host. Lax is sent on a fetch when the page and the API are the same site. Host the API on a same-site name as the Next app (for example `api.` under the same registrable domain). A different site will not send this cookie. Do not widen it to `SameSite=None` as part of cutover unless the hosts cannot share a site.
 
-Supabase Auth: Site URL and the redirect allow list must include the Next origin before reset or confirmation mail is pointed there. Confirm email stays on. Run migrations 009, 010, and 011 in the SQL editor if they are not already there. They are safe to run again. This audit does not run them on the hosted project.
+Supabase Auth: Site URL is `https://www.riorunning.com`. The redirect allow list includes `https://www.riorunning.com/reset-password` and `https://www.riorunning.com/confirm`. Leave the Streamlit and old Vercel entries in place. Confirm email stays on. Run migrations 009, 010, and 011 in the SQL editor if they are not already there. They are safe to run again. This audit does not run them on the hosted project.
 
 Hosting: Next serves the public origin. The API is a separate process with the env above. `RIO_ACCOUNTS_PATH` is only for a machine with no Supabase URL. Do not ship the local account file.
 

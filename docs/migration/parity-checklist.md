@@ -1,8 +1,8 @@
 # Parity checklist
 
-Nothing in the live Streamlit app is optional on the way to Next.js. This file is the inventory of what a person can see or do there today. It is docs only. It does not change the app, and it does not touch production Supabase.
+Nothing in the Streamlit app is optional on the way to Next.js. This file is the inventory of what a person can see or do there. It is docs only. It does not change the app, and it does not touch production Supabase.
 
-The inventory is the Streamlit app on `main`: `ui/streamlit_app.py`, `ui/`, `engines/`, `services/`, `ui/static/app.css`, and the photos and fonts under `ui/static/` and `ui/assets/`. The FastAPI app is not what the live site calls. Routes below are the contract a step-3 page is allowed to use.
+The live site is `https://www.riorunning.com`. The inventory is the Streamlit app on `main`: `ui/streamlit_app.py`, `ui/`, `engines/`, `services/`, `ui/static/app.css`, and the photos and fonts under `ui/static/` and `ui/assets/`. Routes below are the contract a step-3 page is allowed to use. The Strava callback domain for the live site is `www.riorunning.com`.
 
 ## How to read an item
 
@@ -1187,7 +1187,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 **API:** `GET /strava/status`, `GET /strava/connect`, `POST /strava/disconnect`. Disconnect deauthorizes and deletes tokens and activities. The response has no `access_token` and no `refresh_token`.
 **Step 3:** 3.7 for the Settings block. The return URL is part of `GET /strava/callback` (lands on `/settings?strava=connected` or `?strava=error`).
 **Status:** done
-**Evidence:** `web/e2e/activity.spec.ts` "connect opens Strava and disconnect clears the name" and `web/e2e/settings.spec.ts` for the not-configured sentence. `GET /strava/status` is `configured` only when `RIO_STRAVA_CLIENT_ID` and `RIO_STRAVA_CLIENT_SECRET` are both set (`ui/strava.py` `configured`). The authorize redirect is `RIO_STRAVA_REDIRECT_URI` when set, otherwise `{RIO_CALLBACK_BASE_URL}/strava/callback` (`api/strava_flow.py` `redirect_for_api`). For rio-one-mocha.vercel.app that callback domain is `rio-one-mocha.vercel.app`.
+**Evidence:** `web/e2e/activity.spec.ts` "connect opens Strava and disconnect clears the name" and `web/e2e/settings.spec.ts` for the not-configured sentence. `GET /strava/status` is `configured` only when `RIO_STRAVA_CLIENT_ID` and `RIO_STRAVA_CLIENT_SECRET` are both set (`ui/strava.py` `configured`). The authorize redirect is `RIO_STRAVA_REDIRECT_URI` when set, otherwise `{RIO_CALLBACK_BASE_URL}/strava/callback` (`api/strava_flow.py` `redirect_for_api`). The live callback domain is `www.riorunning.com` (`https://www.riorunning.com/strava/callback`). `rio-one-mocha.vercel.app` and `rio-rio-44fa.vercel.app` are old hosts left in place. They are not the callback domain.
 **Verify:** Connect, see the name, Disconnect, and the runs leave Activity. View the network response and confirm it has no token.
 
 ### Y10. Opening a page pulls recent runs

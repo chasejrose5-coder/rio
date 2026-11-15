@@ -2,7 +2,7 @@
 
 RIO does not send mail itself. Supabase Auth sends it, and Resend is the SMTP server Supabase uses. This page is the dashboard work. The app code is already in place. Do not put the Resend API key, or any Supabase key, in the repo or in a pull request.
 
-The live site is `https://rio-one-mocha.vercel.app`. On Render, `RIO_FRONTEND_ORIGIN` and `RIO_CALLBACK_BASE_URL` should both be that origin, with `https://`, no path, and no trailing slash. This setup does not change Render, Vercel, or Supabase for you. You change Supabase in the dashboard after Resend is ready.
+The live site is `https://www.riorunning.com`. `riorunning.com` redirects there. On Render, `RIO_FRONTEND_ORIGIN` and `RIO_CALLBACK_BASE_URL` should both be `https://www.riorunning.com`, with `https://`, no path, and no trailing slash. This setup does not change Render, Vercel, or Supabase for you. You change Supabase in the dashboard after Resend is ready.
 
 What the app does once this is saved:
 
@@ -99,22 +99,35 @@ The change-email template uses `{{ .NewEmail }}` as well as `{{ .ConfirmationURL
 
 **Authentication → URL Configuration.**
 
-Leave **Site URL** as `https://riotraining.streamlit.app` so the old app's mail is unchanged.
+Set **Site URL** to `https://www.riorunning.com`.
 
-Add these if they are not already on the allow list. Supabase ignores a redirect that is not listed and falls back to the Site URL, which would open Streamlit.
+Leave these redirect URLs in place. Do not delete them. The parked Streamlit app still builds its own links, and a mail link that already points at an old host should still be allowed.
 
+- `https://riotraining.streamlit.app`
+- `https://riotraining.streamlit.app/**`
+- `http://localhost:8501`
+- `http://localhost:8501/**`
+- `https://rio-one-mocha.vercel.app/`
 - `https://rio-one-mocha.vercel.app/reset-password`
 - `https://rio-one-mocha.vercel.app/confirm`
-- `https://rio-one-mocha.vercel.app/`
+- `https://rio-rio-44fa.vercel.app/`
+- `https://rio-rio-44fa.vercel.app/reset-password`
+- `https://rio-rio-44fa.vercel.app/confirm`
 
-`/reset-password` is the one that was already allowed. `/confirm` is new. Signup confirmation and email change both use it. Password reset still uses `/reset-password`.
+Add these if they are not already on the allow list. Supabase ignores a redirect that is not listed and falls back to the Site URL.
+
+- `https://www.riorunning.com/reset-password`
+- `https://www.riorunning.com/confirm`
+- `https://www.riorunning.com/`
+
+Signup confirmation and email change both use `/confirm`. Password reset uses `/reset-password`. Mail uses the `www` origin. The apex `riorunning.com` redirects to `www`, and that redirect would drop the token fragment.
 
 For a laptop check against this same project, also add:
 
 - `http://localhost:3000/reset-password`
 - `http://localhost:3000/confirm`
 
-The code builds those paths from `RIO_FRONTEND_ORIGIN`. On Render that value is the Vercel origin, so the live mail uses the `https://rio-one-mocha.vercel.app` URLs. A local API only uses the localhost URLs when `RIO_FRONTEND_ORIGIN` is `http://localhost:3000`.
+The code builds those paths from `RIO_FRONTEND_ORIGIN`. On Render that value is `https://www.riorunning.com`, so the live mail uses the `www` URLs. A local API only uses the localhost URLs when `RIO_FRONTEND_ORIGIN` is `http://localhost:3000`.
 
 A link Supabase marks expired lands on `/confirm` or `/reset-password` with an error, and the page says the link is no longer valid. Reset offers **Send a new reset email**. A signup that is still unconfirmed can use **Resend confirmation email** on Check your email, or on Log in after a try with the right password.
 
@@ -140,8 +153,8 @@ No migration is required for this. Do not run SQL to confirm Chase or anyone els
 
 Use a real inbox on the verified domain's sending path. `delivered@resend.dev` only proves Resend accepted a test.
 
-1. Create a new account on `https://rio-one-mocha.vercel.app/create-account`. You should see **Check your email**, not a logged-in home page.
-2. Open the message. It should land on `https://rio-one-mocha.vercel.app/confirm` and say the email is confirmed. Then log in with that password.
+1. Create a new account on `https://www.riorunning.com/create-account`. You should see **Check your email**, not a logged-in home page.
+2. Open the message. It should land on `https://www.riorunning.com/confirm` and say the email is confirmed. Then log in with that password.
 3. Before confirming, a login with the right password should say to check email and offer **Resend confirmation email**.
 4. **Forgot password?** on Log in should send a reset that opens `/reset-password`. Save a new password, then log in with it. Try an address you know has no account. The sentence should match the one a real account gets.
 5. In Settings, under Account, change the email. The flash should say to check email. The address shown above the form should stay the old one until the confirmation link is opened.

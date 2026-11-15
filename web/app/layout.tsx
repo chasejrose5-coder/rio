@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
+import { OldHomeNote } from "@/components/OldHomeNote";
 import { AuthProvider } from "@/lib/auth";
 import "./globals.css";
 
@@ -13,6 +14,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
+        <Suspense fallback={null}>
+          <OldHomeNote />
+        </Suspense>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
