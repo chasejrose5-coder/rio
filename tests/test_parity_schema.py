@@ -158,7 +158,7 @@ def test_local_catalog_has_every_column_the_app_writes() -> None:
     )
     index_names = {line.strip() for line in indexes.splitlines() if line.strip()}
     trigger_names = {line.strip() for line in triggers.splitlines() if line.strip()}
-    for required in ("strava_oauth_expires_at",):
+    for required in ("strava_oauth_expires_at", "app_sessions_expires_at"):
         if required not in index_names:
             raise AssertionError(sorted(index_names))
     for required in (

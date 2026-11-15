@@ -48,13 +48,34 @@ export function stopPreview(): void {
   window.sessionStorage.removeItem(PREVIEW_KEY);
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+/** Long enough for a free Render wake. The old 15s cap gave up while the host was still starting. */
+export const API_TIMEOUT_MS = 60_000;
+
+const GET_CACHE_MS = 3_000;
+const inflightGets = new Map<string, Promise<unknown>>();
+const settledGets = new Map<string, { at: number; value: unknown }>();
+let getGeneration = 0;
+
+function dropGetCache(): void {
+  getGeneration += 1;
+  settledGets.clear();
+}
+
+export function isSignedOut(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 401 || error.status === 403);
+}
+
+function isWakeStatus(status: number): boolean {
+  return status === 502 || status === 503 || status === 504;
+}
+
+async function requestOnce<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${apiBase()}${path}`, {
       ...init,
       credentials: "include",
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
       headers: {
         ...(init?.body ? { "Content-Type": "application/json" } : {}),
         ...(init?.headers ?? {}),
@@ -83,6 +104,40 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(response.status, detail);
   }
   return data as T;
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const method = (init?.method || "GET").toUpperCase();
+  if (method !== "GET") {
+    dropGetCache();
+    return requestOnce<T>(path, init);
+  }
+  const hit = settledGets.get(path);
+  if (hit && Date.now() - hit.at < GET_CACHE_MS) return hit.value as T;
+  const existing = inflightGets.get(path);
+  if (existing) return existing as Promise<T>;
+  const generation = getGeneration;
+  const pending = requestOnce<T>(path, init)
+    .then((value) => {
+      if (generation === getGeneration) settledGets.set(path, { at: Date.now(), value });
+      return value;
+    })
+    .catch(async (error: unknown) => {
+      if (!(error instanceof ApiError) || !isWakeStatus(error.status)) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      const value = await requestOnce<T>(path, init);
+      if (generation === getGeneration) settledGets.set(path, { at: Date.now(), value });
+      return value;
+    });
+  inflightGets.set(path, pending);
+  // Attach a handler so a failed read does not reject the cleanup promise too.
+  void pending.then(
+    () => undefined,
+    () => undefined,
+  ).finally(() => {
+    if (inflightGets.get(path) === pending) inflightGets.delete(path);
+  });
+  return pending;
 }
 
 const confirmInflight = new Map<string, Promise<{ ok: boolean; kind: string; message: string; refreshed?: boolean }>>();
@@ -378,15 +433,18 @@ export const SESSION_STUCK = "Signed in, but the session didn't stick. Try again
 
 export type SessionView = {
   athlete: Athlete | null;
-  status: "in" | "out";
+  status: "in" | "out" | "unreachable";
 };
 
-/** Any /auth/me failure, including 500 and a timed-out request, ends loading. */
+/** A 401 or 500 ends the session. A timeout or a gateway error means the free host is still waking. */
 export async function refreshSession(): Promise<SessionView> {
   try {
     const athlete = await api.me();
     return { athlete, status: "in" };
-  } catch {
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 0 || isWakeStatus(error.status))) {
+      return { athlete: null, status: "unreachable" };
+    }
     return { athlete: null, status: "out" };
   }
 }

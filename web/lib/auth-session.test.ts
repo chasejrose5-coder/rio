@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import { ApiError, SESSION_STUCK, afterSignIn, api, refreshSession } from "./api.ts";
+import { ApiError, API_TIMEOUT_MS, SESSION_STUCK, afterSignIn, api, refreshSession } from "./api.ts";
 import type { Athlete } from "./types.ts";
 
 const athlete: Athlete = {
@@ -33,9 +33,10 @@ describe("refresh session", { concurrency: false }, () => {
     });
   });
 
-  it("a timed-out fetch is ApiError 0 and ends loading", async () => {
+  it("a timed-out fetch is ApiError 0 and stays on the wake screen", async () => {
     const source = readFileSync(new URL("./api.ts", import.meta.url), "utf8");
-    assert.match(source, /signal:\s*AbortSignal\.timeout\(15000\)/);
+    assert.match(source, /signal:\s*AbortSignal\.timeout\(API_TIMEOUT_MS\)/);
+    assert.equal(API_TIMEOUT_MS, 60_000);
     let timeoutMs = 0;
     const original = AbortSignal.timeout;
     AbortSignal.timeout = ((ms: number) => {
@@ -54,12 +55,32 @@ describe("refresh session", { concurrency: false }, () => {
         });
         const result = await refreshSession();
         assert.equal(result.athlete, null);
-        assert.equal(result.status, "out");
-        assert.equal(timeoutMs, 15000);
+        assert.equal(result.status, "unreachable");
+        assert.equal(timeoutMs, API_TIMEOUT_MS);
       });
     } finally {
       AbortSignal.timeout = original;
     }
+  });
+
+  it("parallel session reads share one request, and a write drops the cache", async () => {
+    let calls = 0;
+    await withFetch(async (_url, init) => {
+      calls += 1;
+      const method = (init?.method || "GET").toUpperCase();
+      if (method !== "GET") return new Response(JSON.stringify({ ok: true }), { status: 200 });
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      return new Response(JSON.stringify(athlete), { status: 200 });
+    }, async () => {
+      await api.signOut();
+      calls = 0;
+      const [first, second] = await Promise.all([api.me(), api.me()]);
+      assert.equal(calls, 1);
+      assert.equal(first.email, second.email);
+      await api.signOut();
+      await api.me();
+      assert.equal(calls, 3);
+    });
   });
 
   it("a signed-in athlete stays in", async () => {
