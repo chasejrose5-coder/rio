@@ -34,6 +34,12 @@ export function Gate() {
   const [seasonProblem, setSeasonProblem] = useState(false);
 
   useEffect(() => {
+    if (status === "unreachable") return;
+    if (status !== "out") {
+      // Overlap the season and home reads with the session check. Home reuses the result.
+      void api.currentSeason().catch(() => null);
+      void api.home(false).catch(() => null);
+    }
     if (status === "loading") return;
     if (status === "out") {
       if (!splashSkipped()) {
@@ -79,6 +85,9 @@ export function Gate() {
     };
   }, [status, athlete, refresh, router, attempt]);
 
+  if (status === "unreachable") {
+    return <LoadingScreen label="Starting the server" onRetry={() => void refresh()} />;
+  }
   if (splash) {
     return (
       <Splash

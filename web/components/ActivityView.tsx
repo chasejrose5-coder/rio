@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Expander } from "./Expander";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
 import { PreviewBanner } from "./PreviewBanner";
 import { RequireUser } from "./RequireUser";
-import { ApiError, api, previewing } from "@/lib/api";
+import { ApiError, api, isSignedOut, previewing } from "@/lib/api";
 import {
   badgeKind,
   formatSynced,
@@ -34,7 +34,11 @@ export function ActivityView() {
 }
 
 function ActivityBody() {
-  const { athlete } = useAuth();
+  const { athlete, status } = useAuth();
+  const statusRef = useRef(status);
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
   const [mode, setMode] = useState<Mode>("loading");
   const [body, setBody] = useState<ActivitiesResponse | null>(null);
   const [problem, setProblem] = useState("");
@@ -56,7 +60,13 @@ function ActivityBody() {
       setMode("ready");
       return;
     }
-    const season = await api.currentSeason();
+    const [season, first] = await Promise.all([
+      api.currentSeason(),
+      api.activities().catch((caught: unknown) => {
+        if (caught instanceof ApiError && (caught.status === 404 || caught.status === 400)) return null;
+        throw caught;
+      }),
+    ]);
     if (!season) {
       setMode("missing");
       return;
@@ -66,12 +76,22 @@ function ActivityBody() {
       setMode("bad");
       return;
     }
-    let strava: StravaStatus | null = null;
+    if (first && typeof first.length === "number" && first.length <= 0) {
+      setMode("bad");
+      return;
+    }
+    // Stored runs go on screen before the Strava pull. The pull still runs and then refreshes them.
+    if (first) {
+      setBody(first);
+      if (!first.strava?.connected) setStravaProblem("");
+      setMode("ready");
+    }
+    let strava: StravaStatus | null = first?.strava ?? null;
     if (scope !== "read") {
-      strava = await api.stravaStatus();
+      if (!strava) strava = await api.stravaStatus();
       if (strava.connected) {
         try {
-          const outcome = await api.stravaSync(scope);
+          const outcome = await api.stravaSync(scope === "all" ? "all" : "recent");
           setStravaProblem(stravaSentence(outcome.notice || ""));
         } catch (caught) {
           const message = caught instanceof ApiError ? caught.message : "Strava could not be reached.";
@@ -81,13 +101,15 @@ function ActivityBody() {
         setStravaProblem("");
       }
     }
+    if (first && scope === "read") return;
+    if (first && scope !== "read" && !strava?.connected) return;
     const next = await api.activities();
     if (typeof next.length === "number" && next.length <= 0) {
       setMode("bad");
       return;
     }
     setBody(next);
-    if (!strava?.connected && !(next.strava?.connected)) setStravaProblem("");
+    if (!strava?.connected && !next.strava?.connected) setStravaProblem("");
     setMode("ready");
   }
 
@@ -98,7 +120,10 @@ function ActivityBody() {
       setRise(true);
     }
     window.sessionStorage.setItem(key, "activity");
-    void load("recent").catch((caught) => fail(caught, setMode, setProblem));
+    void load("recent").catch((caught) => {
+      if (isSignedOut(caught) && statusRef.current !== "in") return;
+      fail(caught, setMode, setProblem);
+    });
   }, []);
 
   async function refresh() {
