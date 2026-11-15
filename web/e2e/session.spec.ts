@@ -121,7 +121,8 @@ test("a session with no plan, no date, or a bad date has no result form", async 
   await expect(page.getByLabel("Rep 1")).toHaveCount(0);
 
   await page.goto("/session");
-  await expect(page.getByText("Open a workout from Home or Plan.")).toBeVisible();
+  await expect(page.getByText("Generate a season on Start.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Generate season plan" })).toBeVisible();
   await expect(page.getByLabel("Rep 1")).toHaveCount(0);
 });
 
@@ -137,6 +138,8 @@ test("a quality day states the rep time, the average, and asks before it saves",
   const posted = { count: 0 };
   await install(page, { session: "quality", posted });
   await signIn(page);
+  await page.goto("/session");
+  await expect(page.getByText("Open a workout from Home or Plan.")).toBeVisible();
   await page.goto("/session?date=2026-11-10");
   await expect(page.getByRole("heading", { name: "Tuesday" })).toBeVisible();
   await expect(page.getByText("6 × 400 m near goal 800 pace, 90 s rest")).toBeVisible();

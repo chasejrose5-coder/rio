@@ -160,15 +160,6 @@ def test_local_delete_removes_one_past_season() -> None:
         write_record(path, email, secret, storage_key(ACTIVE), dump_record({2: "on_track"}, {}, []))
         write_record(path, email, secret, "rio.note.v1\nkeep", "keep this")
         write_record(path, other_email, other_secret, storage_key(PAST), _body())
-        try:
-            delete_past_season(path, email, secret, ACTIVE, TODAY)
-        except AccountError as exc:
-            if "can't be deleted" not in str(exc):
-                raise AssertionError(exc) from exc
-        else:
-            raise AssertionError("the current season was deleted")
-        if read_record(path, email, secret, storage_key(ACTIVE)) == "":
-            raise AssertionError("the current season was removed")
         delete_past_season(path, email, secret, PAST, TODAY)
         if read_record(path, email, secret, storage_key(PAST)) != "":
             raise AssertionError("the past season stayed")
@@ -184,6 +175,16 @@ def test_local_delete_removes_one_past_season() -> None:
             raise AssertionError("another athlete's season was removed")
         left = record_keys(path, email, secret, "rio.plan.v1\n")
         if set(left) != {storage_key(OTHER), storage_key(ACTIVE)}:
+            raise AssertionError(left)
+        delete_past_season(path, email, secret, ACTIVE, TODAY)
+        if read_record(path, email, secret, storage_key(ACTIVE)) != "":
+            raise AssertionError("the open season stayed")
+        if read_record(path, email, secret, storage_key(OTHER)) == "":
+            raise AssertionError("another season was removed with the open one")
+        if read_record(path, other_email, other_secret, storage_key(PAST)) == "":
+            raise AssertionError("another athlete's season was removed with the open one")
+        left = record_keys(path, email, secret, "rio.plan.v1\n")
+        if set(left) != {storage_key(OTHER)}:
             raise AssertionError(left)
     finally:
         shutil.rmtree(directory, ignore_errors=True)
@@ -268,15 +269,6 @@ def test_hosted_memory_delete_is_scoped() -> None:
             "results": [{"id": "bea-result", "logged_on": "2025-02-01", "template_id": "rr_800_r0_x1", "payload": {}}],
         },
     )
-    try:
-        directory.delete_season(ada["access_token"], ACTIVE, TODAY)
-    except CloudAuthError as exc:
-        if "can't be deleted" not in str(exc):
-            raise AssertionError(exc) from exc
-    else:
-        raise AssertionError("the current season was deleted")
-    if len(directory.plans[ada["user_id"]]) != 3:
-        raise AssertionError(directory.plans[ada["user_id"]])
     directory.delete_season(ada["access_token"], PAST, TODAY)
     left = [
         (row["start_date"], row["goal_date"])
@@ -295,6 +287,15 @@ def test_hosted_memory_delete_is_scoped() -> None:
         raise AssertionError("another athlete's season was removed")
     if directory.results[bea["user_id"]][0]["id"] != "bea-result":
         raise AssertionError("another athlete's result was removed")
+    directory.delete_season(ada["access_token"], ACTIVE, TODAY)
+    left = [
+        (row["start_date"], row["goal_date"])
+        for row in directory.plans[ada["user_id"]]
+    ]
+    if left != [(OTHER[1], OTHER[3])]:
+        raise AssertionError(left)
+    if directory.plans[bea["user_id"]][0]["start_date"] != PAST[1]:
+        raise AssertionError("another athlete's season was removed with the open one")
 
 
 class _Store:
@@ -460,21 +461,18 @@ def test_hosted_client_deletes_only_that_season() -> None:
         },
     ]
     directory = _hosted(store)
-    try:
-        directory.delete_season("token-ada", ACTIVE, TODAY)
-    except CloudAuthError:
-        pass
-    else:
-        raise AssertionError("the current season was deleted")
-    if store.keys:
-        raise AssertionError("a refused delete still called the server")
-    directory.delete_season("token-ada", PAST, TODAY)
+    directory.delete_season("token-ada", ACTIVE, TODAY)
     if "service-key" in store.keys or store.keys != ["anon-key"]:
+        raise AssertionError(store.keys)
+    if [row["id"] for row in store.tables["plans"]] != ["past", "other", "bea"]:
+        raise AssertionError(store.tables["plans"])
+    directory.delete_season("token-ada", PAST, TODAY)
+    if "service-key" in store.keys or store.keys != ["anon-key", "anon-key"]:
         raise AssertionError(store.keys)
     if "goals" in store.touched or "profiles" in store.touched:
         raise AssertionError(store.touched)
     plan_ids = [row["id"] for row in store.tables["plans"]]
-    if plan_ids != ["other", "active", "bea"]:
+    if plan_ids != ["other", "bea"]:
         raise AssertionError(plan_ids)
     result_ids = [row["id"] for row in store.tables["results"]]
     if result_ids != ["loose", "bea-row"]:
@@ -547,6 +545,13 @@ def test_page_asks_before_it_deletes_and_hides_the_current_season() -> None:
         raise AssertionError("the migration is not scoped to the signed-in athlete")
     if "information_schema" in sql:
         raise AssertionError("the migration uses the wrong catalog")
+    newer = (ROOT / "supabase" / "migrations" / "013_delete_any_owned_season.sql").read_text(encoding="utf-8")
+    if "auth.uid()" not in newer or "delete_past_season" not in newer:
+        raise AssertionError("the new migration is not scoped to the signed-in athlete")
+    if "p_goal_date >= p_today" in newer or "current season" in newer:
+        raise AssertionError("the new migration still refuses the open season")
+    if "information_schema" in newer:
+        raise AssertionError("the new migration uses the wrong catalog")
 
 
 def main() -> None:

@@ -43,6 +43,7 @@ test("a current season leaves Start unless the link names another season", () =>
   assert.equal(startShouldGoHome("2026-11-10", "2026-11-11", false), false);
   assert.equal(startShouldGoHome("2027-07-08", "2026-11-11", true), false);
   assert.equal(startShouldGoHome(undefined, "2026-11-11", false), false);
+  assert.equal(startShouldGoHome("2027-07-08", "2026-11-11", false, true), false);
 });
 
 test("a plan with a score is rejected", () => {

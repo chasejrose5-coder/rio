@@ -1,6 +1,6 @@
 # test_api_step3_past.py — the past-seasons list, a stored open, and delete.
 
-"""A past season can be deleted only after confirm. The current one cannot.
+"""A season can be deleted only after confirm. Another athlete's season cannot.
 
 Opening a stored season reads it. It does not generate another. No network.
 """
@@ -20,7 +20,8 @@ from fastapi.testclient import TestClient
 
 from api.main import create_app
 from engines.pace import FAMILY_FRACTION
-from tests.test_api import INPUTS, PAST, _generate, _panel, _sign_up
+from tests.test_api import PAST, _generate, _panel, _sign_up
+from tests.test_api import _client as hosted_client
 from ui.accounts import create_account
 from ui.cloud_store import MemoryDirectory
 from ui.past_seasons import season_summary, summary_record
@@ -136,7 +137,56 @@ def test_opening_a_stored_season_does_not_build_a_new_one() -> None:
     _fractions()
 
 
-def test_a_season_ending_today_cannot_be_deleted(tmp_path: Path, monkeypatch) -> None:
+def test_a_future_season_that_is_not_current_can_be_deleted() -> None:
+    """A replaced plan with a future goal date is not the one Home opens."""
+    directory = MemoryDirectory()
+    client = _sign_up(directory)
+    token = next(iter(directory.sessions))
+    directory.save_timezone(token, "America/Los_Angeles")
+    replaced = {
+        "current_time": "2:08.0",
+        "start_date": "2026-11-04",
+        "goal_time": "1:55.0",
+        "goal_date": "2027-04-04",
+    }
+    training = {
+        "current_time": "2:06.0",
+        "start_date": "2026-11-05",
+        "goal_time": "1:56.0",
+        "goal_date": "2027-07-08",
+    }
+    _generate(client, replaced)
+    _generate(client, training)
+    listed = client.get("/seasons/past")
+    if listed.status_code != 200:
+        raise AssertionError(listed.text)
+    flags = {row["inputs"]["goal_date"]: row["current"] for row in listed.json()["open"]}
+    if flags != {"2027-04-04": False, "2027-07-08": True}:
+        raise AssertionError(flags)
+    if listed.json()["seasons"] != []:
+        raise AssertionError(listed.json()["seasons"])
+    deleted = client.request("DELETE", "/seasons/past", json={**replaced, "confirm": True})
+    if deleted.status_code != 200 or deleted.json()["deleted"] is not True or deleted.json()["current"] is not False:
+        raise AssertionError(deleted.text)
+    if not deleted.json()["stats"] or deleted.json()["stats"][0]["label"] != "Season":
+        raise AssertionError(deleted.json()["stats"])
+    still = client.get("/seasons/current")
+    if still.status_code != 200 or still.json()["inputs"] != training:
+        raise AssertionError(still.text)
+    directory.sign_up("bea@example.com", "correct-horse", "Bea")
+    bea = hosted_client(directory)
+    signed = bea.post("/auth/sign-in", json={"email": "bea@example.com", "password": "correct-horse"})
+    if signed.status_code != 200:
+        raise AssertionError(signed.text)
+    stolen = bea.request("DELETE", "/seasons/past", json={**training, "confirm": True})
+    if stolen.status_code != 404:
+        raise AssertionError(stolen.text)
+    if client.get("/seasons/current").json()["inputs"]["goal_date"] != "2027-07-08":
+        raise AssertionError("another athlete deleted the open season")
+    _fractions()
+
+
+def test_a_season_ending_today_can_be_deleted(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr("ui.settings.datetime", _FrozenClock)
     client = _signed(tmp_path / "accounts.json")
     client.patch("/settings", json={"timezone": "America/Los_Angeles"})
@@ -166,11 +216,23 @@ def test_a_season_ending_today_cannot_be_deleted(tmp_path: Path, monkeypatch) ->
         raise AssertionError(body["open"])
     if [row["inputs"]["goal_date"] for row in body["seasons"]] != [yesterday]:
         raise AssertionError(body["seasons"])
-    refused = client.request("DELETE", "/seasons/past", json={**ending, "confirm": True})
-    if refused.status_code != 409 or refused.json()["detail"] != "The current season can't be deleted.":
-        raise AssertionError(refused.text)
-    if client.get("/seasons/current").json()["inputs"]["goal_date"] != today:
-        raise AssertionError("the season that ends today was removed")
+    if listed.json()["open"][0]["current"] is not True:
+        raise AssertionError(listed.json()["open"])
+    if listed.json()["seasons"][0]["current"] is not False:
+        raise AssertionError(listed.json()["seasons"])
+    removed = client.request("DELETE", "/seasons/past", json={**ending, "confirm": True})
+    if removed.status_code != 200 or removed.json()["current"] is not True:
+        raise AssertionError(removed.text)
+    if client.get("/seasons/current").status_code != 404:
+        raise AssertionError("the season that ends today is still open")
+    home = client.get("/home")
+    if home.status_code != 200 or home.json()["season"] is not None:
+        raise AssertionError(home.text)
+    if client.get("/plan").status_code != 404:
+        raise AssertionError(client.get("/plan").text)
+    day = client.get(f"/sessions/{yesterday}")
+    if day.status_code != 404 or "no current season" not in day.json()["detail"].lower():
+        raise AssertionError(day.text)
     _fractions()
 
 

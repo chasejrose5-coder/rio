@@ -1444,15 +1444,15 @@ Changes to name, time zone, and the toggles save as they are edited. There is no
 **Evidence:** `web/e2e/past-seasons.spec.ts` "two stored seasons list start, goal, and time" and "opening a past season loads those inputs". `tests/test_api_step3_past.py` `test_the_list_keeps_the_current_season_beside_past_ones` and `test_opening_a_stored_season_does_not_build_a_new_one`. Short dates are "Jan 6, 2020". ISO stays `2020-01-06`. The open link's visible text is the stored start date, goal date, and goal time (`2020-01-06 2020-04-06 1:55.0`), and it loads that plan. An unreadable file shows "This account's seasons could not be read." Empty is "No seasons on this account."
 **Verify:** Two stored seasons. Each row's three values match Start. Opening one does not build a new season. It loads those four inputs.
 
-### U2. Current season has no delete
+### U2. Every stored season can be deleted
 
-**Sees:** No "Delete season" on a row whose goal date is today or later.
-**Now:** `page_past_seasons`; `ui/past_seasons.py` `is_past_season`
-**API:** `DELETE /seasons/past` `409` when the goal date is today or later. That season is in `open`, not `seasons`.
+**Sees:** "Delete season" on every stored season, including one whose goal date is still ahead and the season Home and Plan open. The confirm step shows the stored stats. The open season also says this is the season you're training on now and that Start is next.
+**Now:** `PastSeasonsView`; `api/season_service.py` `active_inputs`, `delete_past`
+**API:** `DELETE /seasons/past` deletes any season on this account after `confirm: true`. Another athlete's season is `404`. `current` on the list is the season Home and Plan open.
 **Step 3:** 3.8
 **Status:** done
-**Evidence:** `web/e2e/past-seasons.spec.ts` "the current season has no delete control". `tests/test_api_step3_past.py` `test_a_season_ending_today_cannot_be_deleted`. The row for today has no "Delete season". Yesterday does. The API returns 409 for the season that ends today.
-**Verify:** A season ending today has no delete control. A season that ended yesterday does.
+**Evidence:** `web/e2e/past-seasons.spec.ts` "a future season that is not the training season can be deleted" and "deleting the training season warns and opens Start". `tests/test_api_step3_past.py` `test_a_future_season_that_is_not_current_can_be_deleted` and `test_a_season_ending_today_can_be_deleted`.
+**Verify:** A replaced plan with a future goal date has Delete season. The training season does too, and confirming it opens Start. Another account's season is refused.
 
 ### U3. Delete asks with stats first
 

@@ -33,7 +33,7 @@ test("the same four inputs stay one row", () => {
   assert.equal(seasonRows([one], [one]).length, 1);
 });
 
-test("short dates are the link text and the plan query keeps the four inputs", () => {
+test("short dates label the row and the plan query keeps the four inputs", () => {
   const inputs = row("2020-01-06", "2020-04-06").inputs;
   assert.equal(formatSeasonDate("2020-01-06", "short"), formatDate("2020-01-06", "short"));
   assert.equal(formatSeasonDate("2020-01-06", "iso"), formatDate("2020-01-06", "iso"));

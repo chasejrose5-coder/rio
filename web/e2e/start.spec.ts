@@ -374,6 +374,10 @@ test("a current season opens Home instead of the generate form", async ({ page }
     }
     return json(route, { detail: "Not mocked." }, 404);
   });
+  await page.goto("/start?new=1");
+  await expect(page).toHaveURL(/\/start\?new=1$/);
+  await expect(page.getByRole("heading", { name: "Start" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Generate season plan" })).toBeVisible();
   await page.goto("/start");
   await expect(page).toHaveURL(/\/home$/);
   await expect(page.getByRole("button", { name: "Generate season plan" })).toHaveCount(0);

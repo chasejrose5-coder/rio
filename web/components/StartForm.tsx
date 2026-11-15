@@ -35,17 +35,20 @@ function StartBody() {
   const router = useRouter();
   const [season, setSeason] = useState<CurrentSeason | null | undefined>(undefined);
   const [link, setLink] = useState<SeasonInputs | null | undefined>(undefined);
+  const [fresh, setFresh] = useState(false);
 
   useEffect(() => {
     // The four inputs live in the URL. They are read once, the way a shared link arrives.
+    const params = new URLSearchParams(window.location.search);
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLink(linkFromParams(new URLSearchParams(window.location.search)));
+    setLink(linkFromParams(params));
+    setFresh(params.get("new") === "1");
     void api.currentSeason().then(setSeason).catch(() => setSeason(null));
   }, []);
 
   const today = athlete?.today;
   const differs = link != null && link !== undefined && !sameSeason(season?.inputs, link);
-  const goHome = startShouldGoHome(season?.inputs?.goal_date, today, differs);
+  const goHome = startShouldGoHome(season?.inputs?.goal_date, today, differs, fresh);
 
   useEffect(() => {
     if (!today || season === undefined || link === undefined) return;

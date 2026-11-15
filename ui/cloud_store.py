@@ -490,13 +490,13 @@ class MemoryDirectory:
             self.sessions.pop(token, None)
 
     def delete_season(self, access_token: object, inputs: object, today: object) -> None:
-        """Remove one past season for the signed-in athlete. Other athletes stay."""
+        """Remove one season for the signed-in athlete, including the open one. Other athletes stay."""
         from datetime import date
 
-        from ui.past_seasons import is_past_season, without_season
+        from ui.past_seasons import without_season
 
-        if type(today) is not date or not is_past_season(inputs, today):
-            raise CloudAuthError("The current season can't be deleted.")
+        if type(today) is not date:
+            raise CloudAuthError("This season could not be deleted.")
         user_id = self.user_id(access_token)
         plans, results = without_season(
             self.plans.get(user_id) or [],
@@ -1476,13 +1476,11 @@ class SupabaseDirectory:
             self._forget_reads(access_token)
 
     def delete_season(self, access_token: object, inputs: object, today: object) -> None:
-        """Remove one past season for this token. The service key is not used."""
+        """Remove one season for this token, including the open one. The service key is not used."""
         from datetime import date
 
-        from ui.past_seasons import is_past_season
-
-        if type(today) is not date or not is_past_season(inputs, today):
-            raise CloudAuthError("The current season can't be deleted.")
+        if type(today) is not date:
+            raise CloudAuthError("This season could not be deleted.")
         self._forget_reads(access_token)
         try:
             self._delete_season(access_token, inputs, today)
