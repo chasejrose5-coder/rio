@@ -85,6 +85,7 @@ async function install(
     role?: string;
     configured?: boolean;
     sync?: { status: number; body: unknown };
+    delaySync?: Promise<void>;
   },
 ) {
   let signed = false;
@@ -124,6 +125,7 @@ async function install(
       });
     }
     if (path === "/strava/sync") {
+      if (options.delaySync) await options.delaySync;
       if (options.sync) return json(route, options.sync.body, options.sync.status);
       return json(route, { synced: true, notice: null, count: 1 });
     }
@@ -232,6 +234,19 @@ test("a connected empty week names the sync in the saved zone", async ({ page })
   await expect(page.getByText(/Last synced Nov 9,/)).toBeVisible();
   await expect(page.getByText("No runs yet", { exact: true })).toBeVisible();
   await expect(page.getByText("TEST season")).toHaveCount(0);
+});
+
+test("stored runs show while Strava sync is still running", async ({ page }) => {
+  let release = () => {};
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await install(page, { connected: true, notice: null, cards: true, delaySync: held });
+  await sign(page);
+  await page.goto("/activity");
+  await expect(page.getByRole("heading", { name: "6 × 400 m" })).toBeVisible();
+  release();
+  await expect(page.getByRole("button", { name: "Refresh" })).toBeVisible();
 });
 
 test("runs, the heart chart, and the hidden tables", async ({ page }) => {

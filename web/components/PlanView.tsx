@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Expander } from "./Expander";
 import { Footer, PhotoCredit } from "./Footer";
 import { Nav } from "./Nav";
 import { PreviewBanner } from "./PreviewBanner";
 import { RequireUser } from "./RequireUser";
-import { ApiError, api, previewing } from "@/lib/api";
+import { ApiError, api, isSignedOut, previewing } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import {
   PLAN_VIEWS,
   activityNotice,
@@ -66,6 +67,11 @@ export function PlanView() {
 }
 
 function PlanBody() {
+  const { status } = useAuth();
+  const statusRef = useRef(status);
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
   const [mode, setMode] = useState<Mode>("loading");
   const [plan, setPlan] = useState<PlanResponse | null>(null);
   const [season, setSeason] = useState<CurrentSeason | null>(null);
@@ -84,21 +90,23 @@ function PlanBody() {
     if (params.get("preview") === "test") window.sessionStorage.setItem("rio_test_preview", "1");
     const link = linkError(params);
     const named = previewing() ? undefined : namedSeason(params);
-    try {
-      const [planBody, homeBody, seasonBody] = await Promise.all([
-        api.plan(month, named),
-        api.home(false),
-        previewing() ? Promise.resolve(null) : api.currentSeason(),
-      ]);
-      let activityBody: ActivitiesResponse | null = null;
-      setActivityNote("");
-      try {
-        activityBody = await api.activities();
-      } catch (caught) {
+    let runsNote = "";
+    const activityPromise = api.activities().then(
+      (body) => body,
+      (caught: unknown) => {
         if (!(caught instanceof ApiError && caught.status === 404)) {
-          setActivityNote("Runs could not be loaded. Try Refresh in a moment.");
+          runsNote = "Runs could not be loaded. Try Refresh in a moment.";
         }
-      }
+        return null;
+      },
+    );
+    try {
+      const [planBody, seasonBody, activityBody] = await Promise.all([
+        api.plan(month, named),
+        previewing() ? Promise.resolve(null) : api.currentSeason(),
+        activityPromise,
+      ]);
+      setActivityNote(runsNote);
       setPlan(planBody);
       setSeason(
         seasonBody || planBody.actuals
@@ -112,10 +120,11 @@ function PlanBody() {
           : null,
       );
       setActivities(activityBody);
-      setPace(planBody.pace_status || homeBody.season?.pace_status || "No runs yet");
+      setPace(planBody.pace_status || "No runs yet");
       setProblem(link);
       setMode("ready");
     } catch (caught) {
+      if (isSignedOut(caught) && statusRef.current !== "in") return;
       const message = caught instanceof ApiError ? caught.message : "Plan could not be loaded.";
       if (caught instanceof ApiError && caught.status === 404) {
         setProblem(link);

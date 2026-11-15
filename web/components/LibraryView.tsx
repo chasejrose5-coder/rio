@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
-import { ApiError, api } from "@/lib/api";
+import { ApiError, api, isSignedOut } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { capacityClass, countLabel } from "@/lib/library";
 import type { LibraryResponse } from "@/lib/types";
@@ -24,7 +24,11 @@ export function LibraryView() {
 }
 
 function LibraryBody() {
-  const { athlete } = useAuth();
+  const { athlete, status } = useAuth();
+  const statusRef = useRef(status);
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
   const [mode, setMode] = useState<Mode>("loading");
   const [data, setData] = useState<LibraryResponse | null>(null);
   const [problem, setProblem] = useState("");
@@ -73,6 +77,7 @@ function LibraryBody() {
       })
       .catch((caught) => {
         if (!live) return;
+        if (isSignedOut(caught) && statusRef.current !== "in") return;
         setData(null);
         setProblem(caught instanceof ApiError ? caught.message : "The menu could not be loaded.");
         setMode("error");

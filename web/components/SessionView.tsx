@@ -7,7 +7,7 @@ import { Expander } from "./Expander";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
-import { ApiError, api, previewing } from "@/lib/api";
+import { ApiError, api, isSignedOut, previewing } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { weekdayName } from "@/lib/plan";
 import {
@@ -33,6 +33,11 @@ export function SessionView() {
 }
 
 function SessionBody() {
+  const { athlete, status } = useAuth();
+  const statusRef = useRef(status);
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
   const params = useSearchParams();
   const date = params.get("date") || "";
   const activity = params.get("activity") || "";
@@ -88,6 +93,7 @@ function SessionBody() {
         setMode(missing ? "missing" : "bad");
         return;
       }
+      if (isSignedOut(caught) && statusRef.current !== "in") return;
       setProblem(caught instanceof ApiError ? caught.message : "That session could not be loaded.");
       setMode("error");
     }
@@ -114,7 +120,6 @@ function SessionBody() {
         : "Session";
   const range = mode === "activity" && extra ? extra.date : mode === "ready" && session ? session.shown_date : "";
 
-  const { athlete } = useAuth();
   const compact = athlete?.prefs.compact === true;
   return (
     <div className={compact ? "page-session is-compact" : "page-session"}>

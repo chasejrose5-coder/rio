@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { WakeHint } from "./LoadingScreen";
 import { api, stopPreview } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { forgetLanding, landingPath, rememberedLanding, rememberLanding } from "@/lib/landing";
@@ -72,6 +73,7 @@ export function Nav({ active }: { active?: string }) {
 
   return (
     <header className={arm ? "rio-nav rio-nav-arm" : "rio-nav"}>
+      <WakeHint />
       <div className="rio-nav-row">
         <Link
           className="rio-brand"

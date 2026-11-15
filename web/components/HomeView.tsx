@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Expander } from "./Expander";
 import { Footer, PhotoCredit } from "./Footer";
 import { Nav } from "./Nav";
 import { PreviewBanner } from "./PreviewBanner";
 import { RequireUser } from "./RequireUser";
 import { TrackArt } from "./TrackArt";
-import { ApiError, api, previewing, stopPreview } from "@/lib/api";
+import { ApiError, api, isSignedOut, previewing, stopPreview } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { pageShouldRise } from "@/lib/motion";
 import { linkError } from "@/lib/plan";
 import { shownName } from "@/lib/settings";
@@ -94,6 +95,11 @@ export function HomeView() {
 
 function HomeBody() {
   const router = useRouter();
+  const { status } = useAuth();
+  const statusRef = useRef(status);
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
   const [home, setHome] = useState<HomeResponse | null>(null);
   const [error, setError] = useState("");
   const [linkProblem, setLinkProblem] = useState("");
@@ -129,6 +135,7 @@ function HomeBody() {
     setReadOnly(previewing());
     const generated = params.get("just_generated") === "true";
     void load(generated).catch((caught) => {
+      if (isSignedOut(caught) && statusRef.current !== "in") return;
       if (caught instanceof ApiError && caught.status === 403 && previewing()) {
         stopPreview();
         router.replace("/home");
@@ -151,6 +158,12 @@ function HomeBody() {
           </header>
         ) : null}
         {error ? <p className="rio-error">{error}</p> : null}
+        {!home && !linkProblem && !error ? (
+          <header className="rio-hero rio-home-hero">
+            <h1>Home</h1>
+            <p className="rio-wait">Loading</p>
+          </header>
+        ) : null}
         {home && !linkProblem ? (
           <HomeMain home={home} offer={offer} readOnly={readOnly} onDismiss={() => setOffer(false)} reload={() => void load(false)} />
         ) : null}

@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { api, refreshSession } from "./api";
 import type { Athlete } from "./types";
 
-type Status = "loading" | "in" | "out";
+type Status = "loading" | "in" | "out" | "unreachable";
 
 type AuthValue = {
   status: Status;
@@ -38,9 +38,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // The cookie lives on the API host, so the session is read in the browser.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void refresh();
-  }, [refresh]);
+    // A free Render wake can outlast one attempt. Retry once before staying on the wake screen.
+    let live = true;
+    let timer = 0;
+    let tries = 0;
+    const run = () => {
+      void refreshSession().then((next) => {
+        if (!live) return;
+        if (next.status === "unreachable" && tries < 1) {
+          tries += 1;
+          setAthlete(null);
+          setStatus("unreachable");
+          timer = window.setTimeout(run, 2000);
+          return;
+        }
+        setAthlete(next.athlete);
+        setStatus(next.status);
+      });
+    };
+    run();
+    return () => {
+      live = false;
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   const value = useMemo(() => ({ status, athlete, refresh, signOut }), [status, athlete, refresh, signOut]);
 

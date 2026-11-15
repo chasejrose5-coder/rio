@@ -1,14 +1,14 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Expander } from "./Expander";
 import { SecretField } from "./SecretField";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { StravaPanel } from "./StravaSettings";
-import { ApiError, api } from "@/lib/api";
+import { ApiError, api, isSignedOut } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import {
   APP_VERSION,
@@ -38,7 +38,11 @@ function SettingsBody() {
   const router = useRouter();
   const params = useSearchParams();
   const flag = params.get("strava") || "";
-  const { athlete, refresh, signOut } = useAuth();
+  const { athlete, status, refresh, signOut } = useAuth();
+  const statusRef = useRef(status);
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
   const [arm, setArm] = useState(false);
   const [rise, setRise] = useState(false);
   const [seeded, setSeeded] = useState(false);
@@ -94,6 +98,7 @@ function SettingsBody() {
       })
       .catch((caught) => {
         if (!live) return;
+        if (isSignedOut(caught) && statusRef.current !== "in") return;
         setHasSeason(false);
         setProblem(caught instanceof ApiError ? caught.message : "This account could not be opened.");
       });
@@ -135,7 +140,19 @@ function SettingsBody() {
     };
   }, [athlete, refresh]);
 
-  if (!athlete) return null;
+  if (!athlete) {
+    return (
+      <div className="page-settings">
+        <Nav />
+        <main>
+          <header className="rio-hero">
+            <h1>Settings</h1>
+          </header>
+          <p className="rio-wait">Loading</p>
+        </main>
+      </div>
+    );
+  }
 
   const user = athlete;
   const hosted = user.kind === "hosted";

@@ -25,6 +25,7 @@ from urllib.parse import quote, urlparse
 from engines.pace import canonical_easy_pace
 from ui.accounts import normalize_email, normalize_name, password_ok
 from ui.cloud_session import SESSION_SECONDS, hosted_hash, hosted_sid, new_hosted_sid
+from ui.read_cache import read_cache
 
 _MEMORY: "MemoryDirectory | None" = None
 
@@ -880,6 +881,7 @@ class SupabaseDirectory:
 
     def sign_out(self, access_token: object) -> None:
         """Revoke this access token only. Other visitors' sessions stay."""
+        self._forget_reads(access_token)
         if not isinstance(access_token, str) or not access_token:
             return
         try:
@@ -1215,6 +1217,8 @@ class SupabaseDirectory:
 
     def load_bundle(self, access_token: object) -> dict:
         try:
+            if isinstance(access_token, str) and access_token:
+                return read_cache.bundle(self, access_token, lambda: self._load_bundle(access_token))
             return self._load_bundle(access_token)
         except CloudAuthError:
             raise
@@ -1403,6 +1407,7 @@ class SupabaseDirectory:
     def save_bundle(self, access_token: object, bundle: object) -> None:
         if not isinstance(bundle, dict):
             raise CloudAuthError("This account could not be saved.")
+        self._forget_reads(access_token)
         try:
             self._save_bundle(access_token, bundle)
         except CloudAuthError:
@@ -1410,6 +1415,8 @@ class SupabaseDirectory:
         except Exception as exc:
             _log_store("save", exc)
             raise CloudAuthError("Could not save. Check your connection and try again.") from exc
+        finally:
+            self._forget_reads(access_token)
 
     def _save_bundle(self, access_token: object, bundle: dict) -> None:
         client = self._user_client(access_token)
@@ -1457,6 +1464,7 @@ class SupabaseDirectory:
     def delete_user(self, access_token: object, service_key: object) -> None:
         if not isinstance(service_key, str) or not service_key.strip():
             raise CloudAuthError("This account could not be removed on the server.")
+        self._forget_reads(access_token)
         try:
             self._delete_user(access_token, service_key)
         except CloudAuthError:
@@ -1464,6 +1472,8 @@ class SupabaseDirectory:
         except Exception as exc:
             _log_store("delete", exc)
             raise CloudAuthError("This account could not be removed on the server.") from exc
+        finally:
+            self._forget_reads(access_token)
 
     def delete_season(self, access_token: object, inputs: object, today: object) -> None:
         """Remove one season for this token, including the open one. The service key is not used."""
@@ -1471,6 +1481,7 @@ class SupabaseDirectory:
 
         if type(today) is not date:
             raise CloudAuthError("This season could not be deleted.")
+        self._forget_reads(access_token)
         try:
             self._delete_season(access_token, inputs, today)
         except CloudAuthError:
@@ -1478,6 +1489,8 @@ class SupabaseDirectory:
         except Exception as exc:
             _log_store("delete-season", exc)
             raise CloudAuthError("This season could not be deleted.") from exc
+        finally:
+            self._forget_reads(access_token)
 
     def _delete_user(self, access_token: object, service_key: object) -> None:
         client = self._user_client(access_token)
@@ -1702,9 +1715,9 @@ class SupabaseDirectory:
         if not isinstance(row, dict) or _hosted_expired(row):
             if isinstance(row, dict):
                 self.drop_hosted_session(sid)
-            self._purge_expired_sessions()
+            self._purge_expired_sessions_if_due()
             return None
-        self._purge_expired_sessions()
+        self._purge_expired_sessions_if_due()
         return _open_hosted_row(row, sid if isinstance(sid, str) else None)
 
     def update_hosted_session(self, sid: object, record: object) -> None:
@@ -1722,6 +1735,14 @@ class SupabaseDirectory:
         except Exception as exc:
             log_hosted_session("update", exc, self)
             raise CloudAuthError("Sign in again.") from exc
+
+    def _purge_expired_sessions_if_due(self) -> None:
+        """Drop expired rows on a timer. Every request used to pay for this delete."""
+        if read_cache.purge_due(id(self)):
+            self._purge_expired_sessions()
+
+    def _forget_reads(self, access_token: object) -> None:
+        read_cache.forget(self, access_token)
 
     def _purge_expired_sessions(self) -> None:
         """Drop expired rows. A missing table does not block the sign-in."""
@@ -1788,9 +1809,15 @@ class SupabaseDirectory:
         return self._auth_record(client, access_token)["id"]
 
     def _auth_record(self, client, access_token: str) -> dict:
-        """One server check of this token. The client's saved session is not read."""
+        """One server check of this token. The client's saved session is not read.
+
+        Overlapping checks share one round trip. A finished check is not reused.
+        """
         if not isinstance(access_token, str) or not access_token:
             raise CloudAuthError("Sign in again.")
+        return read_cache.auth(self, access_token, lambda: self._fetch_auth_record(client, access_token))
+
+    def _fetch_auth_record(self, client, access_token: str) -> dict:
         try:
             user = client.auth.get_user(access_token)
         except Exception as exc:
@@ -1842,7 +1869,11 @@ class SupabaseDirectory:
 
     def _auth_user_update(self, access_token: str, data: dict) -> None:
         """Merge fields onto user_metadata. Existing name metadata stays."""
-        self._auth_request("PUT", access_token, {"data": data})
+        self._forget_reads(access_token)
+        try:
+            self._auth_request("PUT", access_token, {"data": data})
+        finally:
+            self._forget_reads(access_token)
 
     def _auth_request(self, method: str, access_token: str, body: dict | None) -> dict:
         import json
