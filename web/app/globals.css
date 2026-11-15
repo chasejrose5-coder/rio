@@ -1853,7 +1853,8 @@ button.rio-text-link:disabled {
   border-radius: 999px;
   background: #fff;
   color: #121110;
-  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 .page-past .rio-past-open:hover { border-color: #e25a32; }
 .page-past .rio-stagger .rio-past-row { animation: rio-rise 200ms var(--ease) both; }
@@ -1909,6 +1910,12 @@ button.rio-text-link:disabled {
 }
 .page-past .rio-past-stat { padding: 0.45rem 0; border-top: 1px solid #e7e1d8; }
 .page-past .rio-past-confirm .rio-past-v { margin-top: 0.16rem; }
+.page-past .rio-past-current-note {
+  margin: 0 0 0.85rem;
+  color: #9a3412;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
 .page-past .rio-past-confirm-note {
   margin: 0.85rem 0 0;
   color: #3c3a36;

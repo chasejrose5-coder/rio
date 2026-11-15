@@ -65,7 +65,17 @@ function SessionBody() {
       }
     }
     if (!date) {
-      setMode("nodate");
+      if (previewing()) {
+        setMode("nodate");
+        return;
+      }
+      try {
+        const season = await api.currentSeason();
+        setMode(season ? "nodate" : "missing");
+      } catch (caught) {
+        setProblem(caught instanceof ApiError ? caught.message : "That session could not be loaded.");
+        setMode("error");
+      }
       return;
     }
     try {

@@ -551,18 +551,17 @@ def delete_exact(path: Path, email: object, secret: object, keys: object) -> Non
 
 
 def delete_past_season(path: Path, email: object, secret: object, inputs: object, today: object) -> None:
-    """Remove one past season and the profile stored with those four inputs.
+    """Remove one season and the profile stored with those four inputs.
 
-    A current season is left as it is. Another season's records stay.
+    The season the athlete is training on can go too. Another season's records stay.
     """
     from datetime import date
 
-    from ui.past_seasons import is_past_season
     from ui.plan_store import storage_key
     from ui.profile import profile_key
 
-    if type(today) is not date or not is_past_season(inputs, today):
-        raise AccountError("The current season can't be deleted.")
+    if type(today) is not date:
+        raise AccountError("This season could not be deleted.")
     delete_exact(path, email, secret, [storage_key(inputs), profile_key(inputs)])
 
 

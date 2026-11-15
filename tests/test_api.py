@@ -429,9 +429,8 @@ def test_past_seasons_list_and_delete_use_the_confirm_panel() -> None:
     expected = _panel(("2:05.0", "2020-01-06", "1:55.0", "2020-04-06"), summary_record(stored), "short")
     if seasons[0]["stats"] != expected:
         raise AssertionError((seasons[0]["stats"], expected))
-    refused = client.request("DELETE", "/seasons/past", json={**INPUTS, "confirm": True})
-    if refused.status_code != 409:
-        raise AssertionError(refused.text)
+    if listed.json()["open"][0]["current"] is not True or seasons[0]["current"] is not False:
+        raise AssertionError((listed.json()["open"], seasons))
     unconfirmed = client.request("DELETE", "/seasons/past", json={**PAST, "confirm": False})
     if unconfirmed.status_code != 400:
         raise AssertionError(unconfirmed.text)
@@ -447,6 +446,21 @@ def test_past_seasons_list_and_delete_use_the_confirm_panel() -> None:
     current = client.get("/seasons/current")
     if current.status_code != 200 or current.json()["inputs"]["goal_date"] != "2027-03-19":
         raise AssertionError(current.text)
+    opened = client.request("DELETE", "/seasons/past", json={**INPUTS, "confirm": True})
+    if opened.status_code != 200 or opened.json()["current"] is not True:
+        raise AssertionError(opened.text)
+    if client.get("/seasons/current").status_code != 404:
+        raise AssertionError("the open season is still there")
+    home = client.get("/home")
+    if home.status_code != 200 or home.json()["season"] is not None:
+        raise AssertionError(home.text)
+    if "Generate a season on Start" not in home.json()["copy"]:
+        raise AssertionError(home.json()["copy"])
+    if client.get("/plan").status_code != 404:
+        raise AssertionError(client.get("/plan").text)
+    session = client.get("/sessions/2026-04-21")
+    if session.status_code != 404 or "no current season" not in session.json()["detail"].lower():
+        raise AssertionError(session.text)
 
 
 def test_prefs_follow_the_existing_helpers_and_do_not_change_the_plan() -> None:
@@ -530,6 +544,8 @@ def test_local_past_delete_matches_the_panel_and_keeps_the_plan_key_last(tmp_pat
         "goal_date": today.isoformat(),
     }
     _generate(client, current_goal)
-    kept = client.request("DELETE", "/seasons/past", json={**current_goal, "confirm": True})
-    if kept.status_code != 409:
-        raise AssertionError(kept.text)
+    removed_open = client.request("DELETE", "/seasons/past", json={**current_goal, "confirm": True})
+    if removed_open.status_code != 200 or removed_open.json()["current"] is not True:
+        raise AssertionError(removed_open.text)
+    if client.get("/seasons/current").json()["inputs"]["goal_date"] != "2027-03-19":
+        raise AssertionError(client.get("/seasons/current").text)

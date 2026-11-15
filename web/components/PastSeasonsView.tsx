@@ -1,16 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { isPastSeason, openLabel, planQuery, rowLabel, rowValues, seasonKey, seasonRows, unreadableMessage } from "@/lib/past";
+import { planQuery, rowLabel, rowValues, seasonKey, seasonRows, unreadableMessage } from "@/lib/past";
 import type { StoredSeason } from "@/lib/types";
 
 const DELETE_NOTE = "This permanently deletes this season and the workouts stored with it. It can't be undone.";
+const CURRENT_NOTE = "This is the season you're training on now. Deleting it takes you to Start to set up a new one.";
 
 export function PastSeasonsView() {
   return (
@@ -22,8 +24,8 @@ export function PastSeasonsView() {
 
 function PastSeasonsBody() {
   const { athlete } = useAuth();
+  const router = useRouter();
   const [rows, setRows] = useState<StoredSeason[] | null>(null);
-  const [today, setToday] = useState("");
   const [problem, setProblem] = useState("");
   const [notice, setNotice] = useState("");
   const [pending, setPending] = useState("");
@@ -59,7 +61,6 @@ function PastSeasonsBody() {
       .pastSeasons()
       .then((body) => {
         if (!live) return;
-        setToday(body.today);
         setRows(seasonRows(body.seasons, body.open));
         setProblem("");
       })
@@ -79,6 +80,10 @@ function PastSeasonsBody() {
     setConfirmError("");
     try {
       await api.deletePastSeason({ ...row.inputs, confirm: true });
+      if (row.current) {
+        router.push("/start?new=1");
+        return;
+      }
       setRows((current) => (current || []).filter((item) => seasonKey(item.inputs) !== seasonKey(row.inputs)));
       setPending("");
       setNotice("Season deleted.");
@@ -105,8 +110,8 @@ function PastSeasonsBody() {
             {rows.map((row) => {
               const key = seasonKey(row.inputs);
               const shown = rowValues(row.inputs, dateFormat);
-              const past = isPastSeason(row.inputs.goal_date, today);
               const open = pending === key;
+              const label = rowLabel(row.inputs, dateFormat);
               return (
                 <section className="rio-past-item" key={key}>
                   <div className="rio-past-row">
@@ -123,25 +128,24 @@ function PastSeasonsBody() {
                       <span className="rio-past-v">{shown.time}</span>
                     </span>
                   </div>
-                  <Link className="rio-past-open" href={planQuery(row.inputs)} aria-label={rowLabel(row.inputs, dateFormat)}>
-                    {openLabel(row.inputs)}
+                  <Link className="rio-past-open" href={planQuery(row.inputs)} aria-label={`Open plan, ${label}`}>
+                    Open plan
                   </Link>
-                  {past ? (
-                    <button
-                      type="button"
-                      className="rio-past-delete"
-                      onClick={() => {
-                        setPending(key);
-                        setConfirmError("");
-                        setNotice("");
-                      }}
-                    >
-                      Delete season
-                    </button>
-                  ) : null}
-                  {past && open ? (
+                  <button
+                    type="button"
+                    className="rio-past-delete"
+                    onClick={() => {
+                      setPending(key);
+                      setConfirmError("");
+                      setNotice("");
+                    }}
+                  >
+                    Delete season
+                  </button>
+                  {open ? (
                     <div className="rio-past-confirm">
                       <p className="rio-past-confirm-title">Delete this season?</p>
+                      {row.current ? <p className="rio-past-current-note">{CURRENT_NOTE}</p> : null}
                       {row.stats.map((stat) => (
                         <div className="rio-past-stat" key={stat.label}>
                           <div className="rio-past-k">{stat.label}</div>

@@ -202,6 +202,8 @@ export type SeasonStat = { label: string; value: string };
 export type StoredSeason = {
   inputs: CurrentSeason["inputs"];
   stats: SeasonStat[];
+  /** The season Home and Plan open. Every other stored season is false. */
+  current?: boolean;
 };
 
 export type PastSeasonsResponse = {

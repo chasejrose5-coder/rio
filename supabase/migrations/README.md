@@ -22,6 +22,8 @@ The service role bypasses those policies. The app uses it only on the server, an
 
 `011_explain_spend.sql` stores the explain spend counter in one row. The service role is the only role granted the table and the functions. Run it after 010. It is safe to run again. It does not have to run before a deploy. Until it has been run, Streamlit and the API keep the JSON file. After it has been run, a process that is not pinned to `RIO_EXPLAIN_SPEND_PATH` uses the row.
 
+`012_delete_any_owned_season.sql` lets the signed-in athlete delete any one of their seasons, including the season they are training on. It replaces `delete_past_season`. A goal date of today or later is no longer refused. Other athletes stay behind `auth.uid()`. Run it after 009. It is safe to run again. Until it has been run, a goal date of today or later is still refused by the function from 009.
+
 After the SQL:
 
 1. Authentication, URL configuration. Site URL: `https://www.riorunning.com`. The live Render values of `RIO_FRONTEND_ORIGIN` and `RIO_CALLBACK_BASE_URL` are that origin, scheme and host, no path, no trailing slash. Strava's Authorization Callback Domain is `www.riorunning.com`.

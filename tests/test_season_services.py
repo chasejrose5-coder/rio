@@ -392,23 +392,21 @@ def test_memory_directory_round_trip_and_past_delete() -> None:
     beau_dates = [row["goal_date"] for row in load_hosted_season(directory, beau["access_token"])["plans"]]
     if beau_dates != [PAST[3]] or load_hosted_season(directory, beau["access_token"])["plans"][0]["marks"] != {2: "smashing"}:
         raise AssertionError(beau_dates)
-    try:
-        remove_past_season(
-            hosted=True,
-            directory=directory,
-            token=ada["access_token"],
-            path=None,
-            email=None,
-            secret=None,
-            inputs=ACTIVE,
-            today=TODAY,
-        )
-    except CloudAuthError as exc:
-        message = str(exc)
-    else:
-        raise AssertionError("the current season was deleted")
-    if "can't be deleted" not in message:
-        raise AssertionError(message)
+    remove_past_season(
+        hosted=True,
+        directory=directory,
+        token=ada["access_token"],
+        path=None,
+        email=None,
+        secret=None,
+        inputs=ACTIVE,
+        today=TODAY,
+    )
+    after_open = [row["goal_date"] for row in load_hosted_season(directory, ada["access_token"])["plans"]]
+    if after_open != []:
+        raise AssertionError(after_open)
+    if load_hosted_season(directory, beau["access_token"])["plans"][0]["goal_date"] != PAST[3]:
+        raise AssertionError("another athlete's season was removed with the open one")
 
 
 def _account_file() -> tuple[Path, Path]:
@@ -461,23 +459,20 @@ def test_local_save_load_and_delete_stay_on_that_account() -> None:
             raise AssertionError("the current season was deleted")
         if load_local_season(path, other_email, other_secret, key)[0] != {4: "not_hitting"}:
             raise AssertionError("the other account was deleted")
-        try:
-            remove_past_season(
-                hosted=False,
-                directory=None,
-                token=None,
-                path=path,
-                email=email,
-                secret=secret,
-                inputs=ACTIVE,
-                today=TODAY,
-            )
-        except AccountError as exc:
-            message = str(exc)
-        else:
-            raise AssertionError("the current local season was deleted")
-        if "can't be deleted" not in message:
-            raise AssertionError(message)
+        remove_past_season(
+            hosted=False,
+            directory=None,
+            token=None,
+            path=path,
+            email=email,
+            secret=secret,
+            inputs=ACTIVE,
+            today=TODAY,
+        )
+        if load_local_season(path, email, secret, storage_key(ACTIVE)) != ({}, {}, []):
+            raise AssertionError("the open season stayed")
+        if load_local_season(path, other_email, other_secret, key)[0] != {4: "not_hitting"}:
+            raise AssertionError("the other account was deleted with the open season")
         save_cleared_marks(path, email, secret, ACTIVE)
         if load_local_season(path, email, secret, storage_key(ACTIVE)) != ({}, {}, []):
             raise AssertionError("clear left a mark")

@@ -90,13 +90,18 @@ export function sameSeason(
   );
 }
 
-/** Home when this season is still current and the URL does not name another one. */
+/** Home when this season is still current and the URL does not name another one.
+
+fresh is the path after the open season was just deleted. The form stays up
+so a new season can be set, even when another stored season would open Home.
+*/
 export function startShouldGoHome(
   goalDate: string | undefined,
   today: string | undefined,
   linkDiffers: boolean,
+  fresh = false,
 ): boolean {
-  if (linkDiffers || !goalDate || !today) return false;
+  if (fresh || linkDiffers || !goalDate || !today) return false;
   return goalDate >= today;
 }
 

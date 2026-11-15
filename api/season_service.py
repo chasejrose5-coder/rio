@@ -245,27 +245,29 @@ def _open_hosted_row(principal: Principal, directory, row: dict) -> OpenSeason:
     return season
 
 
-def _hosted_open(principal: Principal, directory, today: date) -> OpenSeason | None:
-    bundle = load_hosted_season(directory, principal.token)
-    plans = bundle.get("plans") if isinstance(bundle, dict) else []
+def _hosted_choice(principal: Principal, directory, today: date) -> dict | None:
+    """The last stored plan Home and Plan open. A finished goal date is skipped."""
     chosen = None
-    if isinstance(plans, list):
-        for row in plans:
-            if not isinstance(row, dict):
-                continue
-            inputs = _inputs_of(row)
-            plan = row.get("plan")
-            if inputs is None or not isinstance(plan, dict) or not plan_has_sessions(plan):
-                continue
-            if is_past_season(inputs, today):
-                continue
-            chosen = row
+    for row in _hosted_rows(principal, directory):
+        inputs = _inputs_of(row)
+        plan = row.get("plan")
+        if inputs is None or not isinstance(plan, dict) or not plan_has_sessions(plan):
+            continue
+        if is_past_season(inputs, today):
+            continue
+        chosen = row
+    return chosen
+
+
+def _hosted_open(principal: Principal, directory, today: date) -> OpenSeason | None:
+    chosen = _hosted_choice(principal, directory, today)
     if chosen is None:
         return None
     return _open_hosted_row(principal, directory, chosen)
 
 
-def _local_open(principal: Principal, today: date) -> OpenSeason | None:
+def _local_choice(principal: Principal, today: date) -> tuple[str, str, str, str] | None:
+    """The local season Home and Plan open. The last saved one wins when it is still open."""
     from ui.accounts import last_key, record_keys
     from ui.past_seasons import KEY_PREFIX, inputs_from_key
 
@@ -283,9 +285,24 @@ def _local_open(principal: Principal, today: date) -> OpenSeason | None:
         for inputs in entries:
             if not is_past_season(inputs, today):
                 chosen = inputs
+    return chosen
+
+
+def _local_open(principal: Principal, today: date) -> OpenSeason | None:
+    chosen = _local_choice(principal, today)
     if chosen is None:
         return None
     return _load_local(principal, chosen)
+
+
+def active_inputs(principal: Principal, directory, today: date) -> tuple[str, str, str, str] | None:
+    """The four inputs Home and Plan use now. None when nothing is still open."""
+    if principal.kind == "hosted":
+        chosen = _hosted_choice(principal, directory, today)
+        if chosen is None:
+            return None
+        return _inputs_of(chosen)
+    return _local_choice(principal, today)
 
 
 def _load_local(principal: Principal, inputs: tuple[str, str, str, str]) -> OpenSeason:
@@ -679,10 +696,10 @@ def _sort_rows(rows: list[dict]) -> list[dict]:
 
 
 def list_seasons(principal: Principal, directory, today: date, date_format: str) -> tuple[list[dict], list[dict]]:
-    """Past seasons, then seasons whose goal date is today or later.
+    """Seasons whose goal date is before today, then the rest.
 
-    The past list is what delete can remove. The open list is shown with
-    no delete control. A missing fact stays out of stats.
+    Every row can be deleted. current is the season Home and Plan open.
+    A missing fact stays out of stats.
     """
     try:
         past, opened = _collect_seasons(principal, directory, today, date_format)
@@ -690,7 +707,22 @@ def list_seasons(principal: Principal, directory, today: date, date_format: str)
         if str(exc) == "Accounts could not be read.":
             raise ApiError(500, "This account's seasons could not be read.") from exc
         raise ApiError(401, str(exc)) from exc
+    current = active_inputs(principal, directory, today)
+    _flag_current(past, current)
+    _flag_current(opened, current)
     return _sort_rows(past), _sort_rows(opened)
+
+
+def _flag_current(rows: list[dict], current: tuple[str, str, str, str] | None) -> None:
+    for row in rows:
+        inputs = row.get("inputs") if isinstance(row.get("inputs"), dict) else {}
+        key = (
+            str(inputs.get("current_time") or ""),
+            str(inputs.get("start_date") or ""),
+            str(inputs.get("goal_time") or ""),
+            str(inputs.get("goal_date") or ""),
+        )
+        row["current"] = current is not None and key == current
 
 
 def _collect_seasons(principal: Principal, directory, today: date, date_format: str) -> tuple[list[dict], list[dict]]:
@@ -738,14 +770,17 @@ def list_past(principal: Principal, directory, today: date, date_format: str) ->
 
 
 def delete_past(principal: Principal, directory, today: date, payload: dict, date_format: str) -> dict:
+    """Delete one season this athlete owns, including the one they are training on.
+
+    confirm must be true. Another athlete's season is not found.
+    """
     inputs = parse_inputs(payload)
-    if not is_past_season(inputs, today):
-        raise ApiError(409, "The current season can't be deleted.")
     if payload.get("confirm") is not True:
         raise ApiError(400, "Confirm this season before it is deleted.")
     owned = _find_stored(principal, directory, inputs)
     if owned is None:
         raise ApiError(404, "That season is not on this account.")
+    training = active_inputs(principal, directory, today) == inputs
     stats = _panel_stats(inputs, owned, date_format)
     try:
         remove_past_season(
@@ -764,7 +799,7 @@ def delete_past(principal: Principal, directory, today: date, payload: dict, dat
         drop_hosted_state(directory, principal.token, inputs)
     else:
         drop_local_state(principal.accounts_path, principal.email, principal.seal, inputs)
-    return {"deleted": True, "inputs": _input_payload(inputs), "stats": stats}
+    return {"deleted": True, "current": training, "inputs": _input_payload(inputs), "stats": stats}
 
 
 def _find_stored(principal: Principal, directory, inputs: tuple) -> dict | None:
