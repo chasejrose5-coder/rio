@@ -24,12 +24,22 @@ The service role bypasses those policies. The app uses it only on the server, an
 
 After the SQL:
 
-1. Authentication, URL configuration. Site URL: `https://riotraining.streamlit.app`. Redirect URLs: `https://riotraining.streamlit.app` and `https://riotraining.streamlit.app/**`. For a laptop, also add `http://localhost:8501` and `http://localhost:8501/**`. Leave those in place while Streamlit is still running. The Next app's mail uses `RIO_FRONTEND_ORIGIN` (scheme and host, no path, no trailing slash). Add these two as well, and do not edit them from the app:
+1. Authentication, URL configuration. Site URL: `https://www.riorunning.com`. The live Render values of `RIO_FRONTEND_ORIGIN` and `RIO_CALLBACK_BASE_URL` are that origin, scheme and host, no path, no trailing slash. Strava's Authorization Callback Domain is `www.riorunning.com`.
 
-   - `{RIO_FRONTEND_ORIGIN}/reset-password` — password reset mail
-   - `{RIO_FRONTEND_ORIGIN}/` — signup confirmation mail
+   Leave these redirect URLs in place. Do not delete them:
 
-   When that variable is unset the API uses `http://localhost:3000`, so the laptop entries are `http://localhost:3000/reset-password` and `http://localhost:3000/`. `{RIO_FRONTEND_ORIGIN}/**` also covers both. Jay adds these in the Supabase dashboard. Nothing in the repo writes the allow list.
+   - `https://riotraining.streamlit.app` and `https://riotraining.streamlit.app/**`
+   - `http://localhost:8501` and `http://localhost:8501/**`
+   - `https://rio-one-mocha.vercel.app/`, `https://rio-one-mocha.vercel.app/reset-password`, and `https://rio-one-mocha.vercel.app/confirm`
+   - `https://rio-rio-44fa.vercel.app/`, `https://rio-rio-44fa.vercel.app/reset-password`, and `https://rio-rio-44fa.vercel.app/confirm`
+
+   The Next app's mail uses `RIO_FRONTEND_ORIGIN`. Add these as well, and do not edit them from the app:
+
+   - `https://www.riorunning.com/reset-password` — password reset mail
+   - `https://www.riorunning.com/confirm` — signup confirmation and email-change mail
+   - `https://www.riorunning.com/`
+
+   When `RIO_FRONTEND_ORIGIN` is unset the API uses `http://localhost:3000`, so the laptop entries are `http://localhost:3000/reset-password` and `http://localhost:3000/confirm`. `{RIO_FRONTEND_ORIGIN}/**` also covers both. Signup confirmation uses `/confirm`. Jay adds these in the Supabase dashboard. Nothing in the repo writes the allow list.
 2. Authentication, Providers, Email. Keep "Confirm email" ON. Also turn on "Secure email change" if that switch is shown. Do not turn confirmation off.
 3. Authentication, Providers, Google. Turn it on. The Google Cloud OAuth client needs this redirect URI exactly: `https://<project-ref>.supabase.co/auth/v1/callback`. Copy the client id and secret into the Google provider in Supabase.
 4. Put the four settings in Streamlit Cloud secrets, or in `.env` on a laptop. The names are listed in `.env.example`. Do not commit the values.

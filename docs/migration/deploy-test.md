@@ -1,8 +1,12 @@
-# Test deploy beside Streamlit
+# Deploy beside the live site
 
-This is the click path for a test site that runs next to the live Streamlit app. Streamlit stays on `https://riotraining.streamlit.app`. Nothing in this file creates an account, deploys, or merges.
+The live site is `https://www.riorunning.com`. `riorunning.com` redirects there. On Render, `RIO_FRONTEND_ORIGIN` and `RIO_CALLBACK_BASE_URL` are that origin: `https://`, no path, and no trailing slash. Strava's Authorization Callback Domain is `www.riorunning.com`.
 
-The browser uses one host, the Vercel `*.vercel.app` URL. Next rewrites `/api/*` to the FastAPI service on Render. The `rio_hosted` cookie is `HttpOnly`, `Secure`, and `SameSite=Lax`, with no `Domain` attribute, so it sticks to the Vercel host only. `vercel.app` and `onrender.com` are different sites. Pointing the browser at the Render URL would drop the cookie.
+`https://riotraining.streamlit.app` stays up. It shows the moved screen, with a link to the live site, and the old app stays in the file behind that screen. `https://rio-one-mocha.vercel.app` and `https://rio-rio-44fa.vercel.app` stay up on the same production build and show a note that links to the live site. Do not remove those hosts and do not redirect them.
+
+This is the click path for the API on Render and the Next app on Vercel. Nothing in this file creates an account or merges.
+
+The browser uses one host. Next rewrites `/api/*` to the FastAPI service on Render. The `rio_hosted` cookie is `HttpOnly`, `Secure`, and `SameSite=Lax`, with no `Domain` attribute, so it sticks to the host the browser opened. `www.riorunning.com`, an old `*.vercel.app` host, and `onrender.com` are different sites. Pointing the browser at the Render URL would drop the cookie.
 
 `GET /health` already returns `{"ok": true}` with no cookie. Render's health check uses that path. It is not a new route.
 
@@ -50,9 +54,9 @@ Manual path, if you are not using the blueprint: **New**, **Web Service**, same 
 | `NEXT_PUBLIC_RIO_API_URL` | `/api` |
 | `RIO_API_ORIGIN` | The Render URL from step 2, `https://<render-host>`, no path and no trailing slash |
 
-`/api` is same-origin on whatever `*.vercel.app` host Vercel assigns. It lines up with `RIO_FRONTEND_ORIGIN`: the browser, the cookie, CORS, Strava, reset, and confirm all use that Vercel origin. `RIO_API_ORIGIN` is read only by `web/next.config.ts` when it builds the rewrite. It is not a `NEXT_PUBLIC_` variable, so the client bundle does not need the Render host. The rewrite is `/api/:path*` to `<RIO_API_ORIGIN>/:path*`. Pages such as `/settings` and `/strava/callback` stay on Next. Those paths also exist on the API, which is why the browser prefix is `/api`.
+`/api` is same-origin on the host the browser opened, including `https://www.riorunning.com` and an old `*.vercel.app` host that still serves this build. The cookie stays on that host. `RIO_FRONTEND_ORIGIN` is the live origin `https://www.riorunning.com`: CORS, reset mail, confirm mail, and the Strava return use it. `RIO_API_ORIGIN` is read only by `web/next.config.ts` when it builds the rewrite. It is not a `NEXT_PUBLIC_` variable, so the client bundle does not need the Render host. The rewrite is `/api/:path*` to `<RIO_API_ORIGIN>/:path*`. Pages such as `/settings` and `/strava/callback` stay on Next. Those paths also exist on the API, which is why the browser prefix is `/api`.
 
-10. Deploy. When it finishes, copy the URL. It looks like `https://rio-xxxx.vercel.app`, no path and no trailing slash. That origin is what you put on Render in the next step.
+10. Deploy. The live origin is `https://www.riorunning.com`, no path and no trailing slash. That origin is what you put on Render in the next step. An old `*.vercel.app` hostname can keep serving this same build. It is not the origin you put on Render, and it is not redirected.
 11. Changing either variable later needs another Vercel deploy. `NEXT_PUBLIC_RIO_API_URL` is compiled into the browser bundle, and the rewrite target is compiled into the routes at build time.
 
 There is no `vercel.json`. The rewrite and the `Cache-Control: private, no-store` header on `/api/:path*` live in `web/next.config.ts`. With `RIO_API_ORIGIN` unset, the rewrite list is empty, which is how a laptop stays on port 8000.
@@ -63,30 +67,41 @@ On the Render service, **Environment**. Set these two, then save. Render redeplo
 
 | Name | Value |
 | --- | --- |
-| `RIO_FRONTEND_ORIGIN` | `https://<vercel-host>` |
-| `RIO_CALLBACK_BASE_URL` | `https://<vercel-host>` |
+| `RIO_FRONTEND_ORIGIN` | `https://www.riorunning.com` |
+| `RIO_CALLBACK_BASE_URL` | `https://www.riorunning.com` |
 
 No path. No trailing slash. The two strings are the same origin.
 
 `RIO_FRONTEND_ORIGIN` is the only browser origin CORS allows. A wildcard is refused. Reset mail opens `{RIO_FRONTEND_ORIGIN}/reset-password`. Signup confirmation and email-change mail open `{RIO_FRONTEND_ORIGIN}/confirm`. Strava's redirect, when `RIO_STRAVA_REDIRECT_URI` is unset, is `{RIO_CALLBACK_BASE_URL}/strava/callback`. After Strava returns, the API sends the browser to `{RIO_FRONTEND_ORIGIN}/settings?strava=connected` or `?strava=error`. The Next page at `/strava/callback` calls the API with `X-RIO-Response: json` and then opens Settings.
 
-Leave `RIO_APP_URL` unset on Render. Streamlit Cloud keeps its own value, `https://riotraining.streamlit.app`. The API does not use `RIO_APP_URL` for reset or confirmation mail. Leave `RIO_GOOGLE_REDIRECT_URI` unset. Google sign-in stays hidden, and the Streamlit Google redirect stays the Streamlit callback. Leave `RIO_STRAVA_REDIRECT_URI` unset so the callback base above is what Strava sees.
+Leave `RIO_APP_URL` unset on Render. Streamlit Cloud keeps its own value, `https://riotraining.streamlit.app`, for the parked app. The API does not use `RIO_APP_URL` for reset or confirmation mail. Leave `RIO_GOOGLE_REDIRECT_URI` unset. Google sign-in stays hidden, and the Streamlit Google redirect stays the Streamlit callback. Leave `RIO_STRAVA_REDIRECT_URI` unset so the callback base above is what Strava sees.
 
 ## 5. Supabase Auth redirect URLs
 
 Use the same Supabase project the live app already uses. In the dashboard: **Authentication**, **URL configuration**.
 
-Leave **Site URL** as `https://riotraining.streamlit.app`.
+Set **Site URL** to `https://www.riorunning.com`.
 
-Leave the existing redirect URLs in place, including `https://riotraining.streamlit.app`, `https://riotraining.streamlit.app/**`, and any `http://localhost:8501` entries.
+Leave these redirect URLs in place. Do not delete them.
 
-Add these two, using the exact Vercel origin from step 3:
+- `https://riotraining.streamlit.app`
+- `https://riotraining.streamlit.app/**`
+- `http://localhost:8501`
+- `http://localhost:8501/**`
+- `https://rio-one-mocha.vercel.app/`
+- `https://rio-one-mocha.vercel.app/reset-password`
+- `https://rio-one-mocha.vercel.app/confirm`
+- `https://rio-rio-44fa.vercel.app/`
+- `https://rio-rio-44fa.vercel.app/reset-password`
+- `https://rio-rio-44fa.vercel.app/confirm`
 
-- `https://<vercel-host>/reset-password`
-- `https://<vercel-host>/confirm`
-- `https://<vercel-host>/`
+Add the live paths:
 
-Save. The app does not write this list. A redirect that is not on the list is ignored and the mail falls back to the Site URL, which is still Streamlit.
+- `https://www.riorunning.com/reset-password`
+- `https://www.riorunning.com/confirm`
+- `https://www.riorunning.com/`
+
+Save. The app does not write this list. A redirect that is not on the list is ignored and the mail falls back to the Site URL. Signup confirmation and email-change mail open `/confirm`. Password reset opens `/reset-password`.
 
 ## 6. Environment values, and where each one comes from
 
@@ -107,8 +122,8 @@ Type values only in the Vercel and Render dashboards. The repo keeps the names.
 | `RIO_SUPABASE_URL` | Supabase dashboard, **Project Settings**, **API**, Project URL. Same project as Streamlit. |
 | `RIO_SUPABASE_ANON_KEY` | That same API page, the anon / public key. It stays on the server. The Next app does not get a copy. |
 | `RIO_SUPABASE_SERVICE_ROLE_KEY` | That same API page, the service_role key. Required for hosted sessions, Strava tokens, and explain spend. Server only. |
-| `RIO_FRONTEND_ORIGIN` | The Vercel origin from step 3. |
-| `RIO_CALLBACK_BASE_URL` | The same Vercel origin. |
+| `RIO_FRONTEND_ORIGIN` | `https://www.riorunning.com` |
+| `RIO_CALLBACK_BASE_URL` | `https://www.riorunning.com` |
 | `RIO_ADMIN_EMAIL` | The email that may open Admin. Copy the value already in Streamlit secrets if that account should be admin here too. |
 | `RIO_STRAVA_CLIENT_ID` | The new Strava application's client id, from step 8. Leave unset until then. |
 | `RIO_STRAVA_CLIENT_SECRET` | That new application's client secret. Leave unset until step 8. |
@@ -126,9 +141,9 @@ These have a file or a test default. Setting them on the free service either pin
 
 | Name | Why it stays unset |
 | --- | --- |
-| `RIO_APP_URL` | Streamlit's own mail and callback. The live service keeps `https://riotraining.streamlit.app`. |
+| `RIO_APP_URL` | Streamlit's own mail and callback. Streamlit Cloud keeps `https://riotraining.streamlit.app`. Leave it unset on Render. |
 | `RIO_GOOGLE_REDIRECT_URI` | Unset keeps the Streamlit Google callback. The button stays hidden. |
-| `RIO_STRAVA_REDIRECT_URI` | Unset so `RIO_CALLBACK_BASE_URL` builds `https://<vercel-host>/strava/callback`. |
+| `RIO_STRAVA_REDIRECT_URI` | Unset so `RIO_CALLBACK_BASE_URL` builds `https://www.riorunning.com/strava/callback`. |
 | `RIO_HERO_PATH` | Unset uses `ui/assets/hero_rotation.json`, which ships in the deploy. |
 | `RIO_EXPLAIN_SPEND_PATH` | Unset lets migration 011 store the counter in Supabase. |
 | `RIO_INSIGHT_LOG_PATH` | The insight log is best-effort. A write error is ignored. |
@@ -140,18 +155,16 @@ These have a file or a test default. Setting them on the free service either pin
 | `RIO_STRAVA_FAIL_FILE` | Test-only. |
 | `RIO_USE_HOSTED` | Local script flag. The Render process uses the Supabase variables directly. |
 
-## 7. Strava callback, keeping the Streamlit one
+## 7. Strava callback
 
-Strava allows one API application per athlete account, and that application has one Authorization Callback Domain. The live app's domain stays `riotraining.streamlit.app`. Editing it would replace the Streamlit callback `https://riotraining.streamlit.app/`.
+Strava allows one API application per athlete account, and that application has one Authorization Callback Domain. The live domain is `www.riorunning.com`. No `https://` and no path.
 
-1. Open the live application's page at [https://www.strava.com/settings/api](https://www.strava.com/settings/api) only to confirm the callback domain is still `riotraining.streamlit.app`. Change nothing on that page.
-2. Create a second Strava account. Strava's getting-started page says a Strava subscription is required to create an API application. If the new account is asked to subscribe, that charge is Strava's. Skip this whole step if you are not testing Strava yet, and leave `RIO_STRAVA_CLIENT_ID` and `RIO_STRAVA_CLIENT_SECRET` unset. The rest of the test site still runs.
-3. On the new account, open [https://www.strava.com/settings/api](https://www.strava.com/settings/api) and create an application.
-4. **Authorization Callback Domain**: the Vercel hostname only, for example `rio-xxxx.vercel.app`. No `https://` and no path.
-5. Copy that application's client id and client secret into the Render variables `RIO_STRAVA_CLIENT_ID` and `RIO_STRAVA_CLIENT_SECRET`. Save so Render redeploys. Streamlit Cloud keeps the original pair.
-6. A new application starts in single-player mode: only the Strava account that owns it can connect. Use that account when you press Connect on the test site.
+The redirect the API sends is `https://www.riorunning.com/strava/callback`, from `RIO_CALLBACK_BASE_URL` when `RIO_STRAVA_REDIRECT_URI` is unset.
 
-The redirect the API sends is `https://<vercel-host>/strava/callback`.
+Do not change that domain to `riotraining.streamlit.app`, `rio-one-mocha.vercel.app`, or `rio-rio-44fa.vercel.app`. Those hosts stay up. They are not the Strava callback. The moved screen stops before the parked app reaches Strava.
+
+1. Open the live application's page at [https://www.strava.com/settings/api](https://www.strava.com/settings/api) and confirm the callback domain is `www.riorunning.com`.
+2. The Render variables `RIO_STRAVA_CLIENT_ID` and `RIO_STRAVA_CLIENT_SECRET` are that application's client id and client secret. Leave `RIO_STRAVA_REDIRECT_URI` unset so the callback base above is what Strava sees.
 
 ## 8. Read-only check for migrations 009, 010, and 011
 
@@ -198,12 +211,12 @@ If a column is false, open that file and run it in the SQL editor, then run the 
 ## 9. Smoke test on the Vercel URL
 
 1. Open `https://<render-host>/health`. Body: `{"ok":true}`.
-2. Open `https://<vercel-host>/api/health`. Body: `{"ok":true}`. That is the rewrite. If this one fails while the Render URL is still waking, wait and try once more. The free instance sleeps after about 15 minutes of no traffic, and the first hit can take about a minute. Vercel allows a proxied request about two minutes.
-3. Open `https://<vercel-host>`. Create an account or sign in with an account on this Supabase project. If confirmation mail is on, Create account shows Check your email. The link opens `https://<vercel-host>/confirm`, then you log in. The steps for Resend and the templates are in `docs/email-setup.md`.
-4. Open Settings. A loaded page means `rio_hosted` was stored for the Vercel host and sent again to `/api`.
-5. **Forgot password**. The mail link opens `https://<vercel-host>/reset-password` and the new-password form. It does not open Streamlit.
-6. If step 7 is done: **Connect Strava**. After you approve, the browser lands on `https://<vercel-host>/settings?strava=connected` or `?strava=error`.
-7. Open `https://riotraining.streamlit.app` and sign in. The live app still loads. Its secrets were not part of this setup.
+2. Open `https://www.riorunning.com/api/health`. Body: `{"ok":true}`. That is the rewrite. If this one fails while the Render URL is still waking, wait and try once more. The free instance sleeps after about 15 minutes of no traffic, and the first hit can take about a minute. Vercel allows a proxied request about two minutes.
+3. Open `https://www.riorunning.com`. Create an account or sign in with an account on this Supabase project. If confirmation mail is on, Create account shows Check your email. The link opens `https://www.riorunning.com/confirm`, then you log in. The steps for Resend and the templates are in `docs/email-setup.md`.
+4. Open Settings. A loaded page means `rio_hosted` was stored for this host and sent again to `/api`.
+5. **Forgot password**. The mail link opens `https://www.riorunning.com/reset-password` and the new-password form.
+6. **Connect Strava**. After you approve, the browser lands on `https://www.riorunning.com/settings?strava=connected` or `?strava=error`.
+7. Open `https://riotraining.streamlit.app`. The moved screen loads and the address is a link to `https://www.riorunning.com`. Open `https://rio-one-mocha.vercel.app` and `https://rio-rio-44fa.vercel.app`. Each shows a note linking to `riorunning.com`, and the app under the note still loads. None of those hosts redirect.
 
 ## 10. No persistent disk
 
@@ -222,5 +235,5 @@ The test itself is the free Render instance plus Vercel Hobby.
 
 - Render free sleeps after about 15 minutes without traffic, allows 750 hours a month, and has 512 MB of RAM. If `/api/health` keeps failing on wake-up after a retry, change the instance to the $7/month size. In the dashboard that is the Starter / 512 MB instance. The blueprint plan id for that size is `0.5c-512mb`. It does not sleep. You still do not add a disk.
 - A persistent disk is $0.25 per GB per month and only attaches to a paid instance. Skip it for this test.
-- Vercel Hobby includes the `*.vercel.app` URL. A custom domain is not required, and adding one is not part of this test.
+- The live site is `https://www.riorunning.com`. The old `*.vercel.app` hosts stay in place and are not redirected.
 - A second Strava application may require a Strava subscription on the new account. That is separate from Render and Vercel. Skip Strava and the test site still serves plans, sign-in, and reset.

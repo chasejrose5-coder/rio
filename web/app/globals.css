@@ -198,6 +198,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   font-size: 0.95rem;
   line-height: 1.45;
 }
+.rio-old-home {
+  margin: 0;
+  padding: 0.55rem 5vw;
+  background: var(--surface);
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.rio-old-home a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+.rio-old-home a:hover { color: var(--button); }
 .rio-error { color: var(--ink); font-size: 0.95rem; }
 .rio-loading {
   min-height: 100dvh;

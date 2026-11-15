@@ -1,6 +1,6 @@
 # RIO API
 
-The Streamlit app is still the live site. This process is the FastAPI backend for the Next.js app that comes later. It imports `engines/` and `services/`. It does not copy them.
+The live site is `https://www.riorunning.com`. This process is the FastAPI backend for that Next.js app. It imports `engines/` and `services/`. It does not copy them. The Streamlit app stays up at `https://riotraining.streamlit.app` behind a moved screen and does not call these routes.
 
 ## Run it locally
 
@@ -34,14 +34,14 @@ When the Supabase URL or anon key is missing, sign-in uses the local account fil
 
 `GET /auth/me` returns the signed-in athlete. `POST /auth/sign-out` drops the server session and clears the cookie. The cookie lasts the rest of the original 24 hours. Refreshing the Supabase token does not extend it.
 
-`POST /auth/sign-up` creates an account and sets the same cookie when a session comes back. Its confirmation link is `{RIO_FRONTEND_ORIGIN}/`. `POST /auth/forgot-password` sends reset mail to `{RIO_FRONTEND_ORIGIN}/reset-password`, and `POST /auth/reset-password` sets the password from `token` or from a recovery hash (`access_token`, `refresh_token`, `type=recovery`). Streamlit's own screens still use `RIO_APP_URL`. The local account file sends no mail. `POST /auth/password` and `POST /auth/email` change this account. `POST /auth/delete` requires `confirm: true`. `GET /auth/google` and `GET /auth/google/callback` are Google sign-in. `RIO_GOOGLE_REDIRECT_URI` defaults to the Streamlit callback.
+`POST /auth/sign-up` creates an account and sets the same cookie when a session comes back. Its confirmation link is `{RIO_FRONTEND_ORIGIN}/confirm`. `POST /auth/forgot-password` sends reset mail to `{RIO_FRONTEND_ORIGIN}/reset-password`, and `POST /auth/reset-password` sets the password from `token` or from a recovery hash (`access_token`, `refresh_token`, `type=recovery`). Streamlit's own screens still use `RIO_APP_URL`. The local account file sends no mail. `POST /auth/password` and `POST /auth/email` change this account. `POST /auth/delete` requires `confirm: true`. `GET /auth/google` and `GET /auth/google/callback` are Google sign-in. `RIO_GOOGLE_REDIRECT_URI` defaults to the Streamlit callback.
 
-Supabase Auth, URL configuration, redirect allow list. Add these two, using the exact `RIO_FRONTEND_ORIGIN` (scheme and host, no path, no trailing slash). Do not remove the Streamlit entries while that app is still running. This process does not edit the allow list.
+Supabase Auth, URL configuration, redirect allow list. The live origin is `https://www.riorunning.com`. Add these, using that origin (scheme and host, no path, no trailing slash). Leave the Streamlit entries and the old Vercel entries in place. This process does not edit the allow list.
 
-- `{RIO_FRONTEND_ORIGIN}/reset-password`
-- `{RIO_FRONTEND_ORIGIN}/`
+- `https://www.riorunning.com/reset-password`
+- `https://www.riorunning.com/confirm`
 
-When `RIO_FRONTEND_ORIGIN` is unset it is `http://localhost:3000`, so those two are `http://localhost:3000/reset-password` and `http://localhost:3000/`. A wildcard `{RIO_FRONTEND_ORIGIN}/**` also covers both, the same way the Streamlit list uses `/**`. Signup confirmation uses the first origin with a trailing slash. Password reset uses `/reset-password`.
+When `RIO_FRONTEND_ORIGIN` is unset it is `http://localhost:3000`, so the laptop entries are `http://localhost:3000/reset-password` and `http://localhost:3000/confirm`. A wildcard `{RIO_FRONTEND_ORIGIN}/**` also covers both, the same way the Streamlit list uses `/**`. Signup confirmation and email change use `/confirm`. Password reset uses `/reset-password`.
 
 ## Seasons
 

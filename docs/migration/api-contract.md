@@ -1,6 +1,6 @@
 # API contract
 
-The FastAPI app in `api/` is the backend for the Next.js app. The Streamlit app is still the live site and does not call these routes. Every route below is implemented. Shapes are JSON.
+The FastAPI app in `api/` is the backend for the Next.js app. The live site is `https://www.riorunning.com`. The Streamlit app stays up at `https://riotraining.streamlit.app` and does not call these routes. Every route below is implemented. Shapes are JSON.
 
 Auth, unless a route says otherwise, is the `rio_hosted` cookie set by `POST /auth/sign-in`. The value is an opaque `rio1.` id. The cookie is `HttpOnly`, `Secure`, and `SameSite=Lax`. Lax is what lets the Strava redirect send the cookie back. The Supabase access token and the local seal stay on the server. They are not in the cookie, not in `localStorage`, and not in these responses.
 
@@ -121,6 +121,8 @@ No cookie. Body: `{"email": "", "password": "", "name": ""}`.
 
 `200` `{"confirm": true, "message": "Check your email to confirm your account, then log in."}` when the project creates the user and returns no session. The cookie is not set. The Streamlit login screen still hides that sentence and shows "The account could not be created." The API returns the directory’s outcome so the new client can show the inbox screen.
 
+The confirmation link is `{RIO_FRONTEND_ORIGIN}/confirm`. On the live service that origin is `https://www.riorunning.com`. Signup confirmation and email change both use `/confirm`. Leave the Streamlit redirect URLs and the old Vercel redirect URLs (`https://rio-one-mocha.vercel.app` and `https://rio-rio-44fa.vercel.app`) on the Supabase allow list.
+
 `400` for a bad email, a bad name, a short password, or an email that already has an account. `429` when sign-up is rate limited. The body never includes a token or a seal.
 
 ### `POST /auth/forgot-password`
@@ -129,7 +131,7 @@ No cookie. Body: `{"email": ""}`.
 
 `200` `{"ok": true, "message": "Check your email for the reset link."}`. An address with no account gets the same body. The reset token is not in the JSON. `400` when the text is not an email, or when this process is the local account file (that file has no mail). `400` when the reset mail could not be sent.
 
-The link in that mail is `{RIO_FRONTEND_ORIGIN}/reset-password`. `RIO_FRONTEND_ORIGIN` is the Next origin, scheme and host, no path. Streamlit's own forgot screen still sends `{RIO_APP_URL}/?reset=password` (or `https://riotraining.streamlit.app/?reset=password` when `RIO_APP_URL` is unset). Add `{RIO_FRONTEND_ORIGIN}/reset-password` to the Supabase Auth redirect allow list. Leave the Streamlit URLs there while that app is still on.
+The link in that mail is `{RIO_FRONTEND_ORIGIN}/reset-password`. `RIO_FRONTEND_ORIGIN` is the Next origin, scheme and host, no path. On the live service that origin is `https://www.riorunning.com`. Streamlit's own forgot screen still sends `{RIO_APP_URL}/?reset=password` (or `https://riotraining.streamlit.app/?reset=password` when `RIO_APP_URL` is unset). Add `https://www.riorunning.com/reset-password` and `https://www.riorunning.com/confirm` to the Supabase Auth redirect allow list. Leave the Streamlit URLs and the old Vercel URLs there.
 
 ### `POST /auth/reset-password`
 
@@ -253,7 +255,7 @@ Tokens are stored with the service role (`strava_tokens` in `003_strava.sql`). T
 
 The OAuth nonce is stored on the server, keyed by the athlete, for ten minutes. It is not written to a cookie or `localStorage`. The authorize URL still carries `state`, because that is how Strava echoes it back. The callback accepts the code only when `state` matches the stored nonce for this cookie. A second callback with the same state is refused. A state that was never stored is refused, even when the signature would match.
 
-`RIO_STRAVA_REDIRECT_URI` is the redirect placed in the authorize URL. When it is unset, `RIO_CALLBACK_BASE_URL` (no trailing slash) plus `/strava/callback` is the redirect, so cutover changes that base and the URI registered with Strava. When both are unset, the redirect is the Streamlit callback (`RIO_APP_URL` + `/`). `ui/strava.py` `redirect_uri()` is unchanged, so the live Streamlit callback keeps working. A browser that lands on `GET /strava/callback` is sent to `{RIO_FRONTEND_ORIGIN}/settings?strava=connected` or `?strava=error`. The Next.js page at `/strava/callback` sends `X-RIO-Response: json` and then opens Settings. A client that sends that header gets the JSON body instead.
+`RIO_STRAVA_REDIRECT_URI` is the redirect placed in the authorize URL. When it is unset, `RIO_CALLBACK_BASE_URL` (no trailing slash) plus `/strava/callback` is the redirect. On the live service that base is `https://www.riorunning.com`, and Strava's Authorization Callback Domain is `www.riorunning.com`. When both variables are unset, the redirect is the Streamlit callback (`RIO_APP_URL` + `/`). `ui/strava.py` `redirect_uri()` is unchanged, so the parked Streamlit app keeps its own callback when those variables are unset. A browser that lands on `GET /strava/callback` is sent to `{RIO_FRONTEND_ORIGIN}/settings?strava=connected` or `?strava=error`. The Next.js page at `/strava/callback` sends `X-RIO-Response: json` and then opens Settings. A client that sends that header gets the JSON body instead.
 
 Hosted connect needs `supabase/migrations/010_strava_oauth.sql`. Until that has been run, hosted connect returns `503`. The Streamlit app does not read that table.
 

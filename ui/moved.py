@@ -5,8 +5,8 @@
 streamlit_app.py draws this and then stops. The old screens are still in
 that file. They run again if those two lines are removed.
 
-The new address is text on this page. People copy it and paste it into
-the browser address bar. Nothing here opens that site or redirects to it.
+The address is a link. It opens the live site in a new tab so the click
+leaves Streamlit's frame. This page does not redirect there on its own.
 """
 
 from __future__ import annotations
@@ -17,27 +17,30 @@ import streamlit as st
 
 from ui.theme import (
     ACCENT,
+    BUTTON,
+    BUTTON_ACTIVE,
+    BUTTON_HOVER,
+    BUTTON_RADIUS,
     DISPLAY,
     FONT,
-    HAIRLINE,
     MUTED,
     PAPER,
-    SURFACE,
     TEXT,
     focus_css,
     font_css,
 )
 
-NEW_HOME = "https://rio-one-mocha.vercel.app"
+NEW_HOME = "https://www.riorunning.com"
 HEADLINE = "RIO has a new home"
 FASTER = "The new site is faster, with more features."
 ACCOUNT = "Your account is already there. Sign in with the same email and password."
-COPY = "Copy this address and paste it into your browser's address bar."
+COPY = "Open the new site."
 OWNED = "Runner Intelligence Owned"
 
 
 def moved_html() -> str:
-    """The wordmark, the note, and the address as one selectable line."""
+    """The wordmark, the note, and the address as one link."""
+    href = escape(NEW_HOME, quote=True)
     return f"""
 <section class="rio-moved">
   <p class="rio-moved-mark">RIO</p>
@@ -46,13 +49,13 @@ def moved_html() -> str:
   <p class="rio-moved-lead">{escape(FASTER)}</p>
   <p class="rio-moved-account">{escape(ACCOUNT)}</p>
   <p class="rio-moved-copy">{escape(COPY)}</p>
-  <p class="rio-moved-url">{escape(NEW_HOME)}</p>
+  <a class="rio-moved-url" href="{href}" target="_blank" rel="noopener noreferrer">{escape(NEW_HOME)}</a>
 </section>
 """
 
 
 def moved_css() -> str:
-    """Paper page, orange wordmark, hidden Streamlit chrome, selectable address."""
+    """Paper page, orange wordmark, and the address as a button."""
     return f"""
 <style>
 {font_css()}
@@ -98,7 +101,8 @@ header {{
   box-shadow: none !important;
 }}
 .rio-moved,
-.rio-moved p {{
+.rio-moved p,
+.rio-moved a {{
   font-family: {FONT} !important;
   word-break: normal !important;
   overflow-wrap: normal !important;
@@ -163,28 +167,42 @@ header {{
   font-weight: 500 !important;
   line-height: 1.5 !important;
 }}
-.rio-moved-url {{
-  margin: 0 !important;
+a.rio-moved-url {{
+  display: inline-block;
   max-width: 100%;
   box-sizing: border-box;
-  padding: 0.95rem 1.15rem !important;
-  background: {SURFACE} !important;
-  background-color: {SURFACE} !important;
-  border: 1px solid {HAIRLINE} !important;
-  border-radius: 14px !important;
-  color: {TEXT} !important;
-  font-size: clamp(1.25rem, 2.6vw, 1.65rem) !important;
+  margin: 0 !important;
+  padding: 0.95rem 1.25rem !important;
+  background: {BUTTON} !important;
+  background-color: {BUTTON} !important;
+  border: 1px solid {BUTTON} !important;
+  border-radius: {BUTTON_RADIUS} !important;
+  color: #FFFFFF !important;
+  font-size: clamp(1.05rem, 2.4vw, 1.35rem) !important;
   font-weight: 600 !important;
   line-height: 1.35 !important;
   letter-spacing: -0.01em;
+  text-decoration: none !important;
   overflow-wrap: anywhere !important;
   word-break: break-word !important;
+  cursor: pointer !important;
   -webkit-user-select: text !important;
   user-select: text !important;
   -webkit-touch-callout: default !important;
-  cursor: text !important;
 }}
-.rio-moved-url::selection {{
+a.rio-moved-url:hover {{
+  background: {BUTTON_HOVER} !important;
+  background-color: {BUTTON_HOVER} !important;
+  border-color: {BUTTON_HOVER} !important;
+  color: #FFFFFF !important;
+}}
+a.rio-moved-url:active {{
+  background: {BUTTON_ACTIVE} !important;
+  background-color: {BUTTON_ACTIVE} !important;
+  border-color: {BUTTON_ACTIVE} !important;
+  color: #FFFFFF !important;
+}}
+a.rio-moved-url::selection {{
   background: #F0C2B4;
   color: {TEXT};
 }}
@@ -201,9 +219,9 @@ header {{
   .rio-moved h1 {{
     max-width: 11ch;
   }}
-  .rio-moved-url {{
+  a.rio-moved-url {{
     padding: 0.85rem 0.95rem !important;
-    font-size: 1.2rem !important;
+    font-size: 1.05rem !important;
   }}
 }}
 {focus_css()}
@@ -215,5 +233,5 @@ def render_moved() -> None:
     """Draw the moved screen. The caller stops the script after this."""
     st.markdown(moved_css(), unsafe_allow_html=True)
     # anchors=False keeps the markdown heading chrome off the headline.
-    # The address is text in this document. It is not a link.
+    # The address is a link in this document. The page does not redirect.
     st.markdown(moved_html(), unsafe_allow_html=True, anchors=False)

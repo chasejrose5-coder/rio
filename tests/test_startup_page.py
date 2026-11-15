@@ -187,17 +187,17 @@ def test_startup_page_renders_and_leads_to_login() -> None:
         if MOVED_HEADLINE not in shown or FASTER not in shown or ACCOUNT not in shown:
             raise AssertionError("the moved screen did not render")
         if NEW_HOME not in shown or COPY not in shown:
-            raise AssertionError("the address to copy is missing")
-        if "Open the new RIO" in shown:
-            raise AssertionError("the open button is still on the screen")
+            raise AssertionError("the new-home link is missing")
+        if f'href="{NEW_HOME}"' not in shown or 'target="_blank"' not in shown:
+            raise AssertionError("the address is not a link")
         for forbidden in (
-            'target="_blank"',
             'target="_top"',
             'target="_self"',
             "window.open",
+            "window.location",
             "<iframe",
             "<form",
-            f'href="{NEW_HOME}"',
+            "rio-one-mocha.vercel.app",
         ):
             if forbidden in shown:
                 raise AssertionError(forbidden)

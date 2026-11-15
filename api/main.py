@@ -1,4 +1,4 @@
-# main.py — the FastAPI app. Streamlit stays the live site.
+# main.py — the FastAPI app behind https://www.riorunning.com.
 
 """Run with uvicorn from the repository root.
 
