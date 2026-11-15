@@ -22,7 +22,7 @@ The service role bypasses those policies. The app uses it only on the server, an
 
 `011_explain_spend.sql` stores the explain spend counter in one row. The service role is the only role granted the table and the functions. Run it after 010. It is safe to run again. It does not have to run before a deploy. Until it has been run, Streamlit and the API keep the JSON file. After it has been run, a process that is not pinned to `RIO_EXPLAIN_SPEND_PATH` uses the row.
 
-`012_delete_any_owned_season.sql` lets the signed-in athlete delete any one of their seasons, including the season they are training on. It replaces `delete_past_season`. A goal date of today or later is no longer refused. Other athletes stay behind `auth.uid()`. Run it after 009. It is safe to run again. Until it has been run, a goal date of today or later is still refused by the function from 009.
+`013_delete_any_owned_season.sql` lets the signed-in athlete delete any one of their seasons, including the season they are training on. It replaces `delete_past_season`. A goal date of today or later is no longer refused. Other athletes stay behind `auth.uid()`. Run it after 012. It is safe to run again. Until it has been run, a goal date of today or later is still refused by the function from 009.
 
 After the SQL:
 

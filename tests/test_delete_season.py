@@ -545,7 +545,7 @@ def test_page_asks_before_it_deletes_and_hides_the_current_season() -> None:
         raise AssertionError("the migration is not scoped to the signed-in athlete")
     if "information_schema" in sql:
         raise AssertionError("the migration uses the wrong catalog")
-    newer = (ROOT / "supabase" / "migrations" / "012_delete_any_owned_season.sql").read_text(encoding="utf-8")
+    newer = (ROOT / "supabase" / "migrations" / "013_delete_any_owned_season.sql").read_text(encoding="utf-8")
     if "auth.uid()" not in newer or "delete_past_season" not in newer:
         raise AssertionError("the new migration is not scoped to the signed-in athlete")
     if "p_goal_date >= p_today" in newer or "current season" in newer:
