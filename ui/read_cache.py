@@ -64,8 +64,10 @@ class ReadCache:
         """True once per interval. The caller deletes expired session rows then."""
         now = time.monotonic()
         with self._lock:
-            last = self._purge_at.get(directory_id, 0.0)
-            if now - last < interval:
+            last = self._purge_at.get(directory_id)
+            # A missing stamp has never run. Zero is not that stamp: monotonic()
+            # can still be under the interval right after boot.
+            if last is not None and now - last < interval:
                 return False
             self._purge_at[directory_id] = now
             return True
