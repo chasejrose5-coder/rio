@@ -2,6 +2,7 @@
 
 export const PUBLIC_PATHS = [
   "/",
+  "/about",
   "/sign-in",
   "/create-account",
   "/forgot-password",
@@ -11,9 +12,8 @@ export const PUBLIC_PATHS = [
   "/terms",
 ] as const;
 
-/** Prefixes crawlers should skip. /privacy and /terms stay public. */
+/** Prefixes crawlers should skip. /about, /privacy, and /terms stay public. */
 export const PRIVATE_PREFIXES = [
-  "/about",
   "/activity",
   "/admin",
   "/api",

@@ -111,7 +111,11 @@ Cookie. `200` `{"ok": true}` and the cookie is cleared.
 
 ### `GET /auth/me`
 
-Cookie. `200` is `athlete`. `today` is `YYYY-MM-DD` in the Settings time zone. `next_session` is the next planned date on or after that day, or the latest planned date when the season is over, or `null` when there is no current season. Start session opens that date.
+Cookie. `200` is `athlete`. `today` is `YYYY-MM-DD` in the Settings time zone. `next_session` is the next planned date on or after that day, or the latest planned date when the season is over, or `null` when there is no current season. Start session opens that date. `401` when there is no session.
+
+### `GET /auth/session`
+
+The browser's session probe. `200` `{"signed_in": false}` when there is no session, so a public page does not log a 401. `200` is `athlete` plus `"signed_in": true` when the cookie is a session. Protected routes still answer `401`.
 
 ### `POST /auth/sign-up`
 

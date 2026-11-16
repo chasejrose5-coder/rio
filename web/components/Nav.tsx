@@ -86,6 +86,23 @@ export function Nav({ active }: { active?: string }) {
     };
   }, [status]);
 
+  if (status !== "in") {
+    return (
+      <header className="rio-nav rio-nav-signed-out">
+        <div className="rio-nav-row">
+          <Link className="rio-brand" href="/">
+            RIO
+          </Link>
+          {status === "loading" ? null : (
+            <Link className="rio-signed-out-login" href="/sign-in">
+              Log in
+            </Link>
+          )}
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header className={arm ? "rio-nav rio-nav-arm" : "rio-nav"}>
       <WakeHint />

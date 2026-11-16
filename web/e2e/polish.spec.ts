@@ -16,12 +16,14 @@ test("robots and the sitemap name only the public site", async ({ page }) => {
   expect(robotsText).toContain("Sitemap: https://www.riorunning.com/sitemap.xml");
   expect(robotsText).toContain("Disallow: /home");
   expect(robotsText).toContain("Disallow: /plan");
+  expect(robotsText).not.toContain("Disallow: /about");
   expect(robotsText).not.toContain("Disallow: /sign-in");
   expect(robotsText).not.toContain("Disallow: /privacy");
 
   const map = await page.goto("/sitemap.xml");
   expect(map?.status()).toBe(200);
   const xml = await page.content();
+  expect(xml).toContain("https://www.riorunning.com/about");
   expect(xml).toContain("https://www.riorunning.com/sign-in");
   expect(xml).toContain("https://www.riorunning.com/privacy");
   expect(xml).toContain("https://www.riorunning.com/terms");

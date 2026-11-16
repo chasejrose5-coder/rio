@@ -9,7 +9,7 @@ export function WakeHint() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    if (status === "in") {
+    if (status !== "unreachable") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setShow(false);
       return;
@@ -18,7 +18,7 @@ export function WakeHint() {
     return () => window.clearTimeout(timer);
   }, [status]);
 
-  if (!show || status === "in") return null;
+  if (!show || status !== "unreachable") return null;
   return (
     <p className="rio-note">
       The server is waking up. After a quiet stretch the free host can take about a minute.

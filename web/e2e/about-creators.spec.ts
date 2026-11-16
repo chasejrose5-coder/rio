@@ -158,6 +158,10 @@ test("about stays open when nobody is signed in", async ({ page }) => {
   await page.goto("/about");
   await expect(page).toHaveURL(/\/about$/);
   await expect(page.getByRole("heading", { name: "About", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Home" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Log out" })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Pages" })).toHaveCount(0);
   await expect(page.getByText(ABOUT.credit)).toBeVisible();
   await expect(page.getByText("Eight phases")).toBeVisible();
   await expect(page.getByText("Friday is off")).toBeVisible();

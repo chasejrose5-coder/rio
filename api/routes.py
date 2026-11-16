@@ -223,6 +223,21 @@ def me(request: Request) -> dict:
     return payload
 
 
+@auth_router.get("/session")
+def session(request: Request) -> dict:
+    """The page probe. A missing session is 200, so a public page does not log a 401."""
+    try:
+        who, resolved = _resolved(request)
+    except ApiError as exc:
+        if exc.status == 401:
+            return {"signed_in": False}
+        raise
+    payload = athlete_payload(who, resolved)
+    payload["next_session"] = _next_session(request, who, resolved)
+    payload["signed_in"] = True
+    return payload
+
+
 def _next_session(request: Request, who, resolved: dict) -> str | None:
     """The next planned day, or the last day when the season is over.
 

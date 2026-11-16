@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Footer, PhotoCredit } from "./Footer";
 import { ApiError, afterSignIn, api, confirmOnce } from "@/lib/api";
 import { UNCONFIRMED } from "@/lib/auth-copy";
@@ -161,6 +161,7 @@ export function SignInScreen() {
   const [busy, setBusy] = useState(false);
   const [forgot, setForgot] = useState(true);
   const [unconfigured, setUnconfigured] = useState(false);
+  const handoff = useRef(false);
 
   useEffect(() => {
     const note = new URLSearchParams(window.location.search).get("note");
@@ -169,7 +170,7 @@ export function SignInScreen() {
   }, []);
 
   useEffect(() => {
-    if (status !== "in" || !athlete) return;
+    if (handoff.current || status !== "in" || !athlete) return;
     let live = true;
     void destinationAfterSignIn(athlete)
       .then((path) => {
@@ -210,14 +211,17 @@ export function SignInScreen() {
     setError("");
     try {
       await api.signIn(email, password);
+      handoff.current = true;
       const signedIn = await refresh();
       const stuck = afterSignIn(signedIn);
       if (stuck) {
+        handoff.current = false;
         setError(stuck);
         return;
       }
       router.replace(await destinationAfterSignIn(signedIn!));
     } catch (caught) {
+      handoff.current = false;
       setError(caught instanceof ApiError ? caught.message : "Email or password does not match.");
     } finally {
       setBusy(false);

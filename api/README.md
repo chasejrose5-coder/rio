@@ -32,7 +32,7 @@ When the Supabase URL or anon key is missing, sign-in uses the local account fil
 
 `POST /auth/sign-in` with `email` and `password` sets a `rio_hosted` cookie. The value is an opaque `rio1.` id. The cookie is `HttpOnly`, `Secure`, and `SameSite=Lax`. Lax matches the OAuth return the app already depends on. The Supabase access token and the local seal stay on the server. They are not in the cookie and not in `localStorage`.
 
-`GET /auth/me` returns the signed-in athlete. `POST /auth/sign-out` drops the server session and clears the cookie. The cookie lasts the rest of the original 24 hours. Refreshing the Supabase token does not extend it.
+`GET /auth/me` returns the signed-in athlete, or 401 when there is no session. `GET /auth/session` is the page probe: 200 `{"signed_in": false}` when signed out, and the athlete plus `"signed_in": true` when signed in. `POST /auth/sign-out` drops the server session and clears the cookie. The cookie lasts the rest of the original 24 hours. Refreshing the Supabase token does not extend it.
 
 `POST /auth/sign-up` creates an account and sets the same cookie when a session comes back. Its confirmation link is `{RIO_FRONTEND_ORIGIN}/confirm`. `POST /auth/forgot-password` sends reset mail to `{RIO_FRONTEND_ORIGIN}/reset-password`, and `POST /auth/reset-password` sets the password from `token` or from a recovery hash (`access_token`, `refresh_token`, `type=recovery`). Streamlit's own screens still use `RIO_APP_URL`. The local account file sends no mail. `POST /auth/password` and `POST /auth/email` change this account. `POST /auth/delete` requires `confirm: true`. `GET /auth/google` and `GET /auth/google/callback` are Google sign-in. `RIO_GOOGLE_REDIRECT_URI` defaults to the Streamlit callback.
 

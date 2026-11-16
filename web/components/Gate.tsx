@@ -66,7 +66,7 @@ export function Gate() {
       </div>
     );
   }
-  if (status === "in") return <PageSkeleton variant="home" />;
+  if (status === "loading" || status === "in") return <PageSkeleton variant="home" />;
   if (!splash) return <PageSkeleton variant="home" />;
   return (
     <Splash

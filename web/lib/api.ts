@@ -180,8 +180,22 @@ export function confirmOnce(link: ConfirmLink) {
   return pending;
 }
 
+export type SessionProbe = Athlete & { signed_in?: boolean };
+
+export function signedOutProbe(body: unknown): boolean {
+  return Boolean(
+    body &&
+      typeof body === "object" &&
+      "signed_in" in body &&
+      (body as { signed_in?: unknown }).signed_in === false,
+  );
+}
+
 export const api = {
   me: () => request<Athlete>("/auth/me"),
+
+  /** 200 when signed out. A 401 here would show up in the browser console on public pages. */
+  authSession: () => request<SessionProbe>("/auth/session"),
 
   signIn: (email: string, password: string) =>
     request<AuthResult>("/auth/sign-in", {
@@ -487,16 +501,33 @@ export type SessionView = {
   status: "in" | "out" | "unreachable";
 };
 
-/** A 401 or 500 ends the session. A timeout or a gateway error means the free host is still waking. */
+function sessionFromError(error: unknown): SessionView {
+  if (error instanceof ApiError && (error.status === 0 || isWakeStatus(error.status))) {
+    return { athlete: null, status: "unreachable" };
+  }
+  return { athlete: null, status: "out" };
+}
+
+function isAthlete(body: SessionProbe): boolean {
+  return typeof body.email === "string" && body.email.length > 0;
+}
+
+/** A signed-out probe is 200. A timeout or a gateway error means the host is still waking. */
 export async function refreshSession(): Promise<SessionView> {
+  try {
+    const body = await api.authSession();
+    if (signedOutProbe(body)) return { athlete: null, status: "out" };
+    if (isAthlete(body)) return { athlete: body, status: "in" };
+  } catch (error) {
+    // A missing route falls through. A wake or a real failure does not.
+    if (!(error instanceof ApiError) || error.status !== 404) return sessionFromError(error);
+  }
+  // Stubs that only implement /auth/me, including an empty 200 for every other path.
   try {
     const athlete = await api.me();
     return { athlete, status: "in" };
   } catch (error) {
-    if (error instanceof ApiError && (error.status === 0 || isWakeStatus(error.status))) {
-      return { athlete: null, status: "unreachable" };
-    }
-    return { athlete: null, status: "out" };
+    return sessionFromError(error);
   }
 }
 

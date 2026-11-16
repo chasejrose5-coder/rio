@@ -24,7 +24,17 @@ export function takeIntroMark(): boolean {
  * Home's GET is started here and reused by the Home screen.
  * The intro flag is saved after that read, so the write cannot drop it.
  */
-export async function destinationAfterSignIn(athlete: Athlete): Promise<AppPath> {
+let destinationInflight: Promise<AppPath> | null = null;
+
+export function destinationAfterSignIn(athlete: Athlete): Promise<AppPath> {
+  if (destinationInflight) return destinationInflight;
+  destinationInflight = resolveDestination(athlete).finally(() => {
+    destinationInflight = null;
+  });
+  return destinationInflight;
+}
+
+async function resolveDestination(athlete: Athlete): Promise<AppPath> {
   if (needsEasyPace(athlete)) return "/easy-pace";
   void prefetchHome().catch(() => undefined);
   const season = await api.currentSeason();
