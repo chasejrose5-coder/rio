@@ -59,6 +59,13 @@ export const PAGE_MEANINGS = {
     section: "pages",
     sentences: ["Library is the menu of workouts. Search, What it trains, and Phase narrow the list."],
   },
+  stretching: {
+    section: "stretching",
+    sentences: [
+      "Stretching follows today's plan in your Settings time zone, and the date picks a different routine for the next day of that kind.",
+      "A hard day warms up and cools down, a long run recovers longer, an easy or rest day stays short, a race day gets a primer, and sharp pain adds no stretches.",
+    ],
+  },
   settings: {
     section: "pages",
     sentences: ["Settings holds your name, pace units, and Strava. The danger zone clears the plan or the account."],
@@ -214,6 +221,14 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
       "Settings holds your name, time zone, pace units, and Strava. The danger zone clears marks, the plan, or the account.",
       "Profile keeps the easy pace and the season from Start. Saving a new goal 800 time does not rebuild the season.",
       "About is the short version of the phases and the 10% rise. More links to Past seasons, Profile, Settings, and About.",
+    ],
+  },
+  {
+    id: "stretching",
+    title: "Stretching",
+    paragraphs: [
+      "Stretching follows today's plan in your Settings time zone, and the date picks a different routine for the next day of that kind.",
+      "A hard day warms up and cools down, a long run recovers longer, an easy or rest day stays short, a race day gets a primer, and sharp pain adds no stretches.",
     ],
   },
 ];

@@ -26,6 +26,8 @@ The service role bypasses those policies. The app uses it only on the server, an
 
 `013_delete_any_owned_season.sql` lets the signed-in athlete delete any one of their seasons, including the season they are training on. It replaces `delete_past_season`. A goal date of today or later is no longer refused. Other athletes stay behind `auth.uid()`. Run it after 012. It is safe to run again. Until it has been run, a goal date of today or later is still refused by the function from 009.
 
+`014_stretch.sql` adds `stretch_completions` and `sore_spots`. Completions store the runner, the calendar date (`done_on`), and the routine id. Sore spots store the region, the severity, the day they started, the check-in date, and whether they were cleared. A signed-in athlete can read and write only their own rows, scoped to `auth.uid()`. Run it after 013. It is safe to run again. Until it has been run, the Stretching tab cannot save Done or a sore spot. The exercise text is not in the database.
+
 After the SQL:
 
 1. Authentication, URL configuration. Site URL: `https://www.riorunning.com`. The live Render values of `RIO_FRONTEND_ORIGIN` and `RIO_CALLBACK_BASE_URL` are that origin, scheme and host, no path, no trailing slash. Strava's Authorization Callback Domain is `www.riorunning.com`.

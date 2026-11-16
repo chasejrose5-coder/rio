@@ -9,6 +9,7 @@ import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { PreviewBanner } from "./PreviewBanner";
 import { RequireUser } from "./RequireUser";
+import { StretchLink } from "./StretchLink";
 import { TrackArt } from "./TrackArt";
 import { ApiError, api, isSignedOut, previewing, stopPreview } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -213,6 +214,7 @@ function HomeMain({
           {home.hello ? <p className="rio-hello">{home.hello}</p> : null}
         </header>
         {home.copy ? <p className="rio-note">{home.copy}</p> : null}
+        <StretchLink today={home.today} />
         <Link className="rio-secondary" href="/start">
           Generate season plan
         </Link>
@@ -312,6 +314,7 @@ function HomeMain({
         ) : (
           <p className="rio-empty">No workout left in this plan.</p>
         )}
+        <StretchLink today={home.today} />
       </section>
       <p className="rio-index rio-index-pad">{upcomingIndex}</p>
       <div className="rio-next3">

@@ -14,6 +14,7 @@ import type {
   PlannedRow,
   PlanResponse,
   ResultWrite,
+  StretchState,
   SeasonWrite,
   SessionResponse,
   StravaStatus,
@@ -421,6 +422,29 @@ export const api = {
     }),
 
   stravaDisconnect: () => request<{ connected: boolean }>("/strava/disconnect", { method: "POST" }),
+
+  stretch: () => request<StretchState>("/stretch"),
+
+  stretchComplete: (routineId: string) =>
+    request<StretchState>("/stretch/completions", {
+      method: "POST",
+      body: JSON.stringify({ routine_id: routineId }),
+    }),
+
+  stretchSpot: (region: string, severity: string) =>
+    request<StretchState>("/stretch/spots", {
+      method: "POST",
+      body: JSON.stringify({ region, severity }),
+    }),
+
+  stretchCheckIn: (region: string, still: boolean) =>
+    request<StretchState>(`/stretch/spots/${encodeURIComponent(region)}/check-in`, {
+      method: "POST",
+      body: JSON.stringify({ still }),
+    }),
+
+  stretchClear: (region: string) =>
+    request<StretchState>(`/stretch/spots/${encodeURIComponent(region)}`, { method: "DELETE" }),
 
   stravaCallback: (code: string, state: string) =>
     request<{ connected?: boolean; athlete_name?: string }>(

@@ -40,6 +40,8 @@ WRITES = {
     "strava_activities": {"user_id"},
     "strava_oauth": {"user_id"},
     "explain_spend": set(),
+    "stretch_completions": {"user_id", "done_on", "routine_id"},
+    "sore_spots": {"user_id", "region", "severity", "started_on", "check_in_on", "cleared"},
 }
 
 
