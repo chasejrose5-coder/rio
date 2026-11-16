@@ -121,6 +121,18 @@ export type HomeResponse = {
   preview?: TestPreview;
 };
 
+export type StretchState = {
+  today: string;
+  completions: { date: string; routine_id: string }[];
+  spots: {
+    region: string;
+    severity: "mild" | "moderate" | "sharp";
+    started_on: string;
+    check_in_on: string;
+    cleared: boolean;
+  }[];
+};
+
 export type CurrentSeason = {
   today: string;
   inputs: {
@@ -129,7 +141,16 @@ export type CurrentSeason = {
     goal_time: string;
     goal_date: string;
   };
-  plan?: { season_length_weeks?: number; start_date?: string };
+  plan?: {
+    season_length_weeks?: number;
+    start_date?: string;
+    sessions?: {
+      date?: string;
+      day_of_week?: string;
+      template_id?: string;
+      reason_codes?: string[];
+    }[];
+  };
   digest?: string;
   marks?: Record<string, string>;
   actuals?: Record<

@@ -92,6 +92,14 @@ export const PAGE_MEANINGS = {
       "A phase is a training block, and the season moves through eight of them.",
     ],
   },
+  stretching: {
+    section: "stretching",
+    sentences: [
+      "Stretching follows the day on your plan, using the time zone saved in Settings.",
+      "A hard day gets a warm-up and a cooldown, a long run gets a warm-up and a longer recovery, an easy day gets one short block, a rest day gets the yoga flow, and a race day gets the primer.",
+      "Mild or moderate sore spots add a few extra stretches for seven days. Sharp pain adds none: stop, rest that area, and see a physio or doctor.",
+    ],
+  },
   settings: {
     section: "settings",
     sentences: [
@@ -282,6 +290,7 @@ const pageSections: GuideSection[] = (
     ["activity", "Activity"],
     ["past-seasons", "Past seasons"],
     ["library", "Library"],
+    ["stretching", "Stretching"],
     ["settings", "Settings"],
     ["about", "About"],
     ["more", "More"],

@@ -23,6 +23,7 @@ from api.routes import auth_router, health_router, season_router
 from api.screen_routes import router as screen_router
 from api.settings import load_settings
 from api.strava_routes import router as strava_router
+from api.stretch_routes import router as stretch_router
 from ui.accounts import accounts_path
 from ui.activities import load_local_env
 from ui.cloud_config import cloud_settings
@@ -94,6 +95,7 @@ def create_app(
     app.include_router(strava_router)
     app.include_router(insight_router)
     app.include_router(screen_router)
+    app.include_router(stretch_router)
 
     @app.exception_handler(ApiError)
     def _api_error(_request: Request, exc: ApiError) -> JSONResponse:
