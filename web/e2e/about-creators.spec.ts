@@ -144,6 +144,25 @@ test("More opens About and Creators", async ({ page }) => {
   await expect(page.locator(".page-creators").getByText("Photo by")).toHaveCount(0);
 });
 
+test("about stays open when nobody is signed in", async ({ page }) => {
+  await page.route("**/*", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.port !== "8000") {
+      await route.continue();
+      return;
+    }
+    const body = url.pathname === "/auth/me" ? { detail: "Sign in again." } : { detail: "Not mocked." };
+    const status = url.pathname === "/auth/me" ? 401 : 404;
+    await route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+  });
+  await page.goto("/about");
+  await expect(page).toHaveURL(/\/about$/);
+  await expect(page.getByRole("heading", { name: "About", exact: true })).toBeVisible();
+  await expect(page.getByText(ABOUT.credit)).toBeVisible();
+  await expect(page.getByText("Eight phases")).toBeVisible();
+  await expect(page.getByText("Friday is off")).toBeVisible();
+});
+
 test("compact mode keeps the creators hero smaller", async ({ page }) => {
   await install(page, { compact: true });
   await page.goto("/creators");

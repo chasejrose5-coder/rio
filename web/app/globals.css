@@ -574,6 +574,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
+.rio-auth-card .rio-synthetic { color: var(--button); }
 .rio-auth-card .rio-range { margin: 0.45rem 0 0; color: var(--muted); }
 .rio-auth-card form { display: flex; flex-direction: column; }
 .rio-auth-card label { margin: 1.15rem 0 0.4rem; color: var(--muted); font-size: 0.75rem; }
@@ -588,16 +589,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 }
 .rio-auth-card input:focus { border-color: #c94a25; outline: none; }
 .rio-password { position: relative; }
-.rio-password input { width: 100%; padding-right: 2.7rem; }
+.rio-password input { width: 100%; padding-right: 3.1rem; }
 .rio-eye {
   position: absolute;
-  right: 0.35rem;
+  right: 0.15rem;
   top: 50%;
   transform: translateY(-50%);
   display: grid;
   place-items: center;
-  width: 2rem;
-  height: 2rem;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -671,6 +672,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   color: var(--ink);
   background: transparent;
   border: 0;
+  min-height: 44px;
+  align-items: center;
   padding: 0.4rem 0;
   font-weight: 500;
 }
@@ -711,7 +714,16 @@ button.rio-text-link:disabled {
 }
 .rio-contact p { margin: 0; }
 .rio-legal-links { margin-top: 0.35rem; }
-.rio-contact a { color: inherit; font-weight: 500; text-decoration: underline; text-underline-offset: 0.12em; }
+.rio-contact a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.15rem;
+  color: inherit;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
 .rio-contact.on-photo, .page-home .rio-contact { color: rgba(244, 241, 236, 0.82); }
 .page-home .rio-contact a, .rio-contact.on-photo a { color: var(--paper); }
 
@@ -740,6 +752,10 @@ button.rio-text-link:disabled {
   .rio-week-strip { flex-wrap: nowrap; }
   .rio-week-chip { flex: 1 1 0; min-width: 0; padding: 0.32rem 0.08rem; }
 }
+@media (max-width: 480px) {
+  .page-plan main { padding-left: 0.35rem; padding-right: 0.35rem; }
+  .page-plan .rio-cal { gap: 2px; }
+}
 @media (max-width: 600px) {
   .page-home {
     background-image: var(--shade), image-set(url("/photos/home-aerial-480.webp") type("image/webp"), url("/photos/home-aerial-480.jpg") type("image/jpeg"));
@@ -764,7 +780,7 @@ button.rio-text-link:disabled {
 }
 .rio-splash-copy {
   max-width: 40rem;
-  padding: 14vh 6vw 4rem;
+  padding: 14vh 6vw 9rem;
   animation: rio-fade 220ms var(--ease) 120ms both;
 }
 @keyframes rio-fade {
@@ -1149,6 +1165,7 @@ button.rio-text-link:disabled {
 .rio-cal-day {
   display: block;
   min-height: 5.2rem;
+  min-width: 44px;
   border: 1px solid transparent;
   border-radius: 10px;
   padding: 0.42rem 0.35rem 0.45rem;
@@ -1670,8 +1687,10 @@ button.rio-text-link:disabled {
   background: var(--paper);
   color: var(--ink);
   min-height: 100dvh;
+  overflow-x: clip;
+  max-width: 100%;
 }
-.page-library main { padding: 0 5vw 3.5rem; }
+.page-library main { padding: 0 5vw 3.5rem; min-width: 0; }
 .page-library .rio-hero {
   background: #121110;
   color: #f4f1ec;
@@ -1780,6 +1799,22 @@ button.rio-text-link:disabled {
 .page-library .rio-cap-max_velocity { color: #9d174d; border-color: #e7b0ce; background: #fdf4f8; }
 .page-library .rio-cap-speed { color: #854d0e; border-color: #e6d08a; background: #fdf9ee; }
 @media (max-width: 720px) {
+  .page-library main { padding-left: 0; padding-right: 0; overflow-x: clip; }
+  .page-library .rio-hero { margin: 0; padding-left: 1.15rem; padding-right: 1.15rem; }
+  .page-library .rio-library,
+  .page-library .rio-lib,
+  .page-library .rio-wait,
+  .page-library .rio-empty,
+  .page-library .rio-error,
+  .page-library .rio-meaning,
+  .page-library .rio-contact {
+    margin-left: 1.15rem;
+    margin-right: 1.15rem;
+  }
+  .page-library .rio-lib-row,
+  .page-library .rio-lib-name,
+  .page-library .rio-library-filters { min-width: 0; max-width: 100%; }
+  .page-library .rio-lib-cap { white-space: normal; }
   .page-library .rio-library-filters { grid-template-columns: 1fr; }
   .page-library .rio-lib-row { flex-direction: column; align-items: flex-start; }
 }
@@ -2024,17 +2059,19 @@ button.rio-text-link:disabled {
   align-items: center;
   justify-content: center;
   width: auto;
-  margin: 0.55rem 0 0;
-  min-height: 2.3rem;
-  padding: 0 1.05rem;
-  background: #fffcf7;
-  border: 1px solid #e25a32;
+  margin: 0.95rem 0 0;
+  min-height: 44px;
+  padding: 0 0.35rem;
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: 999px;
-  color: #9a3412;
-  font-weight: 600;
+  color: #6e6a64;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
   cursor: pointer;
 }
-.page-past .rio-past-delete:hover { background: #fdf3ef; }
+.page-past .rio-past-delete:hover { background: transparent; color: #9a3412; }
 .page-past .rio-past-confirm {
   background: #fffcf7;
   border: 1px solid #dadada;
@@ -2299,7 +2336,22 @@ button.rio-text-link:disabled {
   }
 }
 @media (max-width: 800px) {
+  .page-about .rio-about-banner {
+    height: min(52vh, 22rem);
+    min-height: 16rem;
+  }
+  .page-about .rio-about-title { padding: 0 1.15rem 4.75rem; }
   .page-about .rio-about-title h1 { font-size: clamp(48px, 14vw, 72px); }
+  .page-about .rio-photo-credit {
+    left: 0.75rem;
+    right: 0.75rem;
+    width: auto;
+    max-width: calc(100% - 1.5rem);
+    transform: none;
+    bottom: 0.65rem;
+    text-align: center;
+    white-space: normal;
+  }
   .page-about .rio-field { grid-template-columns: 1fr; row-gap: 0.22rem; }
   .page-creators .rio-creator-layout { grid-template-columns: 1fr; gap: 1rem; margin-top: 1rem; }
   .page-creators .rio-creator-photo,

@@ -4,16 +4,11 @@ import { useEffect, useState } from "react";
 import { Footer } from "./Footer";
 import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
-import { RequireUser } from "./RequireUser";
 import { ABOUT } from "@/lib/about";
 import { useAuth } from "@/lib/auth";
 
 export function AboutView() {
-  return (
-    <RequireUser>
-      <AboutBody />
-    </RequireUser>
-  );
+  return <AboutBody />;
 }
 
 function AboutBody() {
