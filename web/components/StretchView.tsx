@@ -6,7 +6,6 @@ import { Footer } from "./Footer";
 import { Nav } from "./Nav";
 import { PageMeaning } from "./PageMeaning";
 import { RequireUser } from "./RequireUser";
-import { ExerciseArt } from "./StretchArt";
 import { ApiError, api, isSignedOut } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { EXERCISE_AREAS, STRETCH_DISCLAIMER, SHARP_MESSAGE, regionById, type Exercise, type StretchType } from "@/lib/stretch-content";
@@ -35,14 +34,11 @@ function typeLabel(type: StretchType): string {
 function ExerciseBlock({ exercise }: { exercise: Exercise }) {
   return (
     <article className="rio-stretch-card">
-      <ExerciseArt id={exercise.id} title={exercise.name} />
-      <div>
-        <h3>{exercise.name}</h3>
-        <p className="rio-stretch-meta">
-          {exercise.area} · {typeLabel(exercise.type)} · {exercise.dose}
-        </p>
-        <p>{exercise.howTo}</p>
-      </div>
+      <h3>{exercise.name}</h3>
+      <p className="rio-stretch-meta">
+        {exercise.area} · {typeLabel(exercise.type)} · {exercise.dose}
+      </p>
+      <p>{exercise.howTo}</p>
     </article>
   );
 }

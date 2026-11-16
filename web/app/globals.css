@@ -2491,18 +2491,15 @@ button.rio-text-link:disabled {
 .rio-stretch-week { color: var(--muted); font-weight: 600; margin: 0.2rem 0 1rem; }
 .rio-stretch-meta { margin: 0.15rem 0 0.35rem; color: var(--muted); font-size: 0.86rem; }
 .rio-stretch-card {
-  display: grid;
-  grid-template-columns: 7.5rem 1fr;
-  gap: 0.8rem 1rem;
-  align-items: center;
   margin: 0.7rem 0;
-  padding: 0.8rem 0.9rem;
+  padding: 0.85rem 1rem 0.95rem;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 16px;
+  max-width: 42rem;
 }
 .rio-stretch-card p { margin: 0; line-height: 1.45; }
-.rio-stretch-art { width: 100%; height: auto; color: var(--ink); display: block; }
+.rio-stretch-card h3 { margin: 0; }
 .rio-stretch-routine { margin: 1.1rem 0 0; }
 .rio-stretch-routine-head {
   display: flex;
@@ -2592,5 +2589,4 @@ button.rio-text-link:disabled {
   .rio-body-legend:first-child { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; }
   .rio-bodies .rio-body-legend:last-of-type { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; }
   .rio-body-legend button { width: auto; }
-  .rio-stretch-card { grid-template-columns: 5.5rem 1fr; }
 }

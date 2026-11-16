@@ -111,6 +111,9 @@ test("tapping a region adds its stretches, sharp pain does not, and Done sticks"
   await expect(prescription.getByRole("heading", { name: warmup })).toBeVisible();
   await expect(prescription.getByRole("heading", { name: cooldown })).toBeVisible();
   await expect(page.locator("img")).toHaveCount(0);
+  await expect(prescription.locator("svg")).toHaveCount(0);
+  await expect(page.getByTestId("stretch-library").locator("svg")).toHaveCount(0);
+  await expect(page.getByTestId("body-front")).toBeAttached();
 
   const neck = page.getByRole("button", { name: "Neck, front view" });
   await neck.focus();

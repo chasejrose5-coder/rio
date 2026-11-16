@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { existsSync, readFileSync } from "node:fs";
 import { EXERCISES, REGIONS, ROUTINES, SHARP_MESSAGE, type DayKind } from "./stretch-content.ts";
-import { poseIds, POSES } from "./stretch-poses.ts";
 import {
   classifyDay,
   extraExercises,
@@ -34,16 +34,21 @@ function spot(partial: Partial<SoreSpot> & Pick<SoreSpot, "region" | "severity">
   };
 }
 
-test("the library is the 42 named stretches, each with its own drawing", () => {
+test("the library is the 42 named stretches, as text only", () => {
   assert.equal(EXERCISES.length, 42);
   assert.deepEqual(
     EXERCISES.map((exercise) => exercise.id),
     Array.from({ length: 42 }, (_, index) => index + 1),
   );
   assert.equal(new Set(EXERCISES.map((exercise) => exercise.name)).size, 42);
-  assert.deepEqual(poseIds(), EXERCISES.map((exercise) => exercise.id));
-  const drawings = poseIds().map((id) => JSON.stringify(POSES[id]));
-  assert.equal(new Set(drawings).size, 42);
+  assert.equal(existsSync(new URL("./stretch-poses.ts", import.meta.url).pathname), false);
+  const view = readFileSync(new URL("../components/StretchView.tsx", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.equal(view.includes("ExerciseArt"), false);
+  assert.equal(view.includes("<svg"), false);
+  assert.equal(view.includes("rio-stretch-art"), false);
+  assert.equal(css.includes("rio-stretch-art"), false);
+  assert.equal(css.includes(".rio-stretch-card {\n  display: grid;"), false);
   for (const exercise of EXERCISES) {
     const count = sentences(exercise.howTo).length;
     assert.ok(count >= 2 && count <= 3, `${exercise.id} has ${count} sentences`);
