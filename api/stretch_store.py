@@ -221,22 +221,25 @@ def _hosted_state(directory, token: str) -> dict:
     }
 
 
-def _save_hosted_completion(directory, token: str, today: date, routine_id: str, present: bool) -> None:
+def _save_hosted_completion(directory, token: str, today: date, routine_id: str, remove: bool) -> None:
+    """Delete when remove is true. A repeat Done uses upsert and leaves the existing row."""
     try:
         client = directory._user_client(token)
         user_id = directory._token_user(client, token)
-        query = (
-            client.table("stretch_completions")
-            .delete()
-            .eq("user_id", user_id)
-            .eq("done_on", today.isoformat())
-            .eq("routine_id", routine_id)
-        )
-        if present:
-            query.execute()
+        table = client.table("stretch_completions")
+        if remove:
+            (
+                table.delete()
+                .eq("user_id", user_id)
+                .eq("done_on", today.isoformat())
+                .eq("routine_id", routine_id)
+                .execute()
+            )
             return
-        client.table("stretch_completions").insert(
-            {"user_id": user_id, "done_on": today.isoformat(), "routine_id": routine_id}
+        table.upsert(
+            {"user_id": user_id, "done_on": today.isoformat(), "routine_id": routine_id},
+            on_conflict="user_id,done_on,routine_id",
+            ignore_duplicates=True,
         ).execute()
     except CloudAuthError:
         raise
@@ -325,7 +328,11 @@ def toggle_completion(principal: Principal, directory, today: date, routine_id: 
         if state is None:
             current = _hosted_state(directory, principal.token)
             present = _find_completion(current, iso, routine_id) is not None
-            _save_hosted_completion(directory, principal.token, today, routine_id, _wants_removed(present, done))
+            remove = _wants_removed(present, done)
+            if remove and present:
+                _save_hosted_completion(directory, principal.token, today, routine_id, True)
+            elif not remove and not present:
+                _save_hosted_completion(directory, principal.token, today, routine_id, False)
             return
         rows = [row for row in state.get("completions") or [] if isinstance(row, dict)]
         present = _find_completion({"completions": rows}, iso, routine_id) is not None
