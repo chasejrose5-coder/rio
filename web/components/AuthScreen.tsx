@@ -158,7 +158,7 @@ export function SignInScreen() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
-  const [forgot, setForgot] = useState(false);
+  const [forgot, setForgot] = useState(true);
   const [unconfigured, setUnconfigured] = useState(false);
 
   useEffect(() => {
