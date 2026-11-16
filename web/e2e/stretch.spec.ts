@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { prescribe } from "../lib/stretch-content";
 
 const today = "2026-11-10";
 
@@ -99,9 +100,16 @@ test("tapping a region adds its stretches, sharp pain does not, and Done sticks"
     "aria-current",
     "page",
   );
+  const todayPlan = prescribe({
+    today,
+    session: season.plan.sessions[0],
+    sessions: season.plan.sessions,
+  });
+  const warmup = todayPlan.routines[0]?.routine.name || "";
+  const cooldown = todayPlan.routines[1]?.routine.name || "";
   const prescription = page.getByTestId("stretch-prescription");
-  await expect(prescription.getByRole("heading", { name: "Pre-run warm-up" })).toBeVisible();
-  await expect(prescription.getByRole("heading", { name: "Post-run cooldown" })).toBeVisible();
+  await expect(prescription.getByRole("heading", { name: warmup })).toBeVisible();
+  await expect(prescription.getByRole("heading", { name: cooldown })).toBeVisible();
   await expect(page.locator("img")).toHaveCount(0);
 
   const neck = page.getByRole("button", { name: "Neck, front view" });
@@ -109,7 +117,7 @@ test("tapping a region adds its stretches, sharp pain does not, and Done sticks"
   await page.keyboard.press("Enter");
   await page.getByRole("button", { name: "Sharp pain / getting worse" }).click();
   await expect(prescription.getByText("Stop stretching that area")).toBeVisible();
-  await expect(prescription.getByText("Neck side stretch")).toHaveCount(0);
+  await expect(prescription.getByRole("heading", { name: "Extra for sore spots" })).toHaveCount(0);
 
   await page.getByRole("button", { name: "Calves / Achilles", exact: true }).click();
   await page.getByRole("button", { name: "Moderate", exact: true }).click();
@@ -124,8 +132,8 @@ test("tapping a region adds its stretches, sharp pain does not, and Done sticks"
   await expect(page.getByTestId("stretch-library").getByRole("heading", { name: "Lying strap hamstring stretch" })).toBeVisible();
   await expect(page.getByTestId("stretch-library").getByRole("heading", { name: "Leg swings front-back" })).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Mark Pre-run warm-up done" }).click();
-  await expect(page.getByRole("button", { name: "Pre-run warm-up done" })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: `Mark ${warmup} done` }).click();
+  await expect(page.getByRole("button", { name: `${warmup} done` })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("stretch-week")).toHaveText("1 routine done this week · 1-day streak");
   await expect(page.getByText("What this means")).toBeVisible();
 });

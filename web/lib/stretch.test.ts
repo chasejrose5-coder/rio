@@ -1,17 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { EXERCISES, REGIONS, ROUTINES, SHARP_MESSAGE } from "./stretch-content.ts";
+import { EXERCISES, REGIONS, ROUTINES, SHARP_MESSAGE, type DayKind } from "./stretch-content.ts";
 import { poseIds, POSES } from "./stretch-poses.ts";
 import {
   classifyDay,
-  easyRoutineId,
   extraExercises,
   filterExercises,
+  occurrenceBefore,
   prescribe,
+  routinesFor,
   spotState,
   weekLabel,
   weekProgress,
   type SoreSpot,
+  type StretchSession,
 } from "./stretch-content.ts";
 
 const BANNED = ["probability", "readiness_score", "Chase", "Jay Rose", "Jay"];
@@ -54,57 +56,128 @@ test("the library is the 42 named stretches, each with its own drawing", () => {
   assert.equal(EXERCISES[41].type, "S");
 });
 
-test("routines keep the given order, ids, and times", () => {
-  assert.deepEqual(
-    ROUTINES.map((routine) => [routine.id, routine.minutes, [...routine.exerciseIds]]),
-    [
-      ["pre-run", 8, [1, 12, 26, 17, 21, 39]],
-      ["post-run", 10, [5, 6, 14, 16, 19, 22]],
-      ["long-recovery", 12, [3, 6, 20, 23, 28, 34, 31]],
-      ["yoga", 12, [33, 8, 19, 23, 37, 38, 34]],
-      ["hips", 10, [24, 25, 32, 22, 27, 29]],
-      ["primer", 6, [1, 12, 26, 13, 21, 41]],
-    ],
-  );
+test("each day type has its own warm-ups and cooldowns", () => {
+  const kinds: DayKind[] = ["quality", "long", "easy", "rest", "race"];
+  const ids = ROUTINES.map((routine) => routine.id);
+  assert.equal(new Set(ids).size, ids.length);
+  const lists = ROUTINES.map((routine) => routine.exerciseIds.join(","));
+  assert.equal(new Set(lists).size, lists.length);
+  for (const routine of ROUTINES) {
+    for (const exerciseId of routine.exerciseIds) {
+      assert.ok(EXERCISES.some((exercise) => exercise.id === exerciseId), `${routine.id} ${exerciseId}`);
+    }
+  }
+  for (const kind of kinds) {
+    assert.ok(routinesFor(kind, "warm-up").length >= 3, kind);
+    assert.ok(routinesFor(kind, "cooldown").length >= 3, kind);
+    const owned = new Set(ROUTINES.filter((routine) => routine.kind === kind).map((routine) => routine.id));
+    for (const other of kinds) {
+      if (other === kind) continue;
+      for (const routine of routinesFor(other, "warm-up").concat(routinesFor(other, "cooldown"))) {
+        assert.equal(owned.has(routine.id), false, `${routine.id} is shared`);
+      }
+    }
+  }
+  for (const routine of routinesFor("quality", "warm-up")) {
+    const dynamic = routine.exerciseIds.filter((id) => EXERCISES.find((exercise) => exercise.id === id)?.type === "D");
+    assert.ok(dynamic.length >= 4, routine.id);
+  }
+  for (const routine of routinesFor("long", "cooldown")) {
+    const idsIn = new Set(routine.exerciseIds);
+    assert.ok([3, 4, 5, 6].some((id) => idsIn.has(id)), routine.id);
+    assert.ok([19, 20, 22, 23, 27, 28].some((id) => idsIn.has(id)), routine.id);
+    assert.ok(routine.exerciseIds.length >= 7, routine.id);
+  }
+  for (const routine of ROUTINES.filter((item) => item.kind === "easy" || item.kind === "race")) {
+    assert.ok(routine.exerciseIds.length <= 6, routine.id);
+  }
+  const original = Object.fromEntries(ROUTINES.map((routine) => [routine.id, routine.exerciseIds]));
+  assert.deepEqual(original["pre-run"], [1, 12, 26, 17, 21, 39]);
+  assert.deepEqual(original["post-run"], [5, 6, 14, 16, 19, 22]);
+  assert.deepEqual(original["long-recovery"], [3, 6, 20, 23, 28, 34, 31]);
+  assert.deepEqual(original.yoga, [33, 8, 19, 23, 37, 38, 34]);
+  assert.deepEqual(original.hips, [24, 25, 32, 22, 27, 29]);
+  assert.deepEqual(original.primer, [1, 12, 26, 13, 21, 41]);
 });
 
-test("each plan day type picks the matching routines", () => {
-  const quality = prescribe({
-    today: "2026-11-10",
-    session: { date: "2026-11-10", day_of_week: "Tuesday", template_id: "se_400_r90_x6", reason_codes: ["phase_4"] },
-  });
-  assert.equal(quality.kind, "quality");
-  assert.deepEqual(quality.routines.map((item) => item.routine.id), ["pre-run", "post-run"]);
+function day(date: string, template: string, dow: string, codes: string[] = []): StretchSession {
+  return { date, day_of_week: dow, template_id: template, reason_codes: codes };
+}
 
-  const thursday = classifyDay("2026-11-12", {
+test("each plan day type picks from its own pool, and the date rotates it", () => {
+  const week: StretchSession[] = [
+    day("2026-11-08", "aer_5000_r0_x1", "Sunday"),
+    day("2026-11-09", "aer_5000_r0_x1", "Monday"),
+    day("2026-11-10", "se_400_r90_x6", "Tuesday", ["phase_4"]),
+    day("2026-11-11", "aer_5000_r0_x1", "Wednesday"),
+    day("2026-11-12", "ap_600_r75_x6", "Thursday"),
+    day("2026-11-14", "aer_12000_r0_x1", "Saturday", ["weekly_aerobic_long_run"]),
+  ];
+  const on = (date: string) => {
+    const session = week.find((item) => item.date === date) ?? null;
+    return prescribe({ today: date, session, sessions: week });
+  };
+
+  const tuesday = on("2026-11-10");
+  const thursday = on("2026-11-12");
+  assert.equal(tuesday.kind, "quality");
+  assert.equal(thursday.kind, "quality");
+  assert.equal(tuesday.routines.length, 2);
+  assert.notEqual(tuesday.routines[0]?.routine.id, thursday.routines[0]?.routine.id);
+  assert.notEqual(tuesday.routines[1]?.routine.id, thursday.routines[1]?.routine.id);
+  for (const item of tuesday.routines) assert.equal(item.routine.kind, "quality");
+  assert.deepEqual(on("2026-11-10"), tuesday);
+
+  const sunday = on("2026-11-08");
+  const monday = on("2026-11-09");
+  const wednesday = on("2026-11-11");
+  assert.equal(sunday.kind, "easy");
+  assert.equal(monday.kind, "easy");
+  assert.equal(wednesday.kind, "easy");
+  assert.notEqual(sunday.routines[0]?.routine.id, monday.routines[0]?.routine.id);
+  assert.notEqual(monday.routines[0]?.routine.id, wednesday.routines[0]?.routine.id);
+  assert.notEqual(sunday.routines[1]?.routine.id, monday.routines[1]?.routine.id);
+  for (const item of sunday.routines) assert.equal(item.routine.kind, "easy");
+
+  const friday = prescribe({ today: "2026-11-13", session: null, sessions: week });
+  assert.equal(friday.kind, "rest");
+  for (const item of friday.routines) assert.equal(item.routine.kind, "rest");
+
+  const long = on("2026-11-14");
+  assert.equal(long.kind, "long");
+  for (const item of long.routines) assert.equal(item.routine.kind, "long");
+  assert.ok(long.routines.some((item) => item.routine.slot === "cooldown" && item.routine.minutes >= 12));
+
+  const raceWeek = week.map((item) =>
+    item.date === "2026-11-14" ? day("2026-11-14", "rr_800_r0_x1", "Saturday") : item,
+  );
+  const race = prescribe({
+    today: "2026-11-14",
+    session: raceWeek.find((item) => item.date === "2026-11-14"),
+    sessions: raceWeek,
+  });
+  assert.equal(race.kind, "race");
+  for (const item of race.routines) assert.equal(item.routine.kind, "race");
+
+  const nextTuesday = day("2026-11-17", "se_400_r90_x6", "Tuesday");
+  const next = prescribe({ today: "2026-11-17", session: nextTuesday, sessions: [nextTuesday] });
+  assert.notEqual(next.routines[0]?.routine.id, tuesday.routines[0]?.routine.id);
+  assert.equal(occurrenceBefore("2026-11-12", "quality", week), 1);
+  assert.equal(occurrenceBefore("2026-11-10", "quality", week), 0);
+
+  const thursdayKind = classifyDay("2026-11-12", {
     date: "2026-11-12",
     day_of_week: "Thursday",
     template_id: "ap_600_r75_x6",
   });
-  assert.equal(thursday, "quality");
+  assert.equal(thursdayKind, "quality");
 
   const easyTuesday = prescribe({
     today: "2026-11-10",
     session: { date: "2026-11-10", day_of_week: "Tuesday", template_id: "aer_5000_r0_x1", reason_codes: ["extra_easy_day"] },
   });
   assert.equal(easyTuesday.kind, "easy");
-  assert.equal(easyRoutineId("2026-11-10"), "hips");
-  assert.deepEqual(easyTuesday.routines.map((item) => item.routine.id), ["hips"]);
-
-  const sunday = prescribe({
-    today: "2026-11-15",
-    session: { date: "2026-11-15", day_of_week: "Sunday", template_id: "aer_5000_r0_x1" },
-  });
-  assert.equal(sunday.kind, "easy");
-  assert.deepEqual(sunday.routines.map((item) => item.routine.id), ["hips"]);
-
-  const monday = prescribe({
-    today: "2026-11-16",
-    session: { date: "2026-11-16", day_of_week: "Monday", template_id: "aer_5000_r0_x1" },
-  });
-  assert.equal(monday.kind, "easy");
-  assert.equal(easyRoutineId("2026-11-16"), "yoga");
-  assert.deepEqual(monday.routines.map((item) => item.routine.id), ["yoga"]);
+  for (const item of easyTuesday.routines) assert.equal(item.routine.kind, "easy");
 
   const wednesdayHold = prescribe({
     today: "2026-11-11",
@@ -116,30 +189,6 @@ test("each plan day type picks the matching routines", () => {
     },
   });
   assert.equal(wednesdayHold.kind, "easy");
-  assert.deepEqual(wednesdayHold.routines.map((item) => item.routine.id), ["yoga"]);
-
-  const long = prescribe({
-    today: "2026-11-14",
-    session: {
-      date: "2026-11-14",
-      day_of_week: "Saturday",
-      template_id: "aer_12000_r0_x1",
-      reason_codes: ["weekly_aerobic_long_run"],
-    },
-  });
-  assert.equal(long.kind, "long");
-  assert.deepEqual(long.routines.map((item) => item.routine.id), ["pre-run", "long-recovery"]);
-
-  const race = prescribe({
-    today: "2026-11-14",
-    session: { date: "2026-11-14", day_of_week: "Saturday", template_id: "rr_800_r0_x1" },
-  });
-  assert.equal(race.kind, "race");
-  assert.deepEqual(race.routines.map((item) => item.routine.id), ["primer"]);
-
-  const rest = prescribe({ today: "2026-11-13", session: null });
-  assert.equal(rest.kind, "rest");
-  assert.deepEqual(rest.routines.map((item) => item.routine.id), ["yoga"]);
 
   const emptyTuesday = prescribe({
     today: "2026-11-10",
@@ -169,7 +218,8 @@ test("mild and moderate spots add extras for 7 days, then ask, and sharp adds no
     spots: [calves, spot({ region: "hamstrings", severity: "mild" })],
   });
   assert.deepEqual(prescribed.extras.map((exercise) => exercise.id), [5, 6, 8, 14, 15, 13]);
-  assert.deepEqual(prescribed.routines.map((item) => item.routine.id), ["pre-run", "post-run"]);
+  assert.equal(prescribed.routines.length, 2);
+  assert.ok(prescribed.routines.every((item) => item.routine.kind === "quality"));
   assert.equal(prescribed.sharp.length, 0);
 
   const sharp = prescribe({
@@ -214,13 +264,17 @@ test("done marks count for this week and the streak stops at a gap", () => {
   assert.equal(gap.streak, 0);
   assert.match(weekLabel(gap), /No streak yet/);
 
-  const done = prescribe({
+  const open = prescribe({
     today: "2026-11-10",
     session: { date: "2026-11-10", day_of_week: "Tuesday", template_id: "se_400_r90_x6" },
-    completions: [{ date: "2026-11-10", routine_id: "pre-run" }],
   });
-  assert.equal(done.routines[0]?.done, true);
-  assert.equal(done.routines[1]?.done, false);
+  const marked = prescribe({
+    today: "2026-11-10",
+    session: { date: "2026-11-10", day_of_week: "Tuesday", template_id: "se_400_r90_x6" },
+    completions: [{ date: "2026-11-10", routine_id: open.routines[0]?.routine.id || "" }],
+  });
+  assert.equal(marked.routines[0]?.done, true);
+  assert.equal(marked.routines[1]?.done, false);
 });
 
 test("the library filters by area and by dynamic or static", () => {

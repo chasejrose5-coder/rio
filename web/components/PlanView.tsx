@@ -291,7 +291,11 @@ function PlanReady({
   return (
     <>
       <p className="rio-note rio-after-hero">{paceStatusLine(pace)}</p>
-      <StretchLink today={today} session={plan.sessions.find((item) => item.date === today) ?? null} />
+      <StretchLink
+        today={today}
+        session={plan.sessions.find((item) => item.date === today) ?? null}
+        sessions={plan.sessions}
+      />
       <section className="rio-card rio-card-tight">
         <p className="rio-mark-label">Phases</p>
         {phaseNote ? <p className="rio-note">{phaseNote}</p> : null}

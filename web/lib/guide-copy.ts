@@ -96,8 +96,8 @@ export const PAGE_MEANINGS = {
     section: "stretching",
     sentences: [
       "Stretching follows the day on your plan, using the time zone saved in Settings.",
-      "A hard day gets a warm-up and a cooldown, a long run gets a warm-up and a longer recovery, an easy day gets one short block, a rest day gets the yoga flow, and a race day gets the primer.",
-      "Mild or moderate sore spots add a few extra stretches for seven days. Sharp pain adds none: stop, rest that area, and see a physio or doctor.",
+      "A hard day gets a warm-up and a cooldown, a long run gets a warm-up and a longer recovery, an easy day gets a shorter pair, a rest day gets an easy flow, and a race day gets a short primer.",
+      "The date picks which version, so the next day of the same kind that week is a different routine. Mild or moderate sore spots add a few extra stretches for seven days, and sharp pain adds none: stop, rest that area, and see a physio or doctor.",
     ],
   },
   settings: {

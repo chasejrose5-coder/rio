@@ -10,19 +10,23 @@ import { ExerciseArt } from "./StretchArt";
 import { ApiError, api, isSignedOut } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { EXERCISE_AREAS, STRETCH_DISCLAIMER, SHARP_MESSAGE, regionById, type Exercise, type StretchType } from "@/lib/stretch-content";
-import { filterExercises, prescribe, spotState, weekLabel, weekProgress, type SoreSpot, type StretchSession } from "@/lib/stretch";
+import { filterExercises, prescribe, spotState, weekLabel, weekProgress, type Routine, type SoreSpot, type StretchSession } from "@/lib/stretch";
 import type { StretchState } from "@/lib/types";
 
 type Mode = "loading" | "ready" | "error";
 
-const WHEN: Record<string, string> = {
-  "pre-run": "Before the run",
-  "post-run": "After the run",
-  "long-recovery": "After the long run",
-  yoga: "On this day",
-  hips: "On this day",
-  primer: "Before the race",
-};
+function whenLine(routine: Routine): string {
+  if (routine.slot === "warm-up") {
+    if (routine.kind === "race") return "Before the race";
+    if (routine.kind === "long") return "Before the long run";
+    if (routine.kind === "easy" || routine.kind === "rest") return "To start";
+    return "Before the run";
+  }
+  if (routine.kind === "long") return "After the long run";
+  if (routine.kind === "race") return "Stay loose";
+  if (routine.kind === "easy" || routine.kind === "rest") return "Then";
+  return "After the run";
+}
 
 function typeLabel(type: StretchType): string {
   return type === "D" ? "Dynamic" : "Static";
@@ -61,6 +65,7 @@ function StretchBody() {
   const [problem, setProblem] = useState("");
   const [state, setState] = useState<StretchState | null>(null);
   const [session, setSession] = useState<StretchSession | null>(null);
+  const [sessions, setSessions] = useState<StretchSession[]>([]);
   const [picked, setPicked] = useState<string | null>(null);
   const [area, setArea] = useState("All");
   const [kind, setKind] = useState<StretchType | "All">("All");
@@ -71,9 +76,11 @@ function StretchBody() {
     Promise.all([api.stretch(), api.currentSeason()])
       .then(([stretch, season]) => {
         if (!live) return;
-        const sessions = season?.plan?.sessions;
-        const match = Array.isArray(sessions) ? sessions.find((row) => row.date === stretch.today) : undefined;
+        const planSessions = season?.plan?.sessions;
+        const list = Array.isArray(planSessions) ? planSessions : [];
+        const match = list.find((row) => row.date === stretch.today);
         setState(stretch);
+        setSessions(list);
         setSession(match ?? null);
         setProblem("");
         setMode("ready");
@@ -107,7 +114,7 @@ function StretchBody() {
   const today = state?.today || "";
   const spots: SoreSpot[] = state?.spots ?? [];
   const prescription = today
-    ? prescribe({ today, session, spots, completions: state?.completions ?? [] })
+    ? prescribe({ today, session, sessions, spots, completions: state?.completions ?? [] })
     : null;
   const progress = today ? weekProgress(state?.completions ?? [], today) : null;
   const library = filterExercises(area, kind);
@@ -121,7 +128,7 @@ function StretchBody() {
         <header className="rio-hero">
           <h1>Stretching</h1>
           <p className="rio-range">
-            A short routine for today, taken from the plan. Dynamic moves come before a run. Static holds come after, or on an easy day.
+            A short routine for today, taken from the plan. The date changes which version you get, so the next day of the same kind is a different sequence.
           </p>
         </header>
         {mode === "loading" ? <p className="rio-wait">Loading</p> : null}
@@ -185,7 +192,7 @@ function StretchBody() {
                 <section key={item.routine.id} className="rio-stretch-routine" aria-labelledby={`routine-${item.routine.id}`}>
                   <div className="rio-stretch-routine-head">
                     <div>
-                      <p className="rio-stretch-meta">{WHEN[item.routine.id] || "Today"}</p>
+                      <p className="rio-stretch-meta">{whenLine(item.routine)}</p>
                       <h3 id={`routine-${item.routine.id}`}>
                         {item.routine.name}
                         <span> · about {item.routine.minutes} min</span>

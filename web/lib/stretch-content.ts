@@ -14,11 +14,17 @@ export type Exercise = {
   howTo: string;
 };
 
+export type DayKind = "quality" | "long" | "easy" | "rest" | "race";
+export type RoutineSlot = "warm-up" | "cooldown";
+
 export type Routine = {
   id: string;
   name: string;
   minutes: number;
   exerciseIds: readonly number[];
+  /** Which plan day may use this routine. Pools do not share a routine. */
+  kind: DayKind;
+  slot: RoutineSlot;
 };
 
 export type Region = {
@@ -92,12 +98,40 @@ export function exerciseById(id: number): Exercise | undefined {
 }
 
 export const ROUTINES: readonly Routine[] = [
-  { id: "pre-run", name: "Pre-run warm-up", minutes: 8, exerciseIds: [1, 12, 26, 17, 21, 39] },
-  { id: "post-run", name: "Post-run cooldown", minutes: 10, exerciseIds: [5, 6, 14, 16, 19, 22] },
-  { id: "long-recovery", name: "Saturday long-run recovery", minutes: 12, exerciseIds: [3, 6, 20, 23, 28, 34, 31] },
-  { id: "yoga", name: "Recovery-day yoga flow", minutes: 12, exerciseIds: [33, 8, 19, 23, 37, 38, 34] },
-  { id: "hips", name: "Hips & glutes mobility", minutes: 10, exerciseIds: [24, 25, 32, 22, 27, 29] },
-  { id: "primer", name: "Pre-race primer", minutes: 6, exerciseIds: [1, 12, 26, 13, 21, 41] },
+  { id: "pre-run", kind: "quality", slot: "warm-up", name: "Pre-run warm-up", minutes: 8, exerciseIds: [1, 12, 26, 17, 21, 39] },
+  { id: "q-warm-fast", kind: "quality", slot: "warm-up", name: "Fast-leg opener", minutes: 7, exerciseIds: [10, 7, 13, 17, 29, 41] },
+  { id: "q-warm-hips", kind: "quality", slot: "warm-up", name: "Hip-drive warm-up", minutes: 7, exerciseIds: [2, 11, 12, 32, 21, 37] },
+  { id: "post-run", kind: "quality", slot: "cooldown", name: "Post-run cooldown", minutes: 10, exerciseIds: [5, 6, 14, 16, 19, 22] },
+  { id: "q-cool-hips", kind: "quality", slot: "cooldown", name: "Hip and hamstring cooldown", minutes: 10, exerciseIds: [15, 18, 20, 23, 27, 38] },
+  { id: "q-cool-feet", kind: "quality", slot: "cooldown", name: "Calf and foot cooldown", minutes: 9, exerciseIds: [3, 4, 6, 9, 30, 42] },
+
+  { id: "long-warm-easy", kind: "long", slot: "warm-up", name: "Long-run primer", minutes: 7, exerciseIds: [1, 10, 8, 26, 24, 33] },
+  { id: "long-warm-legs", kind: "long", slot: "warm-up", name: "Easy leg swings", minutes: 6, exerciseIds: [2, 12, 13, 29, 25, 41] },
+  { id: "long-warm-ankles", kind: "long", slot: "warm-up", name: "Ankle and calf opener", minutes: 6, exerciseIds: [1, 11, 7, 17, 32, 37] },
+  { id: "long-recovery", kind: "long", slot: "cooldown", name: "Saturday long-run recovery", minutes: 12, exerciseIds: [3, 6, 20, 23, 28, 34, 31] },
+  { id: "long-cool-hips", kind: "long", slot: "cooldown", name: "Hip and calf recovery", minutes: 12, exerciseIds: [4, 5, 14, 19, 22, 27, 35] },
+  { id: "long-cool-feet", kind: "long", slot: "cooldown", name: "Feet and soleus recovery", minutes: 12, exerciseIds: [3, 6, 9, 20, 18, 31, 34] },
+
+  { id: "easy-warm-flow", kind: "easy", slot: "warm-up", name: "Short mobility opener", minutes: 5, exerciseIds: [33, 8, 24, 37] },
+  { id: "easy-warm-feet", kind: "easy", slot: "warm-up", name: "Foot and ankle opener", minutes: 5, exerciseIds: [1, 2, 11, 10] },
+  { id: "easy-warm-hips", kind: "easy", slot: "warm-up", name: "Light hip opener", minutes: 5, exerciseIds: [26, 25, 32, 41] },
+  { id: "hips", kind: "easy", slot: "cooldown", name: "Hips & glutes mobility", minutes: 10, exerciseIds: [24, 25, 32, 22, 27, 29] },
+  { id: "easy-cool-yoga", kind: "easy", slot: "cooldown", name: "Short yoga hold", minutes: 6, exerciseIds: [34, 23, 38, 42] },
+  { id: "easy-cool-legs", kind: "easy", slot: "cooldown", name: "Easy leg release", minutes: 6, exerciseIds: [19, 16, 15, 35] },
+
+  { id: "rest-warm-breath", kind: "rest", slot: "warm-up", name: "Easy opener", minutes: 5, exerciseIds: [33, 2, 36, 41] },
+  { id: "rest-warm-spine", kind: "rest", slot: "warm-up", name: "Spine opener", minutes: 5, exerciseIds: [33, 37, 8, 11] },
+  { id: "rest-warm-hips", kind: "rest", slot: "warm-up", name: "Gentle hip circles", minutes: 5, exerciseIds: [1, 24, 25, 13] },
+  { id: "yoga", kind: "rest", slot: "cooldown", name: "Recovery-day yoga flow", minutes: 12, exerciseIds: [33, 8, 19, 23, 37, 38, 34] },
+  { id: "rest-cool-fold", kind: "rest", slot: "cooldown", name: "Forward and hip flow", minutes: 10, exerciseIds: [15, 27, 23, 20, 34, 42] },
+  { id: "rest-cool-back", kind: "rest", slot: "cooldown", name: "Back and shoulder flow", minutes: 10, exerciseIds: [35, 38, 40, 22, 28, 34] },
+
+  { id: "primer", kind: "race", slot: "warm-up", name: "Pre-race primer", minutes: 6, exerciseIds: [1, 12, 26, 13, 21, 41] },
+  { id: "race-warm-strides", kind: "race", slot: "warm-up", name: "Race-day strides", minutes: 6, exerciseIds: [10, 17, 29, 39, 7, 2] },
+  { id: "race-warm-quick", kind: "race", slot: "warm-up", name: "Quick leg primer", minutes: 5, exerciseIds: [11, 12, 32, 21, 37] },
+  { id: "race-loose-ankles", kind: "race", slot: "cooldown", name: "Ankle shakeout", minutes: 4, exerciseIds: [1, 2, 8, 41] },
+  { id: "race-loose-hips", kind: "race", slot: "cooldown", name: "Hip shakeout", minutes: 4, exerciseIds: [26, 24, 25, 13] },
+  { id: "race-loose-arms", kind: "race", slot: "cooldown", name: "Arm and neck shakeout", minutes: 4, exerciseIds: [41, 37, 42, 33] },
 ];
 
 const routineMap = new Map(ROUTINES.map((routine) => [routine.id, routine]));
@@ -163,8 +197,6 @@ function weekdayOf(iso: string): string {
   return WEEKDAYS[date.getUTCDay()];
 }
 
-export type DayKind = "quality" | "long" | "easy" | "rest" | "race";
-
 export type StretchSession = {
   date?: string;
   day_of_week?: string;
@@ -220,18 +252,59 @@ const KIND_LABEL: Record<DayKind, string> = {
   race: "Race day",
 };
 
-const KIND_ROUTINES: Record<Exclude<DayKind, "easy">, readonly string[]> = {
-  quality: ["pre-run", "post-run"],
-  long: ["pre-run", "long-recovery"],
-  rest: ["yoga"],
-  race: ["primer"],
-};
+const KINDS: readonly DayKind[] = ["quality", "long", "easy", "rest", "race"];
 
-export function easyRoutineId(iso: string): "hips" | "yoga" {
-  const index = WEEKDAYS.indexOf(weekdayOf(iso) as (typeof WEEKDAYS)[number]);
-  if (index < 0) return "yoga";
-  return index % 2 === 0 ? "hips" : "yoga";
+export function routinesFor(kind: DayKind, slot: RoutineSlot): Routine[] {
+  return ROUTINES.filter((routine) => routine.kind === kind && routine.slot === slot);
 }
+
+function daysSinceEpoch(iso: string): number {
+  const match = ISO.exec(iso);
+  if (!match) return 0;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return 0;
+  return Math.floor(date.getTime() / 86400000);
+}
+
+/** Week number from the calendar date, plus how many earlier days this week are the same kind. */
+export function variantIndex(today: string, occurrence: number, poolLength: number): number {
+  if (poolLength < 1) return 0;
+  const week = Math.floor(daysSinceEpoch(today) / 7);
+  const index = (week + occurrence) % poolLength;
+  return index < 0 ? index + poolLength : index;
+}
+
+export function occurrenceBefore(today: string, kind: DayKind, sessions: readonly StretchSession[]): number {
+  const start = weekStart(today);
+  if (!start || start >= today) return 0;
+  const byDate = new Map<string, StretchSession>();
+  for (const session of sessions) {
+    if (session.date && session.date >= start && session.date < today) byDate.set(session.date, session);
+  }
+  let count = 0;
+  for (let cursor = start; cursor < today; cursor = shiftDays(cursor, 1)) {
+    const session = byDate.get(cursor);
+    const dayKind = session ? classifyDay(cursor, session) : "rest";
+    if (dayKind === kind) count += 1;
+  }
+  return count;
+}
+
+export function routineIdsFor(today: string, kind: DayKind, sessions: readonly StretchSession[] = []): string[] {
+  const occurrence = occurrenceBefore(today, kind, sessions);
+  const picked: string[] = [];
+  for (const slot of ["warm-up", "cooldown"] as const) {
+    const pool = routinesFor(kind, slot);
+    if (pool.length === 0) continue;
+    picked.push(pool[variantIndex(today, occurrence, pool.length)].id);
+  }
+  return picked;
+}
+
+export { KINDS };
 
 export function classifyDay(today: string, session: StretchSession | null | undefined): DayKind {
   if (!session) return "rest";
@@ -247,11 +320,6 @@ export function classifyDay(today: string, session: StretchSession | null | unde
   if (easy) return "easy";
   if (dow === "Tuesday" || dow === "Thursday") return "quality";
   return "quality";
-}
-
-export function routineIdsFor(today: string, kind: DayKind): string[] {
-  if (kind === "easy") return [easyRoutineId(today)];
-  return [...KIND_ROUTINES[kind]];
 }
 
 export function spotState(spot: SoreSpot, today: string): "cleared" | "sharp" | "active" | "check-in" {
@@ -282,17 +350,20 @@ export function extraExercises(spots: readonly SoreSpot[], today: string): Exerc
 export function prescribe(input: {
   today: string;
   session: StretchSession | null | undefined;
+  /** Other plan days. Used so the same kind of day does not repeat a routine later in the week. */
+  sessions?: readonly StretchSession[];
   spots?: readonly SoreSpot[];
   completions?: readonly Completion[];
 }): Prescription {
   const spots = input.spots ?? [];
   const completions = input.completions ?? [];
+  const sessions = input.sessions ?? (input.session ? [input.session] : []);
   const kind = classifyDay(input.today, input.session);
   const done = new Set(
     completions.filter((row) => row.date === input.today).map((row) => row.routine_id),
   );
   const routines: PrescribedRoutine[] = [];
-  for (const id of routineIdsFor(input.today, kind)) {
+  for (const id of routineIdsFor(input.today, kind, sessions)) {
     const routine = routineById(id);
     if (!routine) continue;
     const exercises = routine.exerciseIds

@@ -41,7 +41,40 @@ REGIONS = frozenset(
         "neck",
     }
 )
-ROUTINES = frozenset({"pre-run", "post-run", "long-recovery", "yoga", "hips", "primer"})
+ROUTINES = frozenset(
+    {
+        "pre-run",
+        "q-warm-fast",
+        "q-warm-hips",
+        "post-run",
+        "q-cool-hips",
+        "q-cool-feet",
+        "long-warm-easy",
+        "long-warm-legs",
+        "long-warm-ankles",
+        "long-recovery",
+        "long-cool-hips",
+        "long-cool-feet",
+        "easy-warm-flow",
+        "easy-warm-feet",
+        "easy-warm-hips",
+        "hips",
+        "easy-cool-yoga",
+        "easy-cool-legs",
+        "rest-warm-breath",
+        "rest-warm-spine",
+        "rest-warm-hips",
+        "yoga",
+        "rest-cool-fold",
+        "rest-cool-back",
+        "primer",
+        "race-warm-strides",
+        "race-warm-quick",
+        "race-loose-ankles",
+        "race-loose-hips",
+        "race-loose-arms",
+    }
+)
 SEVERITIES = frozenset({"mild", "moderate", "sharp"})
 
 
