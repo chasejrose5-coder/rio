@@ -157,15 +157,17 @@ test("template ids show only when the setting is on", async ({ page }) => {
   await expect(page.getByText("rr_800_r0_x1")).toBeVisible();
 });
 
-test("More still lists the five pages under the nav", async ({ page }) => {
+test("More still lists its pages under the nav", async ({ page }) => {
   await install(page);
   await page.goto("/more");
   const sub = page.getByRole("navigation", { name: "More" });
   await expect(sub.getByRole("link", { name: "Past seasons" })).toHaveAttribute("href", "/past-seasons");
   await expect(sub.getByRole("link", { name: "Profile" })).toHaveAttribute("href", "/profile");
   await expect(sub.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
+  await expect(sub.getByRole("link", { name: "Guide" })).toHaveAttribute("href", "/guide");
   await expect(sub.getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
   await expect(sub.getByRole("link", { name: "Creators" })).toHaveAttribute("href", "/creators");
   await page.goto("/library");
   await expect(page.getByRole("navigation", { name: "More" })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Training" }).getByRole("link", { name: "Library" })).toHaveAttribute("aria-current", "page");
 });

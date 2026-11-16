@@ -217,7 +217,7 @@ test("a failed profile is the error, not a fake season", async ({ page }) => {
   await expect(page.getByText("1:55.0")).toHaveCount(0);
 });
 
-test("the More menu lists the five pages", async ({ page }) => {
+test("the More menu lists its pages", async ({ page }) => {
   await install(page);
   await page.goto("/more");
   await expect(page.getByRole("heading", { name: "More", exact: true })).toBeVisible();
@@ -228,15 +228,18 @@ test("the More menu lists the five pages", async ({ page }) => {
   await expect(cards.getByText("Seasons you have already saved.")).toBeVisible();
   await expect(cards.getByText("Your current 800, goal, and dates.")).toBeVisible();
   await expect(cards.getByText("Name, pace, and this account.")).toBeVisible();
+  await expect(cards.getByText("How to read the plan, the paces, and the week.")).toBeVisible();
   await expect(cards.getByText("Phases, the 10% rule, and what a mark changes.")).toBeVisible();
   await expect(cards.getByText("Chase Rose, Founder.")).toBeVisible();
   await expect(cards.getByRole("link", { name: /Past seasons/ })).toHaveAttribute("href", "/past-seasons");
   await expect(cards.getByRole("link", { name: /Profile/ })).toHaveAttribute("href", "/profile");
   await expect(cards.getByRole("link", { name: /Settings/ })).toHaveAttribute("href", "/settings");
+  await expect(cards.getByRole("link", { name: /Guide/ })).toHaveAttribute("href", "/guide");
   await expect(cards.getByRole("link", { name: /About/ })).toHaveAttribute("href", "/about");
   await expect(cards.getByRole("link", { name: /Creators/ })).toHaveAttribute("href", "/creators");
   const sub = page.getByRole("navigation", { name: "More" });
   await expect(sub.getByRole("link", { name: "Profile" })).toHaveAttribute("href", "/profile");
+  await expect(sub.getByRole("link", { name: "Guide" })).toHaveAttribute("href", "/guide");
   await cards.getByRole("link", { name: /Past seasons/ }).click();
   await expect(page.getByRole("heading", { name: "Past seasons" })).toBeVisible();
   await expect(page.getByText("No seasons on this account.")).toBeVisible();

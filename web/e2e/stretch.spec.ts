@@ -96,7 +96,11 @@ test("tapping a region adds its stretches, sharp pain does not, and Done sticks"
   await install(page);
   await page.goto("/stretch");
   await expect(page.getByRole("heading", { name: "Stretching", exact: true })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Pages" }).getByRole("link", { name: "Stretching" })).toHaveAttribute(
+  await expect(page.getByRole("navigation", { name: "Pages" }).getByRole("link", { name: "Training" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await expect(page.getByRole("navigation", { name: "Training" }).getByRole("link", { name: "Stretching" })).toHaveAttribute(
     "aria-current",
     "page",
   );
