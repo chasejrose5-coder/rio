@@ -31,6 +31,24 @@ test("robots and the sitemap name only the public site", async ({ page }) => {
   expect(xml).not.toContain("https://www.riorunning.com/library");
 });
 
+test("html and font responses set security headers without a wildcard origin", async ({ request }) => {
+  const privacy = await request.get("/privacy");
+  expect(privacy.status()).toBe(200);
+  const headers = privacy.headers();
+  expect(headers["x-content-type-options"]).toBe("nosniff");
+  expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+  expect(headers["x-frame-options"]).toBe("DENY");
+  expect(headers["content-security-policy"]).toBe("frame-ancestors 'none'");
+  expect(headers["content-security-policy-report-only"]).toContain("default-src 'self'");
+  expect(headers["permissions-policy"]).toContain("camera=()");
+  expect(headers["access-control-allow-origin"]).toBe("https://www.riorunning.com");
+
+  const font = await request.get("/fonts/inter-latin-400-normal.woff2");
+  expect(font.status()).toBe(200);
+  expect(font.headers()["access-control-allow-origin"]).toBe("https://www.riorunning.com");
+  expect(font.headers()["x-content-type-options"]).toBe("nosniff");
+});
+
 test("the login photo is a modern image and the credit stays", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/sign-in");
