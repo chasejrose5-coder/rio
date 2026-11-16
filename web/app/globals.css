@@ -583,6 +583,8 @@ button.rio-text-link:disabled {
   font-size: 0.78rem;
   text-align: center;
 }
+.rio-contact p { margin: 0; }
+.rio-legal-links { margin-top: 0.35rem; }
 .rio-contact a { color: inherit; font-weight: 500; text-decoration: underline; text-underline-offset: 0.12em; }
 .rio-contact.on-photo, .page-home .rio-contact { color: rgba(244, 241, 236, 0.82); }
 .page-home .rio-contact a, .rio-contact.on-photo a { color: var(--paper); }
@@ -670,7 +672,7 @@ button.rio-text-link:disabled {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 3.15rem;
+  bottom: 4.15rem;
   z-index: 6;
   margin: 0;
   text-align: center;
