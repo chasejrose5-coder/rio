@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { GUIDE_SECTIONS, GUIDE_TITLE, PAGE_MEANINGS, meaningHref } from "./guide-copy.ts";
+import { GUIDE_SECTIONS, GUIDE_TITLE, PAGE_MEANINGS, guidePlainText, meaningHref } from "./guide-copy.ts";
 
 const BANNED = ["probability", "readiness_score", "Chase", "Jay Rose", "Jay"];
 
@@ -11,11 +11,11 @@ function sentences(text: string): string[] {
     .filter(Boolean);
 }
 
-test("every page note is two to four sentences and links to a real section", () => {
+test("every page note is one or two sentences and links to a real section", () => {
   const ids = new Set(GUIDE_SECTIONS.map((section) => section.id));
   for (const [page, meaning] of Object.entries(PAGE_MEANINGS)) {
     const count = meaning.sentences.flatMap((line) => sentences(line)).length;
-    assert.ok(count >= 2 && count <= 4, `${page} has ${count} sentences`);
+    assert.ok(count >= 1 && count <= 2, `${page} has ${count} sentences`);
     assert.ok(ids.has(meaning.section), `${page} links to a missing section`);
     assert.equal(meaningHref(meaning.section), `/guide#${meaning.section}`);
     const joined = meaning.sentences.join(" ");
@@ -26,7 +26,11 @@ test("every page note is two to four sentences and links to a real section", () 
 });
 
 test("the guide states the week, the paces, and the lines from the season rules", () => {
-  const text = [GUIDE_TITLE, ...GUIDE_SECTIONS.flatMap((section) => [section.title, ...section.paragraphs])].join("\n");
+  const text = guidePlainText();
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  // The guide before this shortening was 1,982 words. About half keeps the scan short.
+  assert.ok(words <= 1100, `guide is ${words} words`);
+  assert.ok(words >= 700, `guide is ${words} words`);
   assert.match(text, /9\.5 km/);
   assert.match(text, /500 m/);
   assert.match(text, /15 km/);
@@ -47,15 +51,13 @@ test("the guide states the week, the paces, and the lines from the season rules"
   assert.equal(text.includes("<img"), false);
 });
 
-test("page sections use the same sentences as the footer notes", () => {
-  const shown = new Set(GUIDE_SECTIONS.map((section) => section.id));
-  for (const [page, meaning] of Object.entries(PAGE_MEANINGS)) {
-    if (page === "guide" || !shown.has(page)) continue;
-    const section = GUIDE_SECTIONS.find((item) => item.id === page);
-    assert.ok(section, page);
-    assert.equal(meaning.section, page);
-    assert.deepEqual(section.paragraphs, meaning.sentences);
-  }
+test("the guide opens with the everyday sections", () => {
+  assert.deepEqual(
+    GUIDE_SECTIONS.slice(0, 4).map((section) => section.id),
+    ["getting-started", "today", "paces", "week"],
+  );
+  assert.ok(GUIDE_SECTIONS.some((section) => section.details?.some((detail) => detail.summary === "The eight phases")));
+  assert.ok(GUIDE_SECTIONS.some((section) => section.details?.some((detail) => detail.summary === "Long-run ladder")));
 });
 
 test("admin and internal pages stay off the guide", () => {
@@ -67,7 +69,7 @@ test("admin and internal pages stay off the guide", () => {
   for (const id of ["admin", "creators", "next", "decisions", "ledger", "last-session", "goal"]) {
     assert.equal(ids.includes(id), false, id);
   }
-  const text = GUIDE_SECTIONS.flatMap((section) => [section.title, ...section.paragraphs]).join("\n");
+  const text = guidePlainText();
   assert.equal(text.includes("Creators"), false);
   assert.equal(text.includes("Last Session"), false);
   assert.equal(text.includes("Decisions"), false);
