@@ -48,10 +48,29 @@ test("the guide states the week, the paces, and the lines from the season rules"
 });
 
 test("page sections use the same sentences as the footer notes", () => {
+  const shown = new Set(GUIDE_SECTIONS.map((section) => section.id));
   for (const [page, meaning] of Object.entries(PAGE_MEANINGS)) {
-    if (page === "guide") continue;
-    const section = GUIDE_SECTIONS.find((item) => item.id === meaning.section);
+    if (page === "guide" || !shown.has(page)) continue;
+    const section = GUIDE_SECTIONS.find((item) => item.id === page);
     assert.ok(section, page);
+    assert.equal(meaning.section, page);
     assert.deepEqual(section.paragraphs, meaning.sentences);
   }
+});
+
+test("admin and internal pages stay off the guide", () => {
+  const titles = GUIDE_SECTIONS.map((section) => section.title);
+  const ids = GUIDE_SECTIONS.map((section) => section.id);
+  for (const title of ["Admin", "Creators", "Next", "Decisions", "Ledger", "Last Session", "Goal"]) {
+    assert.equal(titles.includes(title), false, title);
+  }
+  for (const id of ["admin", "creators", "next", "decisions", "ledger", "last-session", "goal"]) {
+    assert.equal(ids.includes(id), false, id);
+  }
+  const text = GUIDE_SECTIONS.flatMap((section) => [section.title, ...section.paragraphs]).join("\n");
+  assert.equal(text.includes("Creators"), false);
+  assert.equal(text.includes("Last Session"), false);
+  assert.equal(text.includes("Decisions"), false);
+  assert.equal(text.includes("Ledger"), false);
+  assert.equal(/\bAdmin\b/.test(text), false);
 });

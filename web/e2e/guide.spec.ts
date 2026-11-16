@@ -62,6 +62,12 @@ test("the guide explains the season in plain words and stays free of photos", as
   await expect(page.getByRole("heading", { name: "Home", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Start session" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "The week" })).toBeVisible();
+  const contents = page.getByRole("navigation", { name: "Guide sections" });
+  for (const name of ["Admin", "Creators", "Next", "Decisions", "Ledger", "Last Session", "Goal"]) {
+    await expect(page.getByRole("heading", { name, exact: true })).toHaveCount(0);
+    await expect(contents.getByRole("link", { name, exact: true })).toHaveCount(0);
+  }
+  await expect(page.getByText("Creators")).toHaveCount(0);
   await expect(page.getByText("9.5 km")).toBeVisible();
   await expect(page.getByText(/steps it up by 500 m/)).toBeVisible();
   await expect(page.getByText(/stops at 15 km/)).toBeVisible();
