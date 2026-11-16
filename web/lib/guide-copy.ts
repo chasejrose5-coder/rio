@@ -57,12 +57,12 @@ export const PAGE_MEANINGS = {
   },
   library: {
     section: "pages",
-    sentences: ["Library is the menu of workouts. Search, What it trains, and Phase narrow the list."],
+    sentences: ["Library sits under Training, next to Stretching. Search, What it trains, and Phase narrow the list."],
   },
   stretching: {
     section: "stretching",
     sentences: [
-      "Stretching follows today's plan in your Settings time zone, and the date picks a different routine for the next day of that kind.",
+      "Stretching sits under Training, next to Library, and follows today's plan in your Settings time zone, and the date picks a different routine for the next day of that kind.",
       "A hard day warms up and cools down, a long run recovers longer, an easy or rest day stays short, a race day gets a primer, and sharp pain adds no stretches.",
     ],
   },
@@ -76,7 +76,7 @@ export const PAGE_MEANINGS = {
   },
   more: {
     section: "pages",
-    sentences: ["More links to Past seasons, Profile, Settings, and About."],
+    sentences: ["More links to Past seasons, Profile, Settings, Guide, and About."],
   },
   profile: {
     section: "paces",
@@ -216,18 +216,18 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
     bullets: [
       "Plan shows the weeks from the start date to the goal date, as Calendar, This week, or Full season.",
       "Activity shows Strava runs, distance, and heart rate. Refresh asks for newer runs.",
-      "Library is the workout menu. Search, What it trains, and Phase narrow the same list.",
+      "Library, under Training, is the workout menu. Search, What it trains, and Phase narrow the same list.",
       "Past seasons lists each saved season by start date, goal date, and goal time. Open plan loads it. Delete shows facts already stored, such as workouts logged and a timed 800.",
       "Settings holds your name, time zone, pace units, and Strava. The danger zone clears marks, the plan, or the account.",
       "Profile keeps the easy pace and the season from Start. Saving a new goal 800 time does not rebuild the season.",
-      "About is the short version of the phases and the 10% rise. More links to Past seasons, Profile, Settings, and About.",
+      "About is the short version of the phases and the 10% rise. More links to Past seasons, Profile, Settings, Guide, and About.",
     ],
   },
   {
     id: "stretching",
     title: "Stretching",
     paragraphs: [
-      "Stretching follows today's plan in your Settings time zone, and the date picks a different routine for the next day of that kind.",
+      "Stretching sits under Training, next to Library, and follows today's plan in your Settings time zone. The date picks a different routine for the next day of that kind.",
       "A hard day warms up and cools down, a long run recovers longer, an easy or rest day stays short, a race day gets a primer, and sharp pain adds no stretches.",
     ],
   },

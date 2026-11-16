@@ -13,17 +13,21 @@ import { sessionHref } from "@/lib/session";
 const NAV = [
   { href: "/home", label: "Home" },
   { href: "/plan", label: "Plan" },
+  { href: "/stretch", label: "Training" },
   { href: "/activity", label: "Activity" },
-  { href: "/library", label: "Library" },
   { href: "/more", label: "More" },
+];
+
+const TRAINING = [
+  { href: "/library", label: "Library" },
   { href: "/stretch", label: "Stretching" },
-  { href: "/guide", label: "Guide" },
 ];
 
 const MORE = [
   { href: "/past-seasons", label: "Past seasons" },
   { href: "/profile", label: "Profile" },
   { href: "/settings", label: "Settings" },
+  { href: "/guide", label: "Guide" },
   { href: "/about", label: "About" },
   { href: "/creators", label: "Creators" },
 ];
@@ -34,6 +38,13 @@ export function Nav({ active }: { active?: string }) {
   const { status, athlete, signOut } = useAuth();
   const [arm, setArm] = useState(false);
   const [brand, setBrand] = useState("/");
+  const trainingOpen =
+    path === "/library" ||
+    path === "/stretch" ||
+    path === "/training" ||
+    active === "Training" ||
+    active === "Library" ||
+    active === "Stretching";
   const moreOpen = path === "/more" || MORE.some((item) => path === item.href) || active === "More";
   const admin = athlete?.role === "admin";
   const startSession = sessionHref(athlete?.next_session);
@@ -92,7 +103,14 @@ export function Nav({ active }: { active?: string }) {
         </Link>
         <nav className="rio-links" aria-label="Pages">
           {NAV.map((item) => {
-            const on = active ? item.label === active : item.href === "/more" ? moreOpen : path === item.href;
+            const on =
+              item.label === "Training"
+                ? trainingOpen
+                : item.label === "More"
+                  ? moreOpen
+                  : active
+                    ? item.label === active
+                    : path === item.href;
             return (
               <Link key={item.href} href={item.href} className={on ? "is-active" : undefined} aria-current={on ? "page" : undefined}>
                 {item.label}
@@ -120,13 +138,28 @@ export function Nav({ active }: { active?: string }) {
           </button>
         </nav>
       </div>
+      {trainingOpen ? (
+        <nav className="rio-subnav" aria-label="Training">
+          {TRAINING.map((item) => {
+            const on = path === item.href || active === item.label;
+            return (
+              <Link key={item.href} href={item.href} className={on ? "is-active" : undefined} aria-current={on ? "page" : undefined}>
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+      ) : null}
       {moreOpen ? (
         <nav className="rio-subnav" aria-label="More">
-          {MORE.map((item) => (
-            <Link key={item.href} href={item.href} className={path === item.href ? "is-active" : undefined}>
-              {item.label}
-            </Link>
-          ))}
+          {MORE.map((item) => {
+            const on = path === item.href;
+            return (
+              <Link key={item.href} href={item.href} className={on ? "is-active" : undefined} aria-current={on ? "page" : undefined}>
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
       ) : null}
     </header>

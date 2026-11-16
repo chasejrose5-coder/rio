@@ -56,8 +56,9 @@ test("the guide explains the season in plain words and stays free of photos", as
   await install(page);
   await page.goto("/guide");
   await expect(page.getByRole("heading", { name: GUIDE_TITLE, exact: true })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Pages" }).getByRole("link", { name: "Guide" })).toHaveAttribute("href", "/guide");
-  await expect(page.getByRole("navigation", { name: "Pages" }).getByRole("link", { name: "Guide" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("navigation", { name: "Pages" }).getByRole("link", { name: "More" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("navigation", { name: "More" }).getByRole("link", { name: "Guide" })).toHaveAttribute("href", "/guide");
+  await expect(page.getByRole("navigation", { name: "More" }).getByRole("link", { name: "Guide" })).toHaveAttribute("aria-current", "page");
   const contents = page.getByRole("navigation", { name: "Guide sections" });
   await expect(contents.getByRole("link", { name: "Getting started" })).toHaveAttribute("href", "#getting-started");
   await expect(contents.getByRole("link", { name: "Today's workout" })).toHaveAttribute("href", "#today");
@@ -72,7 +73,7 @@ test("the guide explains the season in plain words and stays free of photos", as
     await expect(page.getByRole("heading", { name, exact: true })).toHaveCount(0);
     await expect(contents.getByRole("link", { name, exact: true })).toHaveCount(0);
   }
-  await expect(page.getByText("Creators")).toHaveCount(0);
+  await expect(page.locator(".page-guide main").getByText("Creators")).toHaveCount(0);
   await expect(page.getByText("9.5 km").first()).toBeVisible();
   await expect(page.getByText(/steps up 500 m/).first()).toBeVisible();
   await expect(page.getByText(/until 15 km/).first()).toBeVisible();
