@@ -1,35 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent, type RefObject } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import { REGIONS, regionById } from "@/lib/stretch-content";
+import { BACK_EXTRAS, FRONT_EXTRAS, REGION_OF } from "@/lib/body-regions";
+import { expandDrawn, midlineOf, type Drawn } from "@/lib/body-symmetry";
 import { backMuscles, backOutline, frontMuscles, frontOutline, type MusclePaths } from "./body-map/paths";
-
-/** Library slugs grouped into the sore-spot areas. Unlisted slugs stay as the white outline. */
-const REGION_OF: Record<string, string | null> = {
-  chest: "shoulders",
-  deltoids: "shoulders",
-  trapezius: "upper-back",
-  "upper-back": "upper-back",
-  neck: "neck",
-  abs: "abs",
-  obliques: "abs",
-  quadriceps: "quads",
-  adductors: "adductors",
-  tibialis: "shins",
-  calves: "calves",
-  feet: "feet",
-  ankles: "feet",
-  hamstring: "hamstrings",
-  gluteal: "glutes",
-  "lower-back": "lower-back",
-  biceps: null,
-  triceps: null,
-  forearm: null,
-  hands: null,
-  knees: null,
-  head: null,
-  hair: null,
-};
 
 /** Soft pastels. One color per muscle, several muscles can share a sore-spot button. */
 const SLUG_FILL: Record<string, string> = {
@@ -62,42 +37,14 @@ const PAPER = "#fffcf8";
 
 type Extra = { region: string; paths: string[] };
 
-/** The source set has no hip-flexor or outer-hip path. These sit in the same outline style. */
-const FRONT_EXTRAS: Extra[] = [
-  {
-    region: "hip-flexors",
-    paths: [
-      "M322 748 C306 786 314 860 348 888 C376 856 370 784 350 748 Z",
-      "M398 748 C380 786 406 862 442 888 C470 856 462 784 430 748 Z",
-    ],
-  },
-  {
-    region: "it-band",
-    paths: [
-      "M252 800 C244 850 248 930 260 980 L284 968 C290 900 284 840 272 800 Z",
-      "M472 800 C480 850 476 930 464 980 L440 968 C434 900 440 840 452 800 Z",
-    ],
-  },
-];
-
-const BACK_EXTRAS: Extra[] = [
-  {
-    region: "it-band",
-    paths: [
-      "M976 800 C968 850 972 930 984 980 L1008 968 C1014 900 1008 840 996 800 Z",
-      "M1196 800 C1204 850 1200 930 1188 980 L1164 968 C1158 900 1164 840 1176 800 Z",
-    ],
-  },
-];
-
 type Anchor = { label: string; region: string; x: number; y: number; side: "left" | "right" };
 
 /** Each point sits on that muscle. A column keeps every label at its muscle's height, so the lines stay straight. */
 const FRONT_ANCHORS: Anchor[] = [
   { label: "Neck", region: "neck", x: 334, y: 292, side: "left" },
   { label: "Abs / core", region: "abs", x: 320, y: 540, side: "left" },
-  { label: "Adductors", region: "adductors", x: 318, y: 748, side: "left" },
-  { label: "Hip flexors", region: "hip-flexors", x: 340, y: 820, side: "left" },
+  { label: "Adductors", region: "adductors", x: 310, y: 690, side: "left" },
+  { label: "Hip flexors", region: "hip-flexors", x: 332, y: 880, side: "left" },
   { label: "Shins", region: "shins", x: 278, y: 1100, side: "left" },
   { label: "Shoulders / chest", region: "shoulders", x: 468, y: 360, side: "right" },
   { label: "Quads", region: "quads", x: 404, y: 800, side: "right" },
@@ -192,7 +139,7 @@ function useLabelUnits(svg: RefObject<SVGSVGElement | null>, viewBoxWidth: numbe
 }
 
 function Leaders({ rows, columns, fontSize }: { rows: Anchor[]; columns: { left: number; right: number }; fontSize: number }) {
-  const gap = fontSize * 1.35;
+  const gap = fontSize * 2.15;
   const placed: { anchor: Anchor; y: number }[] = [];
   for (const side of ["left", "right"] as const) {
     const group = rows.filter((row) => row.side === side).sort((a, b) => a.y - b.y);
@@ -217,6 +164,34 @@ function Leaders({ rows, columns, fontSize }: { rows: Anchor[]; columns: { left:
         );
       })}
     </g>
+  );
+}
+
+function MirroredPaths({
+  drawn,
+  fill,
+  className,
+  leftClip,
+  rightClip,
+}: {
+  drawn: Drawn[];
+  fill: string;
+  className?: string;
+  leftClip: string;
+  rightClip: string;
+}) {
+  return (
+    <>
+      {drawn.map((part, index) => (
+        <path
+          key={`${part.place}-${index}-${part.d.slice(0, 16)}`}
+          className={className}
+          d={part.d}
+          fill={fill}
+          clipPath={part.place === "cross" ? leftClip : part.place === "cross-mirror" ? rightClip : undefined}
+        />
+      ))}
+    </>
   );
 }
 
@@ -245,7 +220,21 @@ function Figure({
 }) {
   const svg = useRef<SVGSVGElement>(null);
   const fontSize = useLabelUnits(svg, viewBoxWidth);
+  const clip = useId().replace(/:/g, "");
+  const leftClip = `url(#${clip}l)`;
+  const rightClip = `url(#${clip}r)`;
   const { groups, plain } = collect(muscles, extras);
+  const mid = useMemo(() => midlineOf(outline), [outline]);
+  const outlineDrawn = useMemo(() => expandDrawn([outline], mid), [outline, mid]);
+  const plainDrawn = useMemo(() => {
+    const by = new Map<string, string[]>();
+    for (const part of plain) {
+      const list = by.get(part.slug) ?? [];
+      list.push(part.d);
+      by.set(part.slug, list);
+    }
+    return [...by.entries()].map(([slug, paths]) => ({ slug, drawn: expandDrawn(paths, mid) }));
+  }, [plain, mid]);
   return (
     <svg
       ref={svg}
@@ -255,14 +244,28 @@ function Figure({
       aria-label={view === "front" ? "Front of the body" : "Back of the body"}
       data-testid={view === "front" ? "body-front" : "body-back"}
     >
-      <path className="rio-body-outline" d={outline} />
-      {plain.map((part) => (
-        <path key={`${part.slug}-${part.d.slice(0, 24)}`} className="rio-body-plain" d={part.d} fill={PAPER} />
+      <defs>
+        <clipPath id={`${clip}l`}>
+          <rect x={mid - 4000} y={-2000} width={4001} height={5000} />
+        </clipPath>
+        <clipPath id={`${clip}r`}>
+          <rect x={mid - 1} y={-2000} width={4000} height={5000} />
+        </clipPath>
+      </defs>
+      <MirroredPaths drawn={outlineDrawn} fill={PAPER} className="rio-body-outline" leftClip={leftClip} rightClip={rightClip} />
+      {plainDrawn.map((part) => (
+        <MirroredPaths key={part.slug} drawn={part.drawn} fill={PAPER} className="rio-body-plain" leftClip={leftClip} rightClip={rightClip} />
       ))}
       {[...groups.entries()].map(([regionId, parts]) => {
         const region = regionById(regionId);
         if (!region) return null;
         const on = selected === regionId;
+        const bySlug = new Map<string, string[]>();
+        for (const part of parts) {
+          const list = bySlug.get(part.slug) ?? [];
+          list.push(part.d);
+          bySlug.set(part.slug, list);
+        }
         return (
           <g
             key={regionId}
@@ -274,8 +277,14 @@ function Figure({
             onClick={() => onPick(regionId)}
             onKeyDown={(event) => onKey(event, () => onPick(regionId))}
           >
-            {parts.map((part) => (
-              <path key={`${part.slug}-${part.d.slice(0, 28)}`} d={part.d} fill={SLUG_FILL[part.slug] || region.color} />
+            {[...bySlug.entries()].map(([slug, paths]) => (
+              <MirroredPaths
+                key={slug}
+                drawn={expandDrawn(paths, mid)}
+                fill={SLUG_FILL[slug] || region.color}
+                leftClip={leftClip}
+                rightClip={rightClip}
+              />
             ))}
           </g>
         );

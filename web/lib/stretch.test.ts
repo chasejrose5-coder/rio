@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, readFileSync } from "node:fs";
-import { backMuscles, frontMuscles } from "../components/body-map/paths.ts";
+import { backMuscles, backOutline, frontMuscles, frontOutline } from "../components/body-map/paths.ts";
+import { BACK_EXTRAS, FRONT_EXTRAS, REGION_OF } from "./body-regions.ts";
+import { expandDrawn, midlineOf, mirrorPath, samePath } from "./body-symmetry.ts";
 import { EXERCISES, REGIONS, ROUTINES, SHARP_MESSAGE, type DayKind } from "./stretch-content.ts";
 import {
   classifyDay,
@@ -71,6 +73,53 @@ test("the library is the 42 named stretches, as text only", () => {
   assert.equal(EXERCISES[0].dose, "10 each way per foot");
   assert.equal(EXERCISES[41].name, "Neck side stretch");
   assert.equal(EXERCISES[41].type, "S");
+});
+
+test("every body region has a matching path on the left and the right", () => {
+  const views = [
+    { muscles: frontMuscles, outline: frontOutline, extras: FRONT_EXTRAS },
+    { muscles: backMuscles, outline: backOutline, extras: BACK_EXTRAS },
+  ];
+  for (const view of views) {
+    const mid = midlineOf(view.outline);
+    const byRegion = new Map<string, Map<string, string[]>>();
+    for (const muscle of view.muscles) {
+      const region = REGION_OF[muscle.slug];
+      if (!region) continue;
+      const slugs = byRegion.get(region) ?? new Map<string, string[]>();
+      slugs.set(muscle.slug, [...muscle.paths]);
+      byRegion.set(region, slugs);
+    }
+    for (const extra of view.extras) {
+      const slugs = byRegion.get(extra.region) ?? new Map<string, string[]>();
+      slugs.set(extra.region, [...(slugs.get(extra.region) ?? []), ...extra.paths]);
+      byRegion.set(extra.region, slugs);
+    }
+    assert.ok(byRegion.size >= 8);
+    for (const [region, slugs] of byRegion) {
+      for (const [slug, paths] of slugs) {
+        const drawn = expandDrawn(paths, mid);
+        const left = drawn.filter((part) => part.place === "left");
+        const right = drawn.filter((part) => part.place === "right");
+        assert.equal(left.length, right.length, `${region} ${slug} count`);
+        assert.ok(left.length + drawn.some((part) => part.place === "cross"), `${region} ${slug} has a side`);
+        for (const part of left) {
+          const mirror = mirrorPath(part.d, mid);
+          assert.ok(
+            right.some((other) => samePath(other.d, mirror)),
+            `${region} ${slug} mirror`,
+          );
+        }
+        for (const part of drawn) {
+          const mirror = mirrorPath(part.d, mid);
+          assert.ok(
+            drawn.some((other) => samePath(other.d, mirror)),
+            `${region} ${slug} pair`,
+          );
+        }
+      }
+    }
+  }
 });
 
 test("each day type has its own warm-ups and cooldowns", () => {
