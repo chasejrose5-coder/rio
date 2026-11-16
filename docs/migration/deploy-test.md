@@ -14,7 +14,7 @@ The browser uses one host. Next rewrites `/api/*` to the FastAPI service on Rend
 
 1. Open [https://vercel.com/signup](https://vercel.com/signup). Choose **Continue with GitHub**. Approve access to the `rio` repository when GitHub asks.
 2. Open [https://dashboard.render.com/register](https://dashboard.render.com/register). Choose **GitHub** and approve the same repository.
-3. Use the Hobby workspace on both. Vercel Hobby is the free plan. Render's free web service is the plan in `render.yaml` (`plan: free`).
+3. Use the Hobby workspace on both. Vercel Hobby is the free plan. The Render web service is `plan: starter` in `render.yaml`.
 
 ## 2. Create the Render service first
 
@@ -29,13 +29,13 @@ The onrender.com URL has to exist before the Vercel build, because that build ba
    - Build command: `pip install -r requirements.txt -r api/requirements.txt`
    - Start command: `uvicorn api.main:app --host 0.0.0.0 --port $PORT`
    - Health check path: `/health`
-   - Instance type: Free
+   - Instance type: Starter
 4. `PYTHON_VERSION` is already `3.12.11` in the blueprint, the same 3.12 line CI uses. If the build log says that patch is not offered, set `PYTHON_VERSION` to the newest 3.12 the dashboard lists and save.
 5. The form asks for the other names in `render.yaml`. Fill the Supabase and admin values from the table in step 6 if you have them. Leave `RIO_FRONTEND_ORIGIN` and `RIO_CALLBACK_BASE_URL` empty for this first pass, and leave the Strava and explain boxes empty until steps 7 and 8. An empty box must not be saved as a blank value for `RIO_FRONTEND_ORIGIN`. A blank string stops the process. If the dashboard created the variable with an empty value, delete the variable on the Environment page so it is absent.
 6. Choose **Apply** / **Deploy**. Wait until the service is live. Copy the URL. It looks like `https://rio-api.onrender.com`, with no path and no trailing slash. That host is `RIO_API_ORIGIN` on Vercel.
-7. Open `https://<render-host>/health` in a browser. The body is `{"ok":true}`. The first request on the free plan can take about a minute while the service wakes.
+7. Open `https://<render-host>/health` in a browser. The body is `{"ok":true}`.
 
-Manual path, if you are not using the blueprint: **New**, **Web Service**, same repository and branch. Set the root, build, start, health check, and Free instance to the values above. Add `PYTHON_VERSION` = `3.12.11` under Environment. Add the other names from step 6 yourself. There is still no disk.
+Manual path, if you are not using the blueprint: **New**, **Web Service**, same repository and branch. Set the root, build, start, health check, and Starter instance to the values above. Add `PYTHON_VERSION` = `3.12.11` under Environment. Add the other names from step 6 yourself. There is still no disk.
 
 ## 3. Import the Next app on Vercel
 
@@ -137,7 +137,7 @@ Type values only in the Vercel and Render dashboards. The repo keeps the names.
 
 ### Leave unset on Render
 
-These have a file or a test default. Setting them on the free service either pins a file that disappears on restart or points the test site at the wrong host.
+These have a file or a test default. Setting them on the Render service either pins a file that disappears on restart or points the test site at the wrong host.
 
 | Name | Why it stays unset |
 | --- | --- |
@@ -211,7 +211,7 @@ If a column is false, open that file and run it in the SQL editor, then run the 
 ## 9. Smoke test on the Vercel URL
 
 1. Open `https://<render-host>/health`. Body: `{"ok":true}`.
-2. Open `https://www.riorunning.com/api/health`. Body: `{"ok":true}`. That is the rewrite. If this one fails while the Render URL is still waking, wait and try once more. The free instance sleeps after about 15 minutes of no traffic, and the first hit can take about a minute. Vercel allows a proxied request about two minutes.
+2. Open `https://www.riorunning.com/api/health`. Body: `{"ok":true}`. That is the rewrite. Vercel allows a proxied request about two minutes.
 3. Open `https://www.riorunning.com`. Create an account or sign in with an account on this Supabase project. If confirmation mail is on, Create account shows Check your email. The link opens `https://www.riorunning.com/confirm`, then you log in. The steps for Resend and the templates are in `docs/email-setup.md`.
 4. Open Settings. A loaded page means `rio_hosted` was stored for this host and sent again to `/api`.
 5. **Forgot password**. The mail link opens `https://www.riorunning.com/reset-password` and the new-password form.
@@ -220,7 +220,7 @@ If a column is false, open that file and run it in the SQL editor, then run the 
 
 ## 10. No persistent disk
 
-A file on Render's filesystem is wiped on restart, redeploy, and the free plan's spin-down. Free instances cannot attach a disk. This test does not need one.
+A file on Render's filesystem is wiped on restart and redeploy. This test does not need a disk.
 
 - Explain spend moves into `public.explain_spend` when migration 011 is present and `RIO_EXPLAIN_SPEND_PATH` is unset. That is the shared counter. A JSON file would reset toward zero on restart and could let the $25 cap drift.
 - Hero order and credits are `ui/assets/hero_rotation.json` in the repository. Leave `RIO_HERO_PATH` unset. The shipped file is what the test site serves. An admin save writes the container filesystem and does not survive a restart. That save is not required for the test.
@@ -231,9 +231,8 @@ A disk is the upgrade only if an admin hero edit, or a spend file you chose not 
 
 ## 11. What would need a paid plan
 
-The test itself is the free Render instance plus Vercel Hobby.
+The API is the Starter plan in `render.yaml` (`plan: starter`). Vercel Hobby stays the free plan.
 
-- Render free sleeps after about 15 minutes without traffic, allows 750 hours a month, and has 512 MB of RAM. If `/api/health` keeps failing on wake-up after a retry, change the instance to the $7/month size. In the dashboard that is the Starter / 512 MB instance. The blueprint plan id for that size is `0.5c-512mb`. It does not sleep. You still do not add a disk.
 - A persistent disk is $0.25 per GB per month and only attaches to a paid instance. Skip it for this test.
 - The live site is `https://www.riorunning.com`. The old `*.vercel.app` hosts stay in place and are not redirected.
 - A second Strava application may require a Strava subscription on the new account. That is separate from Render and Vercel. Skip Strava and the test site still serves plans, sign-in, and reset.
