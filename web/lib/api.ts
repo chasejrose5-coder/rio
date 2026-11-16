@@ -52,14 +52,36 @@ export function stopPreview(): void {
 /** Long enough for a free Render wake. The old 15s cap gave up while the host was still starting. */
 export const API_TIMEOUT_MS = 60_000;
 
-const GET_CACHE_MS = 3_000;
+/** Long enough that a sign-in prefetch is still warm when Home mounts. */
+export const GET_CACHE_MS = 30_000;
 const inflightGets = new Map<string, Promise<unknown>>();
 const settledGets = new Map<string, { at: number; value: unknown }>();
 let getGeneration = 0;
+let homeHandoff: Promise<HomeResponse> | null = null;
 
 function dropGetCache(): void {
   getGeneration += 1;
   settledGets.clear();
+  homeHandoff = null;
+}
+
+/** Home reads this exact path. Kept aside so the next `api.home(false)` reuses it. */
+export function prefetchHome(): Promise<HomeResponse> {
+  if (homeHandoff) return homeHandoff;
+  const pending = request<HomeResponse>("/home?just_generated=false");
+  homeHandoff = pending;
+  const timer = setTimeout(() => {
+    if (homeHandoff === pending) homeHandoff = null;
+  }, GET_CACHE_MS);
+  if (typeof timer === "object" && timer && "unref" in timer) timer.unref();
+  void pending.then(
+    () => undefined,
+    () => {
+      clearTimeout(timer);
+      if (homeHandoff === pending) homeHandoff = null;
+    },
+  );
+  return pending;
 }
 
 export function isSignedOut(error: unknown): boolean {
@@ -272,6 +294,11 @@ export const api = {
     const params = new URLSearchParams();
     params.set("just_generated", justGenerated ? "true" : "false");
     if (previewing()) params.set("preview", "test");
+    if (!justGenerated && !previewing() && homeHandoff) {
+      const pending = homeHandoff;
+      homeHandoff = null;
+      return pending;
+    }
     return request<HomeResponse>(`/home?${params.toString()}`);
   },
 

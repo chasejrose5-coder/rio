@@ -11,7 +11,7 @@ import { MORE_LINKS } from "@/lib/profile";
 
 export function MoreView() {
   return (
-    <RequireUser>
+    <RequireUser title="More" pageClass="page-more">
       <MoreBody />
     </RequireUser>
   );

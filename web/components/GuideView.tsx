@@ -9,7 +9,7 @@ import { GUIDE_LEDE, GUIDE_SECTIONS, GUIDE_TITLE } from "@/lib/guide-copy";
 
 export function GuideView() {
   return (
-    <RequireUser>
+    <RequireUser title="Guide" pageClass="page-guide">
       <div className="page-guide">
         <Nav />
         <main>

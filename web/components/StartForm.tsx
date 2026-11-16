@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Footer, PhotoCredit } from "./Footer";
 import { PageMeaning } from "./PageMeaning";
-import { LoadingScreen } from "./LoadingScreen";
+import { PageSkeleton } from "./PageSkeleton";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api } from "@/lib/api";
@@ -59,7 +59,7 @@ function StartBody() {
   }, [today, season, link, goHome, router]);
 
   if (!athlete?.today || season === undefined || link === undefined || goHome) {
-    return <LoadingScreen />;
+    return <PageSkeleton title="Start" pageClass="page-start" />;
   }
 
   const behavior = athlete.prefs.start_date === "sunday" ? "sunday" : "today";

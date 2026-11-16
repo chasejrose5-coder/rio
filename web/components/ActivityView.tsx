@@ -7,6 +7,7 @@ import { Footer } from "./Footer";
 import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { PreviewBanner } from "./PreviewBanner";
+import { SkeletonBlocks } from "./PageSkeleton";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api, isSignedOut, previewing } from "@/lib/api";
 import {
@@ -28,7 +29,7 @@ type Mode = "loading" | "missing" | "bad" | "ready" | "error";
 
 export function ActivityView() {
   return (
-    <RequireUser>
+    <RequireUser title="Activity" pageClass="page-activity">
       <ActivityBody />
     </RequireUser>
   );
@@ -164,7 +165,7 @@ function ActivityBody() {
           {mode === "ready" && range ? <p className="rio-range">{range}</p> : null}
           {problem ? <p className="rio-error">{problem}</p> : null}
         </header>
-        {mode === "loading" ? <p className="rio-wait">Loading</p> : null}
+        {mode === "loading" ? <SkeletonBlocks /> : null}
         {mode === "missing" ? (
           <p className="rio-season-prompt">
             <Link href="/start">Generate season plan</Link>

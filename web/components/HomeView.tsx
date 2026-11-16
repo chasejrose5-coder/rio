@@ -8,11 +8,13 @@ import { Footer, PhotoCredit } from "./Footer";
 import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { PreviewBanner } from "./PreviewBanner";
+import { SkeletonBlocks } from "./PageSkeleton";
 import { RequireUser } from "./RequireUser";
 import { StretchLink } from "./StretchLink";
 import { TrackArt } from "./TrackArt";
 import { ApiError, api, isSignedOut, previewing, stopPreview } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { takeIntroMark } from "@/lib/enter";
 import { pageShouldRise } from "@/lib/motion";
 import { linkError } from "@/lib/plan";
 import { shownName } from "@/lib/settings";
@@ -89,7 +91,7 @@ function Fact({ label, value }: { label: string; value: string }) {
 
 export function HomeView() {
   return (
-    <RequireUser>
+    <RequireUser variant="home">
       <HomeBody />
     </RequireUser>
   );
@@ -123,6 +125,7 @@ function HomeBody() {
     const body = await api.home(justGenerated);
     setHome(body);
     setOffer(body.strava_offer);
+    if (takeIntroMark()) void api.patchSettings({ intro_seen: true }).catch(() => undefined);
   }
 
   useEffect(() => {
@@ -160,12 +163,7 @@ function HomeBody() {
           </header>
         ) : null}
         {error ? <p className="rio-error">{error}</p> : null}
-        {!home && !linkProblem && !error ? (
-          <header className="rio-hero rio-home-hero">
-            <h1>Home</h1>
-            <p className="rio-wait">Loading</p>
-          </header>
-        ) : null}
+        {!home && !linkProblem && !error ? <SkeletonBlocks variant="home" /> : null}
         {home && !linkProblem ? (
           <HomeMain home={home} offer={offer} readOnly={readOnly} onDismiss={() => setOffer(false)} reload={() => void load(false)} />
         ) : null}
