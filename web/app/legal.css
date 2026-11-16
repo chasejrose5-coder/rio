@@ -1,13 +1,35 @@
+/* Match the web fonts so a late swap does not move the headings or the contents links. */
+@font-face {
+  font-family: "Inter Fallback";
+  src: local("Arial"), local("Liberation Sans"), local("Helvetica");
+  size-adjust: 107.58%;
+  ascent-override: 90.05%;
+  descent-override: 22.42%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Manrope Fallback";
+  src: local("Arial"), local("Liberation Sans"), local("Helvetica");
+  size-adjust: 101.45%;
+  ascent-override: 105.08%;
+  descent-override: 29.57%;
+  line-gap-override: 0%;
+}
 .page-legal {
   min-height: 100dvh;
   background: var(--paper);
   color: var(--ink);
+  font-family: Inter, "Inter Fallback", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 .rio-legal-top {
-  padding: 1.1rem 5vw 0;
+  padding: 0.55rem 5vw 0;
 }
 .rio-legal-top a {
-  font-family: var(--display);
+  display: inline-flex;
+  align-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  font-family: Manrope, "Manrope Fallback", Inter, "Inter Fallback", sans-serif;
   font-weight: 800;
   letter-spacing: 0.14em;
   font-size: 0.95rem;
@@ -34,7 +56,7 @@
 }
 .page-legal h1 {
   margin: 0;
-  font-family: var(--display);
+  font-family: Manrope, "Manrope Fallback", Inter, "Inter Fallback", sans-serif;
   font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 0.95;
@@ -53,6 +75,10 @@
 }
 .rio-legal-contents a,
 .rio-legal-switch a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.45rem;
   color: var(--ink);
   font-weight: 600;
   text-decoration: underline;
@@ -63,7 +89,7 @@
 }
 .page-legal h2 {
   margin: 0;
-  font-family: var(--display);
+  font-family: Manrope, "Manrope Fallback", Inter, "Inter Fallback", sans-serif;
   font-weight: 800;
   letter-spacing: -0.03em;
   font-size: 1.45rem;
