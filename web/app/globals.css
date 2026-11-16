@@ -2557,13 +2557,16 @@ button.rio-text-link:disabled {
   stroke: #2a2a2a;
   stroke-width: 1.6px;
   vector-effect: non-scaling-stroke;
+  pointer-events: none;
 }
 .rio-body-plain {
   stroke: #2a2a2a;
   stroke-width: 1.1px;
   vector-effect: non-scaling-stroke;
+  pointer-events: none;
 }
 .rio-region { cursor: pointer; }
+.rio-region path { pointer-events: visiblePainted; }
 .rio-region:focus { outline: none; }
 .rio-region path {
   stroke: #2a2a2a;

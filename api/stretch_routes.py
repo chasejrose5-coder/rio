@@ -18,6 +18,7 @@ router = APIRouter(prefix="/stretch", tags=["stretch"])
 
 class CompleteBody(BaseModel):
     routine_id: str
+    done: bool | None = None
 
 
 class SpotBody(BaseModel):
@@ -42,7 +43,7 @@ def read_stretch(request: Request) -> dict:
 @router.post("/completions")
 def complete(body: CompleteBody, request: Request) -> dict:
     who, resolved = _resolved(request)
-    return toggle_completion(who, request.app.state.directory, _today(resolved), body.routine_id)
+    return toggle_completion(who, request.app.state.directory, _today(resolved), body.routine_id, body.done)
 
 
 @router.post("/spots")

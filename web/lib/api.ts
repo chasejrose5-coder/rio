@@ -425,10 +425,10 @@ export const api = {
 
   stretch: () => request<StretchState>("/stretch"),
 
-  stretchComplete: (routineId: string) =>
+  stretchComplete: (routineId: string, done: boolean) =>
     request<StretchState>("/stretch/completions", {
       method: "POST",
-      body: JSON.stringify({ routine_id: routineId }),
+      body: JSON.stringify({ routine_id: routineId, done }),
     }),
 
   stretchSpot: (region: string, severity: string) =>

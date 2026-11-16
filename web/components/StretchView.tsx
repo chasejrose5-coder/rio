@@ -66,6 +66,7 @@ function StretchBody() {
   const [area, setArea] = useState("All");
   const [kind, setKind] = useState<StretchType | "All">("All");
   const [busy, setBusy] = useState("");
+  const busyRef = useRef("");
 
   useEffect(() => {
     let live = true;
@@ -93,15 +94,19 @@ function StretchBody() {
   }, []);
 
   async function run(key: string, work: () => Promise<StretchState>) {
-    setBusy(key);
+    if (busyRef.current) return;
+    busyRef.current = key;
     setProblem("");
+    const pending = work();
+    setBusy(key);
     try {
-      const next = await work();
+      const next = await pending;
       setState(next);
     } catch (caught) {
       if (isSignedOut(caught) && statusRef.current !== "in") return;
       setProblem(caught instanceof ApiError ? caught.message : "That could not be saved.");
     } finally {
+      busyRef.current = "";
       setBusy("");
     }
   }
@@ -128,7 +133,11 @@ function StretchBody() {
           </p>
         </header>
         {mode === "loading" ? <p className="rio-wait">Loading</p> : null}
-        {problem ? <p className="rio-error">{problem}</p> : null}
+        {problem ? (
+          <p className="rio-error" data-testid="stretch-error">
+            {problem}
+          </p>
+        ) : null}
         {mode === "ready" && prescription && progress ? (
           <>
             <section className="rio-stretch-today" data-testid="stretch-prescription" aria-labelledby="stretch-today">
@@ -200,7 +209,7 @@ function StretchBody() {
                       aria-pressed={item.done}
                       aria-label={item.done ? `${item.routine.name} done` : `Mark ${item.routine.name} done`}
                       disabled={busy !== ""}
-                      onClick={() => void run(item.routine.id, () => api.stretchComplete(item.routine.id))}
+                      onClick={() => void run(item.routine.id, () => api.stretchComplete(item.routine.id, !item.done))}
                     >
                       {item.done ? "Done today" : "Done"}
                     </button>
