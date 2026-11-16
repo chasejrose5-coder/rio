@@ -159,5 +159,10 @@ describe("sign-in when refresh returns null", () => {
     const navigate = signIn.indexOf("destinationAfterSignIn(signedIn!)");
     assert.ok(guard !== -1 && navigate !== -1 && guard < navigate);
     assert.equal(signIn.includes('router.replace("/")'), false);
+    assert.equal(screen.includes('type="text" autoComplete="email"'), false);
+    assert.match(screen, /type="email" autoComplete="email"/);
+    const create = screen.slice(screen.indexOf("export function CreateAccountScreen"), screen.indexOf("export function ForgotScreen"));
+    assert.match(create, /At least 8 characters\./);
+    assert.match(create, /describedBy="password-hint"/);
   });
 });
