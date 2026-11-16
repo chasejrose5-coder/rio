@@ -37,6 +37,7 @@ export function Nav({ active }: { active?: string }) {
   const router = useRouter();
   const { status, athlete, signOut } = useAuth();
   const [arm, setArm] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [brand, setBrand] = useState("/");
   const trainingOpen =
     path === "/library" ||
@@ -56,6 +57,7 @@ export function Nav({ active }: { active?: string }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setArm(navShouldArm(previous, path));
     window.sessionStorage.setItem(key, path);
+    setMenuOpen(false);
   }, [path]);
 
   useEffect(() => {
@@ -122,20 +124,33 @@ export function Nav({ active }: { active?: string }) {
               Admin
             </Link>
           ) : null}
-          <Link className="rio-start-session" href={startSession}>
-            Start session
-          </Link>
-          <button
-            type="button"
-            className="rio-logout"
-            onClick={() => {
-              stopPreview();
-              forgetLanding();
-              void signOut().then(() => router.replace("/sign-in"));
-            }}
-          >
-            Log out
-          </button>
+          <div className={menuOpen ? "rio-overflow is-open" : "rio-overflow"}>
+            <button
+              type="button"
+              className="rio-overflow-toggle"
+              aria-expanded={menuOpen}
+              aria-controls="rio-account-menu"
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              Menu
+            </button>
+            <div className="rio-overflow-panel" id="rio-account-menu">
+              <Link className="rio-start-session" href={startSession}>
+                Start session
+              </Link>
+              <button
+                type="button"
+                className="rio-logout"
+                onClick={() => {
+                  stopPreview();
+                  forgetLanding();
+                  void signOut().then(() => router.replace("/sign-in"));
+                }}
+              >
+                Log out
+              </button>
+            </div>
+          </div>
         </nav>
       </div>
       {trainingOpen ? (
