@@ -27,6 +27,7 @@ import {
   monthKey,
   monthTitle,
   paceStatusLine,
+  phaseChipLabel,
   plainReasonLines,
   recapView,
   statusLabel,
@@ -302,8 +303,7 @@ function PlanReady({
         <div className="rio-phases">
           {plan.weeks.map((row) => (
             <div key={row.week} className={row.status === "current" ? "rio-phase rio-phase-now" : "rio-phase"}>
-              <div className="rio-phase-week">W{row.week}</div>
-              <div className="rio-phase-num">{row.phase}</div>
+              <div className="rio-phase-label">{phaseChipLabel(row.week, row.phase)}</div>
             </div>
           ))}
         </div>

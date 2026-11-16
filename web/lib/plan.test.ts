@@ -9,6 +9,7 @@ import {
   formatDate,
   lengthText,
   linkError,
+  phaseChipLabel,
   monthTitle,
   paceStatusLine,
   plainReason,
@@ -20,6 +21,11 @@ import {
   weekSpan,
   weekSunday,
 } from "./plan.ts";
+
+test("a phase chip reads as a week and a phase", () => {
+  assert.equal(phaseChipLabel(12, "4"), "Week 12 · Phase 4");
+  assert.equal(phaseChipLabel(1, "1"), "Week 1 · Phase 1");
+});
 
 test("season length says weeks, and one week stays singular", () => {
   assert.equal(lengthText(12), "12 weeks");

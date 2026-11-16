@@ -1,5 +1,10 @@
 /** Display rules for Plan. The pace clock stays on GET /plan. This file does not invent a pace. */
 
+/** The phase strip reads as a sentence. "W12" and a bare phase number do not. */
+export function phaseChipLabel(week: number, phase: string): string {
+  return `Week ${week} · Phase ${phase}`;
+}
+
 export const PLAN_VIEWS = ["Calendar", "This week", "Full season"] as const;
 export type PlanViewName = (typeof PLAN_VIEWS)[number];
 
