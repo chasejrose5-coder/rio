@@ -8,6 +8,7 @@ import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { PreviewBanner } from "./PreviewBanner";
 import { StretchLink } from "./StretchLink";
+import { SkeletonBlocks } from "./PageSkeleton";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api, isSignedOut, previewing } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -27,6 +28,7 @@ import {
   monthKey,
   monthTitle,
   paceStatusLine,
+  phaseChipLabel,
   plainReasonLines,
   recapView,
   statusLabel,
@@ -62,7 +64,7 @@ type Pending = { week: number; choice: string };
 
 export function PlanView() {
   return (
-    <RequireUser>
+    <RequireUser title="Plan" variant="calendar" pageClass="page-plan">
       <PlanBody />
     </RequireUser>
   );
@@ -202,7 +204,7 @@ function PlanBody() {
           {problem ? <p className="rio-error">{problem}</p> : null}
           <PhotoCredit onPhoto>Photo by Jan van der Wolf on Pexels</PhotoCredit>
         </header>
-        {mode === "loading" ? <p className="rio-wait">Loading</p> : null}
+        {mode === "loading" ? <SkeletonBlocks variant="calendar" /> : null}
         {mode === "missing" && !problem ? (
           <p className="rio-season-prompt">
             <Link href="/start">Generate season plan</Link>
@@ -302,8 +304,7 @@ function PlanReady({
         <div className="rio-phases">
           {plan.weeks.map((row) => (
             <div key={row.week} className={row.status === "current" ? "rio-phase rio-phase-now" : "rio-phase"}>
-              <div className="rio-phase-week">W{row.week}</div>
-              <div className="rio-phase-num">{row.phase}</div>
+              <div className="rio-phase-label">{phaseChipLabel(row.week, row.phase)}</div>
             </div>
           ))}
         </div>

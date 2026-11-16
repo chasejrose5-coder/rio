@@ -18,7 +18,7 @@ type Mode = "loading" | "ready" | "error";
 
 export function LibraryView() {
   return (
-    <RequireUser>
+    <RequireUser title="Library" pageClass="page-library">
       <LibraryBody />
     </RequireUser>
   );

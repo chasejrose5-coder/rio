@@ -45,7 +45,7 @@ function ExerciseBlock({ exercise }: { exercise: Exercise }) {
 
 export function StretchView() {
   return (
-    <RequireUser>
+    <RequireUser title="Stretching" pageClass="page-stretch">
       <StretchBody />
     </RequireUser>
   );

@@ -251,7 +251,8 @@ test("a season shows the hero, phases, weeks, and all three views", async ({ pag
   await expect(page.getByText("Pace status No runs yet.")).toBeVisible();
   await expect(page.getByText("Photo by Jan van der Wolf on Pexels")).toBeVisible();
   await expect(page.getByText("This week is phase 4.")).toBeVisible();
-  await expect(page.locator(".rio-phase-now")).toContainText("W1");
+  await expect(page.locator(".rio-phase-now")).toContainText("Week 1 · Phase 4");
+  await expect(page.locator(".rio-phase").nth(1)).toContainText("Week 2 · Phase 4");
   await expect(page.locator(".rio-phase")).toHaveCount(2);
   const weeks = page.locator("details.rio-weeks");
   await expect(weeks).not.toHaveAttribute("open", "");
@@ -274,6 +275,9 @@ test("a season shows the hero, phases, weeks, and all three views", async ({ pag
   await expect(page.getByRole("heading", { name: "December 2026" })).toBeVisible();
   await expect(page.locator(".rio-cal-out a")).toHaveCount(0);
   await page.getByLabel("Month").selectOption("2026-11");
+  const caption = page.locator(".rio-cal-label", { hasText: "Speed" });
+  const captionSize = await caption.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+  expect(captionSize).toBeGreaterThanOrEqual(13);
   await page.locator(".rio-cal-session", { hasText: "Speed" }).click();
   await expect(page).toHaveURL(/\/session\?date=2026-11-10$/);
   await page.goto("/plan");
@@ -305,7 +309,7 @@ test("a season shows the hero, phases, weeks, and all three views", async ({ pag
   await page.getByRole("radio", { name: "Full season" }).click();
   await expect(page.getByRole("heading", { name: "Full season" })).toBeVisible();
   await expect(page.locator(".rio-week")).toHaveCount(2);
-  await expect(page.getByText("Week 1 · Phase 4")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Week 1 · Phase 4" })).toBeVisible();
   await page.locator("details.rio-reasons-box").first().locator("summary").click();
   await expect(page.getByText("Primary work for this phase").first()).toBeVisible();
   await expect(page.getByText("phase_4")).toHaveCount(0);

@@ -7,6 +7,7 @@ import { Footer, PhotoCredit } from "./Footer";
 import { ApiError, afterSignIn, api, confirmOnce } from "@/lib/api";
 import { UNCONFIRMED } from "@/lib/auth-copy";
 import { confirmFromLocation, confirmRead } from "@/lib/confirm-link";
+import { destinationAfterSignIn } from "@/lib/enter";
 import { recoveryReady, type RecoveryLink } from "@/lib/reset-link";
 import { useAuth } from "@/lib/auth";
 
@@ -152,7 +153,7 @@ function AuthFrame({
 
 export function SignInScreen() {
   const router = useRouter();
-  const { status, refresh } = useAuth();
+  const { status, athlete, refresh } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -168,8 +169,19 @@ export function SignInScreen() {
   }, []);
 
   useEffect(() => {
-    if (status === "in") router.replace("/");
-  }, [status, router]);
+    if (status !== "in" || !athlete) return;
+    let live = true;
+    void destinationAfterSignIn(athlete)
+      .then((path) => {
+        if (live) router.replace(path);
+      })
+      .catch(() => {
+        if (live) setError("The season could not be loaded.");
+      });
+    return () => {
+      live = false;
+    };
+  }, [status, athlete, router]);
 
   useEffect(() => {
     let live = true;
@@ -198,12 +210,13 @@ export function SignInScreen() {
     setError("");
     try {
       await api.signIn(email, password);
-      const stuck = afterSignIn(await refresh());
+      const signedIn = await refresh();
+      const stuck = afterSignIn(signedIn);
       if (stuck) {
         setError(stuck);
         return;
       }
-      router.replace("/");
+      router.replace(await destinationAfterSignIn(signedIn!));
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : "Email or password does not match.");
     } finally {
@@ -283,8 +296,12 @@ export function CreateAccountScreen() {
         setSentTo(email.trim());
         return;
       }
-      await refresh();
-      router.replace("/");
+      const signedIn = await refresh();
+      if (!signedIn) {
+        setError(SIGNUP_FAILED);
+        return;
+      }
+      router.replace(await destinationAfterSignIn(signedIn));
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : SIGNUP_FAILED);
     } finally {

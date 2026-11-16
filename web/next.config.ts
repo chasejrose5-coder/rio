@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 import { apiProxyRewrites } from "./lib/deploy-proxy";
+import { staticAssetHeaders } from "./lib/static-cache";
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -15,6 +16,7 @@ const nextConfig: NextConfig = {
         source: "/api/:path*",
         headers: [{ key: "Cache-Control", value: "private, no-store" }],
       },
+      ...staticAssetHeaders(),
     ];
   },
 };

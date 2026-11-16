@@ -27,7 +27,7 @@ type Mode = "loading" | "missing" | "nodate" | "bad" | "ready" | "activity" | "e
 
 export function SessionView() {
   return (
-    <RequireUser>
+    <RequireUser title="Session" pageClass="page-session">
       <SessionBody />
     </RequireUser>
   );

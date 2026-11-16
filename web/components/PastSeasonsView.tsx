@@ -17,7 +17,7 @@ const CURRENT_NOTE = "This is the season you're training on now. Deleting it tak
 
 export function PastSeasonsView() {
   return (
-    <RequireUser>
+    <RequireUser title="Past seasons" pageClass="page-past">
       <PastSeasonsBody />
     </RequireUser>
   );
