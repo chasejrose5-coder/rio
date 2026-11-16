@@ -2393,12 +2393,29 @@ button.rio-text-link:disabled {
   font-size: 1.45rem;
   letter-spacing: -0.03em;
 }
-.page-guide section p {
+.page-guide section p,
+.page-guide section li {
   margin: 0.45rem 0 0;
   color: #3c3a36;
   font-size: 1rem;
-  line-height: 1.5;
+  line-height: 1.45;
 }
+.page-guide section ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.15rem;
+}
+.page-guide section li { margin-top: 0.35rem; }
+.page-guide details {
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.45rem;
+}
+.page-guide summary {
+  cursor: pointer;
+  color: var(--ink);
+  font-weight: 700;
+}
+.page-guide details p { max-width: 40rem; }
 .page-guide .rio-contact { color: #3c3a36; }
 .rio-meaning {
   margin: 1.75rem 0 0.35rem;
