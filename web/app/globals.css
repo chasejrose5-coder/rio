@@ -168,6 +168,114 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .rio-start-session:active { background: var(--button-active) !important; }
 .rio-subnav { padding-top: 0.75rem; }
 .rio-subnav a { color: rgba(244, 241, 236, 0.72); font-size: 0.78rem; letter-spacing: 0.08em; }
+.rio-overflow, .rio-overflow-panel { display: contents; }
+.rio-overflow-toggle {
+  display: none;
+  color: var(--paper);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .rio-nav { min-height: 52px; padding: 0.45rem 4vw; }
+  .rio-nav-row { flex-wrap: nowrap; min-width: 0; }
+  .rio-links {
+    position: fixed;
+    z-index: 45;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 0;
+    width: auto;
+    margin: 0;
+    padding: 0 0.2rem calc(0.15rem + env(safe-area-inset-bottom));
+    background: #121110;
+    border-top: 1px solid rgba(244, 241, 236, 0.16);
+    overflow: visible;
+  }
+  .rio-links > a,
+  .rio-overflow-toggle {
+    flex: 1 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.35rem 0.35rem 0.45rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    text-transform: none;
+    white-space: nowrap;
+  }
+  .rio-overflow {
+    display: flex;
+    position: relative;
+    flex: 0 0 auto;
+    align-items: stretch;
+  }
+  .rio-overflow-toggle { display: inline-flex; }
+  .rio-overflow-panel {
+    display: none;
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 0.4rem);
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 11.5rem;
+    padding: 0.45rem;
+    background: #121110;
+    border: 1px solid rgba(244, 241, 236, 0.22);
+    border-radius: 14px;
+  }
+  .rio-overflow.is-open .rio-overflow-panel { display: flex; }
+  .rio-overflow-panel .rio-start-session,
+  .rio-overflow-panel .rio-logout {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+    text-transform: none;
+  }
+  .rio-subnav {
+    position: fixed;
+    z-index: 44;
+    left: 0;
+    right: 0;
+    bottom: calc(52px + env(safe-area-inset-bottom));
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.15rem 0.4rem;
+    margin: 0;
+    padding: 0.1rem 0.55rem 0.2rem;
+    background: #121110;
+    border-top: 1px solid rgba(244, 241, 236, 0.14);
+  }
+  .rio-subnav a {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0.15rem 0.45rem;
+    font-size: 0.95rem;
+    letter-spacing: 0.01em;
+    text-transform: none;
+    white-space: nowrap;
+  }
+  .rio-nav + main { padding-bottom: calc(4.6rem + env(safe-area-inset-bottom)); }
+  .rio-nav:has(.rio-subnav) + main { padding-bottom: calc(8.2rem + env(safe-area-inset-bottom)); }
+}
 
 .page-plain main, .page-home main { padding: 0 5vw 3.5rem; }
 .rio-hero h1, .rio-display {
