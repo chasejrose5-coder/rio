@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Footer } from "./Footer";
+import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { useAuth } from "@/lib/auth";
@@ -61,6 +62,7 @@ function MoreBody() {
             </Link>
           ))}
         </div>
+        <PageMeaning page="more" />
         <Footer />
       </main>
     </div>

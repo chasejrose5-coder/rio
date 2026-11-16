@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Expander } from "./Expander";
 import { Footer, PhotoCredit } from "./Footer";
+import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { PreviewBanner } from "./PreviewBanner";
 import { RequireUser } from "./RequireUser";
@@ -167,6 +168,7 @@ function HomeBody() {
         {home && !linkProblem ? (
           <HomeMain home={home} offer={offer} readOnly={readOnly} onDismiss={() => setOffer(false)} reload={() => void load(false)} />
         ) : null}
+        <PageMeaning page="home" />
         <PhotoCredit onPhoto>Photo by Gaby Lopez on Pexels</PhotoCredit>
         <Footer onPhoto />
       </main>

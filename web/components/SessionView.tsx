@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Expander } from "./Expander";
 import { Footer } from "./Footer";
+import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api, isSignedOut, previewing } from "@/lib/api";
@@ -143,6 +144,7 @@ function SessionBody() {
         {mode === "error" ? <p className="rio-error">{problem}</p> : null}
         {mode === "activity" && extra ? <ActivityCard row={extra} /> : null}
         {mode === "ready" && session ? <Workout session={session} onSaved={() => void load()} /> : null}
+        <PageMeaning page="session" />
         <Footer />
       </main>
     </div>

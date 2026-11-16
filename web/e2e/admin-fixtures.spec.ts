@@ -94,16 +94,16 @@ test("the admin page, fixture pages, and the track splash stay put", async ({ pa
 
   await page.goto("/ledger");
   await expect(page.getByRole("heading", { name: "Ledger" })).toBeVisible();
-  await expect(page.getByText("Deposits")).toBeVisible();
-  await expect(page.getByText("Emerging")).toBeVisible();
-  await expect(page.getByText("Decaying")).toBeVisible();
+  await expect(page.getByText("Deposits", { exact: true })).toBeVisible();
+  await expect(page.getByText("Emerging", { exact: true })).toBeVisible();
+  await expect(page.getByText("Decaying", { exact: true })).toBeVisible();
   await expect(page.getByText("As of")).toBeVisible();
   await expect(page.getByText("FIXTURE").first()).toBeVisible();
 
   await page.goto("/goal");
   await expect(page.getByRole("heading", { name: "Goal" })).toBeVisible();
-  await expect(page.getByText("current_mark")).toBeVisible();
-  await expect(page.getByText("limiting_capacities")).toBeVisible();
+  await expect(page.getByText("current_mark", { exact: true })).toBeVisible();
+  await expect(page.getByText("limiting_capacities", { exact: true })).toBeVisible();
   await expect(page.getByText("Coming in the next step.")).toHaveCount(0);
 });
 

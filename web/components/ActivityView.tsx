@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Expander } from "./Expander";
 import { Footer } from "./Footer";
+import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { PreviewBanner } from "./PreviewBanner";
 import { RequireUser } from "./RequireUser";
@@ -244,6 +245,7 @@ function ActivityBody() {
             <Legacy body={body} units={unitsOf(athlete?.prefs.units)} showIds={athlete?.prefs.show_ids === true} />
           </>
         ) : null}
+        <PageMeaning page="activity" />
         <Footer />
       </main>
     </div>

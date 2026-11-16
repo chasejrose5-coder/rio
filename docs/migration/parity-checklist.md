@@ -2095,3 +2095,7 @@ Build order from the plan, after PR #61:
 9. About and Creators, locked (3.9).
 
 Splash, admin, the test season, hero editing, and the fixture pages are not in that list. They stay in this checklist so they are not dropped.
+
+## Next-only guidance
+
+`/guide` ("How to use RIO") and the "What this means" note at the bottom of each page are new on the Next.js app. They are not a Streamlit screen, so they are not a parity row and they do not change a count above. The words live in `web/lib/guide-copy.ts`. The checks are `web/lib/guide.test.ts` and `web/e2e/guide.spec.ts`. The guide has no photo. Library still has none.

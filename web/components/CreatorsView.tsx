@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Footer } from "./Footer";
+import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { CREATORS } from "@/lib/creators";
@@ -75,6 +76,7 @@ function CreatorsBody() {
           </article>
         </div>
         <div hidden dangerouslySetInnerHTML={{ __html: CREATORS.comment }} />
+        <PageMeaning page="creators" />
         <Footer />
       </main>
     </div>

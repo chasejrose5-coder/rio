@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Expander } from "./Expander";
 import { SecretField } from "./SecretField";
 import { Footer } from "./Footer";
+import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { StravaPanel } from "./StravaSettings";
@@ -681,6 +682,7 @@ function SettingsBody() {
           </button>
           <p className="rio-settings-note">{clearNote}</p>
         </Expander>
+        <PageMeaning page="settings" />
         <Footer />
       </main>
     </div>
