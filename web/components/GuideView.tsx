@@ -30,6 +30,21 @@ export function GuideView() {
               {section.paragraphs.map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>
               ))}
+              {section.bullets ? (
+                <ul>
+                  {section.bullets.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              ) : null}
+              {section.details?.map((detail) => (
+                <details key={detail.summary}>
+                  <summary>{detail.summary}</summary>
+                  {detail.paragraphs.map((paragraph) => (
+                    <p key={paragraph}>{paragraph}</p>
+                  ))}
+                </details>
+              ))}
             </section>
           ))}
           <PageMeaning page="guide" />
