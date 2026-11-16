@@ -112,7 +112,7 @@ export const PAGE_MEANINGS = {
   more: {
     section: "more",
     sentences: [
-      "More collects the rest of the app in this tab: Past seasons, Profile, Settings, About, and Creators.",
+      "More collects the rest of the app in this tab: Past seasons, Profile, Settings, and About.",
       "Each row is the link to that page.",
     ],
   },
@@ -125,7 +125,7 @@ export const PAGE_MEANINGS = {
     ],
   },
   creators: {
-    section: "creators",
+    section: "getting-started",
     sentences: [
       "Creators is a short note from the person who built RIO, written for any runner using the plan.",
       "It sits with the other pages under More.",
@@ -155,7 +155,7 @@ export const PAGE_MEANINGS = {
     ],
   },
   admin: {
-    section: "admin",
+    section: "getting-started",
     sentences: [
       "Admin appears in the nav only for an admin login.",
       "It lists accounts, and it can load a separate test season without changing this login.",
@@ -163,35 +163,35 @@ export const PAGE_MEANINGS = {
     ],
   },
   "last-session": {
-    section: "last-session",
+    section: "getting-started",
     sentences: [
       "Last Session is for an admin login. It reads a fixture session or an intervals file and shows the laps, the family, and the reason codes.",
       "Any other login is sent back to Home.",
     ],
   },
   next: {
-    section: "next",
+    section: "getting-started",
     sentences: [
       "Next is an admin page for a fixture session.",
       "It shows the prescription the rules write for that file.",
     ],
   },
   decisions: {
-    section: "decisions",
+    section: "getting-started",
     sentences: [
       "Decisions is an admin page for a planned fixture row.",
       "It shows the parameters, and Deposits, Emerging, and Decaying when that row has them.",
     ],
   },
   ledger: {
-    section: "ledger",
+    section: "getting-started",
     sentences: [
       "Ledger is an admin page of deposits, emerging, and decaying rows.",
       "The line under the title is the as-of date when the file has one.",
     ],
   },
   goal: {
-    section: "goal",
+    section: "getting-started",
     sentences: [
       "Goal is an admin page for the fixture goal.",
       "The card lists the current mark, the target time, the target date, and the limiting capacities.",
@@ -286,16 +286,9 @@ const pageSections: GuideSection[] = (
     ["about", "About"],
     ["more", "More"],
     ["profile", "Profile"],
-    ["creators", "Creators"],
     ["start", "Start"],
     ["easy-pace", "Easy pace"],
     ["intro", "Intro"],
-    ["admin", "Admin"],
-    ["last-session", "Last Session"],
-    ["next", "Next"],
-    ["decisions", "Decisions"],
-    ["ledger", "Ledger"],
-    ["goal", "Goal"],
   ] as const
 ).map(([id, title]) => ({
   id,
