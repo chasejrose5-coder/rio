@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Expander } from "./Expander";
 import { Footer, PhotoCredit } from "./Footer";
+import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { PreviewBanner } from "./PreviewBanner";
 import { RequireUser } from "./RequireUser";
@@ -228,6 +229,7 @@ function PlanBody() {
             onCancel={() => setPending(null)}
           />
         ) : null}
+        <PageMeaning page="plan" />
         <Footer />
       </main>
     </div>

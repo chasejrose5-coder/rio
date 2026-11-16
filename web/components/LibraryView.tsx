@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Footer } from "./Footer";
+import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api, isSignedOut } from "@/lib/api";
@@ -163,6 +164,7 @@ function LibraryBody() {
             )}
           </>
         ) : null}
+        <PageMeaning page="library" />
         <Footer />
       </main>
     </div>

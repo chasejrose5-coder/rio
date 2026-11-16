@@ -3,6 +3,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
+import { PageMeaning } from "./PageMeaning";
+import type { PageMeaningId } from "@/lib/guide-copy";
 import { RequireUser } from "./RequireUser";
 import { useAdminOnly } from "./useAdminOnly";
 import { ApiError, api } from "@/lib/api";
@@ -10,7 +12,19 @@ import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/plan";
 import type { FixturePrescription, LedgerBody, PlannedRow } from "@/lib/types";
 
-function Shell({ title, subtitle, banner, children }: { title: string; subtitle?: string; banner?: string | null; children: ReactNode }) {
+function Shell({
+  title,
+  page,
+  subtitle,
+  banner,
+  children,
+}: {
+  title: string;
+  page: PageMeaningId;
+  subtitle?: string;
+  banner?: string | null;
+  children: ReactNode;
+}) {
   const allowed = useAdminOnly();
   return (
     <RequireUser>
@@ -23,6 +37,7 @@ function Shell({ title, subtitle, banner, children }: { title: string; subtitle?
             {subtitle ? <p className="rio-range">{subtitle}</p> : null}
           </header>
           {allowed ? children : <p className="rio-wait">Loading</p>}
+          <PageMeaning page={page} />
           <Footer />
         </main>
       </div>
@@ -117,7 +132,7 @@ export function NextView() {
 
   const banner = body?.banner === "FIXTURE" ? "FIXTURE" : "";
   return (
-    <Shell title="Next" banner={banner}>
+    <Shell title="Next" page="next" banner={banner}>
       {empty ? <p className="rio-empty">No session files.</p> : null}
       {names.length ? (
         <label className="rio-file">
@@ -183,7 +198,7 @@ export function DecisionsView() {
   const row = rows.find((item) => item.name === name) || null;
   const banner = row?.banner === "FIXTURE" ? "FIXTURE" : "";
   return (
-    <Shell title="Decisions" banner={banner}>
+    <Shell title="Decisions" page="decisions" banner={banner}>
       {empty ? <p className="rio-empty">No planned rows.</p> : null}
       {problem ? <p className="rio-error">{problem}</p> : null}
       {rows.length > 1 ? (
@@ -235,7 +250,7 @@ export function LedgerView() {
 
   const subtitle = body?.as_of ? `As of ${formatDate(body.as_of, format)}` : "";
   return (
-    <Shell title="Ledger" subtitle={subtitle} banner={body?.banner}>
+    <Shell title="Ledger" page="ledger" subtitle={subtitle} banner={body?.banner}>
       {problem ? <p className="rio-error">{problem}</p> : null}
       {body ? (
         <>
@@ -273,7 +288,7 @@ export function GoalView() {
   }, [allowed]);
 
   return (
-    <Shell title="Goal">
+    <Shell title="Goal" page="goal">
       {problem ? <p className="rio-error">{problem}</p> : null}
       {goal ? (
         <section className="rio-card">

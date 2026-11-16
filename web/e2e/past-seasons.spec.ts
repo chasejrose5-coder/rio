@@ -197,7 +197,7 @@ test("delete asks with the stats, then removes only that season", async ({ page 
   await row.getByRole("button", { name: "Delete season" }).click();
   await expect(page.getByText("Delete this season?")).toBeVisible();
   await expect(page.getByText("Jan 6, 2020 – Apr 6, 2020")).toBeVisible();
-  await expect(page.getByText("Workouts logged")).toBeVisible();
+  await expect(page.getByText("Workouts logged", { exact: true })).toBeVisible();
   await expect(page.getByText("This permanently deletes this season and the workouts stored with it.")).toBeVisible();
   await page.getByRole("button", { name: "Cancel" }).click();
   await expect(page.getByText("Delete this season?")).toHaveCount(0);

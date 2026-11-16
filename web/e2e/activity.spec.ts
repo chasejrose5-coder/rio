@@ -221,7 +221,7 @@ test("a pull failure stays off the raw sentence and keeps the stored runs", asyn
   await expect(page.getByText("Completed work")).toBeVisible();
   await expect(page.locator(".rio-stat-value", { hasText: "1.5 mi" })).toBeVisible();
   await expect(page.locator(".rio-stat-value", { hasText: "160 bpm" })).toBeVisible();
-  await expect(page.getByText("This week")).toBeVisible();
+  await expect(page.getByText("This week", { exact: true })).toBeVisible();
   await expect(page.getByText("Heart rate · bpm")).toBeVisible();
 });
 
@@ -230,7 +230,7 @@ test("a connected empty week names the sync in the saved zone", async ({ page })
   await sign(page);
   await page.goto("/activity");
   await expect(page.getByRole("button", { name: "Refresh" })).toBeVisible();
-  await expect(page.getByText("Pulls the latest runs.")).toBeVisible();
+  await expect(page.getByText("Pulls the latest runs.", { exact: true })).toBeVisible();
   await expect(page.getByText(/Last synced Nov 9,/)).toBeVisible();
   await expect(page.getByText("No runs yet", { exact: true })).toBeVisible();
   await expect(page.getByText("TEST season")).toHaveCount(0);
@@ -255,7 +255,7 @@ test("runs, the heart chart, and the hidden tables", async ({ page }) => {
   await page.goto("/activity");
   await expect(page.getByRole("heading", { name: "6 × 400 m" })).toBeVisible();
   await expect(page.getByRole("article").getByText("On track")).toBeVisible();
-  await expect(page.getByText("This week")).toBeVisible();
+  await expect(page.getByText("This week", { exact: true })).toBeVisible();
   await expect(page.getByText("Heart rate · bpm")).toBeVisible();
   await expect(page.getByRole("img", { name: "Average heart rate" })).toBeVisible();
   await expect(page.getByText("Completed work")).toBeVisible();

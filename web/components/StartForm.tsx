@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Footer, PhotoCredit } from "./Footer";
+import { PageMeaning } from "./PageMeaning";
 import { LoadingScreen } from "./LoadingScreen";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
@@ -74,6 +75,7 @@ function StartBody() {
           today={athlete.today}
           behavior={behavior}
         />
+        <PageMeaning page="start" />
         <PhotoCredit onPhoto>Photo by Bohdan Hyrovych on Pexels</PhotoCredit>
         <Footer onPhoto />
       </main>

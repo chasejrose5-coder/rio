@@ -150,7 +150,7 @@ test("a quality day states the rep time, the average, and asks before it saves",
   await expect(page.getByText("Pre-warm-up")).toBeVisible();
   await expect(page.getByText("1 × 800 m easy")).toBeVisible();
   await expect(page.getByText("Warm-up", { exact: true })).toBeVisible();
-  await expect(page.getByText("Cool-down")).toBeVisible();
+  await expect(page.getByText("Cool-down", { exact: true })).toBeVisible();
   await expect(page.getByText("Core")).toBeVisible();
   await expect(page.getByText("Intervals")).toBeVisible();
   await expect(page.getByText("Primary work for this phase")).toBeVisible();
