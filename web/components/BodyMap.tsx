@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import { REGIONS, regionById } from "@/lib/stretch-content";
 import { BACK_EXTRAS, FRONT_EXTRAS, REGION_OF } from "@/lib/body-regions";
 import { expandDrawn, midlineOf, type Drawn } from "@/lib/body-symmetry";
@@ -224,17 +224,15 @@ function Figure({
   const leftClip = `url(#${clip}l)`;
   const rightClip = `url(#${clip}r)`;
   const { groups, plain } = collect(muscles, extras);
-  const mid = useMemo(() => midlineOf(outline), [outline]);
-  const outlineDrawn = useMemo(() => expandDrawn([outline], mid), [outline, mid]);
-  const plainDrawn = useMemo(() => {
-    const by = new Map<string, string[]>();
-    for (const part of plain) {
-      const list = by.get(part.slug) ?? [];
-      list.push(part.d);
-      by.set(part.slug, list);
-    }
-    return [...by.entries()].map(([slug, paths]) => ({ slug, drawn: expandDrawn(paths, mid) }));
-  }, [plain, mid]);
+  const mid = midlineOf(outline);
+  const outlineDrawn = expandDrawn([outline], mid);
+  const plainBySlug = new Map<string, string[]>();
+  for (const part of plain) {
+    const list = plainBySlug.get(part.slug) ?? [];
+    list.push(part.d);
+    plainBySlug.set(part.slug, list);
+  }
+  const plainDrawn = [...plainBySlug.entries()].map(([slug, paths]) => ({ slug, drawn: expandDrawn(paths, mid) }));
   return (
     <svg
       ref={svg}
