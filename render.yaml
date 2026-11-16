@@ -9,7 +9,7 @@ services:
   - type: web
     name: rio-api
     runtime: python
-    plan: free
+    plan: starter
     buildCommand: pip install -r requirements.txt -r api/requirements.txt
     startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health

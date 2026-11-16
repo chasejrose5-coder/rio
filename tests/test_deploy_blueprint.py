@@ -21,10 +21,10 @@ def _keys(text: str) -> list[str]:
     return re.findall(r"(?m)^ +\- key: ([A-Z0-9_]+)$", text)
 
 
-def test_blueprint_is_a_free_api_service_with_the_health_check() -> None:
+def test_blueprint_is_a_starter_api_service_with_the_health_check() -> None:
     text = _yaml()
-    if "type: web" not in text or "runtime: python" not in text or "plan: free" not in text:
-        raise AssertionError("the blueprint is not a free Python web service")
+    if "type: web" not in text or "runtime: python" not in text or "plan: starter" not in text:
+        raise AssertionError("the blueprint is not a Starter Python web service")
     if "healthCheckPath: /health" not in text:
         raise AssertionError(text)
     route = (ROOT / "api" / "routes.py").read_text(encoding="utf-8")
