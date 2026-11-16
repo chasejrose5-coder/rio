@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import { ApiError, API_TIMEOUT_MS, SESSION_STUCK, afterSignIn, api, refreshSession } from "./api.ts";
+import { ApiError, API_TIMEOUT_MS, SESSION_STUCK, afterSignIn, api, refreshSession, signedOutProbe } from "./api.ts";
 import type { Athlete } from "./types.ts";
 
 const athlete: Athlete = {
@@ -83,8 +83,61 @@ describe("refresh session", { concurrency: false }, () => {
     });
   });
 
+  it("a signed-out probe is 200 and does not call /auth/me", async () => {
+    const urls: string[] = [];
+    await withFetch(async (url) => {
+      urls.push(String(url));
+      return new Response(JSON.stringify({ signed_in: false }), { status: 200 });
+    }, async () => {
+      await api.signOut();
+      urls.length = 0;
+      const result = await refreshSession();
+      assert.equal(result.status, "out");
+      assert.equal(result.athlete, null);
+      assert.equal(signedOutProbe({ signed_in: false }), true);
+      assert.equal(urls.length, 1);
+      assert.match(urls[0], /\/auth\/session$/);
+    });
+  });
+
+  it("an empty session body falls back to /auth/me", async () => {
+    const urls: string[] = [];
+    await withFetch(async (url) => {
+      urls.push(String(url));
+      if (String(url).endsWith("/auth/session")) return new Response(JSON.stringify({}), { status: 200 });
+      return new Response(JSON.stringify(athlete), { status: 200 });
+    }, async () => {
+      await api.signOut();
+      urls.length = 0;
+      const result = await refreshSession();
+      assert.equal(result.status, "in");
+      assert.equal(result.athlete?.email, "ada@example.com");
+      assert.match(urls[1], /\/auth\/me$/);
+    });
+  });
+
+  it("a missing session route falls back to /auth/me", async () => {
+    const urls: string[] = [];
+    await withFetch(async (url) => {
+      urls.push(String(url));
+      if (String(url).endsWith("/auth/session")) {
+        return new Response(JSON.stringify({ detail: "Not Found" }), { status: 404 });
+      }
+      return new Response(JSON.stringify(athlete), { status: 200 });
+    }, async () => {
+      await api.signOut();
+      urls.length = 0;
+      const result = await refreshSession();
+      assert.equal(result.status, "in");
+      assert.equal(result.athlete?.email, "ada@example.com");
+      assert.match(urls[0], /\/auth\/session$/);
+      assert.match(urls[1], /\/auth\/me$/);
+    });
+  });
+
   it("a signed-in athlete stays in", async () => {
     await withFetch(async () => new Response(JSON.stringify(athlete), { status: 200 }), async () => {
+      await api.signOut();
       const result = await refreshSession();
       assert.equal(result.status, "in");
       assert.equal(result.athlete?.email, "ada@example.com");

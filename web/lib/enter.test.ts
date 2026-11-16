@@ -49,9 +49,16 @@ describe("where sign-in lands", () => {
     const gate = readFileSync(new URL("../components/Gate.tsx", import.meta.url), "utf8");
     assert.match(enter, /prefetchHome\(\)/);
     assert.match(enter, /markIntroLater\(\)/);
+    assert.match(enter, /if \(destinationInflight\) return destinationInflight/);
     assert.equal(enter.includes('router.replace("/")'), false);
     assert.match(screen, /destinationAfterSignIn\(signedIn!\)/);
+    assert.match(screen, /handoff\.current = true/);
+    assert.match(screen, /if \(handoff\.current \|\| status !== "in"/);
     assert.match(gate, /destinationAfterSignIn\(athlete\)/);
+    assert.match(gate, /status === "loading" \|\| status === "in"/);
+    const loadingBranch = gate.indexOf('status === "loading" || status === "in"');
+    const splash = gate.indexOf("<Splash");
+    assert.ok(loadingBranch !== -1 && splash !== -1 && loadingBranch < splash);
     assert.equal(GET_CACHE_MS >= 30_000, true);
   });
 

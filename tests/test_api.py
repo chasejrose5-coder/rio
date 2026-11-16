@@ -167,6 +167,26 @@ def test_sign_in_sets_an_httponly_cookie_and_me_returns_the_athlete() -> None:
         raise AssertionError("a signed-out request read a season")
 
 
+def test_the_session_probe_is_200_when_signed_out() -> None:
+    anonymous = _client(MemoryDirectory())
+    missing = anonymous.get("/auth/session")
+    if missing.status_code != 200 or missing.json() != {"signed_in": False}:
+        raise AssertionError(missing.text)
+    if anonymous.get("/auth/me").status_code != 401:
+        raise AssertionError("the athlete route stopped requiring a session")
+    directory = MemoryDirectory()
+    client = _sign_up(directory)
+    signed = client.get("/auth/session")
+    if signed.status_code != 200 or signed.json().get("signed_in") is not True:
+        raise AssertionError(signed.text)
+    if signed.json().get("email") != "ada@example.com":
+        raise AssertionError(signed.text)
+    client.post("/auth/sign-out")
+    again = client.get("/auth/session")
+    if again.status_code != 200 or again.json() != {"signed_in": False}:
+        raise AssertionError(again.text)
+
+
 def test_a_wrong_password_is_refused() -> None:
     directory = MemoryDirectory()
     directory.sign_up("ada@example.com", "correct-horse", "Ada")

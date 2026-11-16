@@ -275,6 +275,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   }
   .rio-nav + main { padding-bottom: calc(4.6rem + env(safe-area-inset-bottom)); }
   .rio-nav:has(.rio-subnav) + main { padding-bottom: calc(8.2rem + env(safe-area-inset-bottom)); }
+  .rio-nav.rio-nav-signed-out + main { padding-bottom: 2.5rem; }
+}
+.rio-signed-out-login {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 0.85rem;
+  color: var(--paper);
+  font-weight: 600;
 }
 
 .page-plain main, .page-home main { padding: 0 5vw 3.5rem; }
