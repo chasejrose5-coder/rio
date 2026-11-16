@@ -171,12 +171,14 @@ function MirroredPaths({
   drawn,
   fill,
   className,
+  regionId,
   leftClip,
   rightClip,
 }: {
   drawn: Drawn[];
   fill: string;
   className?: string;
+  regionId?: string;
   leftClip: string;
   rightClip: string;
 }) {
@@ -188,11 +190,28 @@ function MirroredPaths({
           className={className}
           d={part.d}
           fill={fill}
+          data-region={regionId}
           clipPath={part.place === "cross" ? leftClip : part.place === "cross-mirror" ? rightClip : undefined}
         />
       ))}
     </>
   );
+}
+
+function regionAt(svg: SVGSVGElement, clientX: number, clientY: number): string | null {
+  const point = svg.createSVGPoint();
+  point.x = clientX;
+  point.y = clientY;
+  const matrix = svg.getScreenCTM();
+  if (!matrix) return null;
+  const local = point.matrixTransform(matrix.inverse());
+  const paths = svg.querySelectorAll<SVGPathElement>("path[data-region]");
+  for (const path of paths) {
+    const region = path.dataset.region;
+    if (!region) continue;
+    if (path.isPointInFill(local) || path.isPointInStroke(local)) return region;
+  }
+  return null;
 }
 
 function Figure({
@@ -241,6 +260,10 @@ function Figure({
       role="group"
       aria-label={view === "front" ? "Front of the body" : "Back of the body"}
       data-testid={view === "front" ? "body-front" : "body-back"}
+      onClick={(event) => {
+        const region = regionAt(event.currentTarget, event.clientX, event.clientY);
+        if (region) onPick(region);
+      }}
     >
       <defs>
         <clipPath id={`${clip}l`}>
@@ -280,6 +303,7 @@ function Figure({
                 key={slug}
                 drawn={expandDrawn(paths, mid)}
                 fill={SLUG_FILL[slug] || region.color}
+                regionId={regionId}
                 leftClip={leftClip}
                 rightClip={rightClip}
               />

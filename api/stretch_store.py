@@ -13,7 +13,7 @@ Today is the date the caller already resolved in the Settings time zone.
 from __future__ import annotations
 
 import json
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from api.errors import ApiError
 from api.identity import Principal
@@ -90,6 +90,8 @@ def _copy(state: dict) -> dict:
 
 
 def _iso(value: object) -> str:
+    if isinstance(value, datetime):
+        return value.date().isoformat()
     if isinstance(value, date):
         return value.isoformat()
     if isinstance(value, str) and len(value) >= 10:
@@ -304,23 +306,34 @@ def _find_spot(state: dict, region: str) -> dict | None:
     return None
 
 
-def toggle_completion(principal: Principal, directory, today: date, routine_id: object) -> dict:
+def _wants_removed(present: bool, done: object) -> bool:
+    if done is True:
+        return False
+    if done is False:
+        return True
+    return present
+
+
+def toggle_completion(principal: Principal, directory, today: date, routine_id: object, done: object = None) -> dict:
     if not isinstance(routine_id, str) or routine_id not in ROUTINES:
         raise ApiError(400, "That routine is not in the library.")
+    if done is not None and not isinstance(done, bool):
+        raise ApiError(400, "Say whether the routine is done.")
     iso = today.isoformat()
 
     def change(state):
         if state is None:
             current = _hosted_state(directory, principal.token)
             present = _find_completion(current, iso, routine_id) is not None
-            _save_hosted_completion(directory, principal.token, today, routine_id, present)
+            _save_hosted_completion(directory, principal.token, today, routine_id, _wants_removed(present, done))
             return
         rows = [row for row in state.get("completions") or [] if isinstance(row, dict)]
-        if _find_completion({"completions": rows}, iso, routine_id):
+        present = _find_completion({"completions": rows}, iso, routine_id) is not None
+        if _wants_removed(present, done):
             state["completions"] = [
                 row for row in rows if not (row.get("date") == iso and row.get("routine_id") == routine_id)
             ]
-        else:
+        elif not present:
             rows.append({"date": iso, "routine_id": routine_id})
             state["completions"] = rows
 

@@ -334,6 +334,15 @@ test("done marks count for this week and the streak stops at a gap", () => {
     today: "2026-11-10",
     session: { date: "2026-11-10", day_of_week: "Tuesday", template_id: "se_400_r90_x6" },
   });
+  const stamped = prescribe({
+    today: "2026-11-10",
+    session: null,
+    completions: [{ date: "2026-11-10T00:00:00+00:00", routine_id: "rest-warm-spine" }],
+  });
+  assert.equal(stamped.kind, "rest");
+  assert.equal(stamped.routines.find((item) => item.routine.id === "rest-warm-spine")?.done, true);
+  assert.equal(weekProgress([{ date: "2026-11-10T00:00:00+00:00", routine_id: "rest-warm-spine" }], "2026-11-10").routines, 1);
+
   const marked = prescribe({
     today: "2026-11-10",
     session: { date: "2026-11-10", day_of_week: "Tuesday", template_id: "se_400_r90_x6" },

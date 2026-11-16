@@ -91,6 +91,15 @@ def test_today_follows_the_saved_zone_and_another_athlete_cannot_see_the_rows() 
     again = ada.post("/stretch/completions", json={"routine_id": "pre-run"})
     if again.status_code != 200 or again.json()["completions"] != []:
         raise AssertionError(again.text)
+    kept = ada.post("/stretch/completions", json={"routine_id": "rest-warm-spine", "done": True})
+    if kept.status_code != 200 or kept.json()["completions"] != [{"date": today.isoformat(), "routine_id": "rest-warm-spine"}]:
+        raise AssertionError(kept.text)
+    still = ada.post("/stretch/completions", json={"routine_id": "rest-warm-spine", "done": True})
+    if still.status_code != 200 or still.json()["completions"] != [{"date": today.isoformat(), "routine_id": "rest-warm-spine"}]:
+        raise AssertionError(still.text)
+    cleared_done = ada.post("/stretch/completions", json={"routine_id": "rest-warm-spine", "done": False})
+    if cleared_done.status_code != 200 or cleared_done.json()["completions"] != []:
+        raise AssertionError(cleared_done.text)
     refused = ada.post("/stretch/spots", json={"region": "toes", "severity": "mild"})
     if refused.status_code != 400:
         raise AssertionError(refused.text)

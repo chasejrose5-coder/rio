@@ -347,6 +347,10 @@ export function extraExercises(spots: readonly SoreSpot[], today: string): Exerc
   return found;
 }
 
+function completionDay(value: string): string {
+  return value.slice(0, 10);
+}
+
 export function prescribe(input: {
   today: string;
   session: StretchSession | null | undefined;
@@ -360,7 +364,9 @@ export function prescribe(input: {
   const sessions = input.sessions ?? (input.session ? [input.session] : []);
   const kind = classifyDay(input.today, input.session);
   const done = new Set(
-    completions.filter((row) => row.date === input.today).map((row) => row.routine_id),
+    completions
+      .filter((row) => completionDay(row.date) === input.today)
+      .map((row) => row.routine_id),
   );
   const routines: PrescribedRoutine[] = [];
   for (const id of routineIdsFor(input.today, kind, sessions)) {
@@ -404,9 +410,12 @@ export function weekProgress(completions: readonly Completion[], today: string):
 } {
   const start = weekStart(today);
   const end = shiftDays(start, 6);
-  const inWeek = completions.filter((row) => row.date >= start && row.date <= end);
-  const days = new Set(inWeek.map((row) => row.date)).size;
-  const have = new Set(completions.map((row) => row.date));
+  const inWeek = completions.filter((row) => {
+    const day = completionDay(row.date);
+    return day >= start && day <= end;
+  });
+  const days = new Set(inWeek.map((row) => completionDay(row.date))).size;
+  const have = new Set(completions.map((row) => completionDay(row.date)));
   let cursor = have.has(today) ? today : shiftDays(today, -1);
   let streak = 0;
   while (have.has(cursor) && streak < 400) {

@@ -46,7 +46,8 @@ async function json(route: Route, body: unknown, status = 200) {
   await route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
 
-async function install(page: Page) {
+async function install(page: Page, options?: { season?: typeof season | null }) {
+  const seasonBody = options && "season" in options ? options.season : season;
   const spots: Spot[] = [];
   const completions: { date: string; routine_id: string }[] = [];
   const body = () => ({ today, spots, completions });
@@ -59,7 +60,10 @@ async function install(page: Page) {
     const path = url.pathname;
     const method = route.request().method();
     if (path === "/auth/me") return json(route, athlete);
-    if (path === "/seasons/current") return json(route, season);
+    if (path === "/seasons/current") {
+      if (!seasonBody) return json(route, { detail: "No current season." }, 404);
+      return json(route, seasonBody);
+    }
     if (path === "/stretch" && method === "GET") return json(route, body());
     if (path === "/stretch/spots" && method === "POST") {
       const payload = route.request().postDataJSON() as { region: string; severity: string };
@@ -76,10 +80,14 @@ async function install(page: Page) {
       return json(route, body());
     }
     if (path === "/stretch/completions" && method === "POST") {
-      const payload = route.request().postDataJSON() as { routine_id: string };
+      const payload = route.request().postDataJSON() as { routine_id: string; done?: boolean };
       const index = completions.findIndex((row) => row.routine_id === payload.routine_id && row.date === today);
-      if (index >= 0) completions.splice(index, 1);
-      else completions.push({ date: today, routine_id: payload.routine_id });
+      const remove = payload.done === false || (payload.done !== true && index >= 0);
+      if (remove) {
+        if (index >= 0) completions.splice(index, 1);
+      } else if (index < 0) {
+        completions.push({ date: today, routine_id: payload.routine_id });
+      }
       return json(route, body());
     }
     if (path.startsWith("/stretch/spots/") && method === "DELETE") {
@@ -90,6 +98,27 @@ async function install(page: Page) {
     }
     return json(route, { detail: "Not mocked." }, 404);
   });
+}
+
+async function clickMuscle(page: Page, name: string) {
+  const group = page.getByRole("button", { name });
+  await group.scrollIntoViewIfNeeded();
+  const point = await group.evaluate((element) => {
+    const paths = [...element.querySelectorAll("path")];
+    for (const path of paths) {
+      const box = path.getBoundingClientRect();
+      for (let iy = 0.15; iy <= 0.85; iy += 0.1) {
+        for (let ix = 0.15; ix <= 0.85; ix += 0.1) {
+          const x = box.x + box.width * ix;
+          const y = box.y + box.height * iy;
+          if (document.elementFromPoint(x, y) === path) return { x, y };
+        }
+      }
+    }
+    return null;
+  });
+  expect(point, name).toBeTruthy();
+  await page.mouse.click(point!.x, point!.y);
 }
 
 test("tapping a region adds its stretches, sharp pain does not, and Done sticks", async ({ page }) => {
@@ -122,7 +151,7 @@ test("tapping a region adds its stretches, sharp pain does not, and Done sticks"
   await expect(prescription.getByText("Stop stretching that area")).toBeVisible();
   await expect(prescription.getByRole("heading", { name: "Extra for sore spots" })).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Calves / Achilles, back view" }).locator("path").first().click();
+  await clickMuscle(page, "Calves / Achilles, front view");
   await page.getByRole("button", { name: "Moderate", exact: true }).click();
   const extras = page.getByTestId("stretch-extras");
   await expect(extras.getByRole("heading", { name: "Wall calf stretch, straight knee" })).toBeVisible();
@@ -139,4 +168,27 @@ test("tapping a region adds its stretches, sharp pain does not, and Done sticks"
   await expect(page.getByRole("button", { name: `${warmup} done` })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("stretch-week")).toHaveText("1 routine done this week · 1-day streak");
   await expect(page.getByText("What this means")).toBeVisible();
+  await page.getByRole("button", { name: `${warmup} done` }).click();
+  await expect(page.getByRole("button", { name: `Mark ${warmup} done` })).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByTestId("stretch-week")).toHaveText("0 routines done this week · No streak yet");
+});
+
+test("a rest day with no season posts Done, and a second click clears it", async ({ page }) => {
+  await install(page, { season: null });
+  const posts: { routine_id: string; done?: boolean }[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST" && request.url().includes("/stretch/completions")) {
+      posts.push(request.postDataJSON() as { routine_id: string; done?: boolean });
+    }
+  });
+  await page.goto("/stretch");
+  await expect(page.getByText("Today · Rest day")).toBeVisible();
+  await page.getByRole("button", { name: "Mark Spine opener done" }).click();
+  await expect(page.getByRole("button", { name: "Spine opener done" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("stretch-week")).toHaveText("1 routine done this week · 1-day streak");
+  expect(posts).toEqual([{ routine_id: "rest-warm-spine", done: true }]);
+  await page.getByRole("button", { name: "Spine opener done" }).click();
+  await expect(page.getByRole("button", { name: "Mark Spine opener done" })).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByTestId("stretch-week")).toHaveText("0 routines done this week · No streak yet");
+  expect(posts[1]).toEqual({ routine_id: "rest-warm-spine", done: false });
 });
