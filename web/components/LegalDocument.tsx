@@ -7,6 +7,9 @@ export function LegalDocument({ page }: { page: LegalPage }) {
   const other = page.path === "/privacy" ? { href: "/terms", label: "Terms" } : { href: "/privacy", label: "Privacy policy" };
   return (
     <div className="page-legal">
+      <link rel="preload" href="/fonts/inter-latin-500-normal.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+      <link rel="preload" href="/fonts/inter-latin-600-normal.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+      <link rel="preload" href="/fonts/manrope-latin-800-normal.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
       <header className="rio-legal-top">
         <Link href="/">RIO</Link>
       </header>

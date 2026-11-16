@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { DRAFT_NOTE, PRIVACY, TERMS, legalPlainText } from "./legal-copy.ts";
 
@@ -29,7 +30,6 @@ test("the privacy draft matches the account, cookie, and Strava read", () => {
     "Delete my account",
     "deauthorize",
     "Strava may monitor and collect usage data",
-    "seven-day",
     "does not send an email that the delete finished",
     "sessionStorage",
     "800",
@@ -38,6 +38,35 @@ test("the privacy draft matches the account, cookie, and Strava read", () => {
   }
   assert.equal(text.includes("goal probability"), true);
   assert.equal(/we sell your data/i.test(text), false);
+  for (const hidden of [
+    "RIO_EXPLAIN_API_KEY",
+    "RIO_EXPLAIN_MODEL",
+    "RIO_EXPLAIN_BASE_URL",
+    "RIO_INSIGHT_LOG_PATH",
+    "insight_log",
+    "strava_tokens",
+    "app_sessions",
+    "stretch_completions",
+    "sore_spots",
+    "strava_activities",
+    "strava_oauth",
+    "season_state",
+    "seven-day",
+    "GDPR",
+    "section 6.2",
+    "section 6.5",
+    "section 7.3",
+    "June 1, 2026",
+  ]) {
+    assert.equal(text.toLowerCase().includes(hidden.toLowerCase()), false, hidden);
+  }
+});
+
+test("contents links and the legal wordmark are 44px targets", () => {
+  const css = readFileSync(new URL("../app/legal.css", import.meta.url), "utf8");
+  assert.match(css, /\.rio-legal-contents a[\s\S]*?min-height:\s*44px/);
+  assert.match(css, /\.rio-legal-top a[\s\S]*?min-height:\s*44px/);
+  assert.match(css, /size-adjust:/);
 });
 
 test("the terms draft does not invent a contract", () => {

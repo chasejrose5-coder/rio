@@ -74,7 +74,7 @@ export const PRIVACY: LegalPage = {
       blocks: [
         {
           kind: "p",
-          text: "The only scored event in this version is the 800 meters. Starting a season stores the current 800 time, the start date, the goal 800 time, and the goal date, plus the generated plan. Logging a day stores the workout template and the rep times you type, or a Done mark when you are not using a watch. A season note, when one is saved, is stored with that season. The database event field is 800m.",
+          text: "The only scored event in this version is the 800 meters. Starting a season stores the current 800 time, the start date, the goal 800 time, and the goal date, plus the generated plan. Logging a day stores the workout template and the rep times you type, or a Done mark when you are not using a watch. A season note, when one is saved, is stored with that season.",
         },
         {
           kind: "p",
@@ -92,15 +92,15 @@ export const PRIVACY: LegalPage = {
       blocks: [
         {
           kind: "p",
-          text: "Classification of a workout is rules in the app, not a model. After a hard day is saved, the API may ask a language model to phrase a short note. That call runs only when the server has RIO_EXPLAIN_API_KEY, RIO_EXPLAIN_MODEL, and an https RIO_EXPLAIN_BASE_URL. If those are missing, no model is called.",
+          text: "Classification of a workout is rules in the app, not a model. After a hard day is saved, the API may ask a language model to phrase a short note. That call runs only when the server is configured with a model key, a model name, and an https address for that model. If that configuration is missing, no model is called.",
         },
         {
           kind: "p",
-          text: "The message is a reduced note the app already built: the goal 800 time, the race date, the phase and its name, the session date, the session family, whether the day was on track, short, or better, how later weeks are affected, a count of hard days that week, days left until the goal, the week number, and a short easy-heart-rate category. It does not include the email, the password, lap lists, or a Strava activity stream. A payload that contains the word Strava or GPS is refused. The vendor is whatever host that base URL points at. This draft does not name one, because the URL is configuration.",
+          text: "The message is a reduced note the app already built: the goal 800 time, the race date, the phase and its name, the session date, the session family, whether the day was on track, short, or better, how later weeks are affected, a count of hard days that week, days left until the goal, the week number, and a short easy-heart-rate category. It does not include the email, the password, lap lists, or a Strava activity stream. A payload that contains the word Strava or GPS is refused. The vendor is whatever host that address points at. This draft does not name one, because the address is configuration.",
         },
         {
           kind: "p",
-          text: "When a note is accepted, the server may append a hash of that reduced input and the accepted note to a file (data/insight_log.jsonl, or RIO_INSIGHT_LOG_PATH). The prompt itself is not written there. The note you see in the app is stored with the season.",
+          text: "When a note is accepted, the server may record a hash of that reduced input and the accepted note in a private log. The prompt itself is not written there. The note you see in the app is stored with the season.",
         },
       ],
     },
@@ -114,7 +114,7 @@ export const PRIVACY: LegalPage = {
         },
         {
           kind: "p",
-          text: "After you approve, RIO keeps the token fields it parses: access token, refresh token, expiry, Strava athlete id, the athlete's first and last name as one name, and the scope. Tokens sit in strava_tokens. That table is not granted to the signed-in database role. The server reads it with the service role. A short-lived connect nonce is stored the same way until the callback finishes.",
+          text: "After you approve, RIO keeps the token fields it parses: access token, refresh token, expiry, Strava athlete id, the athlete's first and last name as one name, and the scope. Those tokens are stored where the signed-in account cannot read them. The server reads them with a privileged role. A short-lived connect nonce is stored the same way until the callback finishes.",
         },
         {
           kind: "p",
@@ -138,7 +138,7 @@ export const PRIVACY: LegalPage = {
         },
         {
           kind: "p",
-          text: "Imported runs stay in RIO until you disconnect Strava or delete the account. They are not limited to a seven-day cache. Deleting the account removes the stored token because it references the profile, but account deletion does not call Strava's deauthorize endpoint. To revoke RIO on Strava's side, disconnect first, or revoke RIO in the Strava account settings.",
+          text: "Imported runs stay in RIO until you disconnect Strava or delete the account. Deleting the account removes the stored token with the account, but account deletion does not call Strava's deauthorize endpoint. To revoke RIO on Strava's side, disconnect first, or revoke RIO in the Strava account settings.",
         },
       ],
     },
@@ -148,11 +148,11 @@ export const PRIVACY: LegalPage = {
       blocks: [
         {
           kind: "p",
-          text: "The public site stores accounts and training rows in Supabase (Auth and Postgres). Row level security limits each signed-in athlete to their own rows on the tables they can access. Session rows, Strava tokens, and the Strava connect nonce are not granted to the signed-in role.",
+          text: "The public site stores accounts and training rows in Supabase (Auth and Postgres). Row level security limits each signed-in athlete to their own rows. Session rows, Strava tokens, and the Strava connect nonce are not readable by the signed-in account.",
         },
         {
           kind: "p",
-          text: "The tables are profiles (id, email, display name, role, created time), goals (800m event, goal time, goal date, current mark), plans (the plan, marks, and logged actuals), results (the day, the template, and the logged payload), season_state (quality base and workout notes), stretch_completions, sore_spots, strava_tokens, strava_activities, strava_oauth, and app_sessions. A separate counter stores how much has been reserved for model notes. That counter is not an athlete profile.",
+          text: "What is stored: the profile (email, display name, role, and when the account was created), the 800 meter goal, the plan and the logged days, season notes, stretch completions, sore spots, Strava tokens, imported Strava runs, the connect nonce, and the session. A separate counter tracks how much has been reserved for model notes. That counter is not an athlete profile.",
         },
       ],
     },
@@ -166,7 +166,7 @@ export const PRIVACY: LegalPage = {
         },
         {
           kind: "p",
-          text: "Those tokens stay in app_sessions, keyed by a hash of the cookie id. The row holds the access token, refresh token, user id, email, display name, and the time the session started. Only the service role can read that table. Sign out deletes the row and clears the cookie.",
+          text: "Those tokens stay on the server, keyed by a hash of the cookie id. The stored session holds the access token, refresh token, user id, email, display name, and the time the session started. Only a privileged server role can read it. Sign out deletes the session and clears the cookie.",
         },
         {
           kind: "p",
@@ -192,7 +192,7 @@ export const PRIVACY: LegalPage = {
         },
         {
           kind: "p",
-          text: "Settings, Danger zone, Delete my account asks you to check “I understand this permanently deletes my season and runs”. On the hosted site that checkbox is the confirmation. A local file account also asks for the email and the password. The server then deletes the session rows, the logged results, the plans, the goal row, and the profile, and then deletes the Supabase Auth user. Rows that reference the profile are removed with it, including Strava tokens and activities, stretch completions, sore spots, season state, and the Strava connect nonce, where those tables are present.",
+          text: "Settings, Danger zone, Delete my account asks you to check “I understand this permanently deletes my season and runs”. On the hosted site that checkbox is the confirmation. A local file account also asks for the email and the password. The server then deletes the session rows, the logged results, the plans, the goal row, and the profile, and then deletes the Supabase Auth user. Rows that reference the profile are removed with it, including Strava tokens and activities, stretch completions, sore spots, season state, and the Strava connect nonce, where those records are present.",
         },
         {
           kind: "p",
@@ -209,10 +209,6 @@ export const PRIVACY: LegalPage = {
           items: [
             "[COMPANY NAME], a street address, and [CONTACT EMAIL] are not decided.",
             "No governing law or court is chosen in this draft.",
-            "Strava's API Policy (section 7.3, effective June 1, 2026) requires a privacy policy that meets the GDPR and the UK GDPR, linked prominently, that does not override Strava's privacy policy. This page is the product description. It is not a claim that those requirements are already met.",
-            "Strava's API Policy (section 6.5) requires the usage-data statement in the Strava section above. It is included.",
-            "Strava's API Policy (section 6.2) limits cache of Strava data to seven days. This app keeps imported runs until disconnect or account deletion. That difference is unresolved.",
-            "Strava's API Policy asks for written confirmation when Strava data is deleted. Disconnect updates the Settings screen. Account deletion returns you to sign-in and does not email a receipt.",
           ],
         },
       ],
@@ -302,7 +298,6 @@ export const TERMS: LegalPage = {
             "[COMPANY NAME], [CONTACT EMAIL], a street address, and the governing law are not decided. This draft does not choose a court.",
             "No warranty, liability cap, or refund rule is stated, because none is decided.",
             "No age rule is enforced by the signup form.",
-            "The privacy draft lists the Strava API Policy items that this text does not pretend to close.",
           ],
         },
       ],
