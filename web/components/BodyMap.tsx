@@ -1,61 +1,144 @@
 "use client";
 
-import type { KeyboardEvent } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import { REGIONS, regionById } from "@/lib/stretch-content";
+import { backMuscles, backOutline, frontMuscles, frontOutline, type MusclePaths } from "./body-map/paths";
 
-type Shape = { id: string; paths: string[]; ellipses?: { cx: number; cy: number; rx: number; ry: number }[] };
+/** Library slugs grouped into the sore-spot areas. Unlisted slugs stay as the white outline. */
+const REGION_OF: Record<string, string | null> = {
+  chest: "shoulders",
+  deltoids: "shoulders",
+  trapezius: "upper-back",
+  "upper-back": "upper-back",
+  neck: "neck",
+  abs: "abs",
+  obliques: "abs",
+  quadriceps: "quads",
+  adductors: "adductors",
+  tibialis: "shins",
+  calves: "calves",
+  feet: "feet",
+  ankles: "feet",
+  hamstring: "hamstrings",
+  gluteal: "glutes",
+  "lower-back": "lower-back",
+  biceps: null,
+  triceps: null,
+  forearm: null,
+  hands: null,
+  knees: null,
+  head: null,
+  hair: null,
+};
 
-const INK = "#3d4c5e";
+/** Soft pastels. One color per muscle, several muscles can share a sore-spot button. */
+const SLUG_FILL: Record<string, string> = {
+  chest: "#f4a8b0",
+  deltoids: "#f6d56a",
+  trapezius: "#d7b4ea",
+  "upper-back": "#9ed6a0",
+  neck: "#e7c8f4",
+  abs: "#c5e6a0",
+  obliques: "#8fce8f",
+  quadriceps: "#f3b0b6",
+  adductors: "#a8d8a8",
+  tibialis: "#9fd4ee",
+  calves: "#7ec4e6",
+  feet: "#f6c89a",
+  ankles: "#f3d2a4",
+  hamstring: "#f0a0a8",
+  gluteal: "#c9b0ea",
+  "lower-back": "#f6e08a",
+  "hip-flexors": "#f6d98a",
+  "it-band": "#f0b86a",
+  shoulders: "#f6d56a",
+  quads: "#f3b0b6",
+  shins: "#9fd4ee",
+  hamstrings: "#f0a0a8",
+  glutes: "#c9b0ea",
+};
 
-const FRONT: Shape[] = [
+const PAPER = "#fffcf8";
+
+type Extra = { region: string; paths: string[] };
+
+/** The source set has no hip-flexor or outer-hip path. These sit in the same outline style. */
+const FRONT_EXTRAS: Extra[] = [
   {
-    id: "shoulders",
+    region: "hip-flexors",
     paths: [
-      "M52 108 C52 92 74 84 120 84 C166 84 188 92 188 108 L180 176 C172 194 150 202 120 202 C90 202 68 194 60 176 Z",
-      "M70 114 C48 124 36 160 42 196 C54 206 68 198 66 180 C56 150 58 128 78 116 Z",
-      "M170 114 C192 124 204 160 198 196 C186 206 172 198 174 180 C184 150 182 128 162 116 Z",
+      "M322 748 C306 786 314 860 348 888 C376 856 370 784 350 748 Z",
+      "M398 748 C380 786 406 862 442 888 C470 856 462 784 430 748 Z",
     ],
   },
-  { id: "abs", paths: ["M86 206 H154 L148 252 H92 Z"] },
-  { id: "hip-flexors", paths: ["M78 258 H162 L156 304 H84 Z"] },
-  { id: "it-band", paths: ["M58 310 H74 L70 402 H54 Z", "M166 310 H182 L186 402 H170 Z"] },
-  { id: "quads", paths: ["M76 310 H104 L100 404 H72 Z", "M136 310 H164 L168 404 H140 Z"] },
-  { id: "adductors", paths: ["M106 316 H120 L116 400 H108 Z", "M134 316 H120 L124 400 H132 Z"] },
-  { id: "shins", paths: ["M74 410 H104 L98 474 H70 Z", "M136 410 H166 L170 474 H142 Z"] },
-  { id: "feet", paths: ["M62 480 H112 L116 508 H58 Z", "M128 480 H178 L182 508 H124 Z"] },
-  { id: "neck", paths: ["M104 62 H136 V96 H104 Z"] },
+  {
+    region: "it-band",
+    paths: [
+      "M252 800 C244 850 248 930 260 980 L284 968 C290 900 284 840 272 800 Z",
+      "M472 800 C480 850 476 930 464 980 L440 968 C434 900 440 840 452 800 Z",
+    ],
+  },
 ];
 
-const BACK: Shape[] = [
+const BACK_EXTRAS: Extra[] = [
   {
-    id: "upper-back",
-    paths: ["M90 100 C96 90 108 86 120 86 C132 86 144 90 150 100 L156 198 C148 214 136 220 120 220 C104 220 92 214 84 198 Z"],
-  },
-  {
-    id: "shoulders",
+    region: "it-band",
     paths: [
-      "M86 112 C60 124 50 162 62 198 C76 186 88 158 96 120 Z",
-      "M154 112 C180 124 190 162 178 198 C164 186 152 158 144 120 Z",
+      "M976 800 C968 850 972 930 984 980 L1008 968 C1014 900 1008 840 996 800 Z",
+      "M1196 800 C1204 850 1200 930 1188 980 L1164 968 C1158 900 1164 840 1176 800 Z",
     ],
   },
-  { id: "lower-back", paths: ["M90 224 H150 L144 270 H96 Z"] },
-  {
-    id: "glutes",
-    paths: [],
-    ellipses: [
-      { cx: 98, cy: 308, rx: 30, ry: 34 },
-      { cx: 142, cy: 308, rx: 30, ry: 34 },
-    ],
-  },
-  { id: "it-band", paths: ["M58 346 H74 L70 438 H54 Z", "M166 346 H182 L186 438 H170 Z"] },
-  { id: "hamstrings", paths: ["M76 346 H116 L110 440 H72 Z", "M124 346 H164 L168 440 H130 Z"] },
-  { id: "calves", paths: ["M76 446 H112 L104 500 H74 Z", "M128 446 H164 L166 500 H136 Z"] },
-  { id: "feet", paths: ["M64 506 H116 L120 528 H60 Z", "M124 506 H176 L180 528 H120 Z"] },
-  { id: "neck", paths: ["M104 62 H136 V96 H104 Z"] },
 ];
 
-const FRONT_LEGEND = ["neck", "shoulders", "abs", "hip-flexors", "quads", "adductors", "shins", "feet"];
-const BACK_LEGEND = ["upper-back", "lower-back", "glutes", "hamstrings", "calves", "it-band"];
+type Leader = {
+  label: string;
+  region: string;
+  x: number;
+  y: number;
+  tx: number;
+  ty: number;
+  side: "left" | "right";
+  /** A bend keeps the line under the outstretched hand. */
+  bend?: { x: number; y: number };
+};
+
+const FRONT_LEADERS: Leader[] = [
+  { label: "Neck", region: "neck", x: 360, y: 300, tx: -30, ty: 280, side: "left" },
+  { label: "Abs / core", region: "abs", x: 300, y: 540, tx: -30, ty: 540, side: "left" },
+  { label: "Hip flexors", region: "hip-flexors", x: 341, y: 850, tx: -30, ty: 870, side: "left" },
+  { label: "Adductors", region: "adductors", x: 318, y: 735, tx: -30, ty: 1000, side: "left", bend: { x: 240, y: 1000 } },
+  { label: "Shins", region: "shins", x: 280, y: 1100, tx: -30, ty: 1140, side: "left" },
+  { label: "Shoulders / chest", region: "shoulders", x: 450, y: 330, tx: 760, ty: 260, side: "right" },
+  { label: "Quads", region: "quads", x: 420, y: 880, tx: 760, ty: 1040, side: "right" },
+  { label: "IT band", region: "it-band", x: 464, y: 890, tx: 760, ty: 900, side: "right" },
+  { label: "Calves", region: "calves", x: 450, y: 1160, tx: 760, ty: 1160, side: "right" },
+  { label: "Feet & ankles", region: "feet", x: 430, y: 1320, tx: 760, ty: 1300, side: "right" },
+];
+
+const BACK_LEADERS: Leader[] = [
+  { label: "Neck", region: "neck", x: 1060, y: 300, tx: 700, ty: 270, side: "left" },
+  { label: "Upper back", region: "upper-back", x: 1080, y: 450, tx: 700, ty: 400, side: "left" },
+  { label: "Lower back", region: "lower-back", x: 1070, y: 560, tx: 700, ty: 860, side: "left", bend: { x: 990, y: 860 } },
+  { label: "Glutes", region: "glutes", x: 1060, y: 720, tx: 700, ty: 980, side: "left", bend: { x: 990, y: 980 } },
+  { label: "Hamstrings", region: "hamstrings", x: 1000, y: 870, tx: 700, ty: 1100, side: "left" },
+  { label: "Shoulders / chest", region: "shoulders", x: 1220, y: 330, tx: 1500, ty: 270, side: "right" },
+  { label: "Adductors", region: "adductors", x: 1104, y: 810, tx: 1500, ty: 920, side: "right", bend: { x: 1280, y: 920 } },
+  { label: "IT band", region: "it-band", x: 1178, y: 890, tx: 1500, ty: 1020, side: "right" },
+  { label: "Calves", region: "calves", x: 1160, y: 1124, tx: 1500, ty: 1160, side: "right" },
+  { label: "Feet & ankles", region: "feet", x: 1160, y: 1320, tx: 1500, ty: 1320, side: "right" },
+];
+
+function useNarrow() {
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 860px)");
+    const apply = () => setNarrow(query.matches);
+    apply();
+    query.addEventListener("change", apply);
+    return () => query.removeEventListener("change", apply);
+  }, []);
+  return narrow;
+}
 
 function onKey(event: KeyboardEvent, pick: () => void) {
   if (event.key === "Enter" || event.key === " ") {
@@ -64,61 +147,121 @@ function onKey(event: KeyboardEvent, pick: () => void) {
   }
 }
 
+function collect(muscles: readonly MusclePaths[], extras: Extra[]) {
+  const groups = new Map<string, { slug: string; d: string }[]>();
+  const plain: { slug: string; d: string }[] = [];
+  for (const muscle of muscles) {
+    const region = REGION_OF[muscle.slug] ?? null;
+    for (const d of muscle.paths) {
+      if (!region) {
+        plain.push({ slug: muscle.slug, d });
+        continue;
+      }
+      const list = groups.get(region) ?? [];
+      list.push({ slug: muscle.slug, d });
+      groups.set(region, list);
+    }
+  }
+  for (const extra of extras) {
+    const list = groups.get(extra.region) ?? [];
+    for (const d of extra.paths) list.push({ slug: extra.region, d });
+    groups.set(extra.region, list);
+  }
+  return { groups, plain };
+}
+
+function Leaders({ rows }: { rows: Leader[] }) {
+  return (
+    <g className="rio-leader" aria-hidden="true" pointerEvents="none">
+      {rows.map((row) => {
+        const textX = row.tx + (row.side === "left" ? 8 : -8);
+        const points = row.bend
+          ? `${row.x},${row.y} ${row.bend.x},${row.bend.y} ${textX},${row.ty - 4}`
+          : "";
+        return (
+          <g key={`${row.region}-${row.side}`}>
+            {row.bend ? (
+              <polyline points={points} fill="none" />
+            ) : (
+              <line x1={row.x} y1={row.y} x2={textX} y2={row.ty - 4} />
+            )}
+            <text x={row.tx} y={row.ty} textAnchor={row.side === "left" ? "end" : "start"}>
+              {row.label}
+            </text>
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
 function Figure({
   view,
-  shapes,
+  outline,
+  muscles,
+  extras,
+  leaders,
+  viewBox,
   selected,
   onPick,
 }: {
   view: "front" | "back";
-  shapes: Shape[];
+  outline: string;
+  muscles: readonly MusclePaths[];
+  extras: Extra[];
+  leaders: Leader[];
+  viewBox: string;
   selected: string | null;
   onPick: (id: string) => void;
 }) {
+  const { groups, plain } = collect(muscles, extras);
   return (
-    <svg className="rio-body" viewBox="0 0 240 560" role="group" aria-label={view === "front" ? "Front of the body" : "Back of the body"} data-testid={view === "front" ? "body-front" : "body-back"}>
-      <ellipse cx="120" cy="40" rx="24" ry="28" fill={INK} pointerEvents="none" />
-      {shapes.map((shape) => {
-        const region = regionById(shape.id);
+    <svg
+      className="rio-body"
+      viewBox={viewBox}
+      role="group"
+      aria-label={view === "front" ? "Front of the body" : "Back of the body"}
+      data-testid={view === "front" ? "body-front" : "body-back"}
+    >
+      <path className="rio-body-outline" d={outline} />
+      {plain.map((part) => (
+        <path key={`${part.slug}-${part.d.slice(0, 24)}`} className="rio-body-plain" d={part.d} fill={PAPER} />
+      ))}
+      {[...groups.entries()].map(([regionId, parts]) => {
+        const region = regionById(regionId);
         if (!region) return null;
-        const on = selected === shape.id;
+        const on = selected === regionId;
         return (
           <g
-            key={`${view}-${shape.id}`}
+            key={regionId}
+            className={on ? "rio-region is-selected" : "rio-region"}
             role="button"
             tabIndex={0}
             aria-label={`${region.label}, ${view} view`}
             aria-pressed={on}
-            className={on ? "is-selected" : undefined}
-            onClick={() => onPick(shape.id)}
-            onKeyDown={(event) => onKey(event, () => onPick(shape.id))}
+            onClick={() => onPick(regionId)}
+            onKeyDown={(event) => onKey(event, () => onPick(regionId))}
           >
-            {shape.paths.map((d) => (
-              <path key={d} d={d} fill={region.color} />
-            ))}
-            {shape.ellipses?.map((dot) => (
-              <ellipse key={`${dot.cx}-${dot.cy}`} cx={dot.cx} cy={dot.cy} rx={dot.rx} ry={dot.ry} fill={region.color} />
+            {parts.map((part) => (
+              <path key={`${part.slug}-${part.d.slice(0, 28)}`} d={part.d} fill={SLUG_FILL[part.slug] || region.color} />
             ))}
           </g>
         );
       })}
-      <ellipse cx="34" cy="204" rx="11" ry="13" fill={INK} pointerEvents="none" />
-      <ellipse cx="206" cy="204" rx="11" ry="13" fill={INK} pointerEvents="none" />
+      <Leaders rows={leaders} />
     </svg>
   );
 }
 
-function Legend({ ids, onPick, selected }: { ids: string[]; onPick: (id: string) => void; selected: string | null }) {
+function Legend({ onPick, selected }: { onPick: (id: string) => void; selected: string | null }) {
   return (
     <ul className="rio-body-legend">
-      {ids.map((id) => {
-        const region = regionById(id);
-        if (!region) return null;
-        const on = selected === id;
+      {REGIONS.map((region) => {
+        const on = selected === region.id;
         return (
-          <li key={id}>
-            <button type="button" aria-pressed={on} onClick={() => onPick(id)}>
-              <span className="rio-swatch" style={{ background: region.color }} aria-hidden="true" />
+          <li key={region.id}>
+            <button type="button" aria-pressed={on} onClick={() => onPick(region.id)}>
+              <span className="rio-swatch" style={{ background: SLUG_FILL[region.id] || region.color }} aria-hidden="true" />
               {region.label}
             </button>
           </li>
@@ -128,23 +271,41 @@ function Legend({ ids, onPick, selected }: { ids: string[]; onPick: (id: string)
   );
 }
 
-/** Original front and back figures. The stock chart was a style reference only. */
+/** Front and back outlines from react-native-body-highlighter, grouped into sore-spot areas. */
 export function BodyMap({ selected, onPick }: { selected: string | null; onPick: (id: string) => void }) {
+  const narrow = useNarrow();
   return (
     <div className="rio-bodies">
-      <Legend ids={FRONT_LEGEND} selected={selected} onPick={onPick} />
       <figure>
         <figcaption>Front</figcaption>
-        <Figure view="front" shapes={FRONT} selected={selected} onPick={onPick} />
+        <Figure
+          view="front"
+          outline={frontOutline}
+          muscles={frontMuscles}
+          extras={FRONT_EXTRAS}
+          leaders={FRONT_LEADERS}
+          viewBox={narrow ? "150 110 430 1260" : "-280 80 1400 1360"}
+          selected={selected}
+          onPick={onPick}
+        />
       </figure>
       <figure>
         <figcaption>Back</figcaption>
-        <Figure view="back" shapes={BACK} selected={selected} onPick={onPick} />
+        <Figure
+          view="back"
+          outline={backOutline}
+          muscles={backMuscles}
+          extras={BACK_EXTRAS}
+          leaders={BACK_LEADERS}
+          viewBox={narrow ? "860 110 460 1260" : "420 80 1480 1360"}
+          selected={selected}
+          onPick={onPick}
+        />
       </figure>
-      <Legend ids={BACK_LEGEND} selected={selected} onPick={onPick} />
-      <p className="rio-sr">
-        {REGIONS.length} areas. Use the list or the figure. Each area can be reached from the keyboard.
-      </p>
+      <Legend selected={selected} onPick={onPick} />
+      <p className="rio-body-credit">Body outlines: react-native-body-highlighter (MIT) by HichamELBSI</p>
+      <p className="rio-sr">{REGIONS.length} areas. Each area can be reached from the keyboard.</p>
     </div>
   );
 }
+

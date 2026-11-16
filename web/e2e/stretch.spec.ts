@@ -122,7 +122,7 @@ test("tapping a region adds its stretches, sharp pain does not, and Done sticks"
   await expect(prescription.getByText("Stop stretching that area")).toBeVisible();
   await expect(prescription.getByRole("heading", { name: "Extra for sore spots" })).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Calves / Achilles", exact: true }).click();
+  await page.getByRole("button", { name: "Calves / Achilles, back view" }).locator("path").first().click();
   await page.getByRole("button", { name: "Moderate", exact: true }).click();
   const extras = page.getByTestId("stretch-extras");
   await expect(extras.getByRole("heading", { name: "Wall calf stretch, straight knee" })).toBeVisible();

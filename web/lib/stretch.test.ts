@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, readFileSync } from "node:fs";
+import { backMuscles, frontMuscles } from "../components/body-map/paths.ts";
 import { EXERCISES, REGIONS, ROUTINES, SHARP_MESSAGE, type DayKind } from "./stretch-content.ts";
 import {
   classifyDay,
@@ -56,6 +57,17 @@ test("the library is the 42 named stretches, as text only", () => {
     assert.ok(exercise.type === "D" || exercise.type === "S");
     for (const word of BANNED) assert.equal(exercise.howTo.includes(word), false, word);
   }
+  const slugs = new Set([...frontMuscles, ...backMuscles].map((muscle) => muscle.slug));
+  for (const slug of ["chest", "abs", "quadriceps", "tibialis", "calves", "feet", "ankles", "hamstring", "gluteal", "adductors", "lower-back", "upper-back", "trapezius", "deltoids", "neck"]) {
+    assert.equal(slugs.has(slug), true, slug);
+  }
+  const license = readFileSync(new URL("../components/body-map/LICENSE", import.meta.url), "utf8");
+  assert.match(license, /MIT License/);
+  assert.match(license, /Copyright \(c\) 2022 ELABBASSI Hicham/);
+  const map = readFileSync(new URL("../components/BodyMap.tsx", import.meta.url), "utf8");
+  assert.match(map, /Body outlines: react-native-body-highlighter \(MIT\) by HichamELBSI/);
+  assert.match(map, /hip-flexors/);
+  assert.match(map, /it-band/);
   assert.equal(EXERCISES[0].dose, "10 each way per foot");
   assert.equal(EXERCISES[41].name, "Neck side stretch");
   assert.equal(EXERCISES[41].type, "S");

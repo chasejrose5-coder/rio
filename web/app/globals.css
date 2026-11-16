@@ -2546,10 +2546,49 @@ button.rio-text-link:disabled {
 .rio-disclaimer { max-width: 42rem; color: #3c3a36; }
 .rio-bodies {
   display: grid;
-  grid-template-columns: minmax(9rem, 14rem) minmax(12rem, 1fr) minmax(12rem, 1fr) minmax(9rem, 14rem);
-  gap: 0.8rem 1rem;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem 1rem;
   align-items: start;
   margin-top: 0.8rem;
+}
+.rio-body-outline {
+  fill: #fffcf8;
+  stroke: #2a2a2a;
+  stroke-width: 1.6px;
+  vector-effect: non-scaling-stroke;
+}
+.rio-body-plain {
+  stroke: #2a2a2a;
+  stroke-width: 1.1px;
+  vector-effect: non-scaling-stroke;
+}
+.rio-region { cursor: pointer; }
+.rio-region:focus { outline: none; }
+.rio-region path {
+  stroke: #2a2a2a;
+  stroke-width: 1.15px;
+  vector-effect: non-scaling-stroke;
+}
+.rio-region:hover path,
+.rio-region:focus-visible path,
+.rio-region.is-selected path {
+  stroke: #c2461f;
+  stroke-width: 2.8px;
+}
+.rio-leader { pointer-events: none; }
+.rio-leader line,
+.rio-leader polyline { stroke: #3a3a3a; stroke-width: 1px; fill: none; vector-effect: non-scaling-stroke; }
+.rio-leader text {
+  fill: #242424;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+}
+.rio-body-credit {
+  grid-column: 1 / -1;
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
 }
 .rio-bodies figure { margin: 0; }
 .rio-bodies figcaption {
@@ -2561,14 +2600,7 @@ button.rio-text-link:disabled {
 }
 .rio-body { width: 100%; height: auto; display: block; }
 .rio-body [role="button"] { cursor: pointer; scroll-margin-top: 6rem; }
-.rio-body [role="button"]:focus-visible path,
-.rio-body [role="button"]:focus-visible ellipse,
-.rio-body [role="button"].is-selected path,
-.rio-body [role="button"].is-selected ellipse {
-  stroke: #121110;
-  stroke-width: 4px;
-}
-.rio-body-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+.rio-body-legend { display: none; list-style: none; margin: 0; padding: 0; gap: 0.35rem 0.7rem; }
 .rio-body-legend button {
   display: flex;
   align-items: center;
@@ -2585,8 +2617,12 @@ button.rio-text-link:disabled {
 .rio-body-legend button[aria-pressed="true"] { font-weight: 700; }
 .rio-swatch { width: 0.85rem; height: 0.85rem; border-radius: 3px; flex: none; }
 @media (max-width: 860px) {
-  .rio-bodies { grid-template-columns: 1fr 1fr; }
-  .rio-body-legend:first-child { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; }
-  .rio-bodies .rio-body-legend:last-of-type { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; }
+  .rio-bodies { grid-template-columns: 1fr; }
+  .rio-leader { display: none; }
+  .rio-body-legend {
+    display: flex;
+    flex-wrap: wrap;
+    grid-column: 1 / -1;
+  }
   .rio-body-legend button { width: auto; }
 }
