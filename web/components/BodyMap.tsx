@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import { REGIONS, regionById } from "@/lib/stretch-content";
 import { backMuscles, backOutline, frontMuscles, frontOutline, type MusclePaths } from "./body-map/paths";
 
@@ -90,43 +90,37 @@ const BACK_EXTRAS: Extra[] = [
   },
 ];
 
-type Leader = {
-  label: string;
-  region: string;
-  x: number;
-  y: number;
-  tx: number;
-  ty: number;
-  side: "left" | "right";
-  /** A bend keeps the line under the outstretched hand. */
-  bend?: { x: number; y: number };
-};
+type Anchor = { label: string; region: string; x: number; y: number; side: "left" | "right" };
 
-const FRONT_LEADERS: Leader[] = [
-  { label: "Neck", region: "neck", x: 360, y: 300, tx: -30, ty: 280, side: "left" },
-  { label: "Abs / core", region: "abs", x: 300, y: 540, tx: -30, ty: 540, side: "left" },
-  { label: "Hip flexors", region: "hip-flexors", x: 341, y: 850, tx: -30, ty: 870, side: "left" },
-  { label: "Adductors", region: "adductors", x: 318, y: 735, tx: -30, ty: 1000, side: "left", bend: { x: 240, y: 1000 } },
-  { label: "Shins", region: "shins", x: 280, y: 1100, tx: -30, ty: 1140, side: "left" },
-  { label: "Shoulders / chest", region: "shoulders", x: 450, y: 330, tx: 760, ty: 260, side: "right" },
-  { label: "Quads", region: "quads", x: 420, y: 880, tx: 760, ty: 1040, side: "right" },
-  { label: "IT band", region: "it-band", x: 464, y: 890, tx: 760, ty: 900, side: "right" },
-  { label: "Calves", region: "calves", x: 450, y: 1160, tx: 760, ty: 1160, side: "right" },
-  { label: "Feet & ankles", region: "feet", x: 430, y: 1320, tx: 760, ty: 1300, side: "right" },
+/** Each point sits on that muscle. A column keeps every label at its muscle's height, so the lines stay straight. */
+const FRONT_ANCHORS: Anchor[] = [
+  { label: "Neck", region: "neck", x: 334, y: 292, side: "left" },
+  { label: "Abs / core", region: "abs", x: 320, y: 540, side: "left" },
+  { label: "Adductors", region: "adductors", x: 318, y: 748, side: "left" },
+  { label: "Hip flexors", region: "hip-flexors", x: 340, y: 820, side: "left" },
+  { label: "Shins", region: "shins", x: 278, y: 1100, side: "left" },
+  { label: "Shoulders / chest", region: "shoulders", x: 468, y: 360, side: "right" },
+  { label: "Quads", region: "quads", x: 404, y: 800, side: "right" },
+  { label: "IT band", region: "it-band", x: 466, y: 890, side: "right" },
+  { label: "Calves", region: "calves", x: 452, y: 1150, side: "right" },
+  { label: "Feet & ankles", region: "feet", x: 432, y: 1324, side: "right" },
 ];
 
-const BACK_LEADERS: Leader[] = [
-  { label: "Neck", region: "neck", x: 1060, y: 300, tx: 700, ty: 270, side: "left" },
-  { label: "Upper back", region: "upper-back", x: 1080, y: 450, tx: 700, ty: 400, side: "left" },
-  { label: "Lower back", region: "lower-back", x: 1070, y: 560, tx: 700, ty: 860, side: "left", bend: { x: 990, y: 860 } },
-  { label: "Glutes", region: "glutes", x: 1060, y: 720, tx: 700, ty: 980, side: "left", bend: { x: 990, y: 980 } },
-  { label: "Hamstrings", region: "hamstrings", x: 1000, y: 870, tx: 700, ty: 1100, side: "left" },
-  { label: "Shoulders / chest", region: "shoulders", x: 1220, y: 330, tx: 1500, ty: 270, side: "right" },
-  { label: "Adductors", region: "adductors", x: 1104, y: 810, tx: 1500, ty: 920, side: "right", bend: { x: 1280, y: 920 } },
-  { label: "IT band", region: "it-band", x: 1178, y: 890, tx: 1500, ty: 1020, side: "right" },
-  { label: "Calves", region: "calves", x: 1160, y: 1124, tx: 1500, ty: 1160, side: "right" },
-  { label: "Feet & ankles", region: "feet", x: 1160, y: 1320, tx: 1500, ty: 1320, side: "right" },
+const BACK_ANCHORS: Anchor[] = [
+  { label: "Neck", region: "neck", x: 1048, y: 272, side: "left" },
+  { label: "Upper back", region: "upper-back", x: 1004, y: 440, side: "left" },
+  { label: "Lower back", region: "lower-back", x: 1016, y: 568, side: "left" },
+  { label: "Glutes", region: "glutes", x: 1004, y: 700, side: "left" },
+  { label: "Hamstrings", region: "hamstrings", x: 1032, y: 870, side: "left" },
+  { label: "Shoulders / chest", region: "shoulders", x: 1224, y: 352, side: "right" },
+  { label: "Adductors", region: "adductors", x: 1122, y: 824, side: "right" },
+  { label: "IT band", region: "it-band", x: 1186, y: 900, side: "right" },
+  { label: "Calves", region: "calves", x: 1168, y: 1140, side: "right" },
+  { label: "Feet & ankles", region: "feet", x: 1172, y: 1330, side: "right" },
 ];
+
+const FRONT_COLUMN = { left: 36, right: 708 };
+const BACK_COLUMN = { left: 748, right: 1424 };
 
 function useNarrow() {
   const [narrow, setNarrow] = useState(false);
@@ -170,23 +164,54 @@ function collect(muscles: readonly MusclePaths[], extras: Extra[]) {
   return { groups, plain };
 }
 
-function Leaders({ rows }: { rows: Leader[] }) {
+function columnYs(ys: number[], gap: number) {
+  const placed = [...ys];
+  for (let index = 1; index < placed.length; index += 1) {
+    placed[index] = Math.max(placed[index], placed[index - 1] + gap);
+  }
+  return placed;
+}
+
+/** CSS pixels on this SVG scale with the viewBox, so 14px of type needs a larger user-unit size. */
+function useLabelUnits(svg: RefObject<SVGSVGElement | null>, viewBoxWidth: number) {
+  const [units, setUnits] = useState(28);
+  useEffect(() => {
+    const element = svg.current;
+    if (!element) return;
+    const apply = () => {
+      const width = element.getBoundingClientRect().width;
+      if (width < 8) return;
+      setUnits((20 * viewBoxWidth) / width);
+    };
+    apply();
+    const observer = new ResizeObserver(apply);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [svg, viewBoxWidth]);
+  return units;
+}
+
+function Leaders({ rows, columns, fontSize }: { rows: Anchor[]; columns: { left: number; right: number }; fontSize: number }) {
+  const gap = fontSize * 1.35;
+  const placed: { anchor: Anchor; y: number }[] = [];
+  for (const side of ["left", "right"] as const) {
+    const group = rows.filter((row) => row.side === side).sort((a, b) => a.y - b.y);
+    const ys = columnYs(
+      group.map((row) => row.y),
+      gap,
+    );
+    group.forEach((anchor, index) => placed.push({ anchor, y: ys[index] }));
+  }
   return (
-    <g className="rio-leader" aria-hidden="true" pointerEvents="none">
-      {rows.map((row) => {
-        const textX = row.tx + (row.side === "left" ? 8 : -8);
-        const points = row.bend
-          ? `${row.x},${row.y} ${row.bend.x},${row.bend.y} ${textX},${row.ty - 4}`
-          : "";
+    <g className="rio-leader" aria-hidden="true" pointerEvents="none" fontSize={fontSize}>
+      {placed.map(({ anchor, y }) => {
+        const tx = columns[anchor.side];
+        const x2 = anchor.side === "left" ? tx + fontSize * 0.4 : tx - fontSize * 0.4;
         return (
-          <g key={`${row.region}-${row.side}`}>
-            {row.bend ? (
-              <polyline points={points} fill="none" />
-            ) : (
-              <line x1={row.x} y1={row.y} x2={textX} y2={row.ty - 4} />
-            )}
-            <text x={row.tx} y={row.ty} textAnchor={row.side === "left" ? "end" : "start"}>
-              {row.label}
+          <g key={`${anchor.region}-${anchor.side}`}>
+            <line x1={anchor.x} y1={anchor.y} x2={x2} y2={y} />
+            <text x={tx} y={y + fontSize * 0.32} textAnchor={anchor.side === "left" ? "end" : "start"}>
+              {anchor.label}
             </text>
           </g>
         );
@@ -200,8 +225,10 @@ function Figure({
   outline,
   muscles,
   extras,
-  leaders,
+  anchors,
+  columns,
   viewBox,
+  viewBoxWidth,
   selected,
   onPick,
 }: {
@@ -209,14 +236,19 @@ function Figure({
   outline: string;
   muscles: readonly MusclePaths[];
   extras: Extra[];
-  leaders: Leader[];
+  anchors: Anchor[];
+  columns: { left: number; right: number };
   viewBox: string;
+  viewBoxWidth: number;
   selected: string | null;
   onPick: (id: string) => void;
 }) {
+  const svg = useRef<SVGSVGElement>(null);
+  const fontSize = useLabelUnits(svg, viewBoxWidth);
   const { groups, plain } = collect(muscles, extras);
   return (
     <svg
+      ref={svg}
       className="rio-body"
       viewBox={viewBox}
       role="group"
@@ -248,7 +280,7 @@ function Figure({
           </g>
         );
       })}
-      <Leaders rows={leaders} />
+      <Leaders rows={anchors} columns={columns} fontSize={fontSize} />
     </svg>
   );
 }
@@ -283,8 +315,10 @@ export function BodyMap({ selected, onPick }: { selected: string | null; onPick:
           outline={frontOutline}
           muscles={frontMuscles}
           extras={FRONT_EXTRAS}
-          leaders={FRONT_LEADERS}
-          viewBox={narrow ? "150 110 430 1260" : "-280 80 1400 1360"}
+          anchors={FRONT_ANCHORS}
+          columns={FRONT_COLUMN}
+          viewBox={narrow ? "150 110 430 1260" : "-280 80 1400 1300"}
+          viewBoxWidth={narrow ? 430 : 1400}
           selected={selected}
           onPick={onPick}
         />
@@ -296,8 +330,10 @@ export function BodyMap({ selected, onPick }: { selected: string | null; onPick:
           outline={backOutline}
           muscles={backMuscles}
           extras={BACK_EXTRAS}
-          leaders={BACK_LEADERS}
-          viewBox={narrow ? "860 110 460 1260" : "420 80 1480 1360"}
+          anchors={BACK_ANCHORS}
+          columns={BACK_COLUMN}
+          viewBox={narrow ? "860 110 460 1260" : "430 80 1420 1300"}
+          viewBoxWidth={narrow ? 460 : 1420}
           selected={selected}
           onPick={onPick}
         />

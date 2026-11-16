@@ -2547,9 +2547,10 @@ button.rio-text-link:disabled {
 .rio-bodies {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.6rem 1rem;
+  gap: 0.4rem 0.35rem;
   align-items: start;
-  margin-top: 0.8rem;
+  width: calc(100% + 8vw);
+  margin: 0.8rem -4vw 0;
 }
 .rio-body-outline {
   fill: #fffcf8;
@@ -2576,13 +2577,11 @@ button.rio-text-link:disabled {
   stroke-width: 2.8px;
 }
 .rio-leader { pointer-events: none; }
-.rio-leader line,
-.rio-leader polyline { stroke: #3a3a3a; stroke-width: 1px; fill: none; vector-effect: non-scaling-stroke; }
+.rio-leader line { stroke: #1c1c1c; stroke-width: 1.25px; vector-effect: non-scaling-stroke; }
 .rio-leader text {
-  fill: #242424;
+  fill: #161616;
   font-family: var(--font);
-  font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
 }
 .rio-body-credit {
   grid-column: 1 / -1;
@@ -2617,7 +2616,7 @@ button.rio-text-link:disabled {
 .rio-body-legend button[aria-pressed="true"] { font-weight: 700; }
 .rio-swatch { width: 0.85rem; height: 0.85rem; border-radius: 3px; flex: none; }
 @media (max-width: 860px) {
-  .rio-bodies { grid-template-columns: 1fr; }
+  .rio-bodies { grid-template-columns: 1fr; width: auto; margin-left: 0; margin-right: 0; }
   .rio-leader { display: none; }
   .rio-body-legend {
     display: flex;
