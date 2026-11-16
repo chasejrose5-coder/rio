@@ -104,6 +104,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .rio-nav-row { justify-content: space-between; }
 .rio-links { justify-content: flex-end; }
 .rio-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
   font-family: var(--display);
   font-weight: 800;
   font-size: 1.05rem;
@@ -256,6 +261,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
     display: flex;
     flex-wrap: nowrap;
     overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: 0.55rem;
+    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 1.75rem), transparent);
+    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 1.75rem), transparent);
     gap: 0.15rem 0.4rem;
     margin: 0;
     padding: 0.1rem 0.55rem 0.2rem;
@@ -264,6 +273,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   }
   .rio-subnav a {
     flex: none;
+    scroll-snap-align: start;
     display: inline-flex;
     align-items: center;
     min-height: 44px;
@@ -587,7 +597,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   padding: 0.45rem 0.75rem;
   font-size: 1rem;
 }
-.rio-auth-card input:focus { border-color: #c94a25; outline: none; }
+.rio-auth-card input:focus { border-color: #c94a25; }
+.rio-auth-card input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.rio-field-hint {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
 .rio-password { position: relative; }
 .rio-password input { width: 100%; padding-right: 3.1rem; }
 .rio-eye {
@@ -714,6 +734,7 @@ button.rio-text-link:disabled {
 }
 .rio-contact p { margin: 0; }
 .rio-legal-links { margin-top: 0.35rem; }
+.rio-legal-links a { min-width: 44px; justify-content: center; }
 .rio-contact a {
   display: inline-flex;
   align-items: center;
@@ -1055,9 +1076,18 @@ button.rio-text-link:disabled {
 .page-plan .rio-error { color: #b42318; }
 .rio-after-hero { margin: 1.1rem 0 0; }
 .page-plan .rio-card { border-top: 1px solid var(--line); padding: 1.3rem 0 0.4rem; margin: 0.4rem 0 0; }
-.rio-phases { display: flex; gap: 0.45rem; overflow-x: auto; padding: 0.45rem 0 0.2rem; }
+.rio-phases {
+  display: flex;
+  gap: 0.45rem;
+  overflow-x: auto;
+  padding: 0.45rem 0 0.2rem;
+  scroll-snap-type: x proximity;
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 2rem), transparent);
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 2rem), transparent);
+}
 .rio-phase {
   flex: 0 0 auto;
+  scroll-snap-align: start;
   min-width: max-content;
   padding: 0.6rem 0.15rem 0.5rem;
   text-align: left;
@@ -2861,4 +2891,20 @@ button.rio-text-link:disabled {
   margin-top: 1.4rem;
   padding: 0.85rem 1.35rem;
   text-decoration: none;
+}
+
+@media (max-width: 360px) {
+  .rio-links {
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .rio-links > a,
+  .rio-overflow-toggle {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-left: 0.04rem;
+    padding-right: 0.04rem;
+    font-size: 0.68rem;
+    letter-spacing: 0;
+  }
 }

@@ -20,12 +20,14 @@ function PasswordField({
   autoComplete,
   value,
   onChange,
+  describedBy,
 }: {
   id: string;
   name: string;
   autoComplete: string;
   value: string;
   onChange: (value: string) => void;
+  describedBy?: string;
 }) {
   const [shown, setShown] = useState(false);
   return (
@@ -35,6 +37,7 @@ function PasswordField({
         name={name}
         type={shown ? "text" : "password"}
         autoComplete={autoComplete}
+        aria-describedby={describedBy}
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
@@ -234,7 +237,7 @@ export function SignInScreen() {
       ) : null}
       <form onSubmit={onSubmit} noValidate>
         <label htmlFor="email">Email</label>
-        <input id="email" name="email" type="text" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+        <input id="email" name="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
         <label htmlFor="password">Password</label>
         <PasswordField
           id="password"
@@ -329,20 +332,22 @@ export function CreateAccountScreen() {
         <label htmlFor="name">Name</label>
         <input id="name" name="name" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} />
         <label htmlFor="email">Email</label>
-        <input id="email" name="email" type="text" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+        <input id="email" name="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
         <label htmlFor="password">Password</label>
         <PasswordField
           id="password"
           name="password"
           autoComplete="new-password"
+          describedBy="password-hint"
           value={password}
           onChange={setPassword}
         />
+        <p className="rio-field-hint" id="password-hint">At least 8 characters.</p>
         <button className="rio-primary" type="submit" disabled={busy}>
           Create account
         </button>
       </form>
-      {localFile ? <p className="rio-settings-note">First name is enough. At least 8 characters. Saved on this machine.</p> : null}
+      {localFile ? <p className="rio-settings-note">First name is enough. Saved on this machine.</p> : null}
       <Link className="rio-secondary" href="/sign-in">
         Back to log in
       </Link>
@@ -400,7 +405,7 @@ export function ForgotScreen() {
       {note ? <p className="rio-settings-note">{note}</p> : null}
       <form onSubmit={onSubmit} noValidate>
         <label htmlFor="email">Email</label>
-        <input id="email" name="email" type="text" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+        <input id="email" name="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
         <button className="rio-primary" type="submit" disabled={busy}>
           Send reset email
         </button>
