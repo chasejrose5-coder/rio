@@ -29,7 +29,7 @@ type Dates = "iso" | "short";
 
 export function SettingsView() {
   return (
-    <RequireUser>
+    <RequireUser title="Settings" pageClass="page-settings">
       <SettingsBody />
     </RequireUser>
   );

@@ -222,6 +222,22 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   color: var(--ink);
 }
 .rio-loading main { padding: 2.4rem 5vw 3.5rem; }
+.rio-skel {
+  border-radius: 16px;
+  background: rgba(18, 17, 16, 0.08);
+}
+.page-home .rio-skel { background: rgba(244, 241, 236, 0.22); }
+.rio-skel-display { height: 4.4rem; max-width: 18rem; margin: 2.2rem 0 0.8rem; }
+.rio-skel-line { height: 1rem; width: 42%; margin: 0.8rem 0 1rem; }
+.rio-skel-card { height: 6.5rem; }
+.rio-skel-grid, .rio-skel-stack { display: grid; gap: 0.85rem; }
+.rio-skel-cal {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin-top: 1rem;
+}
+.rio-skel-cal .rio-skel { height: 4.5rem; border-radius: 10px; }
 .rio-gate-retry {
   box-sizing: border-box;
   max-width: 28rem;

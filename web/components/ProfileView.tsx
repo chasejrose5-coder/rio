@@ -22,7 +22,7 @@ type Mode = "loading" | "ready" | "error";
 
 export function ProfileView() {
   return (
-    <RequireUser>
+    <RequireUser title="Profile" pageClass="page-profile">
       <ProfileBody />
     </RequireUser>
   );

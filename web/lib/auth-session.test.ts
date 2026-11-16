@@ -98,11 +98,13 @@ describe("sign-in when refresh returns null", () => {
     assert.equal(SESSION_STUCK, "Signed in, but the session didn't stick. Try again.");
     assert.equal(afterSignIn(athlete), null);
     const screen = readFileSync(new URL("../components/AuthScreen.tsx", import.meta.url), "utf8");
-    assert.match(screen, /const stuck = afterSignIn\(await refresh\(\)\)/);
+    assert.match(screen, /const signedIn = await refresh\(\)/);
+    assert.match(screen, /const stuck = afterSignIn\(signedIn\)/);
     assert.match(screen, /setError\(stuck\)/);
     const signIn = screen.slice(screen.indexOf("async function onSubmit"), screen.indexOf("export function CreateAccountScreen"));
     const guard = signIn.indexOf("if (stuck)");
-    const navigate = signIn.indexOf('router.replace("/")');
+    const navigate = signIn.indexOf("destinationAfterSignIn(signedIn!)");
     assert.ok(guard !== -1 && navigate !== -1 && guard < navigate);
+    assert.equal(signIn.includes('router.replace("/")'), false);
   });
 });
