@@ -1,0 +1,89 @@
+.page-legal {
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+}
+.rio-legal-top {
+  padding: 1.1rem 5vw 0;
+}
+.rio-legal-top a {
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  font-size: 0.95rem;
+}
+.page-legal main {
+  padding: 1.4rem 5vw 3.5rem;
+  max-width: 48rem;
+}
+.rio-draft-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.7rem;
+  align-items: baseline;
+  margin: 0 0 1.35rem;
+  padding: 0.9rem 1rem;
+  background: #121110;
+  color: #f4f1ec;
+  border-radius: 14px;
+  line-height: 1.45;
+}
+.rio-draft-banner strong {
+  letter-spacing: 0.16em;
+  font-size: 0.95rem;
+}
+.page-legal h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  font-size: clamp(2.6rem, 6vw, 4.2rem);
+}
+.rio-legal-updated {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+.rio-legal-contents {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 1rem;
+  margin: 1.25rem 0 0.4rem;
+}
+.rio-legal-contents a,
+.rio-legal-switch a {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.14em;
+}
+.page-legal section {
+  margin: 1.45rem 0 0;
+}
+.page-legal h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-size: 1.45rem;
+}
+.page-legal section p,
+.page-legal section li {
+  margin: 0.55rem 0 0;
+  color: #3c3a36;
+  font-size: 1.02rem;
+  line-height: 1.5;
+}
+.page-legal section ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.2rem;
+}
+.rio-legal-switch {
+  margin: 1.8rem 0 0.4rem;
+}
+.page-legal .rio-contact {
+  margin-top: 1.4rem;
+  color: #3c3a36;
+  text-align: left;
+}
