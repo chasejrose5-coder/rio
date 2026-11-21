@@ -57,7 +57,21 @@ export const PAGE_MEANINGS = {
   },
   library: {
     section: "pages",
-    sentences: ["Library sits under Training, next to Stretching and Foam rolling. Search, What it trains, and Phase narrow the list."],
+    sentences: ["Library sits under Training, next to Stretching, Recovery, Core, and Foam rolling. Search, What it trains, and Phase narrow the list."],
+  },
+  recovery: {
+    section: "pages",
+    sentences: [
+      "Recovery, under Training, lists injury-prevention exercises with an easy, medium, and hard dose, and a runner can mark areas to rebuild.",
+      "Not medical advice, and a painful area is a reason to see a professional.",
+    ],
+  },
+  core: {
+    section: "pages",
+    sentences: [
+      "Core, under Training, is a daily circuit: about 8 minutes on a hard day, 12 to 15 minutes on an easy day, and none on race day or the day before.",
+      "Not medical advice, and a painful area is a reason to see a professional.",
+    ],
   },
   foam: {
     section: "pages",
@@ -231,6 +245,8 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
       "Plan shows the weeks from the start date to the goal date, as Calendar, This week, or Full season.",
       "Activity shows Strava runs, distance, and heart rate. Refresh asks for newer runs.",
       "Library, under Training, is the workout menu. Search, What it trains, and Phase narrow the same list.",
+      "Recovery, under Training, is injury prevention by body part. Mark an area to rebuild it three days a week.",
+      "Core, under Training, rotates anti-extension, anti-rotation, lateral, flexion, and running-specific work.",
       "Foam rolling, under Training, follows a hard day or a long run, and stays optional on other days.",
       "Past seasons lists each saved season by start date, goal date, and goal time. Open plan loads it. Delete shows facts already stored, such as workouts logged and a timed 800.",
       "Settings holds your name, time zone, pace units, and Strava. The danger zone clears marks, the plan, or the account.",
