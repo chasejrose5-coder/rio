@@ -156,7 +156,7 @@ def plan(
     preview = _preview(request)
     if preview is not None:
         season, runs = preview
-        body = plan_view(season, resolved["today"], prefs_payload(resolved), month)
+        body = plan_view(season, resolved["today"], prefs_payload(resolved), month, heart=None)
         return _stamp(body, runs)
     named = _named_season(
         who,
@@ -169,7 +169,15 @@ def plan(
     )
     season = named if named is not None else open_season(who, request.app.state.directory, resolved["today"])
     attach_activities(request.app, who, season)
-    return plan_view(season, resolved["today"], prefs_payload(resolved), month)
+    from api.heart_rate_store import training_profile
+
+    return plan_view(
+        season,
+        resolved["today"],
+        prefs_payload(resolved),
+        month,
+        heart=training_profile(who, request.app.state.directory),
+    )
 
 
 @router.get("/library")
@@ -262,7 +270,10 @@ def one_session(day: str, request: Request) -> dict:
         season, _runs = preview
     else:
         season = open_season(who, request.app.state.directory, resolved["today"])
-    found = session_view(season, day, resolved)
+    from api.heart_rate_store import training_profile
+
+    heart = None if preview is not None else training_profile(who, request.app.state.directory)
+    found = session_view(season, day, resolved, heart)
     if found is None:
         raise ApiError(404, "That day is not in this season.")
     return found

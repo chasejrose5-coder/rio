@@ -49,11 +49,28 @@ export type Athlete = {
   };
 };
 
+export type HeartWorkout = {
+  zone: number;
+  zone_name: string;
+  low_bpm: number;
+  high_bpm: number;
+  pace_low: string;
+  pace_high: string;
+  pace_line: string;
+  pace_note: string;
+  estimate: "creating" | "ready" | string;
+  qualifying?: number;
+  qualifying_needed?: number;
+  effort: string;
+  safety: string;
+};
+
 export type Prescription = {
   line: string;
   tolerance: string;
   block: string;
   average?: string;
+  heart?: HeartWorkout | null;
 };
 
 export type WorkoutFacts = {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Expander } from "./Expander";
+import { HeartPace } from "./HeartPace";
 import { Footer, PhotoCredit } from "./Footer";
 import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
@@ -76,6 +77,7 @@ function WorkoutFacts({ card, title, showId }: { card: WorkoutCard; title: strin
       {prescription?.line ? <p className="rio-pace-line">{prescription.line}</p> : null}
       {prescription?.tolerance ? <p className="rio-pace-range">Tolerance {prescription.tolerance}</p> : null}
       {prescription?.block ? <p className="rio-pace-block">Block {prescription.block}</p> : null}
+      <HeartPace heart={prescription?.heart} />
     </div>
   );
 }
@@ -360,6 +362,7 @@ function DayCard({ card }: { card: WorkoutCard }) {
       {card.prescription?.line ? <p className="rio-pace-line">{card.prescription.line}</p> : null}
       {card.prescription?.tolerance ? <p className="rio-pace-range">Tolerance {card.prescription.tolerance}</p> : null}
       {card.prescription?.block ? <p className="rio-pace-block">Block {card.prescription.block}</p> : null}
+      <HeartPace heart={card.prescription?.heart} compact />
     </div>
   );
   if (!card.template_id || !card.date) return body;
