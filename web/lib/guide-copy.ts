@@ -43,7 +43,7 @@ export const PAGE_MEANINGS = {
     section: "pages",
     sentences: [
       "Plan is every week from the start date to the goal date, as a calendar or a full list.",
-      "This week adds distance, sessions done against the plan, time in zone when a heart-rate stream is saved, and the days left to the goal.",
+      "This week adds distance, sessions done against the plan, time in zone when a heart-rate stream is saved, injury, core, and foam work marked done, and the days left to the goal.",
     ],
   },
   session: {
@@ -60,7 +60,28 @@ export const PAGE_MEANINGS = {
   },
   library: {
     section: "pages",
-    sentences: ["Library sits under Training, next to Stretching. Search, What it trains, and Phase narrow the list."],
+    sentences: ["Library sits under Training, next to Stretching, Recovery, Core, and Foam rolling. Search, What it trains, and Phase narrow the list."],
+  },
+  recovery: {
+    section: "pages",
+    sentences: [
+      "Recovery, under Training, lists injury-prevention exercises with an easy, medium, and hard dose, and a runner can mark areas to rebuild.",
+      "Not medical advice, and a painful area is a reason to see a professional.",
+    ],
+  },
+  core: {
+    section: "pages",
+    sentences: [
+      "Core, under Training, is a daily circuit: about 8 minutes on a hard day, 12 to 15 minutes on an easy day, and none on race day or the day before.",
+      "Not medical advice, and a painful area is a reason to see a professional.",
+    ],
+  },
+  foam: {
+    section: "pages",
+    sentences: [
+      "Foam rolling, under Training, is a short pass over the calves, quads, hamstrings, IT band, glutes, hips, and feet after a hard day or a long run.",
+      "Not medical advice, and a painful spot is a reason to see a professional.",
+    ],
   },
   stretching: {
     section: "stretching",
@@ -227,6 +248,9 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
       "Plan shows the weeks from the start date to the goal date, as Calendar, This week, or Full season.",
       "Activity shows Strava runs, distance, and heart rate. Refresh asks for newer runs.",
       "Library, under Training, is the workout menu. Search, What it trains, and Phase narrow the same list.",
+      "Recovery, under Training, is injury prevention by body part. Mark an area to rebuild it three days a week.",
+      "Core, under Training, rotates anti-extension, anti-rotation, lateral, flexion, and running-specific work.",
+      "Foam rolling, under Training, follows a hard day or a long run, and stays optional on other days.",
       "Past seasons lists each saved season by start date, goal date, and goal time. Open plan loads it. Delete shows facts already stored, such as workouts logged and a timed 800.",
       "Settings holds your name, time zone, pace units, and Strava. The danger zone clears marks, the plan, or the account.",
       "Profile keeps the easy pace and the season from Start. Saving a new goal 800 time does not rebuild the season.",

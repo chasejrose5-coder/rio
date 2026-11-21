@@ -17,7 +17,7 @@ async function one(work: () => Promise<WorkSummary>): Promise<Row | null> {
   }
 }
 
-/** Injury, core, and foam counts. A missing route stays hidden. */
+/** Done marks saved for injury prevention, core, and foam rolling this week. */
 export function RecapMore({ start, end }: { start: string; end: string }) {
   const [rows, setRows] = useState<Row[]>([]);
 
