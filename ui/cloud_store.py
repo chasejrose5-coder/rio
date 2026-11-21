@@ -915,7 +915,14 @@ class SupabaseDirectory:
             )
         except Exception as exc:
             raise CloudAuthError("Sign-in could not be finished. Try again.") from exc
-        return _session_dict(response, "")
+        session = _session_dict(response, "")
+        signed_user = _response_parts(response)[1]
+        name = google_display_name(signed_user)
+        if name:
+            session["display_name"] = name
+        # The same profile row an email signup writes. Season rows point at it.
+        self._ensure_profile(session, session.get("display_name") or "")
+        return session
 
     def refresh_session(self, refresh_token: object) -> dict:
         if not isinstance(refresh_token, str) or not refresh_token:
@@ -1972,6 +1979,27 @@ def _public_user(user: dict) -> dict:
         if key in user:
             row[key] = user[key]
     return row
+
+
+def google_display_name(user: object) -> str:
+    """A name from this auth user that fits the profile column.
+
+    Email accounts store display_name. Google stores full_name or name.
+    A name longer than 40 characters is cut to that limit. A name that
+    still does not fit is ignored, and the profile keeps a blank name.
+    """
+    meta = _metadata_dict(user) or {}
+    for key in ("display_name", "full_name", "name"):
+        found = meta.get(key)
+        if not isinstance(found, str):
+            continue
+        text = " ".join(found.split())
+        if len(text) > 40:
+            text = text[:40].rstrip()
+        cleaned = normalize_name(text)
+        if cleaned:
+            return cleaned
+    return ""
 
 
 def _metadata_dict(user: object) -> dict | None:

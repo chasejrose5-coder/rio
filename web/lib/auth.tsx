@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { api, refreshSession } from "./api";
 import type { Athlete } from "./types";
 
@@ -18,15 +18,19 @@ const AuthContext = createContext<AuthValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<Status>("loading");
   const [athlete, setAthlete] = useState<Athlete | null>(null);
+  const generation = useRef(0);
 
   const refresh = useCallback(async (): Promise<Athlete | null> => {
+    const id = ++generation.current;
     const next = await refreshSession();
+    if (id !== generation.current) return next.athlete;
     setAthlete(next.athlete);
     setStatus(next.status);
     return next.athlete;
   }, []);
 
   const signOut = useCallback(async () => {
+    generation.current += 1;
     try {
       await api.signOut();
     } catch {
@@ -39,12 +43,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // The cookie lives on the API host, so the session is read in the browser.
     // A free Render wake can outlast one attempt. Retry once before staying on the wake screen.
+    // A later refresh() bumps the generation so this read cannot overwrite a Google return.
     let live = true;
     let timer = 0;
     let tries = 0;
+    const id = ++generation.current;
     const run = () => {
       void refreshSession().then((next) => {
-        if (!live) return;
+        if (!live || id !== generation.current) return;
         if (next.status === "unreachable" && tries < 1) {
           tries += 1;
           setAthlete(null);

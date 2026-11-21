@@ -283,10 +283,15 @@ def test_google_start_and_callback_use_the_redirect_env(monkeypatch) -> None:
     directory = MemoryDirectory()
     client = _client(directory)
     monkeypatch.delenv("RIO_GOOGLE_REDIRECT_URI", raising=False)
+    monkeypatch.setenv("RIO_FRONTEND_ORIGIN", "https://www.riorunning.com")
     started = client.get("/auth/google")
     if started.status_code != 200:
         raise AssertionError(started.text)
+    if started.json()["redirect_uri"] != "https://www.riorunning.com/auth/callback":
+        raise AssertionError(started.json())
     if started.json()["redirect_uri"] != google_redirect_uri():
+        raise AssertionError(started.json())
+    if not started.json()["url"].startswith("https://www.riorunning.com/auth/callback?"):
         raise AssertionError(started.json())
     if "access_token" in started.text:
         raise AssertionError(started.text)

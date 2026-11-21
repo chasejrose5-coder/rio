@@ -106,7 +106,7 @@ No new environment name is required. These have to be set on the host before Str
 | `RIO_ADMIN_EMAIL` | The one address that sees Admin. Unset means nobody is admin. |
 | `RIO_HERO_PATH` | A writable file for the startup photo rotation. It must survive a restart. |
 | `RIO_APP_URL` | Still the Streamlit origin. Streamlit's own reset and confirmation links use it. The API mail uses `RIO_FRONTEND_ORIGIN` instead. |
-| `RIO_GOOGLE_REDIRECT_URI` | Unset keeps the Streamlit callback. The Google button stays hidden on both apps. |
+| `RIO_GOOGLE_REDIRECT_URI` | Unset sends Google to `{RIO_FRONTEND_ORIGIN}/auth/callback`. Streamlit's button stays hidden. The Next button is `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED`. |
 
 Strava: the live Authorization Callback Domain is `www.riorunning.com`. The redirect is `https://www.riorunning.com/strava/callback`. Leave `https://riotraining.streamlit.app`, `https://rio-one-mocha.vercel.app`, and `https://rio-rio-44fa.vercel.app` up. They are not the callback domain. No code change picks the URI. The variable does.
 

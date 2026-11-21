@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
 
 from ui.cloud_store import (
     SupabaseDirectory,
+    google_display_name,
     pkce_challenge,
     stash_verifier,
     take_verifier,
@@ -51,6 +52,25 @@ def test_an_old_verifier_expires() -> None:
         raise AssertionError("an expired sign-in still exchanged")
 
 
+def test_google_name_fits_the_profile() -> None:
+    user = {"user_metadata": {"full_name": "Ada Lovelace", "name": "Ada"}}
+    if google_display_name(user) != "Ada Lovelace":
+        raise AssertionError(google_display_name(user))
+    stored = {"user_metadata": {"display_name": "Ada", "full_name": "Ada Lovelace"}}
+    if google_display_name(stored) != "Ada":
+        raise AssertionError(google_display_name(stored))
+    long_name = "A" * 50
+    if google_display_name({"user_metadata": {"name": long_name}}) != "A" * 40:
+        raise AssertionError(google_display_name({"user_metadata": {"name": long_name}}))
+    if google_display_name({"user_metadata": {"name": "!!!"}}) != "":
+        raise AssertionError("a name with no letters was kept")
+    source = (ROOT / "ui" / "cloud_store.py").read_text(encoding="utf-8")
+    start = source.index("auth.exchange_code_for_session")
+    body = source[start : source.index("def refresh_session(", start)]
+    if "_ensure_profile(" not in body or "google_display_name(" not in body:
+        raise AssertionError("a Google sign-in does not open a profile")
+
+
 def test_reset_link_is_not_a_google_code() -> None:
     ui = (ROOT / "ui" / "cloud_ui.py").read_text(encoding="utf-8")
     callback = ui[ui.index("def _consume_callback(") : ui.index("def _render_sign_in(")]
@@ -67,6 +87,7 @@ def test_reset_link_is_not_a_google_code() -> None:
 def main() -> None:
     test_two_google_attempts_keep_two_verifiers()
     test_an_old_verifier_expires()
+    test_google_name_fits_the_profile()
     test_reset_link_is_not_a_google_code()
     print("review auth ok")
 

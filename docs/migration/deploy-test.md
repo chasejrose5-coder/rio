@@ -74,7 +74,7 @@ No path. No trailing slash. The two strings are the same origin.
 
 `RIO_FRONTEND_ORIGIN` is the only browser origin CORS allows. A wildcard is refused. Reset mail opens `{RIO_FRONTEND_ORIGIN}/reset-password`. Signup confirmation and email-change mail open `{RIO_FRONTEND_ORIGIN}/confirm`. Strava's redirect, when `RIO_STRAVA_REDIRECT_URI` is unset, is `{RIO_CALLBACK_BASE_URL}/strava/callback`. After Strava returns, the API sends the browser to `{RIO_FRONTEND_ORIGIN}/settings?strava=connected` or `?strava=error`. The Next page at `/strava/callback` calls the API with `X-RIO-Response: json` and then opens Settings.
 
-Leave `RIO_APP_URL` unset on Render. Streamlit Cloud keeps its own value, `https://riotraining.streamlit.app`, for the parked app. The API does not use `RIO_APP_URL` for reset or confirmation mail. Leave `RIO_GOOGLE_REDIRECT_URI` unset. Google sign-in stays hidden, and the Streamlit Google redirect stays the Streamlit callback. Leave `RIO_STRAVA_REDIRECT_URI` unset so the callback base above is what Strava sees.
+Leave `RIO_APP_URL` unset on Render. Streamlit Cloud keeps its own value, `https://riotraining.streamlit.app`, for the parked app. The API does not use `RIO_APP_URL` for reset or confirmation mail. Leave `RIO_GOOGLE_REDIRECT_URI` unset so Google returns to `{RIO_FRONTEND_ORIGIN}/auth/callback`. The Streamlit button stays hidden. The Next button stays hidden until `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED` is `true` on Vercel. The steps are `docs/google-auth-setup.md`. Leave `RIO_STRAVA_REDIRECT_URI` unset so the callback base above is what Strava sees.
 
 ## 5. Supabase Auth redirect URLs
 
@@ -100,6 +100,7 @@ Add the live paths:
 - `https://www.riorunning.com/reset-password`
 - `https://www.riorunning.com/confirm`
 - `https://www.riorunning.com/`
+- `https://www.riorunning.com/auth/callback*`
 
 Save. The app does not write this list. A redirect that is not on the list is ignored and the mail falls back to the Site URL. Signup confirmation and email-change mail open `/confirm`. Password reset opens `/reset-password`.
 
@@ -142,7 +143,7 @@ These have a file or a test default. Setting them on the Render service either p
 | Name | Why it stays unset |
 | --- | --- |
 | `RIO_APP_URL` | Streamlit's own mail and callback. Streamlit Cloud keeps `https://riotraining.streamlit.app`. Leave it unset on Render. |
-| `RIO_GOOGLE_REDIRECT_URI` | Unset keeps the Streamlit Google callback. The button stays hidden. |
+| `RIO_GOOGLE_REDIRECT_URI` | Unset sends Google to `{RIO_FRONTEND_ORIGIN}/auth/callback`. The Next button is the Vercel flag, not this variable. |
 | `RIO_STRAVA_REDIRECT_URI` | Unset so `RIO_CALLBACK_BASE_URL` builds `https://www.riorunning.com/strava/callback`. |
 | `RIO_HERO_PATH` | Unset uses `ui/assets/hero_rotation.json`, which ships in the deploy. |
 | `RIO_EXPLAIN_SPEND_PATH` | Unset lets migration 011 store the counter in Supabase. |
