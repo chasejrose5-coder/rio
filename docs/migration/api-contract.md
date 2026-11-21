@@ -179,6 +179,12 @@ JSON, when `X-RIO-Response: json` is set: `200` sets the cookie and returns `{"e
 
 Without that header the response is `302` to `{RIO_FRONTEND_ORIGIN}/?google=connected`, or `?google=error` when the code does not check out. The cookie is set on the success redirect.
 
+### `POST /auth/google/id-token`
+
+No cookie. Body: `{"token": "", "nonce": ""}`. `token` is a Google ID token from the button on `riorunning.com`. `nonce` is the raw nonce. Google's button was given the SHA-256 hex of that same string. This is Supabase `signInWithIdToken` with `provider` `google`.
+
+`200` sets the same `rio_hosted` cookie as email sign-in and returns `{"email": "", "display_name": "", "kind": "hosted"}`. The token and the nonce are not in the body. `400` when the token is not a three-part JWT, the nonce is the wrong shape, or Supabase refuses it. `503` when this process has no directory. A new account then follows the same easy-pace, intro, and Start path as email.
+
 ## Seasons
 
 All of these need the cookie. Today follows the Settings time zone. Easy pace, pace units, and no-watch are not passed into `sequence()` or `adapt()`.

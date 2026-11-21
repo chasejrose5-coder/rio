@@ -2,9 +2,11 @@
 
 Continue with Google is already in the app. It stays hidden until you turn it on. This page is the dashboard work. Do not put the Google client secret, or any Supabase key, in the repo, in a pull request, or in Vercel.
 
-The live site is `https://www.riorunning.com`. Google talks to Supabase. Supabase then sends the browser to `https://www.riorunning.com/auth/callback`. That page signs the person in and sends a new account through the same first-run screens as email: easy pace, the intro, then Start. An account that already has a season opens Home.
+The live site is `https://www.riorunning.com`. On that host, and on `riorunning.com`, the button is Google's own Sign in with Google button. The account chooser stays on Google and names RIO and riorunning.com. The browser does not go through `supabase.co` for that chooser, so a Supabase custom domain is not required. Google gives this site an ID token. The API sends that token to Supabase with `signInWithIdToken`, provider `google`, and the raw nonce. Google was given the SHA-256 hash of that nonce. A new account still goes through easy pace, the intro, and Start. An account that already has a season opens Home.
 
-The button is off until `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED` is `true` on the Vercel build. Leave it unset while you do steps 1 through 4. Set it last, in step 5, and redeploy.
+If `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is missing, or the page is not on `www.riorunning.com` or `riorunning.com`, the older redirect button stays. That path still goes through Supabase and the chooser can say `supabase.co`. Vercel preview hosts are not authorized JavaScript origins, so they use that fallback on purpose.
+
+The button is off until `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED` is `true` on the Vercel build. Leave both Google variables unset while you do steps 1 through 4. Set them last, in step 5, and redeploy.
 
 Deploy this change to the API and the web before you try a real Google sign-in. The callback page has to be on `www.riorunning.com`, and the API has to be this version. Leave `RIO_GOOGLE_REDIRECT_URI` unset on Render. With it unset, the API uses `{RIO_FRONTEND_ORIGIN}/auth/callback`, which is already `https://www.riorunning.com/auth/callback`.
 
@@ -19,7 +21,7 @@ No billing account is required for the Google client.
 5. Add only these scopes: `openid`, `email`, and `profile`. Do not add extra scopes.
 6. If Google asks for a privacy policy and terms before you can publish, use `https://www.riorunning.com/privacy` and `https://www.riorunning.com/terms`. Those pages are drafts.
 7. Open **Clients** (older consoles: **APIs & Services → Credentials**) and create an OAuth client ID. The application type is **Web application**.
-8. Under **Authorized JavaScript origins**, add `https://www.riorunning.com`. For a laptop check against this same client, also add `http://localhost:3000`.
+8. Under **Authorized JavaScript origins**, add `https://www.riorunning.com` and `https://riorunning.com`. Do not add a Vercel preview host. Those hosts are not where the official button runs. The laptop redirect fallback does not need a JavaScript origin.
 9. Under **Authorized redirect URIs**, add the Supabase callback and nothing else. Copy it from the Supabase Google provider page in step 2. It is exactly:
 
    `https://<project-ref>.supabase.co/auth/v1/callback`
@@ -70,24 +72,27 @@ Save. Supabase ignores a redirect that is not on this list and falls back to the
 
 Open `https://www.riorunning.com/sign-in` and `https://www.riorunning.com/create-account`. Neither page should say Continue with Google yet. Email login is unchanged.
 
-## 5. Set the Vercel flag
+## 5. Set the Vercel variables
 
 In the Vercel project for the web app (root directory `web`):
 
 1. Open **Settings → Environment Variables**.
-2. Add `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED`.
-3. Set the value to `true`.
-4. Apply it to **Production**. Leave Preview unset. A preview host is not on the redirect list above, so the button there would not finish.
-5. Redeploy the web service. This variable is read when the site is built. Saving it does not change the live site until the next deploy.
+2. Add `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED`. Set the value to `true`. Apply it to **Production**.
+3. Add `NEXT_PUBLIC_GOOGLE_CLIENT_ID`. Paste the **Client ID** from the RIO web client in Google Cloud. It ends with `.apps.googleusercontent.com`. Apply it to **Production**. Leave Preview unset. A preview URL is not an authorized JavaScript origin, so the official button would not finish there. With the variable unset, Preview keeps the redirect button.
+4. Redeploy the web service. Both variables are read when the site is built. Saving them does not change the live site until the next deploy.
 
-The value is public. It is baked into the browser bundle. It is not a secret. Do not put the Google client secret in this variable, or in any other Vercel or Render variable.
+Both values are public. They are baked into the browser bundle. They are not secrets. Do not put the Google client secret in either variable, or in any other Vercel or Render variable. The secret stays only in Supabase.
 
-Do not set `RIO_GOOGLE_REDIRECT_URI` on Render. Unset is the live callback.
+Do not set `RIO_GOOGLE_REDIRECT_URI` on Render. Unset is the redirect fallback's callback. Leave **Skip nonce check** off. The official button sends a nonce, and Supabase checks it.
+
+One Tap is not turned on. The only Google control is the button on Log in and Create account.
 
 ## 6. Check it
 
-1. After the redeploy, Log in and Create account both show **Continue with Google**, with the email form still under it.
-2. Use a Google account that has never had a RIO password. You should land on **Your easy pace**, then the intro, then Start. That is the same path as a new email account.
-3. Sign out, and use Continue with Google again after a season exists. You should land on Home.
-4. Cancel on Google's screen. You should come back to Log in, the email form should still work, and the page should say the Google sign-in could not be finished.
-5. Set the Vercel value back to empty, or delete it, and redeploy if you need the button hidden again. The provider can stay on in Supabase. The button is what the flag controls.
+1. After the redeploy, Log in and Create account on `https://www.riorunning.com` show Google's own **Continue with Google** button, with the email form still under it. The button is Google's iframe, not the plain RIO button.
+2. Click it. The popup is Google's account chooser. It names RIO, and the site it continues to is riorunning.com. It does not say `supabase.co`.
+3. Use a Google account that has never had a RIO password. You should land on **Your easy pace**, then the intro, then Start. That is the same path as a new email account.
+4. Sign out, and use the button again after a season exists. You should land on Home.
+5. Close the popup without choosing an account. You stay on Log in, and the email form still works.
+6. A Vercel preview, or a build without `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, still shows the plain **Continue with Google** button. That one redirects through Supabase. The chooser on that path can name the Supabase host. That is the fallback, not the live button.
+7. Clear either variable and redeploy if you need the official button hidden again. The provider can stay on in Supabase.

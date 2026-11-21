@@ -7,7 +7,10 @@ import {
   clearGoogleReturn,
   googleAuthEnabled,
   googleAuthorizeUrl,
+  googleClientId,
+  googleGisActive,
   googleReturn,
+  hashNonce,
   takeGoogleReturn,
 } from "./google-auth.ts";
 
@@ -81,16 +84,39 @@ describe("google auth flag", () => {
     }
   });
 
+  it("the official button needs the flag, a public client id, and the live host", () => {
+    const id = "1234567890-abc.apps.googleusercontent.com";
+    assert.equal(googleClientId(""), "");
+    assert.equal(googleClientId("not-a-client"), "");
+    assert.equal(googleClientId(` ${id} `), id);
+    assert.equal(googleGisActive("www.riorunning.com", "true", id), true);
+    assert.equal(googleGisActive("riorunning.com", "true", id), true);
+    assert.equal(googleGisActive("rio-git-preview.vercel.app", "true", id), false);
+    assert.equal(googleGisActive("localhost", "true", id), false);
+    assert.equal(googleGisActive("www.riorunning.com", "false", id), false);
+    assert.equal(googleGisActive("www.riorunning.com", "true", ""), false);
+  });
+
+  it("hashes the nonce Google sees and keeps the raw value for Supabase", async () => {
+    assert.equal(await hashNonce("abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+  });
+
   it("the button is gated and a new Google session uses the email landing", () => {
     const screen = readFileSync(new URL("../components/AuthScreen.tsx", import.meta.url), "utf8");
     const callback = readFileSync(new URL("../components/GoogleCallback.tsx", import.meta.url), "utf8");
-    assert.match(screen, /if \(!googleAuthEnabled\(\)\) return null/);
+    const button = readFileSync(new URL("../components/GoogleIdentityButton.tsx", import.meta.url), "utf8");
+    assert.match(screen, /if \(!enabled\) return null/);
+    assert.match(screen, /googleAuthEnabled\(\)/);
     assert.match(screen, /Continue with Google/);
-    assert.equal(screen.includes("GOOGLE_CLIENT"), false);
+    assert.equal(screen.includes("GOOGLE_CLIENT_SECRET"), false);
     assert.match(callback, /destinationAfterSignIn\(signedIn!\)/);
     assert.match(callback, /api\.googleFinish\(back\.code, back\.flow\)/);
+    assert.match(button, /destinationAfterSignIn\(signedIn!\)/);
+    assert.match(button, /nonce: pair\.hashed/);
+    assert.match(button, /api\.googleIdToken\(token, pair\.raw\)/);
     const flow = readFileSync(new URL("../../api/account_flow.py", import.meta.url), "utf8");
     assert.match(flow, /origin \+ "\/auth\/callback"/);
+    assert.match(flow, /sign_in_with_id_token/);
   });
 });
 

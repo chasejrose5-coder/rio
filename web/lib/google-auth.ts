@@ -13,6 +13,41 @@ export function googleAuthEnabled(raw: string | undefined = process.env.NEXT_PUB
   return text === "1" || text === "true";
 }
 
+/** The public Web client id. Anything else is ignored. It is not a secret. */
+export function googleClientId(raw: string | undefined = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID): string {
+  const text = (raw ?? "").trim();
+  if (!/^[0-9]+-[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(text)) return "";
+  return text;
+}
+
+/** Official Google button hosts. Preview URLs are not authorized JavaScript origins. */
+export function googleGisHost(host: string): boolean {
+  const name = host.trim().toLowerCase();
+  return name === "www.riorunning.com" || name === "riorunning.com";
+}
+
+/** GIS only when the flag, the client id, and a production host are all present. */
+export function googleGisActive(host: string, flag?: string, clientId?: string): boolean {
+  return googleAuthEnabled(flag) && googleClientId(clientId) !== "" && googleGisHost(host);
+}
+
+/** Raw nonce for Supabase. Hashed nonce for Google. SHA-256, hex, of the raw text. */
+export async function googleNoncePair(): Promise<{ raw: string; hashed: string }> {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  const raw = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return { raw, hashed: await hashNonce(raw) };
+}
+
+export async function hashNonce(raw: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 /** The API's authorize URL, or "" when it does not point at Supabase Google. */
 export function googleAuthorizeUrl(raw: string): string {
   let url: URL;

@@ -19,12 +19,12 @@ const REPORT_ONLY = [
   "base-uri 'self'",
   "object-src 'none'",
   "frame-ancestors 'none'",
-  "script-src 'self' 'unsafe-inline' https://vercel.live",
+  "script-src 'self' 'unsafe-inline' https://vercel.live https://accounts.google.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self'",
-  "connect-src 'self' https://rio-api.onrender.com https://vercel.live",
-  "frame-src https://vercel.live",
+  "connect-src 'self' https://rio-api.onrender.com https://vercel.live https://accounts.google.com",
+  "frame-src https://vercel.live https://accounts.google.com",
   "form-action 'self'",
 ].join("; ");
 

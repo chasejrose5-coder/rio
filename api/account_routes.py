@@ -20,6 +20,7 @@ from api.account_flow import (
     delete_account_for,
     forgot_password,
     google_finish,
+    google_id_token,
     google_start,
     raise_auth,
     resend_confirmation,
@@ -79,6 +80,11 @@ class DeleteAccountBody(BaseModel):
     confirm: bool = False
     email: str = ""
     password: str = ""
+
+
+class GoogleIdTokenBody(BaseModel):
+    token: str = ""
+    nonce: str = ""
 
 
 def _json(request: Request) -> bool:
@@ -269,6 +275,18 @@ def availability(request: Request) -> dict:
 @router.get("/google")
 def google(request: Request) -> dict:
     return google_start(request.app.state.directory)
+
+
+@router.post("/google/id-token")
+def google_id(body: GoogleIdTokenBody, request: Request, response: Response) -> dict:
+    """The ID token was issued to riorunning.com. The cookie matches email sign-in."""
+    outcome = google_id_token(request.app.state.directory, body.token, body.nonce)
+    set_session_cookie(response, request.app.state.settings, outcome["sid"], outcome["issued"])
+    return {
+        "email": outcome.get("email") or "",
+        "display_name": outcome.get("display_name") or "",
+        "kind": "hosted",
+    }
 
 
 @router.get("/google/callback")
