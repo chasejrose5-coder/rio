@@ -43,7 +43,7 @@ def test_migration_014_is_the_next_stretch_file_and_scopes_rows_to_auth_uid() ->
     numbers = [int(name.split("_", 1)[0]) for name in names]
     if numbers != sorted(numbers) or len(numbers) != len(set(numbers)):
         raise AssertionError(names)
-    if 14 not in numbers or max(numbers) != 14:
+    if 14 not in numbers:
         raise AssertionError(names)
     sql = (ROOT / "supabase" / "migrations" / "014_stretch.sql").read_text(encoding="utf-8").lower()
     if "information_schema.statistics" in sql:

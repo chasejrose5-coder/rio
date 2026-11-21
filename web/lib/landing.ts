@@ -4,6 +4,18 @@ export function needsEasyPace(athlete: Athlete | null): boolean {
   return !String(athlete?.prefs?.easy_pace || "").trim();
 }
 
+export type HeartGate = {
+  no_monitor?: boolean;
+  resting_hr?: number | null;
+  max_hr?: number | null;
+} | null;
+
+/** True when this runner still needs the heart-rate step. A missing read does not block them. */
+export function needsHeartRate(profile: HeartGate): boolean {
+  if (!profile || profile.no_monitor) return false;
+  return profile.resting_hr == null || profile.max_hr == null;
+}
+
 export function needsIntro(athlete: Athlete | null, season: CurrentSeason | null): boolean {
   if (athlete?.prefs?.intro_seen === true) return false;
   if (athlete?.prefs?.intro_seen === false) return true;

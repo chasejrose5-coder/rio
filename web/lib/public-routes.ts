@@ -23,6 +23,7 @@ export const PRIVATE_PREFIXES = [
   "/easy-pace",
   "/goal",
   "/guide",
+  "/heart-rate",
   "/home",
   "/intro",
   "/last-session",
