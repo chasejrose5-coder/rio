@@ -3,7 +3,7 @@
 """Hosted calls go through the directory. Local calls use the account file.
 
 Google uses the same directory.google_url and exchange_code the Streamlit
-callback already uses. The redirect defaults to the Streamlit app URL.
+callback already uses. The redirect defaults to the Next app's /auth/callback.
 """
 
 from __future__ import annotations
@@ -39,10 +39,18 @@ GOOGLE_REDIRECT_ENV = "RIO_GOOGLE_REDIRECT_URI"
 
 
 def google_redirect_uri() -> str:
-    """Where Google sends the browser. Unset keeps the Streamlit callback."""
+    """Where Supabase sends the browser after Google.
+
+    RIO_GOOGLE_REDIRECT_URI wins. Otherwise the Next callback on
+    RIO_FRONTEND_ORIGIN. An unset origin uses http://localhost:3000.
+    A value that is not an http origin falls back to the Streamlit root.
+    """
     raw = os.environ.get(GOOGLE_REDIRECT_ENV, "").strip()
     if raw:
         return raw
+    origin = os.environ.get("RIO_FRONTEND_ORIGIN", "http://localhost:3000").strip().rstrip("/")
+    if origin.startswith("http://") or origin.startswith("https://"):
+        return origin + "/auth/callback"
     return app_url().rstrip("/") + "/"
 
 

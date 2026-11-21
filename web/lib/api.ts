@@ -62,6 +62,7 @@ let homeHandoff: Promise<HomeResponse> | null = null;
 function dropGetCache(): void {
   getGeneration += 1;
   settledGets.clear();
+  inflightGets.clear();
   homeHandoff = null;
 }
 
@@ -164,6 +165,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 const confirmInflight = new Map<string, Promise<{ ok: boolean; kind: string; message: string; refreshed?: boolean }>>();
+const googleInflight = new Map<string, Promise<AuthResult>>();
 
 /** One request per link. A remounted page reuses it instead of burning the token twice. */
 export function confirmOnce(link: ConfirmLink) {
@@ -245,6 +247,25 @@ export const api = {
     }),
 
   accountMode: () => request<{ mode: "hosted" | "local" | "unconfigured" }>("/auth/availability"),
+
+  /** A fresh authorize URL. The PKCE verifier lives on the API for this attempt only. */
+  googleStart: () => requestOnce<{ url: string; redirect_uri?: string }>("/auth/google"),
+
+  /** Exchange the code once. A remounted callback reuses the same request. */
+  googleFinish: (code: string, flow: string) => {
+    const key = `${code}\n${flow}`;
+    const found = googleInflight.get(key);
+    if (found) return found;
+    const params = new URLSearchParams({ code, flow });
+    const pending = requestOnce<AuthResult>(`/auth/google/callback?${params.toString()}`, {
+      headers: { "X-RIO-Response": "json" },
+    }).then((result) => {
+      dropGetCache();
+      return result;
+    });
+    googleInflight.set(key, pending);
+    return pending;
+  },
 
   /** 503 means accounts are local, which is when Streamlit hides Forgot password. */
   /** Hosted accounts are the ones that can email a reset link. Local is a 503. */

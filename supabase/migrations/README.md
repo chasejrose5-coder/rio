@@ -45,8 +45,9 @@ After the SQL:
    - `https://www.riorunning.com/reset-password` — the same new-password form
    - `https://www.riorunning.com/confirm` — signup confirmation and email-change mail
    - `https://www.riorunning.com/`
+   - `https://www.riorunning.com/auth/callback*` — Google sign-in. The `*` covers `?flow=` on each attempt. The steps are `docs/google-auth-setup.md`.
 
    When `RIO_FRONTEND_ORIGIN` is unset the API uses `http://localhost:3000`, so the laptop entries are `http://localhost:3000/update-password`, `http://localhost:3000/reset-password`, and `http://localhost:3000/confirm`. `{RIO_FRONTEND_ORIGIN}/**` also covers both. Signup confirmation uses `/confirm`. Password reset mail uses `/update-password`. Jay adds these in the Supabase dashboard. Nothing in the repo writes the allow list. The Resend steps are `docs/resend-email-setup.md`.
 2. Authentication, Providers, Email. Keep "Confirm email" ON. Also turn on "Secure email change" if that switch is shown. Do not turn confirmation off.
-3. Authentication, Providers, Google. Turn it on. The Google Cloud OAuth client needs this redirect URI exactly: `https://<project-ref>.supabase.co/auth/v1/callback`. Copy the client id and secret into the Google provider in Supabase.
+3. Authentication, Providers, Google. Turn it on when you want Continue with Google. The click-by-click steps, including the Google Cloud client and the Vercel flag, are `docs/google-auth-setup.md`. The Google Cloud OAuth client needs this redirect URI exactly: `https://<project-ref>.supabase.co/auth/v1/callback`. Copy the client id and secret into the Google provider in Supabase. Do not commit them.
 4. Put the four settings in Streamlit Cloud secrets, or in `.env` on a laptop. The names are listed in `.env.example`. Do not commit the values.

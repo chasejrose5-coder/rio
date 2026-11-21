@@ -52,7 +52,7 @@ export const PRIVACY: LegalPage = {
       blocks: [
         {
           kind: "p",
-          text: "Create account asks for a name (up to 40 characters), an email address, and a password of 8 to 128 characters. The sign-in and create-account screens do not show a Google button. The signup form does not ask for a birth date, a phone number, or a payment card. The app does not take payment.",
+          text: "Create account asks for a name (up to 40 characters), an email address, and a password of 8 to 128 characters. Continue with Google is on those screens only when Google sign-in is turned on for that deploy. Until then the button is not shown. Google sign-in receives the email and the name from Google and opens the same account. The signup form does not ask for a birth date, a phone number, or a payment card. The app does not take payment.",
         },
         {
           kind: "p",
@@ -260,7 +260,7 @@ export const TERMS: LegalPage = {
         },
         {
           kind: "p",
-          text: "The sign-in screens do not offer Google. The app does not collect a payment.",
+          text: "Continue with Google is shown only when Google sign-in is turned on. A new Google account follows the same first-run screens as an email account. The app does not collect a payment.",
         },
       ],
     },

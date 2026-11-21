@@ -127,6 +127,7 @@ test("local sign-in hides forgot password and Google", async ({ page }) => {
   await expect(page.getByText("Accounts aren't set up yet")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Show password" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Google/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Continue with Google" })).toHaveCount(0);
   await expect(page.getByText("Photo by Steve Pancrate on Pexels")).toBeVisible();
 });
 
@@ -136,6 +137,7 @@ test("hosted sign-in shows forgot password and still hides Google", async ({ pag
   await expect(page.getByRole("link", { name: "Forgot password?" })).toBeVisible();
   await expect(page.getByText("Accounts aren't set up yet")).toHaveCount(0);
   await expect(page.getByRole("link", { name: /Google/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Continue with Google" })).toHaveCount(0);
 });
 
 test("create account asks for a name", async ({ page }) => {
@@ -145,6 +147,7 @@ test("create account asks for a name", async ({ page }) => {
   await expect(page.getByLabel("Name")).toBeVisible();
   await expect(page.getByRole("button", { name: "Create account" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Back to log in" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue with Google" })).toHaveCount(0);
   await expect(page.getByText("Photo by Steve Pancrate on Pexels")).toBeVisible();
 });
 
@@ -355,4 +358,71 @@ test("start session opens the next planned day after the settings today", async 
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page).toHaveURL(/\/home$/);
   await expect(page.getByRole("link", { name: "Start session" })).toHaveAttribute("href", "/session?date=2026-11-10");
+});
+
+test("a new Google return opens easy pace, the same first step as email", async ({ page }) => {
+  let signed = false;
+  await page.route("**/*", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.port !== "8000") {
+      await route.continue();
+      return;
+    }
+    const path = url.pathname;
+    if (path === "/auth/google/callback") {
+      expect(route.request().headers()["x-rio-response"]).toBe("json");
+      expect(url.searchParams.get("code")).toBe("test-code");
+      expect(url.searchParams.get("flow")).toBe("flow-1");
+      signed = true;
+      return json(route, { email: "ada@example.com", display_name: "Ada", kind: "hosted" });
+    }
+    if (path === "/auth/session" || path === "/auth/me") {
+      if (!signed) {
+        if (path === "/auth/session") return json(route, { signed_in: false });
+        return json(route, { detail: "Sign in again." }, 401);
+      }
+      return json(route, {
+        ...athlete,
+        prefs: { easy_pace: "", easy_pace_unit: "mi", intro_seen: null, no_watch: false },
+      });
+    }
+    if (path === "/seasons/current") return json(route, { detail: "No current season." }, 404);
+    return json(route, { detail: "Not mocked." }, 404);
+  });
+  await page.goto("/auth/callback?code=test-code&flow=flow-1");
+  await expect(page).toHaveURL(/\/easy-pace$/);
+  await expect(page.getByRole("heading", { name: "Your easy pace" })).toBeVisible();
+});
+
+test("a Google return for an existing season opens Home", async ({ page }) => {
+  let signed = false;
+  await page.route("**/*", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.port !== "8000") {
+      await route.continue();
+      return;
+    }
+    const path = url.pathname;
+    if (path === "/auth/google/callback") {
+      signed = true;
+      return json(route, { email: athlete.email, display_name: athlete.display_name, kind: "hosted" });
+    }
+    if (path === "/auth/session" || path === "/auth/me") {
+      if (!signed) return json(route, { signed_in: false });
+      return json(route, { ...athlete, next_session: "2026-11-10" });
+    }
+    if (path === "/seasons/current") return json(route, season);
+    if (path === "/home") return json(route, home);
+    return json(route, { detail: "Not mocked." }, 404);
+  });
+  await page.goto("/auth/callback?code=test-code&flow=flow-2");
+  await expect(page).toHaveURL(/\/home$/);
+  await expect(page.getByText("130")).toBeVisible();
+});
+
+test("a Google return without a code goes back to log in", async ({ page }) => {
+  await page.goto("/auth/callback?error=access_denied");
+  await expect(page).toHaveURL(/\/sign-in\?note=/);
+  await expect(page.getByRole("main").getByText("Google sign-in could not be finished. Try again.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log in" })).toBeVisible();
 });
