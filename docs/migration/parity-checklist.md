@@ -50,7 +50,7 @@ Step 3 owners:
 | of which `MISSING (static)` | 46 |
 | of which `MISSING (data)` | 0 |
 
-No data row is still missing. W13 reads WORK times from `GET /fixtures/intervals/{name}`, and X3 reads the lap table from the same response. The 46 static rows are copy, photos, or chrome. A few of those also name a route for the part that is stored (the intro flag, the confirm-adapt setting, sign-out). Photo credits are listed on the screen and again under Photo credits, so those rows are in the total twice on purpose.
+No data row is still missing. W13 and X3 were the local JSON file on the session and Last Session. The shared API no longer serves that file. `GET /fixtures/session` is the YAML fixture. The 46 static rows are copy, photos, or chrome. A few of those also name a route for the part that is stored (the intro flag, the confirm-adapt setting, sign-out). Photo credits are listed on the screen and again under Photo credits, so those rows are in the total twice on purpose.
 
 ## PR #61 gaps
 
@@ -122,7 +122,7 @@ PR #61's copy of `docs/migration/api-contract.md` adds these. They are not on `m
 - Hidden copy that must stay hidden (Z1–Z7)
 - Motion (A1–A6)
 
-X3 is closed. `GET /fixtures/intervals/{name}` returns the lap table (`distance_m`, `seconds`, `rest_s`) and the WORK elapsed times. `GET /fixtures/session` is the YAML fixture. A normal account is `403`.
+X3 is closed for the parked Streamlit page. The shared API does not serve the JSON file. `GET /fixtures/session` is the YAML fixture. A normal account is `403`.
 
 ---
 
@@ -296,13 +296,13 @@ Hosted (Supabase configured) uses `ui/cloud_ui.py`. Otherwise the form in `ui/st
 
 ### L10. Forgot password link
 
-**Sees:** "Forgot password?" on a hosted log-in only. The local account file has no such control.
+**Sees:** "Forgot password?" on a hosted log-in only, and only when `NEXT_PUBLIC_PASSWORD_RESET_ENABLED` is `true`. The local account file has no such control. Until that flag is set, the public site hides the link.
 **Now:** `ui/cloud_ui.py` `_render_sign_in`. Local `_render_login` does not draw it.
 **API:** The link is not a route. The screen it opens is `PR #61: POST /auth/forgot-password`.
 **Step 3:** PR #61
 **Status:** done
-**Evidence:** `web/e2e/auth-home.spec.ts` "local sign-in hides forgot password" and "hosted sign-in shows forgot password". The link is only on a hosted log-in. Google stays hidden.
-**Verify:** Local API: no "Forgot password?" link. Hosted API: the link is there, and no control says Google. The e2e covers both.
+**Evidence:** `web/e2e/auth-home.spec.ts` "local sign-in hides forgot password" and "hosted sign-in shows forgot password". The link is only on a hosted log-in, and the e2e server sets the flag. Google stays hidden.
+**Verify:** Local API: no "Forgot password?" link. Hosted API with the flag `true`: the link is there, and no control says Google. The e2e covers both. The flag unset hides the link.
 
 ### L11. Floodlight photo
 
@@ -1089,7 +1089,7 @@ After a successful Generate, once, if Strava is not connected and the person has
 
 **Sees:** Only for the admin email: a select "Intervals file", first option "—", then JSON names. Choosing one fills the rep boxes from that file's WORK elapsed times. The numbers stay editable. A bad file says "Could not read {name}." or "{name} is not JSON."
 **Now:** `_intervals_choice`, `_fixture_allowed`. Everyone else is sent Home.
-**API:** `GET /fixtures/intervals` lists names. `GET /fixtures/intervals/{name}` returns the WORK elapsed times. A normal account is `403`.
+**API:** The shared API does not list or read those JSON files. `GET /fixtures/intervals` and `GET /fixtures/intervals/{name}` are not routes.
 **Step 3:** 3.3. The athlete result form must not show this select. The admin fill was the data hole on this row.
 **Status:** done
 **Verify:** A normal account has no file select. The admin account can fill reps from a fixture and still edit them. `tests/test_api_step3_session.py` `test_admin_intervals_fill_stays_off_a_normal_account`. `web/e2e/session.spec.ts` asserts the select is absent for an athlete.
@@ -1789,7 +1789,7 @@ Screen-specific sentences are on their items (T8, W2, Y3, M3, U1, Settings G10).
 
 **Sees:** Laps (distance, seconds, rest) and rep times filled from a chosen JSON file, on Last Session and on the admin Session picker (W13).
 **Now:** `ui/last_session.py` `open_intervals`; `_intervals_choice`
-**API:** `GET /fixtures/intervals/{name}` returns `laps`, `rows`, and `times`. `GET /fixtures/session` is the YAML fixture. Admin only.
+**API:** The shared API does not return that JSON body. `GET /fixtures/session` is the YAML fixture. Admin only.
 **Step 3:** 3.4
 **Status:** done
 **Evidence:** `web/e2e/activity.spec.ts` and `tests/test_api_step3_activity.py`. Fresh side-by-sides on PR #66: activity, the error state with the stored runs still showing, and Last Session laps.
@@ -1840,7 +1840,7 @@ Screen-specific sentences are on their items (T8, W2, Y3, M3, U1, Settings G10).
 ### RL4. Intervals
 
 **Sees:** The Activity page does not show the raw "Intervals.icu returned 429…" line. It shows "Runs could not be loaded. Try Refresh in a moment."
-**Now:** `_activities_notice`. The adapter text is in `adapters/intervals_icu.py` and is not what the page prints.
+**Now:** `_activities_notice`. The page prints the refresh sentence. There is no separate adapter module.
 **API:** `POST /strava/sync` `notice` when the fallback fails
 **Step 3:** 3.4
 **Status:** done

@@ -1,11 +1,11 @@
 /** Draft privacy and terms. The sentences describe this codebase.
  *
- * Placeholders stay in brackets until Jay and Chase fill them in.
+ * Placeholders stay in brackets until the operator fills them in.
  * Do not add a company, address, court, or support address here.
  */
 
 export const DRAFT_NOTE =
-  "For Jay and Chase to review. This page is not in effect. [COMPANY NAME], [CONTACT EMAIL], and the governing law are placeholders.";
+  "For review. This page is not in effect. [COMPANY NAME], [CONTACT EMAIL], and the governing law are placeholders.";
 
 export const LEGAL_UPDATED = "November 16, 2026";
 
@@ -56,7 +56,7 @@ export const PRIVACY: LegalPage = {
         },
         {
           kind: "p",
-          text: "On the public site the account is created in Supabase Auth. Supabase sends a confirmation link that opens /confirm on this site. Password reset mail opens /reset-password. Changing the email sends a confirmation link and keeps the old address until that link is opened. Supabase Auth stores the password. The training tables do not.",
+          text: "On the public site the account is created in Supabase Auth. Supabase sends a confirmation link that opens /confirm on this site. Password reset mail opens /update-password. Changing the email sends a confirmation link and keeps the old address until that link is opened. Supabase Auth stores the password. The training tables do not.",
         },
         {
           kind: "p",
@@ -138,7 +138,7 @@ export const PRIVACY: LegalPage = {
         },
         {
           kind: "p",
-          text: "Imported runs stay in RIO until you disconnect Strava or delete the account. Deleting the account removes the stored token with the account, but account deletion does not call Strava's deauthorize endpoint. To revoke RIO on Strava's side, disconnect first, or revoke RIO in the Strava account settings.",
+          text: "Imported runs stay in RIO until you disconnect Strava or delete the account. Delete my account calls Strava's deauthorize endpoint with the stored token before that token and those runs are removed. If Strava cannot be reached, the account is still deleted and the stored token is removed with it. You can also revoke RIO in the Strava account settings.",
         },
       ],
     },
@@ -228,7 +228,7 @@ export const TERMS: LegalPage = {
       blocks: [
         {
           kind: "p",
-          text: "These are draft terms for RIO, a training app for any runner, at riorunning.com. They describe the product as it works today so Jay and Chase can review them. They are not in effect. Using the site while this draft is published does not make it a contract.",
+          text: "These are draft terms for RIO, a training app for any runner, at riorunning.com. They describe the product as it works today. They are not in effect. Using the site while this draft is published does not make it a contract.",
         },
         {
           kind: "p",

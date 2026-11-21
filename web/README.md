@@ -16,6 +16,8 @@ The API listens on `http://127.0.0.1:8000`. This app listens on `http://127.0.0.
 
 `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true` shows Continue with Google. Anything else hides it. The Google client secret is not an env var in this app. The setup is `docs/google-auth-setup.md`.
 
+`NEXT_PUBLIC_PASSWORD_RESET_ENABLED` is the string `true` only after Supabase is sending mail through Resend. Until then, Log in hides **Forgot password?** and `/forgot-password` returns to Log in. It is not a secret. The dashboard steps are `docs/resend-email-setup.md`. The e2e server sets it so the hosted log-in still shows the link.
+
 The test site sets that variable to `/api` and sets `RIO_API_ORIGIN` to the Render origin. Next rewrites `/api/*` onto that origin, so the browser stays on the Vercel host. A laptop leaves `RIO_API_ORIGIN` unset and this rewrite stays off. The checklist is `docs/migration/deploy-test.md`.
 
 Fonts and photos are not committed under `web/public`. `ui/static/fonts` and `ui/static/photos` are the source of truth, and Streamlit serves those files. `npm run dev` and `npm run build` copy them into `web/public/fonts` and `web/public/photos` as ordinary files before Next starts. Those two folders are gitignored. The URLs stay `/fonts/*` and `/photos/*`.

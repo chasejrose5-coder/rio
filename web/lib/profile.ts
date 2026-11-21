@@ -15,7 +15,7 @@ export const MORE_LINKS = [
   { href: "/settings", label: "Settings", blurb: "Name, pace, and this account." },
   { href: "/guide", label: "Guide", blurb: "How to read the plan, the paces, and the week." },
   { href: "/about", label: "About", blurb: "Phases, the 10% rule, and what a mark changes." },
-  { href: "/creators", label: "Creators", blurb: "Chase Rose, Founder." },
+  { href: "/creators", label: "Creators", blurb: "Built for any runner." },
 ] as const;
 
 /** An 800 time, or null. Blank and zero are not times. The text is kept as typed. */

@@ -135,7 +135,7 @@ No cookie. Body: `{"email": ""}`.
 
 `200` `{"ok": true, "message": "Check your email for the reset link."}`. An address with no account gets the same body. The reset token is not in the JSON. `400` when the text is not an email, or when this process is the local account file (that file has no mail). `400` when the reset mail could not be sent.
 
-The link in that mail is `{RIO_FRONTEND_ORIGIN}/reset-password`. `RIO_FRONTEND_ORIGIN` is the Next origin, scheme and host, no path. On the live service that origin is `https://www.riorunning.com`. Streamlit's own forgot screen still sends `{RIO_APP_URL}/?reset=password` (or `https://riotraining.streamlit.app/?reset=password` when `RIO_APP_URL` is unset). Add `https://www.riorunning.com/reset-password` and `https://www.riorunning.com/confirm` to the Supabase Auth redirect allow list. Leave the Streamlit URLs and the old Vercel URLs there.
+The link in that mail is `{RIO_FRONTEND_ORIGIN}/update-password`. `RIO_FRONTEND_ORIGIN` is the Next origin, scheme and host, no path. On the live service that origin is `https://www.riorunning.com`. The apex and the old Vercel hosts are rewritten to that origin. `/reset-password` is the same form. Streamlit's own forgot screen still sends `{RIO_APP_URL}/?reset=password` (or `https://riotraining.streamlit.app/?reset=password` when `RIO_APP_URL` is unset). Add `https://www.riorunning.com/update-password`, `https://www.riorunning.com/reset-password`, and `https://www.riorunning.com/confirm` to the Supabase Auth redirect allow list. Leave the Streamlit URLs and the old Vercel URLs there. Log in shows the request link only when `NEXT_PUBLIC_PASSWORD_RESET_ENABLED` is `true`.
 
 ### `POST /auth/reset-password`
 
@@ -543,17 +543,9 @@ The Last Session, Next, Decisions, Ledger, and Goal pages. Admin only, same as `
 
 `200` `{"fixtures": ["easy", "race_800"]}`. The names are the stems in `tests/fixtures`.
 
-### `GET /fixtures/intervals`
-
-Admin. `200` `{"files": ["synthetic_se_400_with_recovery.json"]}`. Names only. A normal account is `403`.
-
-### `GET /fixtures/intervals/{name}`
-
-Admin. `200` `{"name": "", "times": [], "source": "", "laps": [], "rows": [], "distance_heading": "Distance (m)", "date": "", "banner": null, "family": "", "confidence": "", "reason_codes": [], "prose": ""}`. `times` are the WORK elapsed seconds. `laps` are the normalized laps (`distance_m`, `seconds`, `rest_s`), including rest. Warm-up and cool-down stay out of both. `rows` is the lap table in the Settings distance unit. `prose` is the rules paragraph from `explain`. `400` `{"detail": "{name} is not JSON."}` or `Could not read {name}.` `404` when the name is not in that folder. Nothing is requested from the network.
-
 ### `GET /fixtures/session?name=`
 
-Admin. One YAML fixture, the same fields as the intervals body except `times` and `source`. `banner` is `FIXTURE` when the file says so. `400` when the name is missing or the file cannot be read. `404` when the name is not a fixture. A normal account is `403`.
+Admin. One YAML fixture. `200` includes `laps`, `rows`, `distance_heading`, `date`, `banner`, `family`, `confidence`, `reason_codes`, and `prose`. `banner` is `FIXTURE` when the file says so. `rows` is the lap table in the Settings distance unit. `prose` is the rules paragraph from `explain`. `400` when the name is missing or the file cannot be read. `404` when the name is not a fixture. A normal account is `403`.
 
 ### `POST /fixtures/classify`
 

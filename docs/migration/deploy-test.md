@@ -72,7 +72,7 @@ On the Render service, **Environment**. Set these two, then save. Render redeplo
 
 No path. No trailing slash. The two strings are the same origin.
 
-`RIO_FRONTEND_ORIGIN` is the only browser origin CORS allows. A wildcard is refused. Reset mail opens `{RIO_FRONTEND_ORIGIN}/reset-password`. Signup confirmation and email-change mail open `{RIO_FRONTEND_ORIGIN}/confirm`. Strava's redirect, when `RIO_STRAVA_REDIRECT_URI` is unset, is `{RIO_CALLBACK_BASE_URL}/strava/callback`. After Strava returns, the API sends the browser to `{RIO_FRONTEND_ORIGIN}/settings?strava=connected` or `?strava=error`. The Next page at `/strava/callback` calls the API with `X-RIO-Response: json` and then opens Settings.
+`RIO_FRONTEND_ORIGIN` is the only browser origin CORS allows. A wildcard is refused. Reset mail opens `{RIO_FRONTEND_ORIGIN}/update-password`. Signup confirmation and email-change mail open `{RIO_FRONTEND_ORIGIN}/confirm`. The apex and the old Vercel hosts are rewritten to `https://www.riorunning.com`. `/reset-password` is the same new-password form. Strava's redirect, when `RIO_STRAVA_REDIRECT_URI` is unset, is `{RIO_CALLBACK_BASE_URL}/strava/callback`. After Strava returns, the API sends the browser to `{RIO_FRONTEND_ORIGIN}/settings?strava=connected` or `?strava=error`. The Next page at `/strava/callback` calls the API with `X-RIO-Response: json` and then opens Settings.
 
 Leave `RIO_APP_URL` unset on Render. Streamlit Cloud keeps its own value, `https://riotraining.streamlit.app`, for the parked app. The API does not use `RIO_APP_URL` for reset or confirmation mail. Leave `RIO_GOOGLE_REDIRECT_URI` unset so Google returns to `{RIO_FRONTEND_ORIGIN}/auth/callback`. The Streamlit button stays hidden. The Next button stays hidden until `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED` is `true` on Vercel. The steps are `docs/google-auth-setup.md`. Leave `RIO_STRAVA_REDIRECT_URI` unset so the callback base above is what Strava sees.
 
@@ -97,12 +97,13 @@ Leave these redirect URLs in place. Do not delete them.
 
 Add the live paths:
 
+- `https://www.riorunning.com/update-password`
 - `https://www.riorunning.com/reset-password`
 - `https://www.riorunning.com/confirm`
 - `https://www.riorunning.com/`
 - `https://www.riorunning.com/auth/callback*`
 
-Save. The app does not write this list. A redirect that is not on the list is ignored and the mail falls back to the Site URL. Signup confirmation and email-change mail open `/confirm`. Password reset opens `/reset-password`.
+Save. The app does not write this list. A redirect that is not on the list is ignored and the mail falls back to the Site URL. Signup confirmation and email-change mail open `/confirm`. Password reset opens `/update-password`. `/reset-password` is the same form.
 
 ## 6. Environment values, and where each one comes from
 
@@ -114,6 +115,7 @@ Type values only in the Vercel and Render dashboards. The repo keeps the names.
 | --- | --- |
 | `NEXT_PUBLIC_RIO_API_URL` | The literal `/api`. Not a secret. Same origin as the Vercel URL. |
 | `RIO_API_ORIGIN` | The Render service URL from step 2. |
+| `NEXT_PUBLIC_PASSWORD_RESET_ENABLED` | The string `true` after Resend SMTP is sending. Not a secret. Leave it unset until then. **Forgot password?** stays hidden. See `docs/resend-email-setup.md`. A new production deployment is what picks the value up. |
 
 ### Render (repository root)
 
@@ -133,8 +135,6 @@ Type values only in the Vercel and Render dashboards. The repo keeps the names.
 | `RIO_EXPLAIN_BASE_URL` | The provider base URL already used with that key. Leave unset with the key. |
 | `RIO_EXPLAIN_INPUT_USD_PER_MILLION` | Optional. Unset uses the built-in price. |
 | `RIO_EXPLAIN_OUTPUT_USD_PER_MILLION` | Optional. Unset uses the built-in price. |
-| `RIO_INTERVALS_API_KEY` | Unused. The app no longer reads it. Delete it from Render after this change is deployed. |
-| `RIO_INTERVALS_ATHLETE_ID` | Unused. The app no longer reads it. Delete it from Render after this change is deployed. |
 
 ### Leave unset on Render
 
@@ -215,7 +215,7 @@ If a column is false, open that file and run it in the SQL editor, then run the 
 2. Open `https://www.riorunning.com/api/health`. Body: `{"ok":true}`. That is the rewrite. Vercel allows a proxied request about two minutes.
 3. Open `https://www.riorunning.com`. Create an account or sign in with an account on this Supabase project. If confirmation mail is on, Create account shows Check your email. The link opens `https://www.riorunning.com/confirm`, then you log in. The steps for Resend and the templates are in `docs/email-setup.md`.
 4. Open Settings. A loaded page means `rio_hosted` was stored for this host and sent again to `/api`.
-5. **Forgot password**. The mail link opens `https://www.riorunning.com/reset-password` and the new-password form.
+5. **Forgot password**. After `NEXT_PUBLIC_PASSWORD_RESET_ENABLED` is `true` on this deployment, the mail link opens `https://www.riorunning.com/update-password` and the new-password form. `/reset-password` is the same form. Until the flag is set, Log in hides the link.
 6. **Connect Strava**. After you approve, the browser lands on `https://www.riorunning.com/settings?strava=connected` or `?strava=error`.
 7. Open `https://riotraining.streamlit.app`. The moved screen loads and the address is a link to `https://www.riorunning.com`. Open `https://rio-one-mocha.vercel.app` and `https://rio-rio-44fa.vercel.app`. Each shows a note linking to `riorunning.com`, and the app under the note still loads. None of those hosts redirect.
 

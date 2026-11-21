@@ -168,6 +168,26 @@ def deauthorize(access_token: str, post) -> None:
     post(DEAUTH_URL, {"access_token": access_token})
 
 
+def deauthorize_quietly(access_token: object, post) -> None:
+    """Tell Strava to revoke this token. A missing token or a failed call is ignored."""
+    if not isinstance(access_token, str) or not access_token or post is None:
+        return
+    try:
+        deauthorize(access_token, post)
+    except Exception:
+        return
+
+
+def stored_strava(row: object) -> bool:
+    """An imported run. The id keeps the mark after a season record drops source."""
+    if not isinstance(row, dict):
+        return False
+    if row.get("source") == "strava":
+        return True
+    ident = row.get("id")
+    return isinstance(ident, str) and ident.startswith("strava-")
+
+
 class RateGate:
     """100 requests in 15 minutes and 1000 in a day."""
 

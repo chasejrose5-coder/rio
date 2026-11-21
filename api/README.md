@@ -34,15 +34,16 @@ When the Supabase URL or anon key is missing, sign-in uses the local account fil
 
 `GET /auth/me` returns the signed-in athlete, or 401 when there is no session. `GET /auth/session` is the page probe: 200 `{"signed_in": false}` when signed out, and the athlete plus `"signed_in": true` when signed in. `POST /auth/sign-out` drops the server session and clears the cookie. The cookie lasts the rest of the original 24 hours. Refreshing the Supabase token does not extend it.
 
-`POST /auth/sign-up` creates an account and sets the same cookie when a session comes back. Its confirmation link is `{RIO_FRONTEND_ORIGIN}/confirm`. `POST /auth/forgot-password` sends reset mail to `{RIO_FRONTEND_ORIGIN}/reset-password`, and `POST /auth/reset-password` sets the password from `token` or from a recovery hash (`access_token`, `refresh_token`, `type=recovery`). Streamlit's own screens still use `RIO_APP_URL`. The local account file sends no mail. `POST /auth/password` and `POST /auth/email` change this account. `POST /auth/delete` requires `confirm: true`. `GET /auth/google` and `GET /auth/google/callback` are Google sign-in. `RIO_GOOGLE_REDIRECT_URI` defaults to `{RIO_FRONTEND_ORIGIN}/auth/callback`. The Next button stays hidden until `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED` is `true`.
+`POST /auth/sign-up` creates an account and sets the same cookie when a session comes back. Its confirmation link is `{RIO_FRONTEND_ORIGIN}/confirm`. `POST /auth/forgot-password` sends reset mail to `{RIO_FRONTEND_ORIGIN}/update-password`, and `POST /auth/reset-password` sets the password from `token` or from a recovery hash (`access_token`, `refresh_token`, `type=recovery`). `/reset-password` is the same form. Streamlit's own screens still use `RIO_APP_URL`. The local account file sends no mail. The public site, the apex, and the old Vercel hosts are sent as `https://www.riorunning.com`. `POST /auth/password` and `POST /auth/email` change this account. `POST /auth/delete` requires `confirm: true`. `GET /auth/google` and `GET /auth/google/callback` are Google sign-in. `RIO_GOOGLE_REDIRECT_URI` defaults to `{RIO_FRONTEND_ORIGIN}/auth/callback`. The Next button stays hidden until `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED` is `true`.
 
 Supabase Auth, URL configuration, redirect allow list. The live origin is `https://www.riorunning.com`. Add these, using that origin (scheme and host, no path, no trailing slash). Leave the Streamlit entries and the old Vercel entries in place. This process does not edit the allow list.
 
+- `https://www.riorunning.com/update-password`
 - `https://www.riorunning.com/reset-password`
 - `https://www.riorunning.com/confirm`
 - `https://www.riorunning.com/auth/callback*`
 
-When `RIO_FRONTEND_ORIGIN` is unset it is `http://localhost:3000`, so the laptop entries are `http://localhost:3000/reset-password` and `http://localhost:3000/confirm`. A wildcard `{RIO_FRONTEND_ORIGIN}/**` also covers both, the same way the Streamlit list uses `/**`. Signup confirmation and email change use `/confirm`. Password reset uses `/reset-password`.
+When `RIO_FRONTEND_ORIGIN` is unset it is `http://localhost:3000`, so the laptop entries are `http://localhost:3000/update-password`, `http://localhost:3000/reset-password`, and `http://localhost:3000/confirm`. A wildcard `{RIO_FRONTEND_ORIGIN}/**` also covers both, the same way the Streamlit list uses `/**`. Signup confirmation and email change use `/confirm`. Password reset mail uses `/update-password`. `/reset-password` is the same form.
 
 ## Seasons
 

@@ -25,7 +25,7 @@ from ui.strava import (
     _as_epoch,
     authorize_url,
     configured,
-    deauthorize,
+    deauthorize_quietly,
     exchange_code,
     http_get,
     http_post,
@@ -36,6 +36,7 @@ from ui.strava import (
     planned_vs_actual,
     redirect_uri,
     state_matches,
+    stored_strava,
     to_stored_activity,
 )
 from ui.strava_store import current_strava_store
@@ -506,14 +507,35 @@ def _save_token(user_id: str, token: dict) -> None:
     st.session_state["rio_strava_checked"] = True
 
 
+def revoke_before_account_delete() -> None:
+    """Deauthorize, then drop the stored token and runs. A failure still allows the delete.
+
+    Call this only after the delete has been confirmed. A wrong password
+    must not reach it.
+    """
+    access = ""
+    try:
+        token = _cached_token()
+    except Exception:
+        token = None
+    if isinstance(token, dict) and isinstance(token.get("access_token"), str):
+        access = token["access_token"]
+    deauthorize_quietly(access, http_post)
+    user_id = st.session_state.get("rio_cloud_user_id")
+    store = current_strava_store()
+    service_key = _service_key()
+    if isinstance(user_id, str) and store is not None and service_key:
+        try:
+            store.delete_user(user_id, service_key)
+        except Exception:
+            return
+
+
 def _disconnect() -> None:
     user_id = st.session_state.get("rio_cloud_user_id")
     token = _cached_token()
-    if isinstance(token, dict) and isinstance(token.get("access_token"), str):
-        try:
-            deauthorize(token["access_token"], http_post)
-        except StravaError:
-            pass
+    access = token.get("access_token") if isinstance(token, dict) else None
+    deauthorize_quietly(access, http_post)
     store = current_strava_store()
     service_key = _service_key()
     if isinstance(user_id, str) and store is not None and service_key:
@@ -562,9 +584,7 @@ def _drop_strava_from_session() -> None:
     stored = st.session_state.get("season_activities")
     if not isinstance(stored, list):
         return
-    st.session_state["season_activities"] = [
-        row for row in stored if not (isinstance(row, dict) and row.get("source") == "strava")
-    ]
+    st.session_state["season_activities"] = [row for row in stored if not stored_strava(row)]
 
 
 def _clear_callback() -> None:

@@ -9,6 +9,7 @@ import { UNCONFIRMED } from "@/lib/auth-copy";
 import { confirmFromLocation, confirmRead } from "@/lib/confirm-link";
 import { destinationAfterSignIn } from "@/lib/enter";
 import { GOOGLE_START_FAILED, googleAuthEnabled, googleAuthorizeUrl } from "@/lib/google-auth";
+import { passwordResetEnabled, showForgotPassword } from "@/lib/password-reset";
 import { recoveryReady, type RecoveryLink } from "@/lib/reset-link";
 import { useAuth } from "@/lib/auth";
 
@@ -207,7 +208,7 @@ export function SignInScreen() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
-  const [forgot, setForgot] = useState(true);
+  const [forgot, setForgot] = useState(false);
   const [unconfigured, setUnconfigured] = useState(false);
   const handoff = useRef(false);
 
@@ -236,7 +237,7 @@ export function SignInScreen() {
     let live = true;
     void api.accountMode().then((body) => {
       if (!live) return;
-      setForgot(body.mode === "hosted");
+      setForgot(showForgotPassword(body.mode));
       setUnconfigured(body.mode === "unconfigured");
     }).catch(() => {
       if (!live) return;
@@ -415,10 +416,14 @@ export function ForgotScreen() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    if (!passwordResetEnabled()) {
+      router.replace("/sign-in");
+      return;
+    }
     let live = true;
     void api.accountMode().then((body) => {
       if (!live) return;
-      if (body.mode !== "hosted") router.replace("/sign-in");
+      if (!showForgotPassword(body.mode)) router.replace("/sign-in");
       else setReady(true);
     }).catch(() => {
       if (live) router.replace("/sign-in");
@@ -560,7 +565,7 @@ export function ConfirmScreen() {
     const link = confirmFromLocation(window.location.search, window.location.hash);
     const read = confirmRead(link);
     if (read === "recovery") {
-      window.location.replace("/reset-password" + window.location.search + window.location.hash);
+      window.location.replace("/update-password" + window.location.search + window.location.hash);
       return;
     }
     const show = (next: ConfirmView) => {

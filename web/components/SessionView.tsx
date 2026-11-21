@@ -16,7 +16,6 @@ import {
   acceptTimeKey,
   confirmCopy,
   filledTimes,
-  fitSlots,
   needsOutcome,
   slotsFrom,
   watchlessSummary,
@@ -194,7 +193,7 @@ function Workout({ session, onSaved }: { session: SessionResponse; onSaved: () =
           </div>
           {session.match ? (
             <div className="rio-supplied">
-              <p className="rio-mark-label">Intervals</p>
+              <p className="rio-mark-label">Logged run</p>
               {session.match.reps ? <Field label="Reps" value={session.match.reps} /> : null}
               {session.match.work ? <Field label="Work" value={session.match.work} /> : null}
               {session.match.heart_rate ? <Field label="Avg HR" value={session.match.heart_rate} /> : null}
@@ -275,29 +274,14 @@ function Prep() {
 }
 
 function ResultForm({ session, onSaved }: { session: SessionResponse; onSaved: () => void }) {
-  const { athlete } = useAuth();
   const count = session.boxes;
   const seeded = (session.seed || []).map((slot) => (slot == null ? "" : String(slot)));
   while (seeded.length < count) seeded.push("");
   const [values, setValues] = useState(seeded.slice(0, count));
   const [pending, setPending] = useState<{ text: string; slots: (number | null)[] } | null>(null);
   const [error, setError] = useState("");
-  const [files, setFiles] = useState<string[]>([]);
-  const [file, setFile] = useState("—");
-  const [fileError, setFileError] = useState("");
-  const [source, setSource] = useState<string | null>(null);
   const handled = useRef(filledTimes(seeded.slice(0, count)));
-  const sourceRef = useRef<string | null>(null);
   const timer = useRef<number | null>(null);
-  const admin = athlete?.role === "admin";
-
-  useEffect(() => {
-    if (!admin) return;
-    void api
-      .intervalFiles()
-      .then((body) => setFiles(body.files || []))
-      .catch(() => setFiles([]));
-  }, [admin]);
 
   function schedule(nextValues: string[]) {
     if (timer.current) window.clearTimeout(timer.current);
@@ -314,15 +298,15 @@ function ResultForm({ session, onSaved }: { session: SessionResponse; onSaved: (
         setPending({ text, slots });
         return;
       }
-      void commit(text, slots, sourceRef.current);
+      void commit(text, slots);
     }, 350);
   }
 
-  async function commit(text: string, slots: (number | null)[], intervals: string | null) {
+  async function commit(text: string, slots: (number | null)[]) {
     if (previewing()) return;
     setError("");
     try {
-      const saved = await api.postResult({ date: session.date, text, slots, intervals }, session.digest);
+      const saved = await api.postResult({ date: session.date, text, slots }, session.digest);
       setPending(null);
       onSaved();
       if (saved.insight?.status === "pending") {
@@ -334,45 +318,10 @@ function ResultForm({ session, onSaved }: { session: SessionResponse; onSaved: (
     }
   }
 
-  async function chooseFile(name: string) {
-    setFile(name);
-    setFileError("");
-    if (name === "—") {
-      sourceRef.current = null;
-      setSource(null);
-      return;
-    }
-    try {
-      const body = await api.intervalFill(name);
-      sourceRef.current = body.source || name;
-      setSource(sourceRef.current);
-      const next = fitSlots(body.times, count);
-      setValues(next);
-      schedule(next);
-    } catch (caught) {
-      setSource(null);
-      setFileError(caught instanceof ApiError ? caught.message : `Could not read ${name}.`);
-    }
-  }
-
   return (
     <section className="rio-result">
       <p className="rio-settings-note">Times save as you type.</p>
       <p className="rio-mark-label">Result</p>
-      {admin ? (
-        <label className="rio-file">
-          Intervals file
-          <select value={file} onChange={(event) => void chooseFile(event.target.value)}>
-            <option value="—">—</option>
-            {files.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : null}
-      {fileError ? <p className="rio-empty">{fileError}</p> : null}
       {count > 1 ? <p className="rio-rep-note">Enter the time for each rep.</p> : null}
       <div className={count > 1 ? "rio-result-grid" : "rio-result-one"}>
         {values.map((value, index) => (
@@ -396,7 +345,7 @@ function ResultForm({ session, onSaved }: { session: SessionResponse; onSaved: (
       {pending ? (
         <div className="rio-confirm">
           <p className="rio-week-meta">{confirmCopy("result")}</p>
-          <button type="button" className="rio-primary" onClick={() => void commit(pending.text, pending.slots, source)}>
+          <button type="button" className="rio-primary" onClick={() => void commit(pending.text, pending.slots)}>
             Confirm
           </button>
           <button type="button" className="rio-secondary" onClick={() => setPending(null)}>

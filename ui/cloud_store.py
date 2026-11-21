@@ -958,7 +958,7 @@ class SupabaseDirectory:
         from ui.cloud_config import auth_redirect_base
 
         # Streamlit calls this with no override: /?reset=password on RIO_APP_URL.
-        # The API passes the Next /reset-password page. A blank override stays on Streamlit.
+        # The API passes the Next /update-password page. A blank override stays on Streamlit.
         target = auth_redirect_base() + "/?reset=password"
         if isinstance(redirect_to, str) and redirect_to.strip():
             target = redirect_to.strip()
