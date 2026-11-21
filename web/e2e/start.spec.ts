@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { monthsLater } from "../lib/start-form";
+import { saveMeasuredHeartRate } from "./pass-heart-rate";
 
 const athlete = {
   id: "ada",
@@ -209,6 +210,7 @@ test("a brand-new local account generates from Start and can dismiss Strava", as
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Create account" }).click();
+  await saveMeasuredHeartRate(page);
   await expect(page.getByRole("heading", { name: "Your easy pace" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
 
@@ -318,6 +320,7 @@ test("skip on a new account leaves the intro and it stays gone", async ({ page }
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Create account" }).click();
+  await saveMeasuredHeartRate(page);
   await expect(page.getByRole("heading", { name: "Your easy pace" })).toBeVisible();
   await page.getByLabel("Easy pace").fill("8:00");
   await page.getByLabel("per kilometer").check();

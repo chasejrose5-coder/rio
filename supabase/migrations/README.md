@@ -28,6 +28,8 @@ The service role bypasses those policies. The app uses it only on the server, an
 
 `014_stretch.sql` adds `stretch_completions` and `sore_spots`. Completions store the runner, the calendar date (`done_on`), and the routine id. Sore spots store the region, the severity, the day they started, the check-in date, and whether they were cleared. A signed-in athlete can read and write only their own rows, scoped to `auth.uid()`. Run it after 013. It is safe to run again. Until it has been run, the Stretching tab cannot save Done or a sore spot. The exercise text is not in the database.
 
+`015_heart_rate.sql` adds `heart_rate`. One row per athlete stores resting heart rate, max heart rate, whether they use a heart rate monitor, and any zone boundaries they edited. Empty boundaries mean the Karvonen defaults. A signed-in athlete can read and write only their own row, scoped to `auth.uid()`. Run it after 014. It is safe to run again. Until it has been run, a hosted account cannot save heart rate. `004` was never added; `005` runs after `003`, so this file is `015`.
+
 After the SQL:
 
 1. Authentication, URL configuration. Site URL: `https://www.riorunning.com`. The live Render values of `RIO_FRONTEND_ORIGIN` and `RIO_CALLBACK_BASE_URL` are that origin, scheme and host, no path, no trailing slash. Strava's Authorization Callback Domain is `www.riorunning.com`.

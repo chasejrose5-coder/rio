@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { saveMeasuredHeartRate } from "./pass-heart-rate";
 
 const today = "2026-11-10";
 
@@ -384,6 +385,7 @@ test("a brand-new account reaches Plan from Start and can mark a week", async ({
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Create account" }).click();
+  await saveMeasuredHeartRate(page);
   await expect(page.getByRole("heading", { name: "Your easy pace" })).toBeVisible();
 
   const zone = await page.evaluate(async () => {

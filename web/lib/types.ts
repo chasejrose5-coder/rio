@@ -1,3 +1,31 @@
+export type HeartZone = {
+  zone: number;
+  key: string;
+  name: string;
+  low_percent: number;
+  high_percent: number;
+  low_bpm: number;
+  high_bpm: number;
+};
+
+export type HeartRateProfile = {
+  method: string;
+  method_label: string;
+  method_sentence: string;
+  safety: string;
+  no_monitor: boolean;
+  resting_hr: number | null;
+  max_hr: number | null;
+  custom: boolean;
+  zones: HeartZone[];
+  strava_prefill: {
+    resting_hr: number | null;
+    max_hr: number | null;
+    available: boolean;
+    note: string;
+  };
+};
+
 export type Athlete = {
   id: string;
   email: string;

@@ -164,6 +164,14 @@ async function seed() {
     }),
   });
   if (adminSeason.status !== 200) throw new Error(`admin season ${adminSeason.status}`);
+
+  for (const sid of [athlete, pace, intro, start, admin]) {
+    const heart = await authed(sid, "/heart-rate", {
+      method: "PUT",
+      body: JSON.stringify({ no_monitor: true }),
+    });
+    if (heart.status !== 200) throw new Error(`heart rate ${heart.status} ${JSON.stringify(heart.body)}`);
+  }
 }
 
 async function settle(page) {
@@ -288,6 +296,9 @@ async function recordNewAccount(browser) {
     await page.getByLabel("Email").fill(email);
     await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
     await page.getByRole("button", { name: "Create account", exact: true }).click();
+    await page.getByRole("heading", { name: "Heart rate" }).waitFor({ timeout: 30000 });
+    await page.getByLabel("I don't have a heart rate monitor").check();
+    await page.getByRole("button", { name: "Continue" }).click();
     await page.getByLabel("Easy pace").waitFor({ timeout: 30000 });
     await sleep(900);
     await page.getByLabel("Easy pace").fill("7:25");

@@ -15,6 +15,7 @@ import type {
   PlanResponse,
   ResultWrite,
   StretchState,
+  HeartRateProfile,
   SeasonWrite,
   SessionResponse,
   StravaStatus,
@@ -332,6 +333,11 @@ export const api = {
 
   patchSettings: (body: Record<string, unknown>) =>
     request<Athlete>("/settings", { method: "PATCH", body: JSON.stringify(body) }),
+
+  heartRate: () => request<HeartRateProfile>("/heart-rate"),
+
+  saveHeartRate: (body: Record<string, unknown>) =>
+    request<HeartRateProfile>("/heart-rate", { method: "PUT", body: JSON.stringify(body) }),
 
   watchless: (body: { date: string; outcome?: string; time?: string; missed?: boolean }) =>
     request("/seasons/current/watchless", { method: "POST", body: JSON.stringify(body) }),

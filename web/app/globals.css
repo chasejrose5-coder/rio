@@ -901,6 +901,65 @@ button.rio-text-link:disabled {
 }
 .rio-easy-form fieldset { border: 0; padding: 0; margin: 0.4rem 0 0.8rem; display: flex; gap: 1rem; }
 .rio-easy-form .rio-primary { width: auto; min-width: 12rem; }
+.rio-hr .rio-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.2rem 0 0.35rem;
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.rio-easy-form input[type="checkbox"] {
+  display: inline-block;
+  width: 1.05rem;
+  max-width: 1.05rem;
+  min-height: 0;
+  height: 1.05rem;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--accent);
+}
+.rio-hr-method { color: var(--ink); font-weight: 600; margin: 0.8rem 0 0.2rem; }
+.rio-hr-safety { color: var(--muted); line-height: 1.45; margin: 0.9rem 0 0.4rem; }
+.rio-zone-list { list-style: none; margin: 0.8rem 0 0; padding: 0; }
+.rio-zone-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.15rem 1rem;
+  align-items: center;
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--line);
+}
+.rio-zone-name { margin: 0; color: var(--ink); font-weight: 600; }
+.rio-zone-meta { margin: 0.1rem 0 0; color: var(--muted); font-size: 0.82rem; }
+.rio-zone-bpm { margin: 0; font-variant-numeric: tabular-nums; font-weight: 700; }
+.rio-zone-adjust { margin-top: 0.8rem; }
+.rio-zone-adjust summary { cursor: pointer; font-weight: 600; }
+.rio-zone-edit { display: flex; flex-direction: column; gap: 0.7rem; margin-top: 0.6rem; }
+.rio-zone-edit fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.8rem;
+  align-items: end;
+}
+.rio-zone-edit legend { width: 100%; padding: 0; color: var(--muted); font-size: 0.75rem; }
+.rio-zone-edit label { color: var(--muted); font-size: 0.75rem; }
+.rio-zone-edit input {
+  display: block;
+  width: 5.5rem;
+  min-height: 2.4rem;
+  margin-top: 0.25rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.35rem 0.55rem;
+}
+.page-settings .rio-hr .rio-hr-method,
+.page-settings .rio-hr .rio-zone-name { color: #121110; }
+.page-settings .rio-hr .rio-easy-form { margin-top: 0.8rem; }
 .rio-intro ol { list-style: none; margin: 0; padding: 0; }
 .rio-intro li { display: flex; gap: 0.75rem; padding: 0.65rem 0; border-top: 1px solid var(--line); }
 .rio-intro li span {
