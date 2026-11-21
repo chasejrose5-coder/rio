@@ -35,6 +35,7 @@ export const PRIVATE_PREFIXES = [
   "/past-seasons",
   "/plan",
   "/profile",
+  "/recovery",
   "/session",
   "/settings",
   "/start",
