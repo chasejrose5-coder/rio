@@ -33,7 +33,7 @@ export const DOCUMENT_SECURITY_HEADERS: { key: string; value: string }[] = [
   { key: "Content-Security-Policy-Report-Only", value: REPORT_ONLY },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Access-Control-Allow-Origin", value: SITE_ORIGIN },
 ];

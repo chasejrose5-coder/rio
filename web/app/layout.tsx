@@ -58,7 +58,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         {wake ? (
           <Script id="rio-wake" strategy="beforeInteractive">
-            {`fetch(${JSON.stringify(wake)},{cache:"no-store",credentials:"omit"}).catch(function(){})`}
+            {`fetch(${JSON.stringify(wake)},{cache:"no-store",credentials:"omit",signal:AbortSignal.timeout(8000)}).then(function(r){return r.text()}).catch(function(){})`}
           </Script>
         ) : null}
         <Suspense fallback={null}>

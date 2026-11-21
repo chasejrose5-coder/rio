@@ -18,6 +18,11 @@ test("html security headers are report-only except framing, and the origin is no
   assert.equal(headers["X-Content-Type-Options"], "nosniff");
   assert.equal(headers["Referrer-Policy"], "strict-origin-when-cross-origin");
   assert.match(headers["Permissions-Policy"], /camera=\(\)/);
+  assert.equal(headers["Permissions-Policy"].includes("browsing-topics"), false);
+  assert.match(headers["Permissions-Policy"], /microphone=\(\)/);
+  assert.match(headers["Permissions-Policy"], /geolocation=\(\)/);
+  assert.match(headers["Permissions-Policy"], /payment=\(\)/);
+  assert.match(headers["Permissions-Policy"], /usb=\(\)/);
   assert.equal(headers["X-Frame-Options"], "DENY");
   assert.equal(headers["Access-Control-Allow-Origin"], SITE_ORIGIN);
   assert.equal(headers["Access-Control-Allow-Origin"].includes("*"), false);
