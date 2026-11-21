@@ -201,6 +201,18 @@ def _expires_epoch(value: object) -> int | None:
     return None
 
 
+def streams_for(app, principal) -> dict:
+    """Stored heart-rate samples for this athlete. A missing table is an empty set."""
+    try:
+        store, _key, _nonce = _backend(app, principal)
+        if hasattr(store, "get_streams"):
+            found = store.get_streams(principal.user_id)
+            return found if isinstance(found, dict) else {}
+    except Exception:
+        return {}
+    return {}
+
+
 def _backend(app, principal):
     """Token store, the key that may read tokens, and the nonce store.
 
