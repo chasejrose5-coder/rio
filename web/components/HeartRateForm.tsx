@@ -446,7 +446,7 @@ function HeartRateStepBody() {
     if (!profile || !athlete || needsHeartRate(profile)) return;
     let live = true;
     void destinationAfterSignIn(athlete).then((path) => {
-      if (live && path !== "/heart-rate") router.replace(path);
+      if (live) router.replace(path);
     });
     return () => {
       live = false;
