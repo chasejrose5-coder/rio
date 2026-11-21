@@ -76,8 +76,13 @@ def test_session_uses_easy_pace_and_states_the_rep_and_the_average(tmp_path: Pat
         raise AssertionError(me.json()["today"])
     if me.json()["today"] == date.today().isoformat() and zone_today != date.today().isoformat():
         raise AssertionError("today followed the server clock")
+    if me.json()["next_session"] is not None:
+        raise AssertionError("sign-in identity opened the season")
     sessions = generated.json()["plan"]["sessions"]
-    nxt = me.json()["next_session"]
+    home = client.get("/home")
+    if home.status_code != 200:
+        raise AssertionError(home.text)
+    nxt = home.json()["next_session"]
     expected = next_session_day({"sessions": sessions}, date.fromisoformat(zone_today))
     if nxt != expected:
         raise AssertionError((nxt, expected, zone_today))

@@ -11,11 +11,13 @@ export function RequireUser({
   title,
   variant = "cards",
   pageClass,
+  pendingNav = false,
 }: {
   children: React.ReactNode;
   title?: string;
   variant?: "home" | "cards" | "calendar";
   pageClass?: string;
+  pendingNav?: boolean;
 }) {
   const { status, refresh } = useAuth();
   const router = useRouter();
@@ -37,7 +39,7 @@ export function RequireUser({
   }
   if (status === "in") return children;
   if (!shown || status === "out") {
-    return <PageSkeleton title={title} variant={variant} pageClass={pageClass} />;
+    return <PageSkeleton title={title} variant={variant} pageClass={pageClass} pending={pendingNav} />;
   }
   return children;
 }

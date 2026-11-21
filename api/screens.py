@@ -659,20 +659,26 @@ def connection_notice(connected: bool, stored: object) -> tuple[list, str | None
     return rows, NOT_CONNECTED_NOTICE
 
 
+_LIBRARY_ROWS: list[dict] | None = None
+
+
 def library_view(query: str, family: str, phase: int | None, units: str = "miles") -> dict:
     """The frozen menu, in the distance words this athlete already uses.
 
     Search still matches the stored name, and also the name on screen after
     miles or kilometers are applied. The family list stays the full menu,
     sorted by the capacity label Streamlit shows. This does not call explain.
+    The parsed menu stays in memory. A request does not read the recipe files again.
     """
+    global _LIBRARY_ROWS
     from engines.prescribe import load_menu
 
     try:
-        menu = load_menu()
+        if _LIBRARY_ROWS is None:
+            _LIBRARY_ROWS = library_rows(load_menu())
     except ValueError as exc:
         raise ApiError(500, str(exc)) from exc
-    rows = library_rows(menu)
+    rows = _LIBRARY_ROWS or []
     opened = filter_workouts(rows, query="", family=family, phase=phase)
     needle = " ".join(str(query or "").casefold().split())
     visible = []

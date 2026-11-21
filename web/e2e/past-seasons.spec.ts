@@ -1,3 +1,4 @@
+import { mkdirSync } from "node:fs";
 import { expect, test, type Page, type Route } from "@playwright/test";
 
 const athlete = {
@@ -89,7 +90,7 @@ async function json(route: Route, body: unknown, status = 200) {
 
 async function install(
   page: Page,
-  options: { empty?: boolean; fail?: boolean; iso?: boolean } = {},
+  options: { empty?: boolean; fail?: boolean; iso?: boolean; hold?: Promise<void> } = {},
 ) {
   const user = structuredClone(athlete);
   if (options.iso) user.prefs.date_format = "iso";
@@ -106,6 +107,7 @@ async function install(
     if (path === "/auth/me") return json(route, user);
     if (path === "/auth/google") return json(route, { detail: "Accounts are not available." }, 503);
     if (path === "/seasons/past" && method === "GET") {
+      if (options.hold) await options.hold;
       if (options.fail) return json(route, { detail: "Accounts could not be read." }, 401);
       return json(route, { today: "2026-11-10", seasons, open: options.empty ? [] : [replaced, current] });
     }
@@ -141,6 +143,24 @@ async function install(
   });
   return { deletes };
 }
+
+test("a slow list shows the nav and a skeleton", async ({ page }) => {
+  let release: () => void = () => undefined;
+  const hold = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await install(page, { hold });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/past-seasons");
+  await expect(page.getByRole("navigation", { name: "Pages" }).getByRole("link", { name: "Home" })).toBeVisible();
+  await expect(page.getByText("Loading", { exact: true })).toHaveCount(0);
+  await expect(page.locator(".rio-skel").first()).toBeVisible();
+  mkdirSync("/opt/cursor/artifacts", { recursive: true });
+  await page.screenshot({ path: "/opt/cursor/artifacts/past-seasons-skeleton-phone.png", fullPage: true });
+  release();
+  await expect(page.getByText("Aug 2, 2026", { exact: false }).first()).toBeVisible();
+  await expect(page.locator(".rio-skel")).toHaveCount(0);
+});
 
 test("an empty account says there are no seasons", async ({ page }) => {
   await install(page, { empty: true });

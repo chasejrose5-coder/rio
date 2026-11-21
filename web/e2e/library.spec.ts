@@ -1,3 +1,4 @@
+import { mkdirSync } from "node:fs";
 import { expect, test, type Page, type Route } from "@playwright/test";
 
 const athlete = {
@@ -70,7 +71,7 @@ async function json(route: Route, body: unknown, status = 200) {
   await route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
 
-async function install(page: Page, options: { showIds?: boolean; fail?: string } = {}) {
+async function install(page: Page, options: { showIds?: boolean; fail?: string; hold?: Promise<void> } = {}) {
   const person = { ...athlete, prefs: { ...athlete.prefs, show_ids: options.showIds === true } };
   await page.route("**/*", async (route) => {
     const url = new URL(route.request().url());
@@ -82,6 +83,7 @@ async function install(page: Page, options: { showIds?: boolean; fail?: string }
     if (path === "/auth/me") return json(route, person);
     if (path === "/auth/google") return json(route, { detail: "Accounts are not available." }, 503);
     if (path === "/library") {
+      if (options.hold) await options.hold;
       if (options.fail) return json(route, { detail: options.fail }, 500);
       const q = url.searchParams.get("q") || "";
       const family = url.searchParams.get("family") || "";
@@ -98,6 +100,26 @@ async function install(page: Page, options: { showIds?: boolean; fail?: string }
     return json(route, { detail: "Not mocked." }, 404);
   });
 }
+
+test("a slow menu shows the nav and a skeleton", async ({ page }) => {
+  const shots = "/opt/cursor/artifacts";
+  mkdirSync(shots, { recursive: true });
+  let release: () => void = () => undefined;
+  const hold = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await install(page, { hold });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/library");
+  await expect(page.getByRole("navigation", { name: "Pages" }).getByRole("link", { name: "Home" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Plan" })).toBeVisible();
+  await expect(page.getByText("Loading", { exact: true })).toHaveCount(0);
+  await expect(page.locator(".rio-skel").first()).toBeVisible();
+  await page.screenshot({ path: `${shots}/library-skeleton-phone.png`, fullPage: true });
+  release();
+  await expect(page.getByText("4 workouts")).toBeVisible();
+  await expect(page.locator(".rio-skel")).toHaveCount(0);
+});
 
 test("the menu, a search, an empty result, and a load error", async ({ page }) => {
   await install(page);

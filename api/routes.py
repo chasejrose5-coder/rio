@@ -219,7 +219,9 @@ def log_out(request: Request, response: Response) -> dict:
 def me(request: Request) -> dict:
     who, resolved = _resolved(request)
     payload = athlete_payload(who, resolved)
-    payload["next_session"] = _next_session(request, who, resolved)
+    # The next planned day is on Home. Opening the season here held every
+    # page, including the sign-in button, on a full plan read.
+    payload["next_session"] = None
     return payload
 
 
@@ -233,24 +235,9 @@ def session(request: Request) -> dict:
             return {"signed_in": False}
         raise
     payload = athlete_payload(who, resolved)
-    payload["next_session"] = _next_session(request, who, resolved)
+    payload["next_session"] = None
     payload["signed_in"] = True
     return payload
-
-
-def _next_session(request: Request, who, resolved: dict) -> str | None:
-    """The next planned day, or the last day when the season is over.
-
-    Today is the Settings time zone already on this viewer. A missing season
-    leaves the link without a date.
-    """
-    from api.screens import next_session_day
-
-    try:
-        season = open_season(who, request.app.state.directory, resolved["today"])
-    except ApiError:
-        return None
-    return next_session_day(season.plan, resolved["today"])
 
 
 @season_router.get("/current")

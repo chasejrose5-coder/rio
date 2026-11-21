@@ -26,6 +26,12 @@ export function takeIntroMark(): boolean {
  */
 let destinationInflight: Promise<AppPath> | null = null;
 
+/** Start the reads sign-in needs so they overlap the session probe. */
+export function warmDestinationReads(): void {
+  void api.heartRate().catch(() => undefined);
+  void api.currentSeason().catch(() => undefined);
+}
+
 export function destinationAfterSignIn(athlete: Athlete): Promise<AppPath> {
   if (destinationInflight) return destinationInflight;
   destinationInflight = resolveDestination(athlete).finally(() => {
@@ -37,9 +43,11 @@ export function destinationAfterSignIn(athlete: Athlete): Promise<AppPath> {
 async function resolveDestination(athlete: Athlete): Promise<AppPath> {
   // Heart rate is a prompt on Home, not a gate. A missing reading does not
   // change where sign-in, Google, or the splash sends this runner.
+  // The season read starts immediately so it overlaps the session probe.
+  const seasonPromise = api.currentSeason();
   if (needsEasyPace(athlete)) return "/easy-pace";
   void prefetchHome().catch(() => undefined);
-  const season = await api.currentSeason();
+  const season = await seasonPromise;
   const path = pathAfterSeason(athlete, season);
   if (path === "/easy-pace" || path === "/intro") return path;
   rememberLanding(path);

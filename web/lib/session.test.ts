@@ -1,11 +1,23 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { PREP, acceptTimeKey, confirmCopy, filledTimes, sessionHref, watchlessSummary } from "./session.ts";
+import { PREP, acceptTimeKey, confirmCopy, filledTimes, nextSessionDate, sessionHref, watchlessSummary } from "./session.ts";
 
 test("start session uses the next planned day", () => {
   assert.equal(sessionHref("2026-11-10"), "/session?date=2026-11-10");
   assert.equal(sessionHref(""), "/session");
   assert.equal(sessionHref(null), "/session");
+  assert.equal(
+    nextSessionDate({
+      today: "2026-11-11",
+      plan: { sessions: [{ date: "2026-11-10" }, { date: "2026-11-12" }, { date: "nope" }] },
+    }),
+    "2026-11-12",
+  );
+  assert.equal(
+    nextSessionDate({ today: "2026-12-01", plan: { sessions: [{ date: "2026-11-10" }] } }),
+    "2026-11-10",
+  );
+  assert.equal(nextSessionDate(null), null);
 });
 
 test("rep boxes ignore a keystroke that is not a time", () => {

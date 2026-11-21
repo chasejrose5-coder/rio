@@ -65,6 +65,17 @@ export function sessionHref(next: string | null | undefined): string {
   return "/session";
 }
 
+/** The next planned day from a season payload, or the last day when the season is over. */
+export function nextSessionDate(season: { today?: string; plan?: { sessions?: { date?: string }[] } } | null): string | null {
+  const today = season?.today || "";
+  const days = (season?.plan?.sessions || [])
+    .map((row) => row.date || "")
+    .filter((day) => /^\d{4}-\d{2}-\d{2}$/.test(day))
+    .sort();
+  if (!days.length) return null;
+  return days.find((day) => !today || day >= today) || days[days.length - 1];
+}
+
 export function timeToken(value: string): string | null {
   const text = value.trim();
   if (!/^\d+(\.\d+)?$/.test(text)) return null;

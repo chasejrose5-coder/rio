@@ -349,6 +349,15 @@ class MemoryDirectory:
             raise CloudAuthError("Sign in again.")
         return user_id
 
+    def pace_units(self, access_token: object) -> str | None:
+        """Per mile or per km, without copying plans or results."""
+        try:
+            user = self.users[self.user_id(access_token)]
+        except CloudAuthError:
+            return None
+        pace = user.get("pace_units")
+        return pace if pace in ("mi", "km") else None
+
     def load_bundle(self, access_token: object) -> dict:
         user_id = self.user_id(access_token)
         user = self.users[user_id]
@@ -971,6 +980,16 @@ class SupabaseDirectory:
         if not isinstance(access_token, str) or not access_token:
             raise CloudAuthError("Sign in again.")
         return self._token_user(self._user_client(access_token), access_token)
+
+    def pace_units(self, access_token: object) -> str | None:
+        """Per mile or per km from the auth user. Plans and results stay unread."""
+        if not isinstance(access_token, str) or not access_token:
+            return None
+        try:
+            record = self._auth_record(self._user_client(access_token), access_token)
+        except CloudAuthError:
+            return None
+        return _pace_from_metadata(record)
 
     def set_role(self, user_id: object, role: object, service_key: object) -> None:
         """Set a role with the server key. The signed-in client cannot do this."""
