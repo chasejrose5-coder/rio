@@ -230,3 +230,4 @@ data/accounts.json
 data/accounts.json.tmp
 data/session.key
 data/session.key.tmp
+test-results/
