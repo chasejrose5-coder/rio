@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Expander } from "./Expander";
+import { FoamDay } from "./FoamDay";
 import { HeartPace } from "./HeartPace";
 import { Footer } from "./Footer";
 import { PageMeaning } from "./PageMeaning";
@@ -241,6 +242,7 @@ function Workout({ session, onSaved }: { session: SessionResponse; onSaved: () =
         <Field label="Structure" value={session.structure || "—"} />
         <Field label="Target outcome" value={session.target || "—"} />
         <Prep />
+        <FoamDay key={session.date} date={session.date} session={session.session} />
         {session.heart_rate ? <Field label="Avg HR" value={session.heart_rate} /> : null}
         <ZoneTime zones={session.zones} />
         <section className="rio-session-section">

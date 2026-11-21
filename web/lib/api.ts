@@ -15,6 +15,7 @@ import type {
   PlanResponse,
   ResultWrite,
   StretchState,
+  FoamState,
   HeartRateProfile,
   SeasonWrite,
   SessionResponse,
@@ -513,6 +514,14 @@ export const api = {
 
   stretchClear: (region: string) =>
     request<StretchState>(`/stretch/spots/${encodeURIComponent(region)}`, { method: "DELETE" }),
+
+  foam: () => request<FoamState>("/foam"),
+
+  foamComplete: (done: boolean) =>
+    request<FoamState>("/foam/completions", {
+      method: "POST",
+      body: JSON.stringify({ done }),
+    }),
 
   stravaCallback: (code: string, state: string) =>
     request<{ connected?: boolean; athlete_name?: string }>(
