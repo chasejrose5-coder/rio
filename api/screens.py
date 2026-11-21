@@ -182,7 +182,17 @@ def _pace_status(season, today: date, easy_pace: str, easy_unit: str, logs: list
     return text[:1].upper() + text[1:]
 
 
-def _present_session(session: dict, season, *, units: str, date_format: str, easy_pace: str, easy_unit: str, logs: list[PaceLog]) -> dict:
+def _present_session(
+    session: dict,
+    season,
+    *,
+    units: str,
+    date_format: str,
+    easy_pace: str,
+    easy_unit: str,
+    logs: list[PaceLog],
+    heart: dict | None = None,
+) -> dict:
     """The card copy, the facts, and the clock line. The stored plan is not changed."""
     shown = dict(session)
     template = str(session.get("template_id") or "").strip()
@@ -244,8 +254,34 @@ def _present_session(session: dict, season, *, units: str, date_format: str, eas
                     "tolerance": "" if continuous else str(found.get("tolerance") or ""),
                     "block": "" if continuous else str(found.get("block") or ""),
                 }
+            overlay = _heart_overlay(template, found, heart, easy_unit)
+            if overlay is not None and prescription is not None:
+                prescription = {
+                    "line": overlay.pop("line"),
+                    "tolerance": "",
+                    "block": "" if continuous else str(found.get("block") or ""),
+                    "heart": overlay,
+                }
+                if isinstance(shown.get("facts"), dict):
+                    shown["facts"] = dict(shown["facts"])
+                    shown["facts"]["pace"] = overlay["pace_line"]
+            elif overlay is not None:
+                prescription = {
+                    "line": overlay.pop("line"),
+                    "tolerance": "",
+                    "block": "",
+                    "heart": overlay,
+                }
     shown["prescription"] = prescription
     return shown
+
+
+def _heart_overlay(template: str, times: dict | None, heart: dict | None, unit: str) -> dict | None:
+    if not heart:
+        return None
+    from engines.heart_targets import heart_overlay
+
+    return heart_overlay(template, times, heart, unit)
 
 
 def _drop_speed_block(card: dict) -> dict:
@@ -280,7 +316,18 @@ def _blank_day(day: date, date_format: str) -> dict:
     }
 
 
-def _next_days(sessions: list, today: date, season, *, units: str, date_format: str, easy_pace: str, easy_unit: str, logs: list[PaceLog]) -> list[dict]:
+def _next_days(
+    sessions: list,
+    today: date,
+    season,
+    *,
+    units: str,
+    date_format: str,
+    easy_pace: str,
+    easy_unit: str,
+    logs: list[PaceLog],
+    heart: dict | None = None,
+) -> list[dict]:
     """The three calendar days after today. A rest day still takes a card."""
     by_date: dict[date, dict] = {}
     for session in sessions:
@@ -315,6 +362,7 @@ def _next_days(sessions: list, today: date, season, *, units: str, date_format: 
                         easy_pace=easy_pace,
                         easy_unit=easy_unit,
                         logs=logs,
+                        heart=heart,
                     )
                 )
             )
@@ -387,7 +435,11 @@ def home_view(principal, directory, today: date, season, *, connected: bool, str
     date_format = str(prefs["prefs"].get("date_format") or "iso")
     easy_pace = str(prefs.get("easy_pace") or "")
     easy_unit = str(prefs.get("easy_pace_unit") or "mi")
-    logs = _pace_logs(season)
+    from api.heart_rate_store import training_profile
+    from engines.heart_targets import training_logs
+
+    heart = training_profile(principal, directory)
+    logs = training_logs(_pace_logs(season), heart)
     ready_next = json_ready(shown)
     if isinstance(ready_next, dict):
         ready_next = _drop_speed_block(
@@ -399,6 +451,7 @@ def home_view(principal, directory, today: date, season, *, connected: bool, str
                 easy_pace=easy_pace,
                 easy_unit=easy_unit,
                 logs=logs,
+                heart=heart,
             )
         )
     upcoming = []
@@ -414,6 +467,7 @@ def home_view(principal, directory, today: date, season, *, connected: bool, str
                         easy_pace=easy_pace,
                         easy_unit=easy_unit,
                         logs=logs,
+                        heart=heart,
                     )
                 )
             )
@@ -444,6 +498,7 @@ def home_view(principal, directory, today: date, season, *, connected: bool, str
             easy_pace=easy_pace,
             easy_unit=easy_unit,
             logs=logs,
+            heart=heart,
         ),
         "notes": notes,
         "activities": json_ready(season.activities),
@@ -460,7 +515,7 @@ def home_view(principal, directory, today: date, season, *, connected: bool, str
     return body
 
 
-def plan_view(season, today: date, prefs: dict, month: str | None) -> dict:
+def plan_view(season, today: date, prefs: dict, month: str | None, heart: dict | None = None) -> dict:
     sessions = season.plan.get("sessions") if isinstance(season.plan, dict) else []
     if not isinstance(sessions, list):
         sessions = []
@@ -505,7 +560,9 @@ def plan_view(season, today: date, prefs: dict, month: str | None) -> dict:
     date_format = str(prefs.get("date_format") or "iso")
     easy_pace = str(prefs.get("easy_pace") or "")
     easy_unit = str(prefs.get("easy_pace_unit") or "mi")
-    logs = _pace_logs(season)
+    from engines.heart_targets import training_logs
+
+    logs = training_logs(_pace_logs(season), heart)
     presented = []
     for session in sessions:
         if not isinstance(session, dict):
@@ -518,6 +575,7 @@ def plan_view(season, today: date, prefs: dict, month: str | None) -> dict:
             easy_pace=easy_pace,
             easy_unit=easy_unit,
             logs=logs,
+            heart=heart,
         )
         for key in ("probability", "readiness", "readiness_score"):
             ready.pop(key, None)
@@ -899,7 +957,7 @@ def logged_activities(activities: object, units: str) -> list[dict]:
     return rows
 
 
-def session_view(season, day: str, resolved: dict | None = None) -> dict | None:
+def session_view(season, day: str, resolved: dict | None = None, heart: dict | None = None) -> dict | None:
     """One planned day, with the words and the clock the session page shows.
 
     Easy and long runs use the saved easy pace. Quality families keep the
@@ -926,7 +984,9 @@ def session_view(season, day: str, resolved: dict | None = None) -> dict | None:
     date_format = str(prefs.get("date_format") or "iso")
     easy_pace = str(resolved.get("easy_pace") or "")
     easy_unit = str(resolved.get("easy_pace_unit") or "mi")
-    logs = _pace_logs(season)
+    from engines.heart_targets import training_logs
+
+    logs = training_logs(_pace_logs(season), heart)
     presented = _present_session(
         found,
         season,
@@ -935,6 +995,7 @@ def session_view(season, day: str, resolved: dict | None = None) -> dict | None:
         easy_pace=easy_pace,
         easy_unit=easy_unit,
         logs=logs,
+        heart=heart,
     )
     template = str(found.get("template_id") or "")
     recipe = workout_recipe(template)

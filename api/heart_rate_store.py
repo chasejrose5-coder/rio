@@ -150,6 +150,24 @@ def _write(principal: Principal, directory, state: dict) -> None:
     _save_memory(directory, principal.token, state)
 
 
+def training_profile(principal: Principal, directory) -> dict | None:
+    """Zones for prescriptions, or None when this runner stays on pace.
+
+    A missing table leaves the old pace lines in place.
+    """
+    try:
+        profile = load_profile(principal, directory)
+    except ApiError:
+        return None
+    if profile.get("no_monitor") is True:
+        return None
+    if profile.get("resting_hr") is None or profile.get("max_hr") is None:
+        return None
+    if not profile.get("zones"):
+        return None
+    return profile
+
+
 def load_profile(principal: Principal, directory) -> dict:
     try:
         return profile_from_stored(_read(principal, directory))

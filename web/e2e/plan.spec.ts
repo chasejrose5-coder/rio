@@ -1,3 +1,4 @@
+import { mkdirSync } from "node:fs";
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { saveMeasuredHeartRate } from "./pass-heart-rate";
 
@@ -421,6 +422,12 @@ test("a brand-new account reaches Plan from Start and can mark a week", async ({
   await expect(page.getByLabel("Goal date")).toHaveValue(goal);
   await page.getByRole("button", { name: "Generate season plan" }).click();
   await expect(page).toHaveURL(/\/home\?/);
+  mkdirSync("/opt/cursor/artifacts", { recursive: true });
+  await expect(page.getByText(/Zone 2|Run at/).first()).toBeVisible();
+  await page.screenshot({ path: "/opt/cursor/artifacts/hr-workout-home-desktop.png", fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: "/opt/cursor/artifacts/hr-workout-home-phone.png", fullPage: true });
+  await page.setViewportSize({ width: 1280, height: 720 });
 
   await page.goto("/plan");
   await expect(page.getByRole("heading", { name: /\d+ weeks/ })).toBeVisible();
@@ -434,7 +441,14 @@ test("a brand-new account reaches Plan from Start and can mark a week", async ({
   expect(phases).toBeGreaterThan(1);
 
   await page.getByRole("radio", { name: "This week" }).click();
-  await expect(page.getByText(/Run at 7:45 per mile|Set your easy pace before this run\./).first()).toBeVisible();
+  await expect(
+    page.getByText(/Run at 7:45 per mile|Set your easy pace before this run\.|Zone 2/).first(),
+  ).toBeVisible();
+  await expect(page.getByText("still creating your estimate").first()).toBeVisible();
+  await page.screenshot({ path: "/opt/cursor/artifacts/hr-workout-plan-desktop.png", fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: "/opt/cursor/artifacts/hr-workout-plan-phone.png", fullPage: true });
+  await page.setViewportSize({ width: 1280, height: 720 });
   let paceLine = page.locator(".rio-pace-line", { hasText: /@/ }).first();
   if ((await paceLine.count()) === 0) {
     await page.getByLabel("Week", { exact: true }).selectOption({ index: 1 });

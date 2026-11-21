@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Expander } from "./Expander";
+import { HeartPace } from "./HeartPace";
 import { Footer } from "./Footer";
 import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
@@ -205,6 +206,7 @@ function Workout({ session, onSaved }: { session: SessionResponse; onSaved: () =
             <p className="rio-pace-line">{prescription.line}</p>
             {prescription.tolerance ? <p className="rio-pace-range">Tolerance {prescription.tolerance}</p> : null}
             {prescription.block ? <p className="rio-pace-block">Block {prescription.block}</p> : null}
+            <HeartPace heart={prescription.heart} />
           </div>
         ) : null}
         <Field label="Structure" value={session.structure || "—"} />

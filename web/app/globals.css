@@ -920,6 +920,10 @@ button.rio-text-link:disabled {
   padding: 0;
   accent-color: var(--accent);
 }
+.rio-hr-target { margin-top: 0.35rem; }
+.rio-hr-target .rio-pace-range { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+.rio-hr-estimate { margin: 0.15rem 0 0; color: var(--accent); font-size: 0.82rem; font-weight: 600; }
+.rio-hr-target .rio-settings-note, .rio-hr-target .rio-hr-safety { margin: 0.25rem 0 0; }
 .rio-hr-method { color: var(--ink); font-weight: 600; margin: 0.8rem 0 0.2rem; }
 .rio-hr-safety { color: var(--muted); line-height: 1.45; margin: 0.9rem 0 0.4rem; }
 .rio-zone-list { list-style: none; margin: 0.8rem 0 0; padding: 0; }
