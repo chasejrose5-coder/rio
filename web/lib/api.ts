@@ -18,6 +18,8 @@ import type {
   CoreState,
   FoamState,
   InjuryState,
+  BikeOffer,
+  BikeWeek,
   WorkSummary,
   HeartRateProfile,
   SeasonWrite,
@@ -562,6 +564,14 @@ export const api = {
 
   foamSummary: (start: string, end: string) =>
     request<WorkSummary>(`/foam/summary?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),
+
+  bike: (day: string) => request<BikeOffer>(`/bike?day=${encodeURIComponent(day)}`),
+
+  bikeWeek: (start: string, end: string) =>
+    request<BikeWeek>(`/bike/week?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),
+
+  bikeSave: (body: { date: string; swap?: boolean; minutes?: number; distance_m?: number | null; avg_hr?: number | null }) =>
+    request<BikeOffer>("/bike", { method: "POST", body: JSON.stringify(body) }),
 
   stravaCallback: (code: string, state: string) =>
     request<{ connected?: boolean; athlete_name?: string }>(

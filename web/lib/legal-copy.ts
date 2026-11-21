@@ -78,7 +78,7 @@ export const PRIVACY: LegalPage = {
         },
         {
           kind: "p",
-          text: "Stretching stores the routine id and the date you mark Done. The exercise text stays in the app, not in the database. A sore spot stores the body region, a severity of mild, moderate, or sharp, the day it started, the check-in date, and whether you cleared it. Injury prevention stores the areas you mark as rebuilding, the level and the date that level started, and the days you mark done. Core stores the date you mark that day’s circuit done. Foam rolling stores the date you mark that day’s routine done. That exercise text stays in the app.",
+          text: "Stretching stores the routine id and the date you mark Done. The exercise text stays in the app, not in the database. A sore spot stores the body region, a severity of mild, moderate, or sharp, the day it started, the check-in date, and whether you cleared it. Injury prevention stores the areas you mark as rebuilding, the level and the date that level started, and the days you mark done. Core stores the date you mark that day’s circuit done. Foam rolling stores the date you mark that day’s routine done. An easy day can store a bike instead: the day, the minutes, the distance, and an optional average heart rate. That exercise text stays in the app.",
         },
         {
           kind: "p",
@@ -118,7 +118,7 @@ export const PRIVACY: LegalPage = {
         },
         {
           kind: "p",
-          text: "A sync reads Strava's activity list at /athlete/activities. When a summary has no laps, it also reads /activities/{id}. It keeps runs only: sport type Run, TrailRun, or VirtualRun, or a Workout whose name reads as a run and not a walk. Other sports are dropped. For each kept run it stores the activity id, name, sport type, local start, distance, moving time, elapsed time, pace, average heart rate, max heart rate, and laps (distance, moving time, elapsed time, pace, and average heart rate). It also stores whether that local date matches a planned session, and that session's template id.",
+          text: "A sync reads Strava's activity list at /athlete/activities. When a summary has no laps, it also reads /activities/{id}. It keeps runs: sport type Run, TrailRun, or VirtualRun, or a Workout whose name reads as a run and not a walk. A Ride or VirtualRide on an easy plan day can be stored as that day's bike: the day, the minutes, the distance, an optional average heart rate, and time in each heart-rate zone. Other sports are dropped. For each kept run it stores the activity id, name, sport type, local start, distance, moving time, elapsed time, pace, average heart rate, max heart rate, and laps (distance, moving time, elapsed time, pace, and average heart rate). It also stores whether that local date matches a planned session, and that session's template id.",
         },
         {
           kind: "p",

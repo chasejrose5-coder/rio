@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { BikeCard } from "./BikeSwap";
 import { CoreDay } from "./CoreDay";
 import { Expander } from "./Expander";
 import { FoamDay } from "./FoamDay";
@@ -24,7 +25,7 @@ import {
   slotsFrom,
   watchlessSummary,
 } from "@/lib/session";
-import type { LoggedActivity, SessionResponse } from "@/lib/types";
+import type { BikeOffer, LoggedActivity, SessionResponse } from "@/lib/types";
 
 type Mode = "loading" | "missing" | "nodate" | "bad" | "ready" | "activity" | "error";
 
@@ -146,7 +147,13 @@ function SessionBody() {
         {mode === "bad" ? <p className="rio-empty">That session is not in this plan.</p> : null}
         {mode === "error" ? <p className="rio-error">{problem}</p> : null}
         {mode === "activity" && extra ? <ActivityCard row={extra} /> : null}
-        {mode === "ready" && session ? <Workout session={session} onSaved={() => void load()} /> : null}
+        {mode === "ready" && session ? (
+          <Workout
+            session={session}
+            units={athlete?.prefs.units === "km" ? "km" : "miles"}
+            onSaved={() => void load()}
+          />
+        ) : null}
         <PageMeaning page="session" />
         <Footer />
       </main>
@@ -210,13 +217,43 @@ function ZoneTime({ zones }: { zones: SessionResponse["zones"] }) {
   );
 }
 
-function Workout({ session, onSaved }: { session: SessionResponse; onSaved: () => void }) {
+function Workout({
+  session,
+  units,
+  onSaved,
+}: {
+  session: SessionResponse;
+  units: string;
+  onSaved: () => void;
+}) {
+  const [offer, setOffer] = useState<BikeOffer | null>(null);
   const prescription = session.prescription;
   const note = session.note && session.viewed !== true ? session.note : null;
+  const active = offer != null && (offer.offer || offer.swapped);
+  const hideRun = offer?.swapped === true;
+  const lead = Boolean(offer && active && (hideRun || offer.suggest_first));
+  const card = active && offer ? <BikeCard offer={offer} units={units} onOffer={setOffer} /> : null;
+
+  useEffect(() => {
+    let live = true;
+    api
+      .bike(session.date)
+      .then((body) => {
+        if (live) setOffer(body);
+      })
+      .catch((caught: unknown) => {
+        if (!live) return;
+        if (caught instanceof ApiError) setOffer(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [session.date]);
+
   return (
     <>
       <section className="rio-card">
-        <div className={session.match ? "rio-session-split" : undefined}>
+        <div className={session.match && !hideRun ? "rio-session-split" : undefined}>
           <div>
             <p className="rio-mark-label">Workout</p>
             <h2 className="rio-week-title">{session.label}</h2>
@@ -224,7 +261,7 @@ function Workout({ session, onSaved }: { session: SessionResponse; onSaved: () =
               <p className="rio-template-id">{session.session.template_id}</p>
             ) : null}
           </div>
-          {session.match ? (
+          {session.match && !hideRun ? (
             <div className="rio-supplied">
               <p className="rio-mark-label">Logged run</p>
               {session.match.reps ? <Field label="Reps" value={session.match.reps} /> : null}
@@ -233,7 +270,8 @@ function Workout({ session, onSaved }: { session: SessionResponse; onSaved: () =
             </div>
           ) : null}
         </div>
-        {prescription?.line ? (
+        {lead ? card : null}
+        {!hideRun && prescription?.line ? (
           <div className="rio-pace">
             <p className="rio-pace-line">{prescription.line}</p>
             {prescription.tolerance ? <p className="rio-pace-range">Tolerance {prescription.tolerance}</p> : null}
@@ -241,12 +279,13 @@ function Workout({ session, onSaved }: { session: SessionResponse; onSaved: () =
             <HeartPace heart={prescription.heart} />
           </div>
         ) : null}
-        <Field label="Structure" value={session.structure || "—"} />
-        <Field label="Target outcome" value={session.target || "—"} />
-        <Prep />
+        {!hideRun ? <Field label="Structure" value={session.structure || "—"} /> : null}
+        {!hideRun ? <Field label="Target outcome" value={session.target || "—"} /> : null}
+        {!hideRun ? <Prep /> : null}
         <InjuryDay key={session.date} date={session.date} />
         <CoreDay key={`${session.date}-core`} date={session.date} session={session.session} />
         <FoamDay key={`${session.date}-foam`} date={session.date} session={session.session} />
+        {active && !lead ? card : null}
         {session.heart_rate ? <Field label="Avg HR" value={session.heart_rate} /> : null}
         <ZoneTime zones={session.zones} />
         <section className="rio-session-section">
@@ -262,9 +301,9 @@ function Workout({ session, onSaved }: { session: SessionResponse; onSaved: () =
           )}
         </section>
       </section>
-      {session.logging === "done" ? (
+      {!hideRun && session.logging === "done" ? (
         <Watchless session={session} onSaved={onSaved} />
-      ) : session.boxes > 0 ? (
+      ) : !hideRun && session.boxes > 0 ? (
         <ResultForm key={`${session.digest}:${session.summary}`} session={session} onSaved={onSaved} />
       ) : null}
       {note?.headline && note.body ? <Insight session={session} note={note} onSaved={onSaved} /> : null}

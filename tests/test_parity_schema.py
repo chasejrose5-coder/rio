@@ -44,6 +44,7 @@ WRITES = {
     "sore_spots": {"user_id", "region", "severity", "started_on", "check_in_on", "cleared"},
     "heart_rate": {"user_id", "resting_hr", "max_hr", "no_monitor", "zones"},
     "run_hr_streams": {"user_id", "activity_id", "sample_time", "sample_hr"},
+    "bike_sessions": {"user_id", "done_on", "minutes", "distance_m", "avg_hr", "strava_id", "zone_seconds"},
 }
 
 

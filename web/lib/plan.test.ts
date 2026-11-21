@@ -14,6 +14,7 @@ import {
   paceStatusLine,
   plainReason,
   goalLine,
+  bikeLine,
   recapView,
   zoneRows,
   statusLabel,
@@ -96,6 +97,32 @@ test("a week with no logged work does not invent meters", () => {
   assert.equal(next.next, "Next week is an easy week.");
   const later = recapView({ week: 2, sessions, actuals: {}, marks: {}, distances: { "2026-11-10": 400 } });
   assert.equal(later.volume, "0 m · 400 m the week before");
+  const ridden = recapView({
+    week: 1,
+    sessions,
+    actuals: {},
+    marks: {},
+    distances: {},
+    bikeDates: ["2026-11-10"],
+  });
+  assert.equal(ridden.completed, "1 of 1");
+  assert.equal(ridden.volume, "0 m");
+  const both = recapView({
+    week: 1,
+    sessions,
+    actuals: { "2026-11-10": { template_id: "se_400_r90_x6", completed: true } },
+    marks: {},
+    distances: { "2026-11-10": 400 },
+    bikeDates: ["2026-11-10"],
+  });
+  assert.equal(both.completed, "1 of 1");
+  assert.equal(both.volume, "400 m");
+  assert.equal(
+    bikeLine({ minutes: 50, meters: 3218.688, zone2Seconds: 40, zoneSeconds: 50, units: "miles" }),
+    "2.0 mi · 50 min · 80% in zone 2",
+  );
+  assert.equal(bikeLine({ minutes: 70, meters: 0, zone2Seconds: 0, zoneSeconds: 0, units: "km" }), "1h 10m");
+  assert.equal(bikeLine({ minutes: 0, meters: 0, zone2Seconds: 0, zoneSeconds: 0, units: "miles" }), null);
   assert.equal(distancesFromRows([{ date: "2026-11-10", meters: 400 }, { date: "2026-11-11", meters: null }])["2026-11-10"], 400);
 });
 

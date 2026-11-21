@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import secrets
 import time
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from api.errors import ApiError
 from services.season_commit import apply_activity_marks
@@ -32,7 +32,7 @@ from ui.strava import (
     exchange_code,
     http_get,
     http_post,
-    import_runs,
+    import_training,
     make_state,
     match_runs,
     redirect_uri,
@@ -477,6 +477,74 @@ def _save_season(principal, directory, season) -> None:
     _save(principal, directory, season, previous)
 
 
+def _keep_rides(app, principal, directory, today, season, rides: list) -> None:
+    """A Ride or VirtualRide on an easy day can fill that day's bike swap.
+
+    A hand-logged ride stays. A third easy day in the week stays a run.
+    A failure here does not undo the run import.
+    """
+    if not rides:
+        return
+    try:
+        from api.bike_store import save_ride
+        from api.heart_rate_store import training_profile
+        from engines.bike import bike_zones, day_before_race, day_kind, minutes_from_seconds
+        from engines.zone_time import zone_report
+
+        heart = training_profile(principal, directory)
+        zones = bike_zones(heart.get("zones")) if isinstance(heart, dict) else None
+        sessions = season.plan.get("sessions") if isinstance(season.plan, dict) else []
+        if not isinstance(sessions, list):
+            sessions = []
+        ordered = sorted(
+            rides,
+            key=lambda row: (str(row.get("date") or ""), str(row.get("start_local") or ""), str(row.get("id") or "")),
+        )
+        for ride in ordered:
+            if not isinstance(ride, dict):
+                continue
+            day_text = str(ride.get("date") or "")[:10]
+            session = next((item for item in sessions if isinstance(item, dict) and str(item.get("date") or "")[:10] == day_text), None)
+            if day_kind(session) != "easy" or day_before_race(day_text, sessions):
+                continue
+            minutes = minutes_from_seconds(ride.get("moving_seconds"))
+            if minutes is None:
+                continue
+            try:
+                day = date.fromisoformat(day_text)
+            except ValueError:
+                continue
+            counted = None
+            stream = ride.get("hr_stream")
+            if zones and isinstance(stream, dict):
+                report = zone_report(stream, zones, None)
+                if isinstance(report, dict) and isinstance(report.get("zones"), list):
+                    counted = [0, 0, 0, 0, 0]
+                    for row in report["zones"]:
+                        if isinstance(row, dict) and isinstance(row.get("zone"), int) and 1 <= row["zone"] <= 5:
+                            seconds = row.get("seconds")
+                            if isinstance(seconds, int) and not isinstance(seconds, bool):
+                                counted[row["zone"] - 1] = seconds
+            distance = ride.get("distance_m")
+            meters = int(distance) if isinstance(distance, (int, float)) and not isinstance(distance, bool) and distance >= 0 else None
+            heart_rate = ride.get("average_hr")
+            avg = int(heart_rate) if isinstance(heart_rate, int) and not isinstance(heart_rate, bool) else None
+            save_ride(
+                principal,
+                directory,
+                day,
+                easy=True,
+                before_race=False,
+                minutes=minutes,
+                distance_m=meters,
+                avg_hr=avg,
+                strava_id=str(ride.get("id") or ""),
+                zones=counted,
+            )
+    except Exception:
+        return
+
+
 def sync(app, principal, directory, today, season, scope: str) -> dict:
     """Recent is the last window. Full history ignores the previous sync time.
 
@@ -496,7 +564,7 @@ def sync(app, principal, directory, today, season, scope: str) -> dict:
         last = token.get("last_sync_at") if scope == "recent" else None
         sessions = season.plan.get("sessions") if isinstance(season.plan, dict) else []
         try:
-            fresh, runs = import_runs(
+            fresh, runs, rides = import_training(
                 token,
                 now=now,
                 last_sync=last if isinstance(last, int) else None,
@@ -527,6 +595,7 @@ def sync(app, principal, directory, today, season, scope: str) -> dict:
             else:
                 season.activities = merge_strava(season.activities, runs)
                 attach_activities(app, principal, season)
+                _keep_rides(app, principal, directory, today, season, rides)
                 count = len(runs)
                 imported = True
     else:
