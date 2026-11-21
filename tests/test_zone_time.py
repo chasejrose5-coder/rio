@@ -10,7 +10,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from engines.heart_rate import zones_for
-from engines.zone_time import parse_hr_stream, zone_report
+from datetime import date
+
+from engines.zone_time import parse_hr_stream, season_week, sum_zone_reports, zone_report
 from ui.strava import import_runs
 from ui.strava_store import MemoryStrava
 
@@ -118,3 +120,28 @@ def test_import_keeps_a_heartrate_stream_and_the_memory_store_scopes_it() -> Non
     scope = (ROOT / "ui" / "strava.py").read_text(encoding="utf-8")
     if 'SCOPE = "activity:read_all"' not in scope:
         raise AssertionError("scope change")
+
+
+def test_week_zones_add_streams_and_skip_a_week_with_none() -> None:
+    zones = _zones()
+    easy = zone_report({"time": [0, 30, 60], "hr": [140, 140, 140]}, zones, None)
+    hard = zone_report({"time": [0, 30], "hr": [170, 170]}, zones, None)
+    combined = sum_zone_reports([easy, hard])
+    if combined is None:
+        raise AssertionError("two streams should count")
+    by_zone = {row["zone"]: row["seconds"] for row in combined["zones"]}
+    if by_zone[2] != 60 or by_zone[5] != 30 or len(combined["zones"]) != 5:
+        raise AssertionError(combined)
+    if sum_zone_reports([]) is not None or sum_zone_reports([None]) is not None:
+        raise AssertionError("an empty week stays hidden")
+    start = date(2026, 11, 10)
+    if season_week(start, date(2026, 11, 8), 12) != 1:
+        raise AssertionError("week 1 opens on the Sunday")
+    if season_week(start, date(2026, 11, 15), 12) != 2:
+        raise AssertionError("the next Sunday is week 2")
+    if season_week(start, date(2026, 11, 7), 12) is not None:
+        raise AssertionError("before the season is not a week")
+    if season_week(start, date(2026, 11, 10), 1) != 1:
+        raise AssertionError("week 1 is inside a one-week season")
+    if season_week(start, date(2026, 11, 16), 1) is not None:
+        raise AssertionError("past the season length is hidden")

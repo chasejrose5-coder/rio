@@ -9,6 +9,8 @@ than inside it, the note tells the runner to slow down or stop next time.
 
 from __future__ import annotations
 
+from datetime import date, timedelta
+
 WARNING = (
     "You were above Zone {zone} for much of this run. Next time, slow down or stop "
     "until your heart rate is back in the zone."
@@ -95,6 +97,63 @@ def zone_report(stream: object, zones: object, target_zone: int | None) -> dict 
         "above_seconds": above,
         "target_zone": target_zone if isinstance(target_zone, int) else None,
         "warning": warning,
+    }
+
+
+def season_week(start: object, day: object, length: object) -> int | None:
+    """Plan week for a calendar day. Week 1 starts the Sunday on or before the start date."""
+    if isinstance(length, bool) or not isinstance(length, int) or length <= 0:
+        return None
+    if not isinstance(start, date) or not isinstance(day, date):
+        return None
+    sunday = start - timedelta(days=(start.weekday() + 1) % 7)
+    if day < sunday:
+        return None
+    week = ((day - sunday).days // 7) + 1
+    if week > length:
+        return None
+    return week
+
+
+def sum_zone_reports(reports: object) -> dict | None:
+    """Add the seconds in each zone. None when no report has a counted second.
+
+    Names come from the first report that names that zone. A missing zone
+    stays at 0 so the five zones still line up.
+    """
+    if not isinstance(reports, list):
+        return None
+    seconds = [0, 0, 0, 0, 0]
+    names = ["", "", "", "", ""]
+    counted = False
+    for report in reports:
+        if not isinstance(report, dict):
+            continue
+        rows = report.get("zones")
+        if not isinstance(rows, list):
+            continue
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            zone = row.get("zone")
+            span = row.get("seconds")
+            if isinstance(zone, bool) or not isinstance(zone, int) or zone not in range(1, 6):
+                continue
+            if isinstance(span, bool) or not isinstance(span, int) or span < 0:
+                continue
+            seconds[zone - 1] += span
+            if span > 0:
+                counted = True
+            name = row.get("name")
+            if isinstance(name, str) and name and not names[zone - 1]:
+                names[zone - 1] = name
+    if not counted:
+        return None
+    return {
+        "zones": [
+            {"zone": index + 1, "name": names[index], "seconds": seconds[index]}
+            for index in range(5)
+        ]
     }
 
 
