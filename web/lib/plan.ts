@@ -346,6 +346,51 @@ function weekMeters(rows: { date?: string }[], distances: Record<string, number>
   return Math.round(total);
 }
 
+export function goalLine(input: {
+  current?: string;
+  goal?: string;
+  goalDate?: string;
+  today?: string;
+}): string {
+  const current = (input.current || "").trim();
+  const goal = (input.goal || "").trim();
+  const times = current && goal ? `${current} now · ${goal} goal` : goal || current || "—";
+  const left = daysLeft(input.today || "", input.goalDate || "");
+  return left ? `${times} · ${left}` : times;
+}
+
+function daysLeft(today: string, goal: string): string {
+  const start = parseUtc(today);
+  const end = parseUtc(goal);
+  if (!start || !end) return "";
+  const days = Math.round((end.getTime() - start.getTime()) / 86400000);
+  if (days < 0) return "Goal date has passed";
+  if (days === 0) return "Goal date is today";
+  if (days === 1) return "1 day left";
+  return `${days} days left`;
+}
+
+export type ZoneSeconds = { zone: number; name?: string; seconds: number };
+
+/** Five zone rows when a stream was counted. Missing data stays hidden. */
+export function zoneRows(rows: ZoneSeconds[] | null | undefined): ZoneSeconds[] | null {
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  const clean = rows.filter(
+    (row) => row && typeof row.zone === "number" && row.zone >= 1 && row.zone <= 5 && typeof row.seconds === "number" && row.seconds >= 0,
+  );
+  if (!clean.some((row) => row.seconds > 0)) return null;
+  return clean;
+}
+
+export function zoneClock(seconds: number): string {
+  const whole = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(whole / 60);
+  const rest = whole % 60;
+  if (minutes === 0) return `${rest}s`;
+  if (rest === 0) return `${minutes}m`;
+  return `${minutes}m ${rest}s`;
+}
+
 export function recapView(input: {
   week: number;
   sessions: PlanSession[];

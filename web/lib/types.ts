@@ -282,7 +282,15 @@ export type PlanResponse = {
   sessions: PlanSession[];
   actuals?: CurrentSeason["actuals"];
   pace_status?: string;
+  /** Seconds in each heart-rate zone for a plan week. Absent when no stream was saved. */
+  zone_weeks?: Record<string, { zone: number; name: string; seconds: number }[]>;
   preview?: TestPreview;
+};
+
+export type WorkSummary = {
+  tracked: boolean;
+  done: number;
+  label: string;
 };
 
 export type SeasonStat = { label: string; value: string };

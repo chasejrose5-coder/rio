@@ -1337,6 +1337,7 @@ button.rio-text-link:disabled {
 .rio-hero-week .rio-range { margin: 0.35rem 0 0; color: var(--muted); }
 .rio-recap { border-top: 1px solid var(--line); padding: 1rem 0 0.4rem; }
 .rio-recap dl { margin: 0.45rem 0 0; }
+.rio-recap .rio-field dd span { display: block; }
 .rio-field { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 0.35rem 0.8rem; margin: 0.28rem 0; }
 .rio-field dt { color: var(--muted); }
 .rio-field dd { margin: 0; }

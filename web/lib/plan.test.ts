@@ -13,7 +13,9 @@ import {
   monthTitle,
   paceStatusLine,
   plainReason,
+  goalLine,
   recapView,
+  zoneRows,
   statusLabel,
   volumeLabel,
   weekContaining,
@@ -59,6 +61,23 @@ test("zero meters say no runs logged, and a logged week does not use a template"
   assert.equal(daysLabel(null), "—");
   assert.equal(displayDistance("0 m", "miles"), "0.00 mi");
   assert.equal(displayDistance("0 m · 0 m the week before", "miles").includes("the week before"), true);
+});
+
+test("the goal line is the two times and the days left, with no score", () => {
+  assert.equal(
+    goalLine({ current: "2:05.0", goal: "1:58.0", goalDate: "2026-11-21", today: "2026-11-10" }),
+    "2:05.0 now · 1:58.0 goal · 11 days left",
+  );
+  assert.equal(goalLine({ current: "2:05.0", goal: "1:58.0", goalDate: "2026-11-10", today: "2026-11-10" }).includes("today"), true);
+  assert.equal(goalLine({ goalDate: "2026-11-09", today: "2026-11-10" }).includes("passed"), true);
+  assert.equal(goalLine({ current: "2:05.0", goal: "1:58.0" }).includes("probability"), false);
+  assert.equal(zoneRows(undefined), null);
+  assert.equal(zoneRows([{ zone: 1, seconds: 0 }]), null);
+  const shown = zoneRows([
+    { zone: 2, name: "Easy / long", seconds: 60 },
+    { zone: 5, name: "VO2max / race", seconds: 0 },
+  ]);
+  assert.equal(shown?.length, 2);
 });
 
 test("a week with no logged work does not invent meters", () => {

@@ -8,6 +8,7 @@ import { Footer, PhotoCredit } from "./Footer";
 import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { PreviewBanner } from "./PreviewBanner";
+import { RecapMore } from "./RecapMore";
 import { StretchLink } from "./StretchLink";
 import { SkeletonBlocks } from "./PageSkeleton";
 import { RequireUser } from "./RequireUser";
@@ -17,6 +18,9 @@ import {
   PLAN_VIEWS,
   activityNotice,
   addDays,
+  goalLine,
+  zoneClock,
+  zoneRows,
   daysLabel,
   displayDistance,
   distancesFromRows,
@@ -347,6 +351,13 @@ function PlanReady({
             week={selected}
             format={format}
             recap={recap}
+            goal={goalLine({
+              current: plan.inputs.current_time,
+              goal: plan.inputs.goal_time,
+              goalDate: plan.inputs.goal_date,
+              today,
+            })}
+            zones={zoneRows(plan.zone_weeks?.[String(selected)])}
             units={units}
             activities={activities}
             activityNote={activityNote}
@@ -445,6 +456,8 @@ function ThisWeek({
   week,
   format,
   recap,
+  goal,
+  zones,
   units,
   activities,
   activityNote,
@@ -460,6 +473,8 @@ function ThisWeek({
   week: number;
   format: string;
   recap: { completed: string; marks: string; volume: string; next: string };
+  goal: string;
+  zones: { zone: number; name?: string; seconds: number }[] | null;
   units: string;
   activities: ActivitiesResponse | null;
   activityNote: string;
@@ -497,7 +512,7 @@ function ThisWeek({
         <p className="rio-mark-label">Recap</p>
         <dl>
           <div className="rio-field">
-            <dt>Sessions</dt>
+            <dt>Sessions done</dt>
             <dd>{recap.completed}</dd>
           </div>
           <div className="rio-field">
@@ -505,8 +520,26 @@ function ThisWeek({
             <dd>{recap.marks}</dd>
           </div>
           <div className="rio-field">
-            <dt>Volume</dt>
+            <dt>Distance</dt>
             <dd>{displayDistance(recap.volume, units)}</dd>
+          </div>
+          {zones ? (
+            <div className="rio-field">
+              <dt>Time in zone</dt>
+              <dd>
+                {zones.map((row) => (
+                  <span key={row.zone}>
+                    Zone {row.zone}
+                    {row.name ? ` ${row.name}` : ""} · {zoneClock(row.seconds)}
+                  </span>
+                ))}
+              </dd>
+            </div>
+          ) : null}
+          <RecapMore start={weekSunday(plan.inputs.start_date, week)} end={addDays(weekSunday(plan.inputs.start_date, week), 6)} />
+          <div className="rio-field">
+            <dt>Goal</dt>
+            <dd>{goal}</dd>
           </div>
           <div className="rio-field">
             <dt>Next week</dt>

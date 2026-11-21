@@ -18,6 +18,7 @@ import type {
   CoreState,
   FoamState,
   InjuryState,
+  WorkSummary,
   HeartRateProfile,
   SeasonWrite,
   SessionResponse,
@@ -552,6 +553,15 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ block_id: blockId, done }),
     }),
+
+  injurySummary: (start: string, end: string) =>
+    request<WorkSummary>(`/injury/summary?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),
+
+  coreSummary: (start: string, end: string) =>
+    request<WorkSummary>(`/core/summary?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),
+
+  foamSummary: (start: string, end: string) =>
+    request<WorkSummary>(`/foam/summary?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),
 
   stravaCallback: (code: string, state: string) =>
     request<{ connected?: boolean; athlete_name?: string }>(

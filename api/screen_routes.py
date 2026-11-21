@@ -8,6 +8,7 @@ None of these call the model. Settings does not rebuild the season.
 from __future__ import annotations
 
 from dataclasses import replace
+from datetime import date
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
@@ -178,14 +179,16 @@ def plan(
 
     heart = training_profile(who, request.app.state.directory)
     learned = None
+    streams: dict = {}
     if heart is not None:
+        streams = streams_for(request.app, who)
         learned = ranges_for_activities(
             season.activities,
-            streams_for(request.app, who),
+            streams,
             heart.get("zones"),
             resolved.get("easy_pace_unit") or "mi",
         )
-    return plan_view(
+    body = plan_view(
         season,
         resolved["today"],
         prefs_payload(resolved),
@@ -193,6 +196,53 @@ def plan(
         heart=heart,
         learned=learned,
     )
+    zones = _zone_weeks(season, streams, heart)
+    if zones:
+        body["zone_weeks"] = zones
+    return body
+
+
+def _zone_weeks(season, streams: dict, heart: dict | None) -> dict:
+    """Seconds in each zone for a plan week, from run_hr_streams. Empty when none exist."""
+    if not isinstance(heart, dict) or not heart.get("zones") or not streams:
+        return {}
+    plan = season.plan if isinstance(getattr(season, "plan", None), dict) else {}
+    try:
+        start = date.fromisoformat(str(plan.get("start_date")))
+    except ValueError:
+        return {}
+    length = plan.get("season_length_weeks")
+    from ui.activities import activity_day
+    from engines.zone_time import season_week, sum_zone_reports, zone_report
+
+    grouped: dict[int, list] = {}
+    activities = season.activities if isinstance(getattr(season, "activities", None), list) else []
+    for activity in activities:
+        if not isinstance(activity, dict):
+            continue
+        day_text = activity_day(activity)
+        ident = activity.get("id")
+        if not day_text or ident is None:
+            continue
+        stream = streams.get(str(ident))
+        if not isinstance(stream, dict):
+            continue
+        try:
+            day = date.fromisoformat(day_text)
+        except ValueError:
+            continue
+        week = season_week(start, day, length)
+        if week is None:
+            continue
+        report = zone_report(stream, heart.get("zones"), None)
+        if report:
+            grouped.setdefault(week, []).append(report)
+    found = {}
+    for week, reports in grouped.items():
+        combined = sum_zone_reports(reports)
+        if combined:
+            found[str(week)] = combined["zones"]
+    return found
 
 
 @router.get("/library")

@@ -41,7 +41,10 @@ export const PAGE_MEANINGS = {
   },
   plan: {
     section: "pages",
-    sentences: ["Plan is every week from the start date to the goal date, as a calendar or a full list."],
+    sentences: [
+      "Plan is every week from the start date to the goal date, as a calendar or a full list.",
+      "This week adds distance, sessions done against the plan, time in zone when a heart-rate stream is saved, injury, core, and foam work marked done, and the days left to the goal.",
+    ],
   },
   session: {
     section: "today",
