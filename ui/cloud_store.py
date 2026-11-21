@@ -142,6 +142,17 @@ class MemoryDirectory:
         if not isinstance(code, str) or "google:" + code not in self.resets:
             raise CloudAuthError("Sign-in could not be finished. Try again.")
         self.resets.pop("google:" + code, None)
+        return self._google_athlete()
+
+    def sign_in_with_id_token(self, token: object, nonce: object) -> dict:
+        """The stand-in for Supabase signInWithIdToken. No request is sent."""
+        if not isinstance(token, str) or not token.strip():
+            raise CloudAuthError("Sign-in could not be finished. Try again.")
+        if not isinstance(nonce, str) or not nonce.strip():
+            raise CloudAuthError("Sign-in could not be finished. Try again.")
+        return self._google_athlete()
+
+    def _google_athlete(self) -> dict:
         email = "google-athlete@example.com"
         if email not in self.by_email:
             return self.sign_up(email, "google-password-1", "Athlete")
@@ -915,6 +926,27 @@ class SupabaseDirectory:
             )
         except Exception as exc:
             raise CloudAuthError("Sign-in could not be finished. Try again.") from exc
+        return self._open_provider_session(response)
+
+    def sign_in_with_id_token(self, token: object, nonce: object) -> dict:
+        """Supabase signInWithIdToken. The raw nonce is the one Google did not see.
+
+        Google's button was given the SHA-256 hash. Supabase hashes this raw
+        value and checks it against that claim. The client secret is not used.
+        """
+        if not isinstance(token, str) or not token.strip():
+            raise CloudAuthError("Sign-in could not be finished. Try again.")
+        if not isinstance(nonce, str) or not nonce.strip():
+            raise CloudAuthError("Sign-in could not be finished. Try again.")
+        try:
+            response = self._client(self.anon_key).auth.sign_in_with_id_token(
+                {"provider": "google", "token": token, "nonce": nonce}
+            )
+        except Exception as exc:
+            raise CloudAuthError("Sign-in could not be finished. Try again.") from exc
+        return self._open_provider_session(response)
+
+    def _open_provider_session(self, response: object) -> dict:
         session = _session_dict(response, "")
         signed_user = _response_parts(response)[1]
         name = google_display_name(signed_user)

@@ -8,6 +8,12 @@ test("html security headers are report-only except framing, and the origin is no
   assert.match(headers["Content-Security-Policy-Report-Only"], /default-src 'self'/);
   assert.match(headers["Content-Security-Policy-Report-Only"], /font-src 'self'/);
   assert.match(headers["Content-Security-Policy-Report-Only"], /https:\/\/vercel\.live/);
+  const report = headers["Content-Security-Policy-Report-Only"];
+  for (const directive of ["script-src", "frame-src", "connect-src"]) {
+    const rule = report.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${directive} `));
+    assert.ok(rule, directive);
+    assert.match(rule, /https:\/\/accounts\.google\.com/);
+  }
   assert.equal(headers["Content-Security-Policy-Report-Only"].includes("unsafe-eval"), false);
   assert.equal(headers["X-Content-Type-Options"], "nosniff");
   assert.equal(headers["Referrer-Policy"], "strict-origin-when-cross-origin");

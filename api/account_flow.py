@@ -439,6 +439,39 @@ def google_start(directory) -> dict:
     return {"url": url, "redirect_uri": redirect}
 
 
+def google_id_token(directory, token: str, nonce: str) -> dict:
+    """Finish a Google Identity Services sign-in with the same session cookie."""
+    if directory is None:
+        raise ApiError(503, ACCOUNTS_UNAVAILABLE)
+    if not _id_token_shape(token) or not _nonce_shape(nonce):
+        raise ApiError(400, "Sign-in could not be finished. Try again.")
+    try:
+        session = directory.sign_in_with_id_token(token, nonce)
+        sid, issued = open_hosted(directory, session)
+    except CloudAuthError as exc:
+        raise ApiError(400, str(exc)) from exc
+    return {
+        "sid": sid,
+        "issued": issued,
+        "email": session.get("email") or "",
+        "display_name": session.get("display_name") or "",
+        "kind": "hosted",
+    }
+
+
+def _id_token_shape(token: str) -> bool:
+    if not isinstance(token, str) or len(token) > 8192 or any(char.isspace() for char in token):
+        return False
+    parts = token.split(".")
+    return len(parts) == 3 and all(parts)
+
+
+def _nonce_shape(nonce: str) -> bool:
+    if not isinstance(nonce, str) or len(nonce) < 16 or len(nonce) > 256:
+        return False
+    return all(char.isalnum() or char in "-_" for char in nonce)
+
+
 def google_finish(directory, code: str, flow: str) -> dict:
     if directory is None:
         raise ApiError(503, ACCOUNTS_UNAVAILABLE)

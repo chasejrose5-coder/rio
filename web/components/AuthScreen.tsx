@@ -8,7 +8,8 @@ import { ApiError, afterSignIn, api, confirmOnce } from "@/lib/api";
 import { UNCONFIRMED } from "@/lib/auth-copy";
 import { confirmFromLocation, confirmRead } from "@/lib/confirm-link";
 import { destinationAfterSignIn } from "@/lib/enter";
-import { GOOGLE_START_FAILED, googleAuthEnabled, googleAuthorizeUrl } from "@/lib/google-auth";
+import { GoogleIdentityButton } from "./GoogleIdentityButton";
+import { GOOGLE_START_FAILED, googleAuthEnabled, googleAuthorizeUrl, googleClientId, googleGisHost } from "@/lib/google-auth";
 import { passwordResetEnabled, showForgotPassword } from "@/lib/password-reset";
 import { recoveryReady, type RecoveryLink } from "@/lib/reset-link";
 import { useAuth } from "@/lib/auth";
@@ -136,9 +137,8 @@ function GoogleMark() {
   );
 }
 
-function GoogleContinue({ onError }: { onError: (message: string) => void }) {
+function GoogleRedirectButton({ onError }: { onError: (message: string) => void }) {
   const [busy, setBusy] = useState(false);
-  if (!googleAuthEnabled()) return null;
 
   async function start() {
     setBusy(true);
@@ -164,6 +164,31 @@ function GoogleContinue({ onError }: { onError: (message: string) => void }) {
         <GoogleMark />
         Continue with Google
       </button>
+    </>
+  );
+}
+
+function GoogleContinue({ onError }: { onError: (message: string) => void }) {
+  const enabled = googleAuthEnabled();
+  const clientId = googleClientId();
+  const [mode, setMode] = useState<"wait" | "gis" | "redirect">("wait");
+
+  useEffect(() => {
+    if (!enabled) return;
+    const gis = clientId !== "" && googleGisHost(window.location.hostname);
+    // The host is only known in the browser. The first paint stays a blank slot.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMode(gis ? "gis" : "redirect");
+  }, [enabled, clientId]);
+
+  if (!enabled) return null;
+  return (
+    <>
+      {mode === "gis" ? (
+        <GoogleIdentityButton clientId={clientId} onError={onError} onFail={() => setMode("redirect")} />
+      ) : null}
+      {mode === "redirect" ? <GoogleRedirectButton onError={onError} /> : null}
+      {mode === "wait" ? <div className="rio-google-slot" /> : null}
       <p className="rio-auth-or">or</p>
     </>
   );

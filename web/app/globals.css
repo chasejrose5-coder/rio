@@ -704,6 +704,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   cursor: wait;
 }
 .rio-google-mark { flex: none; }
+.rio-google-slot {
+  min-height: 44px;
+  margin-top: 0.15rem;
+}
+.rio-google-slot > div { width: 100%; }
 .rio-auth-or {
   display: flex;
   align-items: center;

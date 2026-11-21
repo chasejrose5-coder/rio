@@ -14,7 +14,7 @@ The API listens on `http://127.0.0.1:8000`. This app listens on `http://127.0.0.
 
 `NEXT_PUBLIC_RIO_API_URL` is the API origin. It defaults to `http://localhost:8000`. The cookie is the API's `rio_hosted` cookie. Requests send it with `credentials: "include"`.
 
-`NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true` shows Continue with Google. Anything else hides it. The Google client secret is not an env var in this app. The setup is `docs/google-auth-setup.md`.
+`NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true` shows Continue with Google. Anything else hides it. `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is the public Web client id. On `www.riorunning.com` and `riorunning.com`, both together use Google's own button, so the account chooser names RIO. Anywhere else, or without the client id, the older redirect button stays. The Google client secret is not an env var in this app. The setup is `docs/google-auth-setup.md`.
 
 `NEXT_PUBLIC_PASSWORD_RESET_ENABLED` is the string `true` only after Supabase is sending mail through Resend. Until then, Log in hides **Forgot password?** and `/forgot-password` returns to Log in. It is not a secret. The dashboard steps are `docs/resend-email-setup.md`. The e2e server sets it so the hosted log-in still shows the link.
 

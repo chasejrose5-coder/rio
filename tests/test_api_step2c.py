@@ -495,6 +495,36 @@ def test_google_start_and_callback_use_the_redirect_env(monkeypatch) -> None:
         raise AssertionError(browser.headers)
 
 
+def test_google_id_token_sets_the_same_cookie() -> None:
+    directory = MemoryDirectory()
+    client = _client(directory)
+    refused = client.post("/auth/google/id-token", json={"token": "not-a-jwt", "nonce": "nonce-nonce-nonce"})
+    if refused.status_code != 400 or "access_token" in refused.text:
+        raise AssertionError(refused.text)
+    short = client.post("/auth/google/id-token", json={"token": "aaa.bbb.ccc", "nonce": "short"})
+    if short.status_code != 400:
+        raise AssertionError(short.text)
+    signed = client.post(
+        "/auth/google/id-token",
+        json={"token": "aaa.bbb.ccc", "nonce": "nonce-nonce-nonce"},
+    )
+    if signed.status_code != 200 or signed.json()["kind"] != "hosted":
+        raise AssertionError(signed.text)
+    if "aaa.bbb.ccc" in signed.text or "nonce-nonce-nonce" in signed.text:
+        raise AssertionError(signed.text)
+    cookie = (signed.headers.get("set-cookie") or "").lower()
+    if "httponly" not in cookie or "samesite=lax" not in cookie:
+        raise AssertionError(cookie)
+    if client.get("/auth/me").status_code != 200:
+        raise AssertionError("the id token did not sign in")
+    if client.get("/seasons/current").status_code != 404:
+        raise AssertionError("a new Google account already had a season")
+    source = (ROOT / "ui" / "cloud_store.py").read_text(encoding="utf-8")
+    call = source[source.index("def sign_in_with_id_token(") : source.index("def _open_provider_session(")]
+    if '"provider": "google"' not in call or '"nonce": nonce' not in call:
+        raise AssertionError("the id token is not sent to Supabase as Google")
+
+
 def test_reset_plan_keeps_the_account() -> None:
     directory, client = _hosted()
     _generate(client)

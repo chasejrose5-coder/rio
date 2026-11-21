@@ -253,6 +253,13 @@ export const api = {
   googleStart: () => requestOnce<{ url: string; redirect_uri?: string }>("/auth/google"),
 
   /** Exchange the code once. A remounted callback reuses the same request. */
+  /** ID token from the button on this site. The raw nonce is not the one Google saw. */
+  googleIdToken: (token: string, nonce: string) =>
+    request<AuthResult>("/auth/google/id-token", {
+      method: "POST",
+      body: JSON.stringify({ token, nonce }),
+    }),
+
   googleFinish: (code: string, flow: string) => {
     const key = `${code}\n${flow}`;
     const found = googleInflight.get(key);
