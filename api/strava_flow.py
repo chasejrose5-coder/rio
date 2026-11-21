@@ -28,7 +28,7 @@ from ui.strava import (
     StravaLimited,
     authorize_url,
     configured,
-    deauthorize,
+    deauthorize_quietly,
     exchange_code,
     http_get,
     http_post,
@@ -37,6 +37,7 @@ from ui.strava import (
     match_runs,
     redirect_uri,
     state_matches,
+    stored_strava,
     to_stored_activity,
 )
 from ui.strava_store import MemoryStrava
@@ -311,20 +312,44 @@ def finish_callback(app, principal, code: object, state: object) -> dict:
 
 
 def disconnect(app, principal) -> dict:
+    """Revoke the token, then delete this athlete's token and imported runs."""
     store, key, nonces = _backend(app, principal)
     token = _token(store, principal.user_id, key)
-    if isinstance(token, dict) and isinstance(token.get("access_token"), str):
-        post, _get = _post_get(app)
-        try:
-            deauthorize(token["access_token"], post)
-        except StravaError:
-            pass
+    access = token.get("access_token") if isinstance(token, dict) else None
+    post, _get = _post_get(app)
+    deauthorize_quietly(access, post)
     try:
         store.delete_user(principal.user_id, key)
     except Exception as exc:
         raise ApiError(400, "Strava could not be disconnected.") from exc
     nonces.take(principal.user_id)
     return {"connected": False}
+
+
+def revoke_connection(app, principal) -> None:
+    """Deauthorize before the account rows are deleted. A failure does not stop that delete."""
+    try:
+        store, key, _nonce = _backend(app, principal)
+        token = _token(store, principal.user_id, key)
+        access = token.get("access_token") if isinstance(token, dict) else None
+        post, _get = _post_get(app)
+        deauthorize_quietly(access, post)
+    except Exception:
+        return
+
+
+def purge_connection(app, principal) -> None:
+    """Delete this athlete's Strava token, imported runs, and connect nonce.
+
+    Account deletion still removes the profile when this step fails. The
+    token is read by revoke_connection first, so this must run after that.
+    """
+    try:
+        store, key, nonces = _backend(app, principal)
+        store.delete_user(principal.user_id, key)
+        nonces.take(principal.user_id)
+    except Exception:
+        return
 
 
 def _season_start(sessions: object) -> int | None:
@@ -382,11 +407,7 @@ def merge_strava(existing: object, runs: list) -> list:
 
 def drop_strava(existing: object) -> list:
     rows = existing if isinstance(existing, list) else []
-    return [
-        row
-        for row in rows
-        if not (isinstance(row, dict) and row.get("source") == "strava")
-    ]
+    return [row for row in rows if not stored_strava(row)]
 
 
 def _stored_runs(app, principal) -> list[dict]:
@@ -513,13 +534,88 @@ def sync(app, principal, directory, today, season, scope: str) -> dict:
 
 
 def forget_season_runs(principal, directory, today) -> None:
-    """Drop Strava rows from the open season. The table delete already ran."""
+    """Drop imported runs from stored seasons. The token table delete already ran.
+
+    Saving a local season makes it the last key. That key is put back so
+    disconnect does not change which season opens.
+    """
     from api.errors import ApiError as _ApiError
     from api.season_service import open_season
 
+    original = _local_last_key(principal)
     try:
-        season = open_season(principal, directory, today)
-    except _ApiError:
+        _forget_local_copies(principal)
+        try:
+            season = open_season(principal, directory, today)
+        except _ApiError:
+            return
+        season.activities = drop_strava(season.activities)
+        _save_season(principal, directory, season)
+    finally:
+        _restore_local_last(principal, original)
+
+
+def _local_file(principal):
+    path = principal.accounts_path
+    email = principal.email
+    seal = principal.seal
+    if principal.kind == "hosted" or path is None or not isinstance(email, str) or not isinstance(seal, str):
+        return None
+    return path, email, seal
+
+
+def _local_last_key(principal):
+    found = _local_file(principal)
+    if found is None:
+        return None
+    from ui.accounts import last_key
+
+    return last_key(*found)
+
+
+def _restore_local_last(principal, original) -> None:
+    found = _local_file(principal)
+    if found is None or not isinstance(original, str) or not original:
         return
-    season.activities = drop_strava(season.activities)
-    _save_season(principal, directory, season)
+    from ui.accounts import last_key, read_record, write_record
+
+    if last_key(*found) == original:
+        return
+    body = read_record(*found, original)
+    if not isinstance(body, str) or not body:
+        return
+    try:
+        write_record(*found, original, body)
+    except Exception:
+        return
+
+
+def _forget_local_copies(principal) -> None:
+    """Imported runs live on every local season, not only the one open today."""
+    found = _local_file(principal)
+    if found is None:
+        return
+    path, email, seal = found
+    from services.season_store import LocalSeasonError, load_local_season, save_local_season
+    from ui.accounts import record_keys
+    from ui.past_seasons import KEY_PREFIX, inputs_from_key
+    from ui.plan_store import storage_key
+
+    keys = record_keys(path, email, seal, KEY_PREFIX)
+    if not isinstance(keys, list):
+        return
+    for key in keys:
+        inputs = inputs_from_key(key)
+        if inputs is None:
+            continue
+        try:
+            marks, actuals, activities = load_local_season(path, email, seal, storage_key(inputs))
+        except LocalSeasonError:
+            continue
+        kept = drop_strava(activities)
+        if kept == activities:
+            continue
+        try:
+            save_local_season(path, email, seal, storage_key(inputs), marks, actuals, kept)
+        except Exception:
+            continue

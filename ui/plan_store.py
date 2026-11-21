@@ -408,6 +408,9 @@ def _clean_activity(value: object) -> dict | None:
     reps = _rep_list(value.get("reps"))
     if reps is not None:
         row["reps"] = reps
+    # Disconnect finds imported runs by this field. Other sources stay off the record.
+    if value.get("source") == "strava":
+        row["source"] = "strava"
     return row
 
 

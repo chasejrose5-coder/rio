@@ -244,6 +244,7 @@ def delete(body: DeleteAccountBody, request: Request, response: Response) -> dic
         who,
         email=body.email,
         password=body.password,
+        app=request.app,
     )
     sign_out(request.app, request.app.state.directory, who.sid)
     clear_session_cookie(response, request.app.state.settings)

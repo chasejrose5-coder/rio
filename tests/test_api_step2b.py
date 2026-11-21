@@ -357,6 +357,168 @@ def test_disconnect_removes_tokens_and_a_missing_setup_is_refused(monkeypatch) -
         raise AssertionError("status still says connected")
 
 
+def test_disconnect_deletes_imported_runs_when_strava_cannot_be_reached(monkeypatch) -> None:
+    """A failed deauthorize still removes the token and the imported runs."""
+    _strava_env(monkeypatch)
+    directory, client = _signed()
+    plan = _generate(client)["plan"]
+    tuesday = _session(plan, 1, "Tuesday")
+    calls = []
+
+    def post(url: str, form: dict) -> dict:
+        calls.append((url, form.get("access_token")))
+        if "deauthorize" in url:
+            raise RuntimeError("down")
+        return {
+            "access_token": "token-access-secret",
+            "refresh_token": "token-refresh-secret",
+            "expires_at": 4_000_000_000,
+            "athlete": {"id": 7, "firstname": "Ada", "lastname": "Lovelace"},
+        }
+
+    def get(url: str, query: dict, access_token: str) -> object:
+        del url, query
+        if access_token != "token-access-secret":
+            raise StravaError("Strava could not be reached.")
+        return [_run(tuesday["date"], 11)]
+
+    client.app.state.strava_post = post
+    client.app.state.strava_get = get
+    _callback(client, _connect(client)["url"])
+    synced = client.post("/strava/sync", json={"scope": "all"})
+    if synced.status_code != 200 or synced.json()["count"] != 1:
+        raise AssertionError(synced.text)
+    user_id = directory.by_email["ada@example.com"]
+    store = client.app.state.memory_strava
+    if not store.activities.get(user_id) or user_id not in store.tokens:
+        raise AssertionError("the run was not stored")
+    store.put_token(
+        "user-b",
+        {"access_token": "other-access", "refresh_token": "other-refresh"},
+        "memory-service",
+    )
+    store.put_activities("user-b", [{"id": "strava-2", "name": "Other"}])
+    gone = client.post("/strava/disconnect")
+    if gone.status_code != 200 or gone.json()["connected"] is not False:
+        raise AssertionError(gone.text)
+    if "token-access-secret" in gone.text or "other-access" in gone.text:
+        raise AssertionError(gone.text)
+    deauth = [item for item in calls if "deauthorize" in item[0]]
+    if deauth != [("https://www.strava.com/oauth/deauthorize", "token-access-secret")]:
+        raise AssertionError(deauth)
+    if user_id in store.tokens or store.activities.get(user_id):
+        raise AssertionError("disconnect left a token or a run")
+    if store.get_token("user-b", "memory-service") is None or store.get_activities("user-b")[0]["id"] != "strava-2":
+        raise AssertionError("disconnect removed another athlete")
+    current = client.get("/seasons/current")
+    if current.status_code != 200:
+        raise AssertionError(current.text)
+    for row in current.json().get("activities") or []:
+        if not isinstance(row, dict):
+            continue
+        if row.get("source") == "strava" or str(row.get("id") or "").startswith("strava-"):
+            raise AssertionError(current.text)
+
+
+def test_disconnect_clears_strava_runs_on_older_local_seasons(monkeypatch, tmp_path: Path) -> None:
+    """A season record keeps the run after source is stored, and an older id still drops."""
+    from ui.accounts import authenticate, last_key
+    from ui.plan_store import storage_key
+    from services.season_store import load_local_season, save_local_season
+
+    _strava_env(monkeypatch)
+    path = tmp_path / "accounts.json"
+    client = _app(None, path)
+    created = client.post(
+        "/auth/sign-up",
+        json={"email": "local@example.com", "password": "correct-horse", "name": "Local"},
+    )
+    if created.status_code != 200:
+        raise AssertionError(created.text)
+    plan = _generate(client)["plan"]
+    tuesday = _session(plan, 1, "Tuesday")
+    calls = []
+
+    def post(url: str, form: dict) -> dict:
+        calls.append((url, form.get("access_token")))
+        if "deauthorize" in url:
+            return {}
+        return {
+            "access_token": "token-access-secret",
+            "refresh_token": "token-refresh-secret",
+            "expires_at": 4_000_000_000,
+            "athlete": {"id": 7, "firstname": "Ada", "lastname": "Lovelace"},
+        }
+
+    def get(url: str, query: dict, access_token: str) -> object:
+        del url, query
+        if access_token != "token-access-secret":
+            raise StravaError("Strava could not be reached.")
+        return [_run(tuesday["date"], 11)]
+
+    client.app.state.strava_post = post
+    client.app.state.strava_get = get
+    _callback(client, _connect(client)["url"])
+    synced = client.post("/strava/sync", json={"scope": "all"})
+    if synced.status_code != 200 or synced.json()["count"] != 1:
+        raise AssertionError(synced.text)
+    found = authenticate(path, "local@example.com", "correct-horse")
+    if found is None:
+        raise AssertionError("the local account did not open")
+    email, seal = found
+    current_inputs = (INPUTS["current_time"], INPUTS["start_date"], INPUTS["goal_time"], INPUTS["goal_date"])
+    older = ("2:05.0", "2020-01-06", "1:55.0", "2020-04-06")
+    kept_open = ("2:04.0", "2019-01-08", "1:56.0", "2019-04-08")
+    marks, actuals, activities = load_local_season(path, email, seal, storage_key(current_inputs))
+    activities = list(activities) + [
+        {"id": "note-1", "name": "Logged", "date": "2026-04-20", "matched": False},
+    ]
+    save_local_season(path, email, seal, storage_key(current_inputs), marks, actuals, activities)
+    save_local_season(
+        path,
+        email,
+        seal,
+        storage_key(older),
+        {},
+        {},
+        [
+            {"id": "strava-9", "name": "Old run", "date": "2020-01-08", "matched": False, "distance": 5000},
+            {"id": "legacy-1", "name": "Legacy", "date": "2020-01-10", "matched": False, "source": "strava"},
+            {"id": "note-2", "name": "Logged", "date": "2020-01-09", "matched": False},
+        ],
+    )
+    save_local_season(
+        path,
+        email,
+        seal,
+        storage_key(kept_open),
+        {},
+        {},
+        [{"id": "note-3", "name": "Logged", "date": "2019-01-09", "matched": False}],
+    )
+    if last_key(path, email, seal) != storage_key(kept_open):
+        raise AssertionError(last_key(path, email, seal))
+    gone = client.post("/strava/disconnect")
+    if gone.status_code != 200 or "token-access-secret" in gone.text:
+        raise AssertionError(gone.text)
+    if calls[-1] != ("https://www.strava.com/oauth/deauthorize", "token-access-secret"):
+        raise AssertionError(calls)
+    store = client.app.state.memory_strava
+    if store.tokens or store.activities:
+        raise AssertionError("disconnect left a token or a run")
+    _marks, _actuals, current_rows = load_local_season(path, email, seal, storage_key(current_inputs))
+    if [row.get("id") for row in current_rows] != ["note-1"]:
+        raise AssertionError(current_rows)
+    _marks, _actuals, older_rows = load_local_season(path, email, seal, storage_key(older))
+    if [row.get("id") for row in older_rows] != ["note-2"]:
+        raise AssertionError(older_rows)
+    _marks, _actuals, kept_rows = load_local_season(path, email, seal, storage_key(kept_open))
+    if [row.get("id") for row in kept_rows] != ["note-3"]:
+        raise AssertionError(kept_rows)
+    if last_key(path, email, seal) != storage_key(kept_open):
+        raise AssertionError(last_key(path, email, seal))
+
+
 def test_sync_without_strava_does_not_import(monkeypatch) -> None:
     """A signed-in athlete with no Strava link is not given another person's runs."""
     monkeypatch.delenv("RIO_STRAVA_CLIENT_ID", raising=False)

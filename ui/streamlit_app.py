@@ -6134,6 +6134,22 @@ def page_settings() -> None:
                     if typed_email != email:
                         st.session_state["rio_settings_error"] = "Confirm with your email to delete this account."
                         st.rerun()
+                    from ui.accounts import authenticate
+                    from ui.strava_ui import revoke_before_account_delete
+
+                    if authenticate(accounts_path(), email, delete_pw) is None:
+                        try:
+                            delete_account(
+                                accounts_path(),
+                                email,
+                                who[1] if who is not None else "",
+                                delete_pw,
+                            )
+                        except AccountError as exc:
+                            st.session_state["rio_settings_error"] = str(exc)
+                            st.rerun()
+                        st.rerun()
+                    revoke_before_account_delete()
                     try:
                         delete_account(
                             accounts_path(),

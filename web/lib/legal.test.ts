@@ -29,6 +29,7 @@ test("the privacy draft matches the account, cookie, and Strava read", () => {
     "Supabase",
     "Delete my account",
     "deauthorize",
+    "Delete my account calls Strava's deauthorize endpoint with the stored token",
     "Strava may monitor and collect usage data",
     "does not send an email that the delete finished",
     "sessionStorage",
@@ -37,6 +38,7 @@ test("the privacy draft matches the account, cookie, and Strava read", () => {
     assert.match(text, new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
   assert.equal(text.includes("goal probability"), true);
+  assert.equal(/account deletion does not call Strava/i.test(text), false);
   assert.equal(/we sell your data/i.test(text), false);
   for (const hidden of [
     "RIO_EXPLAIN_API_KEY",
