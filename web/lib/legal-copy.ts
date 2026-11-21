@@ -1,11 +1,11 @@
 /** Draft privacy and terms. The sentences describe this codebase.
  *
- * Placeholders stay in brackets until the operator fills them in.
- * Do not add a company, address, court, or support address here.
+ * The operator, legal contact, governing law, and age line are filled in.
+ * These pages stay drafts until they are put in effect.
+ * Do not add a company, a mailing address, or a named court.
  */
 
-export const DRAFT_NOTE =
-  "For review. This page is not in effect. [COMPANY NAME], [CONTACT EMAIL], and the governing law are placeholders.";
+export const DRAFT_NOTE = "For review. This page is not in effect yet.";
 
 export const LEGAL_UPDATED = "November 16, 2026";
 
@@ -42,7 +42,15 @@ export const PRIVACY: LegalPage = {
         },
         {
           kind: "p",
-          text: "The operator is [COMPANY NAME]. A mailing address is not decided. The legal contact is [CONTACT EMAIL]. The email in the site footer is the current questions line. This draft does not make that address the legal contact.",
+          text: "The operator is Chase Rose, an individual. The legal and privacy contact is riorunning.app@gmail.com. The email in the site footer is the current questions line. This draft does not make that address the legal contact.",
+        },
+        {
+          kind: "p",
+          text: "The governing law chosen here is the law of the State of California.",
+        },
+        {
+          kind: "p",
+          text: "RIO is not directed to children under 13. If RIO learns that a user is under 13, the account will be deleted on request.",
         },
       ],
     },
@@ -200,19 +208,6 @@ export const PRIVACY: LegalPage = {
         },
       ],
     },
-    {
-      id: "open",
-      title: "Still open",
-      blocks: [
-        {
-          kind: "ul",
-          items: [
-            "[COMPANY NAME], a street address, and [CONTACT EMAIL] are not decided.",
-            "No governing law or court is chosen in this draft.",
-          ],
-        },
-      ],
-    },
   ],
 };
 
@@ -232,7 +227,7 @@ export const TERMS: LegalPage = {
         },
         {
           kind: "p",
-          text: "The operator is [COMPANY NAME]. The legal contact is [CONTACT EMAIL]. No street address, price, warranty, liability cap, refund rule, age minimum, or governing law is decided here. The app does not ask for a birth date and does not block signup by age.",
+          text: "The operator is Chase Rose, an individual. The legal and privacy contact is riorunning.app@gmail.com. Users must be at least 13. The governing law chosen here is the law of the State of California. No price, warranty, liability cap, or refund rule is decided here. The app does not ask for a birth date and does not block signup by age.",
         },
       ],
     },
@@ -295,7 +290,6 @@ export const TERMS: LegalPage = {
         {
           kind: "ul",
           items: [
-            "[COMPANY NAME], [CONTACT EMAIL], a street address, and the governing law are not decided. This draft does not choose a court.",
             "No warranty, liability cap, or refund rule is stated, because none is decided.",
             "No age rule is enforced by the signup form.",
           ],
