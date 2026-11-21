@@ -57,7 +57,14 @@ export const PAGE_MEANINGS = {
   },
   library: {
     section: "pages",
-    sentences: ["Library sits under Training, next to Stretching. Search, What it trains, and Phase narrow the list."],
+    sentences: ["Library sits under Training, next to Stretching and Core. Search, What it trains, and Phase narrow the list."],
+  },
+  core: {
+    section: "pages",
+    sentences: [
+      "Core, under Training, is a daily circuit: about 8 minutes on a hard day, 12 to 15 minutes on an easy day, and none on race day or the day before.",
+      "Not medical advice, and a painful area is a reason to see a professional.",
+    ],
   },
   stretching: {
     section: "stretching",
@@ -224,6 +231,7 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
       "Plan shows the weeks from the start date to the goal date, as Calendar, This week, or Full season.",
       "Activity shows Strava runs, distance, and heart rate. Refresh asks for newer runs.",
       "Library, under Training, is the workout menu. Search, What it trains, and Phase narrow the same list.",
+      "Core, under Training, rotates anti-extension, anti-rotation, lateral, flexion, and running-specific work.",
       "Past seasons lists each saved season by start date, goal date, and goal time. Open plan loads it. Delete shows facts already stored, such as workouts logged and a timed 800.",
       "Settings holds your name, time zone, pace units, and Strava. The danger zone clears marks, the plan, or the account.",
       "Profile keeps the easy pace and the season from Start. Saving a new goal 800 time does not rebuild the season.",

@@ -166,6 +166,11 @@ export type HomeResponse = {
   preview?: TestPreview;
 };
 
+export type CoreState = {
+  today: string;
+  completions: { date: string }[];
+};
+
 export type StretchState = {
   today: string;
   completions: { date: string; routine_id: string }[];

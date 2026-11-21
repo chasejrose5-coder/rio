@@ -78,7 +78,7 @@ export const PRIVACY: LegalPage = {
         },
         {
           kind: "p",
-          text: "Stretching stores the routine id and the date you mark Done. The exercise text stays in the app, not in the database. A sore spot stores the body region, a severity of mild, moderate, or sharp, the day it started, the check-in date, and whether you cleared it.",
+          text: "Stretching stores the routine id and the date you mark Done. The exercise text stays in the app, not in the database. A sore spot stores the body region, a severity of mild, moderate, or sharp, the day it started, the check-in date, and whether you cleared it. Core stores the date you mark that day’s circuit done. The exercise text stays in the app.",
         },
         {
           kind: "p",
@@ -152,7 +152,7 @@ export const PRIVACY: LegalPage = {
         },
         {
           kind: "p",
-          text: "What is stored: the profile (email, display name, role, and when the account was created), the 800 meter goal, the plan and the logged days, season notes, stretch completions, sore spots, Strava tokens, imported Strava runs, the connect nonce, and the session. A separate counter tracks how much has been reserved for model notes. That counter is not an athlete profile.",
+          text: "What is stored: the profile (email, display name, role, and when the account was created), the 800 meter goal, the plan and the logged days, season notes, stretch completions, sore spots, core done marks, Strava tokens, imported Strava runs, the connect nonce, and the session. A separate counter tracks how much has been reserved for model notes. That counter is not an athlete profile.",
         },
       ],
     },
@@ -192,7 +192,7 @@ export const PRIVACY: LegalPage = {
         },
         {
           kind: "p",
-          text: "Settings, Danger zone, Delete my account asks you to check “I understand this permanently deletes my season and runs”. On the hosted site that checkbox is the confirmation. A local file account also asks for the email and the password. The server then deletes the session rows, the logged results, the plans, the goal row, and the profile, and then deletes the Supabase Auth user. Rows that reference the profile are removed with it, including Strava tokens and activities, stretch completions, sore spots, season state, and the Strava connect nonce, where those records are present.",
+          text: "Settings, Danger zone, Delete my account asks you to check “I understand this permanently deletes my season and runs”. On the hosted site that checkbox is the confirmation. A local file account also asks for the email and the password. The server then deletes the session rows, the logged results, the plans, the goal row, and the profile, and then deletes the Supabase Auth user. Rows that reference the profile are removed with it, including Strava tokens and activities, stretch completions, sore spots, core done marks, season state, and the Strava connect nonce, where those records are present.",
         },
         {
           kind: "p",
@@ -246,7 +246,7 @@ export const TERMS: LegalPage = {
         },
         {
           kind: "p",
-          text: "The plan is not a prediction of your race. The app does not show a goal probability or a readiness score. It is not a medical device, and this draft does not add a medical disclaimer beyond that fact.",
+          text: "The plan is not a prediction of your race. The app does not show a goal probability or a readiness score. It is not a medical device. Core circuits say they are not medical advice, and to see a professional if it hurts.",
         },
       ],
     },

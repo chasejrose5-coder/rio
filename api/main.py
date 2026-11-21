@@ -18,6 +18,7 @@ from api.account_routes import router as account_router
 from api.admin_routes import router as admin_router
 from api.errors import ApiError
 from api.fixture_routes import router as fixture_router
+from api.core_routes import router as core_router
 from api.heart_rate_routes import router as heart_rate_router
 from api.insight_routes import router as insight_router
 from api.routes import auth_router, health_router, season_router
@@ -98,6 +99,7 @@ def create_app(
     app.include_router(screen_router)
     app.include_router(stretch_router)
     app.include_router(heart_rate_router)
+    app.include_router(core_router)
 
     @app.exception_handler(ApiError)
     def _api_error(_request: Request, exc: ApiError) -> JSONResponse:
