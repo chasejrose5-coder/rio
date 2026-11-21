@@ -22,6 +22,7 @@ export const PRIVATE_PREFIXES = [
   "/creators",
   "/decisions",
   "/easy-pace",
+  "/foam",
   "/goal",
   "/guide",
   "/heart-rate",

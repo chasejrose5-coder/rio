@@ -16,6 +16,7 @@ import type {
   ResultWrite,
   StretchState,
   CoreState,
+  FoamState,
   InjuryState,
   HeartRateProfile,
   SeasonWrite,
@@ -520,6 +521,14 @@ export const api = {
 
   coreComplete: (done: boolean) =>
     request<CoreState>("/core/completions", {
+      method: "POST",
+      body: JSON.stringify({ done }),
+    }),
+
+  foam: () => request<FoamState>("/foam"),
+
+  foamComplete: (done: boolean) =>
+    request<FoamState>("/foam/completions", {
       method: "POST",
       body: JSON.stringify({ done }),
     }),

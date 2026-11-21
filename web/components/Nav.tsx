@@ -23,6 +23,7 @@ const TRAINING = [
   { href: "/stretch", label: "Stretching" },
   { href: "/recovery", label: "Recovery" },
   { href: "/core", label: "Core" },
+  { href: "/foam", label: "Foam rolling" },
 ];
 
 const MORE = [
@@ -46,12 +47,14 @@ export function Nav({ active }: { active?: string }) {
     path === "/stretch" ||
     path === "/recovery" ||
     path === "/core" ||
+    path === "/foam" ||
     path === "/training" ||
     active === "Training" ||
     active === "Library" ||
     active === "Stretching" ||
     active === "Recovery" ||
-    active === "Core";
+    active === "Core" ||
+    active === "Foam rolling";
   const moreOpen = path === "/more" || MORE.some((item) => path === item.href) || active === "More";
   const admin = athlete?.role === "admin";
   const startSession = sessionHref(athlete?.next_session);

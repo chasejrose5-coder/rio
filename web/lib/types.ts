@@ -171,6 +171,11 @@ export type CoreState = {
   completions: { date: string }[];
 };
 
+export type FoamState = {
+  today: string;
+  completions: { date: string }[];
+};
+
 export type InjuryState = {
   today: string;
   areas: {
