@@ -208,8 +208,8 @@ function AuthFrame({
   children: React.ReactNode;
 }) {
   return (
-    <div className="auth-screen">
-      <main className="rio-auth-card">
+    <main className="auth-screen">
+      <div className="rio-auth-card">
         <header className="rio-hero rio-auth-hero">
           <p className="rio-synthetic">RIO</p>
           <h1>{title}</h1>
@@ -218,10 +218,10 @@ function AuthFrame({
         {notice ? <p className="rio-settings-note">{notice}</p> : null}
         {error ? <p className="rio-error">{error}</p> : null}
         {children}
-      </main>
+      </div>
       <PhotoCredit>Photo by Steve Pancrate on Pexels</PhotoCredit>
       <Footer onPhoto />
-    </div>
+    </main>
   );
 }
 

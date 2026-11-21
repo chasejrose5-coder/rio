@@ -29,6 +29,14 @@ export function pathAfterSeason(athlete: Athlete, season: CurrentSeason | null):
   return landingPath(season);
 }
 
+export const HR_PROMPT_KEY = "rio_hr_prompt_dismissed";
+
+/** Home shows the heart-rate card until this runner dismisses it or saves a reading. */
+export function heartPromptOpen(profile: HeartGate, dismissed: boolean): boolean {
+  if (dismissed) return false;
+  return needsHeartRate(profile);
+}
+
 export const LANDING_KEY = "rio_landing";
 
 /** Home when the goal date is today or later in the Settings time zone. */

@@ -1,10 +1,10 @@
 import { api, prefetchHome } from "./api";
-import { needsEasyPace, needsHeartRate, pathAfterSeason, rememberLanding } from "./landing";
-import type { Athlete, HeartRateProfile } from "./types";
+import { needsEasyPace, pathAfterSeason, rememberLanding } from "./landing";
+import type { Athlete } from "./types";
 
 export const MARK_INTRO_KEY = "rio_mark_intro";
 
-export type AppPath = "/home" | "/start" | "/easy-pace" | "/intro" | "/heart-rate";
+export type AppPath = "/home" | "/start" | "/easy-pace" | "/intro";
 
 export function markIntroLater(): void {
   if (typeof window === "undefined") return;
@@ -40,22 +40,14 @@ export function destinationAfterSignIn(athlete: Athlete): Promise<AppPath> {
   return destinationInflight;
 }
 
-async function readHeartRate(): Promise<HeartRateProfile | null> {
-  try {
-    return await api.heartRate();
-  } catch {
-    return null;
-  }
-}
-
 async function resolveDestination(athlete: Athlete): Promise<AppPath> {
-  const heartPromise = readHeartRate();
-  const seasonPromise = needsEasyPace(athlete) ? null : api.currentSeason();
-  const heart = await heartPromise;
-  if (needsHeartRate(heart)) return "/heart-rate";
+  // Heart rate is a prompt on Home, not a gate. A missing reading does not
+  // change where sign-in, Google, or the splash sends this runner.
+  // The season read starts immediately so it overlaps the session probe.
+  const seasonPromise = api.currentSeason();
   if (needsEasyPace(athlete)) return "/easy-pace";
   void prefetchHome().catch(() => undefined);
-  const season = await (seasonPromise ?? api.currentSeason());
+  const season = await seasonPromise;
   const path = pathAfterSeason(athlete, season);
   if (path === "/easy-pace" || path === "/intro") return path;
   rememberLanding(path);
