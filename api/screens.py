@@ -1072,6 +1072,7 @@ def session_view(season, day: str, resolved: dict | None = None, heart: dict | N
         "summary": _result_summary(same),
         "match": block,
         "heart_rate": extra_hr,
+        "activity_id": str(match.get("id") or "") if isinstance(match, dict) else "",
     }
 
 
