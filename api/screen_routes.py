@@ -114,6 +114,8 @@ def home(request: Request, just_generated: bool = False) -> dict:
         return _stamp(body, runs)
     season = _open(request, who, resolved["today"])
     found = status(request.app, who)
+    from api.strava_flow import streams_for
+
     return home_view(
         who,
         request.app.state.directory,
@@ -122,6 +124,7 @@ def home(request: Request, just_generated: bool = False) -> dict:
         connected=found["connected"] is True,
         strava=found,
         just_generated=just_generated is True,
+        streams=streams_for(request.app, who),
     )
 
 
@@ -170,13 +173,25 @@ def plan(
     season = named if named is not None else open_season(who, request.app.state.directory, resolved["today"])
     attach_activities(request.app, who, season)
     from api.heart_rate_store import training_profile
+    from api.strava_flow import streams_for
+    from engines.pace_learn import ranges_for_activities
 
+    heart = training_profile(who, request.app.state.directory)
+    learned = None
+    if heart is not None:
+        learned = ranges_for_activities(
+            season.activities,
+            streams_for(request.app, who),
+            heart.get("zones"),
+            resolved.get("easy_pace_unit") or "mi",
+        )
     return plan_view(
         season,
         resolved["today"],
         prefs_payload(resolved),
         month,
-        heart=training_profile(who, request.app.state.directory),
+        heart=heart,
+        learned=learned,
     )
 
 
@@ -294,7 +309,18 @@ def one_session(day: str, request: Request) -> dict:
     from api.heart_rate_store import training_profile
 
     heart = None if preview is not None else training_profile(who, request.app.state.directory)
-    found = session_view(season, day, resolved, heart)
+    learned = None
+    if heart is not None:
+        from api.strava_flow import streams_for
+        from engines.pace_learn import ranges_for_activities
+
+        learned = ranges_for_activities(
+            season.activities,
+            streams_for(request.app, who),
+            heart.get("zones"),
+            resolved.get("easy_pace_unit") or "mi",
+        )
+    found = session_view(season, day, resolved, heart, learned)
     if found is not None and preview is None:
         found["zones"] = _zone_breakdown(request, who, found, heart)
     if found is None:

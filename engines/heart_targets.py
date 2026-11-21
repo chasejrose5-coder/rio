@@ -74,7 +74,13 @@ def training_logs(logs: list, heart: dict | None) -> list:
     return kept
 
 
-def heart_overlay(template_id: object, times: dict | None, profile: dict | None, unit: object) -> dict | None:
+def heart_overlay(
+    template_id: object,
+    times: dict | None,
+    profile: dict | None,
+    unit: object,
+    learned: dict | None = None,
+) -> dict | None:
     """The zone line and pace range for one workout, or None to leave pace as it is."""
     if not isinstance(profile, dict) or profile.get("no_monitor") is True:
         return None
@@ -85,14 +91,21 @@ def heart_overlay(template_id: object, times: dict | None, profile: dict | None,
     if band is None:
         return None
     chosen = pace_unit(unit)
-    center = _center_pace(template_id, times, chosen)
-    if center is None:
-        return None
-    low, high = _widen(center, chosen)
+    taught = learned.get(zone) if isinstance(learned, dict) else None
+    count = int(taught.get("count") or 0) if isinstance(taught, dict) else qualifying_for_zone(zone)
+    ready = isinstance(taught, dict) and taught.get("ready") is True and taught.get("low") is not None and taught.get("high") is not None
+    if ready:
+        low = Decimal(str(taught["low"]))
+        high = Decimal(str(taught["high"]))
+        note = f"Learned from {count} Zone {zone} runs."
+    else:
+        center = _center_pace(template_id, times, chosen)
+        if center is None:
+            return None
+        low, high = _widen(center, chosen)
+        note = CREATING_NOTE if count <= 0 else f"{CREATING_NOTE} · {count} of {QUALIFYING_NEEDED} runs"
     if low >= high:
         high = low + 1
-    count = qualifying_for_zone(zone)
-    ready = count >= QUALIFYING_NEEDED
     low_text = _clock(low)
     high_text = _clock(high)
     label = "per mile" if chosen == PACE_MILE else "per kilometer"
@@ -104,7 +117,7 @@ def heart_overlay(template_id: object, times: dict | None, profile: dict | None,
         "pace_low": low_text,
         "pace_high": high_text,
         "pace_line": f"{low_text}\u2013{high_text} {label}",
-        "pace_note": CREATING_NOTE if not ready else f"Learned from {count} Zone {zone} runs.",
+        "pace_note": note,
         "estimate": "ready" if ready else "creating",
         "qualifying": count,
         "qualifying_needed": QUALIFYING_NEEDED,
