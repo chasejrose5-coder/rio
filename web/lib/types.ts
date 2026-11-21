@@ -166,6 +166,18 @@ export type HomeResponse = {
   preview?: TestPreview;
 };
 
+export type InjuryState = {
+  today: string;
+  areas: {
+    area_id: string;
+    anchor_on: string;
+    level: number;
+    level_now: number;
+    level_name: "easy" | "medium" | "hard";
+  }[];
+  completions: { date: string; block_id: string }[];
+};
+
 export type StretchState = {
   today: string;
   completions: { date: string; routine_id: string }[];
