@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from api.account_routes import router as account_router
+from api.bike_routes import router as bike_router
 from api.admin_routes import router as admin_router
 from api.errors import ApiError
 from api.fixture_routes import router as fixture_router
@@ -104,6 +105,7 @@ def create_app(
     app.include_router(injury_router)
     app.include_router(core_router)
     app.include_router(foam_router)
+    app.include_router(bike_router)
 
     @app.exception_handler(ApiError)
     def _api_error(_request: Request, exc: ApiError) -> JSONResponse:

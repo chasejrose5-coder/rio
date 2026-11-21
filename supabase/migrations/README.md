@@ -32,6 +32,8 @@ The service role bypasses those policies. The app uses it only on the server, an
 
 `018_core_completions.sql` stores a done mark for the day’s core circuit. The row is the runner and the calendar date (`done_on`). A signed-in athlete can read and write only their own rows, scoped to `auth.uid()`. Run it after 017. It is safe to run again. Until it has been run, a hosted account cannot save a core done mark. The exercise text is not in the database.
 
+`020_bike_sessions.sql` stores an easy-day bike swap. The row is the plan day. Minutes, distance, an optional average heart rate, a Strava id, and zone seconds are filled when the ride is logged. A signed-in athlete can read and write only their own rows, scoped to `auth.uid()`. Run it after 019. It is safe to run again. Until it has been run, a hosted account cannot save a bike swap. There is no cadence.
+
 `019_foam_completions.sql` stores a done mark for the day’s foam-rolling routine. The row is the runner and the calendar date (`done_on`). A signed-in athlete can read and write only their own rows, scoped to `auth.uid()`. Run it after 018. It is safe to run again. Until it has been run, a hosted account cannot save a foam-rolling done mark. The exercise text is not in the database.
 
 `016_run_hr_streams.sql` stores the heart-rate stream for one Strava run (`sample_time` and `sample_hr`). Time in zone is counted from those samples, so a later change to resting or max heart rate can recount. A signed-in athlete can read and write only their own rows, scoped to `auth.uid()`. Run it after 015. It is safe to run again. Until it has been run, a hosted account cannot save a stream. The connect scope stays `activity:read_all`. That scope can read activity streams. `profile:read_all` is not added.

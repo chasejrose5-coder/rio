@@ -391,18 +391,41 @@ export function zoneClock(seconds: number): string {
   return `${minutes}m ${rest}s`;
 }
 
+export function bikeLine(input: {
+  minutes: number;
+  meters: number;
+  zone2Seconds: number;
+  zoneSeconds: number;
+  units: string;
+}): string | null {
+  if (input.minutes <= 0 && input.meters <= 0) return null;
+  const distance = input.meters > 0 ? (input.units === "miles" ? `${(input.meters * M_TO_MI).toFixed(1)} mi` : `${(input.meters / 1000).toFixed(1)} km`) : "";
+  const hours = Math.floor(input.minutes / 60);
+  const rest = input.minutes % 60;
+  const time = hours > 0 ? `${hours}h ${rest}m` : `${input.minutes} min`;
+  const share =
+    input.zoneSeconds > 0
+      ? `${Math.round((100 * input.zone2Seconds) / input.zoneSeconds)}% in zone 2`
+      : "";
+  return [distance, time, share].filter(Boolean).join(" · ");
+}
+
 export function recapView(input: {
   week: number;
   sessions: PlanSession[];
   actuals: Record<string, ActualRow>;
   marks: Record<string, string>;
   distances: Record<string, number>;
+  /** Easy days logged as a bike count as done. Their distance stays off the run total. */
+  bikeDates?: readonly string[];
 }): { completed: string; marks: string; volume: string; next: string } {
   const rows = weekRows(input.sessions, input.week);
   const previous = weekRows(input.sessions, input.week - 1);
   const following = weekRows(input.sessions, input.week + 1);
   const mark = weekMark(input.marks, input.week);
+  const bikes = new Set(input.bikeDates || []);
   const done = rows.filter((session) => {
+    if (session.date && bikes.has(session.date)) return true;
     const saved = savedActual(session, input.actuals);
     return saved != null && isCompleted(saved);
   }).length;

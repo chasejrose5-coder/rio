@@ -18,6 +18,7 @@ import {
   PLAN_VIEWS,
   activityNotice,
   addDays,
+  bikeLine,
   goalLine,
   zoneClock,
   zoneRows,
@@ -45,7 +46,7 @@ import {
   weekdayName,
   type PlanViewName,
 } from "@/lib/plan";
-import type { ActivitiesResponse, CurrentSeason, PlanDay, PlanResponse, PlanSession } from "@/lib/types";
+import type { ActivitiesResponse, BikeWeek, CurrentSeason, PlanDay, PlanResponse, PlanSession } from "@/lib/types";
 
 const VIEW_KEY = "rio_plan_last";
 
@@ -287,13 +288,41 @@ function PlanReady({
   const emptyWeeks = plan.weeks.every((row) => row.meters === 0);
   const selected = picked && picked >= 1 && picked <= length ? picked : weekContaining(plan.inputs.start_date, length, today);
   const distances = distancesFromRows(activities?.rows || []);
+  const sunday = weekSunday(plan.inputs.start_date, selected);
+  const saturday = addDays(sunday, 6);
+  const [bike, setBike] = useState<BikeWeek | null>(null);
+  useEffect(() => {
+    let live = true;
+    api
+      .bikeWeek(sunday, saturday)
+      .then((body) => {
+        if (live) setBike(body);
+      })
+      .catch(() => {
+        if (live) setBike(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [sunday, saturday]);
   const recap = recapView({
     week: selected,
     sessions: plan.sessions,
     actuals: season?.actuals || {},
     marks: plan.marks || {},
     distances,
+    bikeDates: bike?.tracked ? bike.dates : [],
   });
+  const ridden =
+    bike?.tracked === true
+      ? bikeLine({
+          minutes: bike.minutes,
+          meters: bike.distance_m,
+          zone2Seconds: bike.zone2_seconds,
+          zoneSeconds: bike.zone_seconds,
+          units,
+        })
+      : null;
 
   return (
     <>
@@ -351,6 +380,7 @@ function PlanReady({
             week={selected}
             format={format}
             recap={recap}
+            bikeText={ridden}
             goal={goalLine({
               current: plan.inputs.current_time,
               goal: plan.inputs.goal_time,
@@ -456,6 +486,7 @@ function ThisWeek({
   week,
   format,
   recap,
+  bikeText,
   goal,
   zones,
   units,
@@ -473,6 +504,7 @@ function ThisWeek({
   week: number;
   format: string;
   recap: { completed: string; marks: string; volume: string; next: string };
+  bikeText: string | null;
   goal: string;
   zones: { zone: number; name?: string; seconds: number }[] | null;
   units: string;
@@ -523,6 +555,12 @@ function ThisWeek({
             <dt>Distance</dt>
             <dd>{displayDistance(recap.volume, units)}</dd>
           </div>
+          {bikeText ? (
+            <div className="rio-field">
+              <dt>Bike</dt>
+              <dd>{bikeText}</dd>
+            </div>
+          ) : null}
           {zones ? (
             <div className="rio-field">
               <dt>Time in zone</dt>

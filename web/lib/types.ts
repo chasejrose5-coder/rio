@@ -287,6 +287,35 @@ export type PlanResponse = {
   preview?: TestPreview;
 };
 
+export type BikeLog = {
+  date: string;
+  minutes: number | null;
+  distance_m: number | null;
+  avg_hr: number | null;
+  strava_id: string | null;
+  zones: number[] | null;
+};
+
+export type BikeOffer = {
+  date: string;
+  offer: boolean;
+  suggest_first: boolean;
+  minutes: number | null;
+  swaps_used: number;
+  swapped: boolean;
+  zone2: { low_bpm: number; high_bpm: number; sentence: string } | null;
+  log: BikeLog | null;
+};
+
+export type BikeWeek = {
+  tracked: boolean;
+  dates: string[];
+  minutes: number;
+  distance_m: number;
+  zone2_seconds: number;
+  zone_seconds: number;
+};
+
 export type WorkSummary = {
   tracked: boolean;
   done: number;

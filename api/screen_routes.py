@@ -197,6 +197,7 @@ def plan(
         learned=learned,
     )
     zones = _zone_weeks(season, streams, heart)
+    zones = _add_bike_zones(zones, who, request.app.state.directory, season)
     if zones:
         body["zone_weeks"] = zones
     return body
@@ -242,6 +243,49 @@ def _zone_weeks(season, streams: dict, heart: dict | None) -> dict:
         combined = sum_zone_reports(reports)
         if combined:
             found[str(week)] = combined["zones"]
+    return found
+
+
+def _add_bike_zones(found: dict, who, directory, season) -> dict:
+    """Bike time in each zone joins the week's run zones. Run distance is unchanged."""
+    try:
+        from api.bike_store import load_rows
+
+        rows = load_rows(who, directory)
+    except Exception:
+        return found
+    plan = season.plan if isinstance(getattr(season, "plan", None), dict) else {}
+    try:
+        start = date.fromisoformat(str(plan.get("start_date")))
+    except ValueError:
+        return found
+    length = plan.get("season_length_weeks")
+    from engines.zone_time import season_week, sum_zone_reports
+
+    grouped: dict[int, list] = {}
+    for row in rows:
+        zones = row.get("zones")
+        if not isinstance(zones, list) or len(zones) != 5:
+            continue
+        try:
+            day = date.fromisoformat(row["date"])
+        except (TypeError, ValueError):
+            continue
+        week = season_week(start, day, length)
+        if week is None:
+            continue
+        grouped.setdefault(week, []).append(
+            {"zones": [{"zone": index + 1, "name": "", "seconds": zones[index]} for index in range(5)]}
+        )
+    for week, reports in grouped.items():
+        key = str(week)
+        existing = found.get(key)
+        pile = list(reports)
+        if isinstance(existing, list):
+            pile.insert(0, {"zones": existing})
+        combined = sum_zone_reports(pile)
+        if combined:
+            found[key] = combined["zones"]
     return found
 
 

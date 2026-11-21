@@ -260,6 +260,14 @@ def sport_type(row: dict) -> str:
     return str(sport)
 
 
+def is_ride(row: object) -> bool:
+    """A Strava ride. VirtualRide counts. A run does not."""
+    if not isinstance(row, dict):
+        return False
+    labels = {str(row.get("sport_type") or ""), str(row.get("type") or "")}
+    return bool(labels & {"Ride", "VirtualRide"})
+
+
 def is_run(row: object) -> bool:
     """Run, trail run, virtual run, or a Workout whose name is clearly a run."""
     if not isinstance(row, dict):
@@ -520,7 +528,34 @@ def _as_epoch(value: object) -> int | None:
     return None
 
 
-def import_runs(
+def parse_ride(summary: object, detail: object | None = None) -> dict | None:
+    """One ride, or None when the sport is not a ride."""
+    source = detail if isinstance(detail, dict) else summary
+    if not isinstance(source, dict) or not is_ride(source):
+        return None
+    ident = activity_id(source.get("id"))
+    if ident is None:
+        return None
+    day = local_day(source.get("start_date_local")) or local_day(source.get("start_date"))
+    if not day:
+        return None
+    distance = source.get("distance")
+    moving = source.get("moving_time")
+    avg = source.get("average_heartrate")
+    return {
+        "id": f"strava-{ident}",
+        "strava_id": ident,
+        "name": str(source.get("name") or "Ride"),
+        "sport_type": sport_type(source),
+        "date": day,
+        "start_local": str(source.get("start_date_local") or ""),
+        "distance_m": float(distance) if isinstance(distance, (int, float)) and not isinstance(distance, bool) else None,
+        "moving_seconds": int(moving) if isinstance(moving, int) and not isinstance(moving, bool) else None,
+        "average_hr": int(avg) if isinstance(avg, (int, float)) and not isinstance(avg, bool) else None,
+    }
+
+
+def import_training(
     token: dict,
     *,
     now: int,
@@ -529,10 +564,10 @@ def import_runs(
     post,
     gate: RateGate,
     season_start: int | None = None,
-) -> tuple[dict, list[dict]]:
-    """Refresh if needed, then import runs. Non-runs are dropped.
+) -> tuple[dict, list[dict], list[dict]]:
+    """Refresh if needed, then import runs and rides.
 
-    Pages until a short page. A failed detail read is counted and skipped.
+    Rides stay out of the run list. A failed detail read is counted and skipped.
     """
     fresh = refresh_if_needed(token, now, post)
     after = list_after(now, _as_epoch(last_sync), _as_epoch(season_start))
@@ -552,12 +587,16 @@ def import_runs(
             break
         page += 1
     runs = []
+    rides = []
     skipped = 0
     for summary in listed:
-        if not isinstance(summary, dict) or not is_run(summary):
+        if not isinstance(summary, dict):
+            continue
+        ride = is_ride(summary)
+        if not is_run(summary) and not ride:
             continue
         detail = summary
-        if not isinstance(summary.get("laps"), list):
+        if not isinstance(summary.get("laps"), list) and not ride:
             ident = activity_id(summary.get("id"))
             if ident is not None:
                 try:
@@ -568,6 +607,14 @@ def import_runs(
                     loaded = None
                 if isinstance(loaded, dict):
                     detail = loaded
+        if ride:
+            parsed_ride = parse_ride(summary, detail if isinstance(detail, dict) else None)
+            if parsed_ride is not None:
+                stream = _read_hr_stream(parsed_ride, get, fresh["access_token"], gate, now)
+                if stream is not None:
+                    parsed_ride["hr_stream"] = stream
+                rides.append(parsed_ride)
+            continue
         parsed = parse_activity(summary, detail)
         if parsed is not None:
             stream = _read_hr_stream(parsed, get, fresh["access_token"], gate, now)
@@ -575,6 +622,29 @@ def import_runs(
                 parsed["hr_stream"] = stream
             runs.append(parsed)
     fresh["detail_skips"] = skipped
+    return fresh, runs, rides
+
+
+def import_runs(
+    token: dict,
+    *,
+    now: int,
+    last_sync: int | None,
+    get,
+    post,
+    gate: RateGate,
+    season_start: int | None = None,
+) -> tuple[dict, list[dict]]:
+    """Refresh if needed, then import runs. Rides are not in this list."""
+    fresh, runs, _rides = import_training(
+        token,
+        now=now,
+        last_sync=last_sync,
+        get=get,
+        post=post,
+        gate=gate,
+        season_start=season_start,
+    )
     return fresh, runs
 
 
