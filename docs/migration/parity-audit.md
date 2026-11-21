@@ -40,20 +40,22 @@ All four gaps are closed.
 
 Severity: high for a hosted cutover. Closed.
 
-Streamlit's own forgot screen still sends `redirect_to` of `auth_redirect_base() + "/?reset=password"`. That base is `RIO_APP_URL`, or the hosted Streamlit site when the variable is unset. The API's `POST /auth/forgot-password` sends `{RIO_FRONTEND_ORIGIN}/reset-password`. The local account file still sends no mail.
+Streamlit's own forgot screen still sends `redirect_to` of `auth_redirect_base() + "/?reset=password"`. That base is `RIO_APP_URL`, or the hosted Streamlit site when the variable is unset. The API's `POST /auth/forgot-password` sends `{RIO_FRONTEND_ORIGIN}/update-password`. The public site, the apex, and the old Vercel hosts are sent as `https://www.riorunning.com`. The local account file still sends no mail. Log in shows the request link only when `NEXT_PUBLIC_PASSWORD_RESET_ENABLED` is `true`.
 
-`/reset-password` reads the same fields Streamlit reads: `token`, `token_hash`, and `type`, from the query or the hash. Supabase's implicit redirect puts `access_token`, `refresh_token`, `token_type`, and `type=recovery` in the hash. That fragment sets the password on the recovery session. A fragment whose `type` is not `recovery` does not.
+`/update-password` and `/reset-password` read the same fields Streamlit reads: `token`, `token_hash`, and `type`, from the query or the hash. Supabase's implicit redirect puts `access_token`, `refresh_token`, `token_type`, and `type=recovery` in the hash. That fragment sets the password on the recovery session. A fragment whose `type` is not `recovery` does not.
 
 Evidence: `tests/test_auth_mail.py`; `web/e2e/reset-link.spec.ts`; `web/lib/reset-link.test.ts`; `docs/migration/parity-evidence/side/reset-password.jpg`. The side-by-side is one full-page shot of each reset form after the fade, in America/Los_Angeles. It is not stitched.
 
 Supabase Auth redirect allow list. The live origin is `https://www.riorunning.com`. Add these URLs. `RIO_FRONTEND_ORIGIN` is the exact Next origin, scheme and host, no path and no trailing slash. Leave the Streamlit URLs and the old Vercel URLs in place. Jay adds them in the dashboard. This change does not.
 
+- `https://www.riorunning.com/update-password`
 - `https://www.riorunning.com/reset-password`
 - `https://www.riorunning.com/confirm`
+- `{RIO_FRONTEND_ORIGIN}/update-password`
 - `{RIO_FRONTEND_ORIGIN}/reset-password`
 - `{RIO_FRONTEND_ORIGIN}/confirm`
 
-When the variable is unset the API uses `http://localhost:3000`, so those are `http://localhost:3000/reset-password` and `http://localhost:3000/confirm`. `{RIO_FRONTEND_ORIGIN}/**` also covers both. Signup confirmation and email change use `/confirm`. Password reset uses `/reset-password`.
+When the variable is unset the API uses `http://localhost:3000`, so those are `http://localhost:3000/update-password`, `http://localhost:3000/reset-password`, and `http://localhost:3000/confirm`. `{RIO_FRONTEND_ORIGIN}/**` also covers both. Signup confirmation and email change use `/confirm`. Password reset mail uses `/update-password`. `/reset-password` is the same form.
 
 ### 2. Signup confirmation mail
 
@@ -112,7 +114,7 @@ Strava: the live Authorization Callback Domain is `www.riorunning.com`. The redi
 
 Cookies: `rio_hosted` is `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`, with no `Domain`. It is host-only on the API host. Lax is sent on a fetch when the page and the API are the same site. Host the API on a same-site name as the Next app (for example `api.` under the same registrable domain). A different site will not send this cookie. Do not widen it to `SameSite=None` as part of cutover unless the hosts cannot share a site.
 
-Supabase Auth: Site URL is `https://www.riorunning.com`. The redirect allow list includes `https://www.riorunning.com/reset-password` and `https://www.riorunning.com/confirm`. Leave the Streamlit and old Vercel entries in place. Confirm email stays on. Run migrations 009, 010, and 011 in the SQL editor if they are not already there. They are safe to run again. This audit does not run them on the hosted project.
+Supabase Auth: Site URL is `https://www.riorunning.com`. The redirect allow list includes `https://www.riorunning.com/update-password`, `https://www.riorunning.com/reset-password`, and `https://www.riorunning.com/confirm`. Leave the Streamlit and old Vercel entries in place. Confirm email stays on. Run migrations 009, 010, and 011 in the SQL editor if they are not already there. They are safe to run again. This audit does not run them on the hosted project.
 
 Hosting: Next serves the public origin. The API is a separate process with the env above. `RIO_ACCOUNTS_PATH` is only for a machine with no Supabase URL. Do not ship the local account file.
 

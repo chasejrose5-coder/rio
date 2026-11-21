@@ -2,7 +2,8 @@
 
 Signup and email-change mail open /confirm. The same names as a reset link
 are accepted in the query or the hash. The query wins when both name a value.
-`token_hash` wins over `token`. A recovery fragment belongs on /reset-password.
+`token_hash` wins over `token`. A recovery fragment belongs on /update-password.
+/reset-password is the same form.
 */
 
 export type ConfirmLink = {

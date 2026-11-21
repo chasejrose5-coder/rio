@@ -119,7 +119,7 @@ test("an expired confirmation link and a valid one land on the confirm page", as
 
   await page.goto("/sign-in");
   await page.goto("/confirm#access_token=frag-access&refresh_token=frag-refresh&type=recovery");
-  await expect(page).toHaveURL(/\/reset-password/);
+  await expect(page).toHaveURL(/\/update-password/);
   await expect(page.getByRole("heading", { name: "New password" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Save password" })).toBeEnabled();
 });

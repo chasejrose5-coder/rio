@@ -87,14 +87,43 @@ def open_hosted(directory, session: dict) -> tuple[str, int]:
     return sid, issued
 
 
+LIVE_SITE = "https://www.riorunning.com"
+
+# The apex redirect drops the fragment. The old Vercel hosts still serve this
+# build. Auth mail for any of them opens the live site.
+_MAIL_ON_LIVE_SITE = frozenset(
+    {
+        "https://www.riorunning.com",
+        "http://www.riorunning.com",
+        "https://riorunning.com",
+        "http://riorunning.com",
+        "https://rio-one-mocha.vercel.app",
+        "http://rio-one-mocha.vercel.app",
+        "https://rio-rio-44fa.vercel.app",
+        "http://rio-rio-44fa.vercel.app",
+    }
+)
+
+
 def mail_origin(origin: str) -> str:
-    """The Next origin the API puts in auth mail. No path and no trailing slash."""
-    return origin.strip().rstrip("/")
+    """The Next origin the API puts in auth mail. No path and no trailing slash.
+
+    The public site, the apex, and the old Vercel hosts all open the live
+    site. A laptop origin is left as given.
+    """
+    text = origin.strip().rstrip("/")
+    if text.lower() in _MAIL_ON_LIVE_SITE:
+        return LIVE_SITE
+    return text
 
 
 def reset_redirect_url(origin: str) -> str:
-    """Password reset mail opens the Next page. Streamlit keeps its own link."""
-    return mail_origin(origin) + "/reset-password"
+    """Password reset mail opens the page where the new password is saved.
+
+    /reset-password is the same form, for a link that was already sent.
+    Streamlit keeps its own link.
+    """
+    return mail_origin(origin) + "/update-password"
 
 
 def confirm_redirect_url(origin: str) -> str:

@@ -12,7 +12,7 @@ Step 3a is the Next.js app in `web/`. The live site is `https://www.riorunning.c
 8. Seasons and past seasons.
 9. About and Creators. Those pages stay the locked copy. This step does not rewrite them.
 
-Home, sign-in, create account, and reset are in step 3a. Google sign-in stays hidden, the same as Streamlit. Forgot password shows only when accounts are hosted. A laptop using the local account file does not show it.
+Home, sign-in, create account, and reset are in step 3a. Google sign-in stays hidden, the same as Streamlit. Forgot password shows only when accounts are hosted and `NEXT_PUBLIC_PASSWORD_RESET_ENABLED` is `true`. A laptop using the local account file does not show it. The public site hides it until that flag is set. See `docs/resend-email-setup.md`.
 
 ## Run the API and the site together
 

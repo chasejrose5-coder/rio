@@ -56,7 +56,7 @@ export const PRIVACY: LegalPage = {
         },
         {
           kind: "p",
-          text: "On the public site the account is created in Supabase Auth. Supabase sends a confirmation link that opens /confirm on this site. Password reset mail opens /reset-password. Changing the email sends a confirmation link and keeps the old address until that link is opened. Supabase Auth stores the password. The training tables do not.",
+          text: "On the public site the account is created in Supabase Auth. Supabase sends a confirmation link that opens /confirm on this site. Password reset mail opens /update-password. Changing the email sends a confirmation link and keeps the old address until that link is opened. Supabase Auth stores the password. The training tables do not.",
         },
         {
           kind: "p",
