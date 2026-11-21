@@ -157,7 +157,7 @@ test("the four values, a saved goal, a bad time, and a new easy pace", async ({ 
   await expect(page.getByText("Apr 19, 2026")).toBeVisible();
   await expect(page.getByText("Mar 19, 2027")).toBeVisible();
   await expect(page.getByLabel("Goal 800m time")).toHaveValue("1:55.0");
-  await expect(page.getByLabel("Goal 800m time")).toHaveAttribute("placeholder", "1:55.0");
+  await expect(page.getByLabel("Goal 800m time")).toHaveAttribute("placeholder", "1:58.0");
   const easyBox = await page.locator("#profile-easy-pace").boundingBox();
   const goalBox = await page.locator("#profile-goal").boundingBox();
   const goalLabel = await page.locator("label[for='profile-goal']").boundingBox();
@@ -165,7 +165,7 @@ test("the four values, a saved goal, a bad time, and a new easy pace", async ({ 
   expect(goalBox!.width).toBeGreaterThan(200);
   expect(Math.abs(goalBox!.width - easyBox!.width)).toBeLessThan(4);
   expect(goalBox!.y).toBeGreaterThan(goalLabel!.y + 12);
-  await expect(page.getByText("Minutes, seconds, and tenths, like 1:55.0.")).toBeVisible();
+  await expect(page.getByText("Minutes, seconds, and tenths, like 1:58.0.")).toBeVisible();
   await expect(page.getByText("Saving keeps this time on your account. It does not rebuild the season.")).toBeVisible();
   const current = page.getByText("Current 800 time");
   await expect(page.locator("input").filter({ hasText: "Current 800 time" })).toHaveCount(0);
@@ -230,7 +230,7 @@ test("the More menu lists its pages", async ({ page }) => {
   await expect(cards.getByText("Name, pace, and this account.")).toBeVisible();
   await expect(cards.getByText("How to read the plan, the paces, and the week.")).toBeVisible();
   await expect(cards.getByText("Phases, the 10% rule, and what a mark changes.")).toBeVisible();
-  await expect(cards.getByText("Chase Rose, Founder.")).toBeVisible();
+  await expect(cards.getByText("Built for any runner.")).toBeVisible();
   await expect(cards.getByRole("link", { name: /Past seasons/ })).toHaveAttribute("href", "/past-seasons");
   await expect(cards.getByRole("link", { name: /Profile/ })).toHaveAttribute("href", "/profile");
   await expect(cards.getByRole("link", { name: /Settings/ })).toHaveAttribute("href", "/settings");

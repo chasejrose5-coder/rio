@@ -100,7 +100,9 @@ async function install(page: Page, options: { session?: "quality" | "easy" | "do
       return json(route, { note_saved: true });
     }
     if (path === "/seasons/current/watchless") return json(route, { committed: true, insight: { status: "skipped" } });
-    if (path === "/fixtures/intervals") return json(route, { detail: "That page is for the admin account." }, 403);
+    if (path === "/fixtures/intervals" || path.startsWith("/fixtures/intervals/")) {
+      return json(route, { detail: "Not Found" }, 404);
+    }
     return json(route, { detail: "Not mocked." }, 404);
   });
 }
@@ -152,7 +154,7 @@ test("a quality day states the rep time, the average, and asks before it saves",
   await expect(page.getByText("Warm-up", { exact: true })).toBeVisible();
   await expect(page.getByText("Cool-down", { exact: true })).toBeVisible();
   await expect(page.getByText("Core")).toBeVisible();
-  await expect(page.getByText("Intervals")).toBeVisible();
+  await expect(page.getByText("Logged run")).toBeVisible();
   await expect(page.getByText("Primary work for this phase")).toBeVisible();
   await expect(page.getByText("phase_4")).toHaveCount(0);
   await expect(page.getByLabel("Intervals file")).toHaveCount(0);

@@ -9,7 +9,9 @@ test("both drafts name the placeholders and stay unpublished", () => {
   for (const page of pages) {
     const text = legalPlainText(page);
     assert.match(text, /DRAFT|draft/);
-    assert.match(DRAFT_NOTE, /Jay and Chase/);
+    assert.match(DRAFT_NOTE, /For review/);
+    assert.equal(DRAFT_NOTE.includes("Jay"), false);
+    assert.equal(DRAFT_NOTE.includes("Chase"), false);
     assert.match(text, /\[COMPANY NAME\]/);
     assert.match(text, /\[CONTACT EMAIL\]/);
     assert.equal(text.includes("chasejrose5"), false);

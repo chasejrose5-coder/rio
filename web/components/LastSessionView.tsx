@@ -27,9 +27,7 @@ function LastBody() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("loading");
   const [fixtures, setFixtures] = useState<string[]>([]);
-  const [files, setFiles] = useState<string[]>([]);
   const [session, setSession] = useState("");
-  const [file, setFile] = useState("—");
   const [shown, setShown] = useState<LapTable | null>(null);
   const [problem, setProblem] = useState("");
 
@@ -41,18 +39,14 @@ function LastBody() {
     }
     void (async () => {
       try {
-        const [named, intervals] = await Promise.all([api.fixtureNames(), api.intervalFiles()]);
+        const named = await api.fixtureNames();
         const fixtureNames = named.fixtures || [];
-        const intervalNames = intervals.files || [];
         setFixtures(fixtureNames);
-        setFiles(intervalNames);
-        if (!fixtureNames.length && !intervalNames.length) {
+        if (!fixtureNames.length) {
           setMode("empty");
           return;
         }
-        const first = fixtureNames[0] || "";
-        setSession(first);
-        setFile(fixtureNames.length ? "—" : intervalNames[0] || "—");
+        setSession(fixtureNames[0] || "");
         setMode("ready");
       } catch (caught) {
         setProblem(caught instanceof ApiError ? caught.message : "That file could not be read.");
@@ -63,9 +57,7 @@ function LastBody() {
 
   useEffect(() => {
     if (mode !== "ready") return;
-    const chosenFile = file !== "—" ? file : "";
-    const chosenSession = !chosenFile ? session : "";
-    if (!chosenFile && !chosenSession) {
+    if (!session) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setShown(null);
       setProblem("No session files.");
@@ -73,15 +65,15 @@ function LastBody() {
     }
     void (async () => {
       try {
-        const body = chosenFile ? await api.intervalFill(chosenFile) : await api.fixtureSession(chosenSession);
+        const body = await api.fixtureSession(session);
         setShown(body);
         setProblem("");
       } catch (caught) {
         setShown(null);
-        setProblem(caught instanceof ApiError ? caught.message : `Could not read ${chosenFile || chosenSession}.`);
+        setProblem(caught instanceof ApiError ? caught.message : `Could not read ${session}.`);
       }
     })();
-  }, [file, mode, session]);
+  }, [mode, session]);
 
   const format = athlete?.prefs.date_format || "iso";
   const banner = shown && !hideBanner(shown.banner) ? shown.banner : "";
@@ -107,19 +99,6 @@ function LastBody() {
                   Session
                   <select value={session} onChange={(event) => setSession(event.target.value)}>
                     {fixtures.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
-              {files.length ? (
-                <label className="rio-file">
-                  Intervals file
-                  <select value={file} onChange={(event) => setFile(event.target.value)}>
-                    {fixtures.length ? <option value="—">—</option> : null}
-                    {files.map((name) => (
                       <option key={name} value={name}>
                         {name}
                       </option>

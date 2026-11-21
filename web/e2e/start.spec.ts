@@ -396,7 +396,8 @@ test("splash continue opens log in, and a new tab shows it again", async ({ page
   const contact = await page.locator(".rio-splash .rio-contact").evaluate((el) => getComputedStyle(el).position);
   expect(credit).toBe("fixed");
   expect(contact).toBe("fixed");
-  await expect(page.getByText("chasejrose5@gmail.com")).toBeVisible();
+  await expect(page.getByText("chasejrose5@gmail.com")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Privacy" })).toBeVisible();
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page).toHaveURL(/\/sign-in\?skip=1$/);
   await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();

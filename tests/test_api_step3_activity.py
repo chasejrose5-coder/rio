@@ -19,15 +19,10 @@ from fastapi.testclient import TestClient
 
 from api.main import create_app
 from api.strava_flow import redirect_for_api
-from engines.classify import classify
-from engines.explain import explain
-from engines.normalize import normalize
 from ui.accounts import create_account
-from ui.last_session import open_intervals
 from ui.settings import local_today
 from ui.strava import redirect_uri
 
-FILE = ROOT / "tests" / "fixtures" / "intervals" / "synthetic_se_400_with_recovery.json"
 INPUTS = {
     "current_time": "2:02.9",
     "start_date": "2026-04-19",
@@ -100,37 +95,20 @@ def test_activity_uses_the_settings_zone_and_keeps_rows(tmp_path: Path) -> None:
         raise AssertionError(body["figures"])
 
 
-def test_intervals_body_returns_laps_and_the_same_seconds(tmp_path: Path, monkeypatch) -> None:
+def test_intervals_routes_are_not_served(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("RIO_ADMIN_EMAIL", "admin@example.com")
     os.environ["RIO_ADMIN_EMAIL"] = "admin@example.com"
-    os.environ["RIO_EXPLAIN_API_KEY"] = ""
     athlete = _signed(tmp_path / "athlete.json")
-    if athlete.get("/fixtures/intervals/synthetic_se_400_with_recovery.json").status_code != 403:
-        raise AssertionError("a normal account read the laps")
     if athlete.get("/fixtures/session?name=race_800").status_code != 403:
         raise AssertionError("a normal account opened Last Session")
     admin = _signed(tmp_path / "admin.json", "admin@example.com")
-    admin.patch("/settings", json={"pace_units": "km"})
-    filled = admin.get("/fixtures/intervals/synthetic_se_400_with_recovery.json")
-    if filled.status_code != 200:
-        raise AssertionError(filled.text)
-    body = filled.json()
-    payload, banner = open_intervals(FILE)
-    laps = normalize(payload)["laps"]
-    if body["laps"] != laps:
-        raise AssertionError(body["laps"])
-    if body["times"] != [lap["seconds"] for lap in laps]:
-        raise AssertionError(body["times"])
-    if body["distance_heading"] != "Distance (m)":
-        raise AssertionError(body["distance_heading"])
-    if body["rows"][0]["Seconds"] != 57.5 or body["rows"][0]["Rest (s)"] != 90:
-        raise AssertionError(body["rows"][0])
-    if body["rows"][0]["Distance (m)"] != "400":
-        raise AssertionError(body["rows"][0])
-    result = classify(payload)
-    if body["family"] != result["family"] or body["prose"] != explain(result):
-        raise AssertionError(body["prose"])
-    if body["date"] != "2026-10-25" or banner is None:
-        raise AssertionError((body["date"], banner))
-    if "access_token" in filled.text:
+    for client in (athlete, admin):
+        listed = client.get("/fixtures/intervals")
+        named = client.get("/fixtures/intervals/synthetic_se_400_with_recovery.json")
+        if listed.status_code != 404 or named.status_code != 404:
+            raise AssertionError((listed.status_code, named.status_code))
+    shown = admin.get("/fixtures/session?name=race_800")
+    if shown.status_code != 200 or not shown.json().get("rows"):
+        raise AssertionError(shown.text)
+    if "access_token" in shown.text:
         raise AssertionError("a token leaked into the lap body")

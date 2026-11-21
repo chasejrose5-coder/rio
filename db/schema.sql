@@ -25,6 +25,8 @@ CREATE TABLE goals (
   limiting_capacity TEXT
 );
 
+-- source may be 'intervals'. The shared app does not write that value.
+-- The check stays until a later decision. Do not drop this table to remove it.
 CREATE TABLE workouts (
   id INTEGER PRIMARY KEY,
   athlete_id INTEGER REFERENCES athletes (id),

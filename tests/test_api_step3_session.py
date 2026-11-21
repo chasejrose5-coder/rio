@@ -154,31 +154,13 @@ def test_a_quality_result_adapts_and_an_easy_done_does_not(tmp_path: Path) -> No
         raise AssertionError(saved)
 
 
-def test_admin_intervals_fill_stays_off_a_normal_account(tmp_path: Path, monkeypatch) -> None:
+def test_intervals_routes_are_not_served(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("RIO_ADMIN_EMAIL", "admin@example.com")
     os.environ["RIO_ADMIN_EMAIL"] = "admin@example.com"
     athlete = _signed(tmp_path / "accounts.json", "ada@example.com")
-    hidden = athlete.get("/fixtures/intervals")
-    if hidden.status_code != 403:
-        raise AssertionError(hidden.text)
-    admin_path = tmp_path / "admin.json"
-    admin = _signed(admin_path, "admin@example.com")
-    listed = admin.get("/fixtures/intervals")
-    if listed.status_code != 200 or "synthetic_se_400_with_recovery.json" not in listed.json()["files"]:
-        raise AssertionError(listed.text)
-    filled = admin.get("/fixtures/intervals/synthetic_se_400_with_recovery.json")
-    if filled.status_code != 200 or not filled.json()["times"]:
-        raise AssertionError(filled.text)
-    if any(item is not None and not isinstance(item, (int, float)) for item in filled.json()["times"]):
-        raise AssertionError(filled.json())
-    missing = admin.get("/fixtures/intervals/not-a-file.json")
-    if missing.status_code != 404:
-        raise AssertionError(missing.text)
-    monkeypatch.setattr(
-        "ui.last_session.intervals_json_paths",
-        lambda directory=None: [tmp_path / "bad.json"],
-    )
-    (tmp_path / "bad.json").write_text("nope", encoding="utf-8")
-    broken = admin.get("/fixtures/intervals/bad.json")
-    if broken.status_code != 400 or broken.json()["detail"] != "bad.json is not JSON.":
-        raise AssertionError(broken.text)
+    admin = _signed(tmp_path / "admin.json", "admin@example.com")
+    for client in (athlete, admin):
+        listed = client.get("/fixtures/intervals")
+        named = client.get("/fixtures/intervals/synthetic_se_400_with_recovery.json")
+        if listed.status_code != 404 or named.status_code != 404:
+            raise AssertionError((listed.status_code, named.status_code))
