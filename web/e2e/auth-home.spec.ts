@@ -1,4 +1,7 @@
+import { mkdirSync } from "node:fs";
 import { expect, test, type Page, type Route } from "@playwright/test";
+
+const shots = "/opt/cursor/artifacts";
 
 const athlete = {
   id: "ada",
@@ -72,9 +75,18 @@ async function json(route: Route, body: unknown, status = 200) {
   await route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
 
+const missingHeart = { no_monitor: false, resting_hr: null, max_hr: null, zones: [] };
+
 async function installApi(
   page: Page,
-  options: { hosted?: boolean; season?: boolean; easyPace?: string; introSeen?: boolean | null; homeBody?: unknown },
+  options: {
+    hosted?: boolean;
+    season?: boolean;
+    easyPace?: string;
+    introSeen?: boolean | null;
+    homeBody?: unknown;
+    heart?: unknown;
+  },
 ) {
   let signed = false;
   await page.route("**/*", async (route) => {
@@ -111,6 +123,7 @@ async function installApi(
       return json(route, season);
     }
     if (path === "/home") return json(route, options.homeBody ?? home);
+    if (path === "/heart-rate") return json(route, options.heart ?? { no_monitor: true, resting_hr: null, max_hr: null, zones: [] });
     return json(route, { detail: "Not mocked." }, 404);
   });
 }
@@ -172,6 +185,27 @@ test("sign-in with a current season opens Home", async ({ page }) => {
   await page.getByRole("link", { name: "RIO" }).click();
   await expect(page).toHaveURL(/\/home$/);
   await expect(page.getByRole("heading", { name: /days to/ })).toBeVisible();
+});
+
+test("a current season with no heart rate opens Home and a dismissible prompt", async ({ page }) => {
+  mkdirSync(shots, { recursive: true });
+  await installApi(page, { hosted: false, season: true, heart: missingHeart });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/sign-in");
+  await page.getByLabel("Email").fill("ada@example.com");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse");
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  await expect(page.getByRole("heading", { name: "Heart rate", exact: true })).toHaveCount(0);
+  const prompt = page.getByRole("region", { name: "Heart rate" });
+  await expect(prompt.getByRole("heading", { name: "Add your heart rate" })).toBeVisible();
+  await expect(prompt.getByRole("link", { name: "Add heart rate" })).toHaveAttribute("href", "/heart-rate");
+  await page.screenshot({ path: `${shots}/home-heart-prompt-phone.png`, fullPage: true });
+  await prompt.getByRole("button", { name: "Not now" }).click();
+  await expect(prompt).toHaveCount(0);
+  await page.reload();
+  await expect(page).toHaveURL(/\/home$/);
+  await expect(page.getByRole("heading", { name: "Add your heart rate" })).toHaveCount(0);
 });
 
 test("sign-in without a current season opens Start", async ({ page }) => {
@@ -392,6 +426,38 @@ test("a new Google return opens easy pace, the same first step as email", async 
   await page.goto("/auth/callback?code=test-code&flow=flow-1");
   await expect(page).toHaveURL(/\/easy-pace$/);
   await expect(page.getByRole("heading", { name: "Your easy pace" })).toBeVisible();
+});
+
+test("a Google return with a season and no heart rate opens Home", async ({ page }) => {
+  let signed = false;
+  await page.route("**/*", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.port !== "8000") {
+      await route.continue();
+      return;
+    }
+    const path = url.pathname;
+    if (path === "/auth/google/callback") {
+      signed = true;
+      return json(route, { email: athlete.email, display_name: athlete.display_name, kind: "hosted" });
+    }
+    if (path === "/auth/google/id-token") {
+      signed = true;
+      return json(route, { email: athlete.email, display_name: athlete.display_name, kind: "hosted" });
+    }
+    if (path === "/auth/session" || path === "/auth/me") {
+      if (!signed) return json(route, { signed_in: false });
+      return json(route, { ...athlete, next_session: "2026-11-10" });
+    }
+    if (path === "/seasons/current") return json(route, season);
+    if (path === "/home") return json(route, home);
+    if (path === "/heart-rate") return json(route, missingHeart);
+    return json(route, { detail: "Not mocked." }, 404);
+  });
+  await page.goto("/auth/callback?code=test-code&flow=flow-hr");
+  await expect(page).toHaveURL(/\/home$/);
+  await expect(page.getByRole("heading", { name: "Heart rate", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Add heart rate" })).toHaveAttribute("href", "/heart-rate");
 });
 
 test("a Google return for an existing season opens Home", async ({ page }) => {

@@ -13,6 +13,8 @@ test("onboarding saves Karvonen zones and settings can edit them", async ({ page
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page).toHaveURL(/\/easy-pace$/);
+  await page.goto("/heart-rate");
 
   await expect(page.getByRole("heading", { name: "Heart rate" })).toBeVisible();
   await expect(page.getByText("Zones use the Karvonen (heart rate reserve) method.")).toBeVisible();
@@ -72,6 +74,8 @@ test("the monitor toggle skips heart rate and keeps the easy pace question", asy
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill("correct-horse");
   await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page).toHaveURL(/\/easy-pace$/);
+  await page.goto("/heart-rate");
   await expect(page.getByRole("heading", { name: "Heart rate" })).toBeVisible();
   await page.getByLabel("I don't have a heart rate monitor").check();
   await page.getByRole("button", { name: "Continue" }).click();

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { api, GET_CACHE_MS, prefetchHome } from "./api.ts";
-import { needsEasyPace, needsHeartRate, needsIntro, pathAfterSeason } from "./landing.ts";
+import { heartPromptOpen, needsEasyPace, needsHeartRate, needsIntro, pathAfterSeason } from "./landing.ts";
 import type { Athlete, CurrentSeason } from "./types.ts";
 
 const athlete: Athlete = {
@@ -48,10 +48,16 @@ describe("where sign-in lands", () => {
     assert.equal(needsHeartRate({ no_monitor: true, resting_hr: null, max_hr: null }), false);
     assert.equal(needsHeartRate({ no_monitor: false, resting_hr: null, max_hr: null }), true);
     assert.equal(needsHeartRate({ no_monitor: false, resting_hr: 60, max_hr: 180 }), false);
+    assert.equal(pathAfterSeason(athlete, season), "/home");
+    assert.equal(heartPromptOpen({ no_monitor: false, resting_hr: null, max_hr: null }, false), true);
+    assert.equal(heartPromptOpen({ no_monitor: false, resting_hr: null, max_hr: null }, true), false);
+    assert.equal(heartPromptOpen({ no_monitor: false, resting_hr: 60, max_hr: 180 }, false), false);
+    assert.equal(heartPromptOpen(null, false), false);
     assert.equal(pathAfterSeason({ ...athlete, prefs: { easy_pace: "" } }, season), "/easy-pace");
     const routing = readFileSync(new URL("./enter.ts", import.meta.url), "utf8");
-    assert.match(routing, /needsHeartRate\(heart\)/);
-    assert.match(routing, /return "\/heart-rate"/);
+    assert.equal(routing.includes('return "/heart-rate"'), false);
+    assert.equal(routing.includes("needsHeartRate"), false);
+    assert.equal(routing.includes("heartRate"), false);
     const enter = readFileSync(new URL("./enter.ts", import.meta.url), "utf8");
     const screen = readFileSync(new URL("../components/AuthScreen.tsx", import.meta.url), "utf8");
     const gate = readFileSync(new URL("../components/Gate.tsx", import.meta.url), "utf8");
@@ -63,6 +69,15 @@ describe("where sign-in lands", () => {
     assert.match(screen, /handoff\.current = true/);
     assert.match(screen, /if \(handoff\.current \|\| status !== "in"/);
     assert.match(gate, /destinationAfterSignIn\(athlete\)/);
+    const callback = readFileSync(new URL("../components/GoogleCallback.tsx", import.meta.url), "utf8");
+    const button = readFileSync(new URL("../components/GoogleIdentityButton.tsx", import.meta.url), "utf8");
+    const home = readFileSync(new URL("../components/HomeView.tsx", import.meta.url), "utf8");
+    assert.match(callback, /destinationAfterSignIn\(signedIn!\)/);
+    assert.match(button, /destinationAfterSignIn\(signedIn!\)/);
+    assert.equal(callback.includes('"/heart-rate"'), false);
+    assert.equal(button.includes('"/heart-rate"'), false);
+    assert.match(home, /HeartRatePrompt/);
+    assert.match(home, /href="\/heart-rate"/);
     assert.match(gate, /status === "loading" \|\| status === "in"/);
     const loadingBranch = gate.indexOf('status === "loading" || status === "in"');
     const splash = gate.indexOf("<Splash");
