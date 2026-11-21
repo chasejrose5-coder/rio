@@ -16,6 +16,7 @@ from api.errors import ApiError
 from api.identity import Principal, update_local_session
 from ui.accounts import (
     AccountError,
+    authenticate,
     change_email,
     change_password,
     create_account,
@@ -313,15 +314,17 @@ def _rewrite_hosted_email(directory, sid: str, email: str) -> None:
         return
 
 
-def delete_account_for(directory, principal: Principal, *, email: str, password: str) -> None:
+def delete_account_for(directory, principal: Principal, *, email: str, password: str, app=None) -> None:
     """Remove the account. Hosted deletes use the signed-in client, then the service role.
 
     The local form also requires the typed email and the password. The hosted
     form in Streamlit only requires the confirm checkbox, which the route checks.
+    Strava is deauthorized only after those checks pass, and before the rows go.
     """
     if principal.kind == "hosted":
         if directory is None or not isinstance(principal.token, str):
             raise ApiError(401, "Sign in again.")
+        _release_strava(app, principal)
         key = service_key_for(directory)
         try:
             directory.delete_user(principal.token, key)
@@ -333,10 +336,31 @@ def delete_account_for(directory, principal: Principal, *, email: str, password:
         raise ApiError(400, "Confirm with your email to delete this account.")
     if principal.accounts_path is None or not isinstance(principal.seal, str):
         raise ApiError(401, "Sign in again.")
+    if authenticate(principal.accounts_path, principal.email, password) is None:
+        try:
+            delete_account(principal.accounts_path, principal.email, principal.seal, password)
+        except AccountError as exc:
+            raise_auth(exc)
+        return
+    _release_strava(app, principal)
     try:
         delete_account(principal.accounts_path, principal.email, principal.seal, password)
     except AccountError as exc:
         raise_auth(exc)
+
+
+def _release_strava(app, principal: Principal) -> None:
+    """Revoke the Strava token, then delete the stored token and imported runs.
+
+    Both steps ignore their own failures. The account delete that follows
+    still removes the profile, and a refused password never reaches here.
+    """
+    if app is None:
+        return
+    from api.strava_flow import purge_connection, revoke_connection
+
+    revoke_connection(app, principal)
+    purge_connection(app, principal)
 
 
 def reset_seasons_for(principal: Principal, directory) -> None:

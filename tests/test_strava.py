@@ -19,6 +19,7 @@ from ui.strava import (
     StravaLimited,
     authorize_url,
     deauthorize,
+    deauthorize_quietly,
     exchange_code,
     import_runs,
     is_run,
@@ -184,6 +185,25 @@ def test_import_parses_runs_and_matches_the_plan() -> None:
         _restore(saved)
 
 
+def test_deauthorize_posts_the_token_and_a_failure_is_ignored() -> None:
+    called = []
+
+    def post(url, form):
+        called.append((url, form.get("access_token")))
+        return {}
+
+    deauthorize_quietly("secret-access", post)
+    deauthorize_quietly("", post)
+    deauthorize_quietly(None, post)
+    if called != [("https://www.strava.com/oauth/deauthorize", "secret-access")]:
+        raise AssertionError(called)
+
+    def boom(_url, _form):
+        raise RuntimeError("down")
+
+    deauthorize_quietly("secret-access", boom)
+
+
 def test_rate_limit_and_disconnect() -> None:
     saved = _use_fake_secrets()
     try:
@@ -333,6 +353,7 @@ def test_more_run_types_paging_and_a_failed_detail() -> None:
 def main() -> None:
     test_oauth_state_and_exchange()
     test_import_parses_runs_and_matches_the_plan()
+    test_deauthorize_posts_the_token_and_a_failure_is_ignored()
     test_rate_limit_and_disconnect()
     test_more_run_types_paging_and_a_failed_detail()
     print("strava ok")

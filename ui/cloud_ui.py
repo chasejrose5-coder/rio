@@ -289,6 +289,9 @@ def delete_signed_in_account() -> None:
     settings = cloud_settings() or {}
     if directory is None or not isinstance(token, str):
         raise CloudAuthError("Sign in again.")
+    from ui.strava_ui import revoke_before_account_delete
+
+    revoke_before_account_delete()
     directory.delete_user(token, settings.get("service_key") or "")
 
 

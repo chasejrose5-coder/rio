@@ -363,6 +363,49 @@ def test_store_does_not_leave_the_browser() -> None:
         raise AssertionError("plan persistence started spending")
 
 
+def test_strava_source_survives_the_season_record() -> None:
+    """Disconnect still has to recognize an imported run after a reload."""
+    raw = dump_record(
+        {},
+        {},
+        [
+            {
+                "id": "strava-11",
+                "name": "Morning",
+                "date": "2026-10-20",
+                "matched": False,
+                "source": "strava",
+                "distance": 5000,
+            },
+            {
+                "id": "note-1",
+                "name": "Logged",
+                "date": "2026-10-21",
+                "matched": False,
+                "source": "hand",
+            },
+        ],
+    )
+    _marks, _actuals, activities = load_record(raw)
+    if activities != [
+        {
+            "date": "2026-10-20",
+            "distance": 5000,
+            "id": "strava-11",
+            "matched": False,
+            "name": "Morning",
+            "source": "strava",
+        },
+        {
+            "date": "2026-10-21",
+            "id": "note-1",
+            "matched": False,
+            "name": "Logged",
+        },
+    ]:
+        raise AssertionError(activities)
+
+
 def test_export_season_is_json() -> None:
     """The file is the season plus marks and actuals. A score is left out."""
     plan = {"ontology_version": "v0.1", "sessions": [], "probability": 0.2, "readiness_score": 1}
@@ -385,6 +428,7 @@ def main() -> None:
     test_marks_and_actuals_round_trip()
     test_intervals_ref_round_trips_with_the_actual()
     test_pulled_activities_round_trip()
+    test_strava_source_survives_the_season_record()
     test_store_does_not_leave_the_browser()
     test_export_season_is_json()
     print("plan store ok")

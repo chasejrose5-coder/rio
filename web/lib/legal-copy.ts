@@ -138,7 +138,7 @@ export const PRIVACY: LegalPage = {
         },
         {
           kind: "p",
-          text: "Imported runs stay in RIO until you disconnect Strava or delete the account. Deleting the account removes the stored token with the account, but account deletion does not call Strava's deauthorize endpoint. To revoke RIO on Strava's side, disconnect first, or revoke RIO in the Strava account settings.",
+          text: "Imported runs stay in RIO until you disconnect Strava or delete the account. Delete my account calls Strava's deauthorize endpoint with the stored token before that token and those runs are removed. If Strava cannot be reached, the account is still deleted and the stored token is removed with it. You can also revoke RIO in the Strava account settings.",
         },
       ],
     },

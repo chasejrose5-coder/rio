@@ -258,6 +258,171 @@ def test_delete_account_requires_confirm_and_signs_out() -> None:
         raise AssertionError("delete did not require a cookie")
 
 
+def test_delete_deauthorizes_strava_before_the_rows_go(monkeypatch) -> None:
+    """The token is still stored when Strava is called. A failed call still deletes it."""
+    from tests.test_api_step2b import _callback, _connect, _run, _session, _strava_env
+    from ui.strava import StravaError
+
+    _strava_env(monkeypatch)
+    directory, client = _hosted()
+    plan = _generate(client)["plan"]
+    tuesday = _session(plan, 1, "Tuesday")
+    calls = []
+
+    def post(url: str, form: dict) -> dict:
+        if "deauthorize" in url:
+            calls.append(
+                {
+                    "url": url,
+                    "token": form.get("access_token"),
+                    "present": "ada@example.com" in directory.by_email,
+                    "stored": "token-access-secret"
+                    in json.dumps(client.app.state.memory_strava.tokens),
+                }
+            )
+            return {}
+        return {
+            "access_token": "token-access-secret",
+            "refresh_token": "token-refresh-secret",
+            "expires_at": 4_000_000_000,
+            "athlete": {"id": 7, "firstname": "Ada", "lastname": "Lovelace"},
+        }
+
+    def get(url: str, query: dict, access_token: str) -> object:
+        del url, query
+        if access_token != "token-access-secret":
+            raise StravaError("Strava could not be reached.")
+        return [_run(tuesday["date"], 11)]
+
+    client.app.state.strava_post = post
+    client.app.state.strava_get = get
+    _callback(client, _connect(client)["url"])
+    synced = client.post("/strava/sync", json={"scope": "all"})
+    if synced.status_code != 200 or synced.json()["count"] != 1:
+        raise AssertionError(synced.text)
+    user_id = directory.by_email["ada@example.com"]
+    store = client.app.state.memory_strava
+    if user_id not in store.tokens or not store.activities.get(user_id):
+        raise AssertionError("the run was not stored")
+    directory.sign_up("bea@example.com", "correct-horse", "Bea")
+    bea_id = directory.by_email["bea@example.com"]
+    store.put_token(
+        bea_id,
+        {"access_token": "other-access", "refresh_token": "other-refresh"},
+        "memory-service",
+    )
+    store.put_activities(bea_id, [{"id": "strava-2", "name": "Other"}])
+    refused = client.post("/auth/delete", json={"confirm": False})
+    if refused.status_code != 400 or calls:
+        raise AssertionError(refused.text)
+    if user_id not in store.tokens:
+        raise AssertionError("a refused delete revoked Strava")
+    removed = client.post("/auth/delete", json={"confirm": True})
+    if removed.status_code != 200 or removed.json()["deleted"] is not True:
+        raise AssertionError(removed.text)
+    if "token-access-secret" in removed.text or "other-access" in removed.text:
+        raise AssertionError(removed.text)
+    if calls != [
+        {
+            "url": "https://www.strava.com/oauth/deauthorize",
+            "token": "token-access-secret",
+            "present": True,
+            "stored": True,
+        }
+    ]:
+        raise AssertionError(calls)
+    if "ada@example.com" in directory.by_email or user_id in store.tokens or store.activities.get(user_id):
+        raise AssertionError("the account or its Strava rows stayed")
+    if store.get_token(bea_id, "memory-service") is None or store.get_activities(bea_id)[0]["id"] != "strava-2":
+        raise AssertionError("delete removed another athlete's Strava rows")
+
+
+def test_delete_still_removes_the_account_when_strava_is_down(monkeypatch) -> None:
+    from tests.test_api_step2b import _callback, _connect, _strava_env
+
+    _strava_env(monkeypatch)
+    directory, client = _hosted()
+    calls = []
+
+    def post(url: str, form: dict) -> dict:
+        if "deauthorize" in url:
+            calls.append(form.get("access_token"))
+            raise RuntimeError("down")
+        return {
+            "access_token": "token-access-secret",
+            "refresh_token": "token-refresh-secret",
+            "expires_at": 4_000_000_000,
+            "athlete": {"id": 7, "firstname": "Ada", "lastname": "Lovelace"},
+        }
+
+    client.app.state.strava_post = post
+    client.app.state.strava_get = lambda *_args, **_kwargs: []
+    _callback(client, _connect(client)["url"])
+    removed = client.post("/auth/delete", json={"confirm": True})
+    if removed.status_code != 200 or calls != ["token-access-secret"]:
+        raise AssertionError(removed.text)
+    if "ada@example.com" in directory.by_email or client.app.state.memory_strava.tokens:
+        raise AssertionError("a failed deauthorize left the account or the token")
+
+
+def test_a_wrong_password_does_not_deauthorize_strava(monkeypatch, tmp_path: Path) -> None:
+    from tests.test_api_step2b import _callback, _connect, _strava_env
+
+    _strava_env(monkeypatch)
+    path = tmp_path / "accounts.json"
+    client = _client(None, accounts=path)
+    created = client.post(
+        "/auth/sign-up",
+        json={"email": "local@example.com", "password": "correct-horse", "name": "Local"},
+    )
+    if created.status_code != 200:
+        raise AssertionError(created.text)
+    calls = []
+
+    def post(url: str, form: dict) -> dict:
+        calls.append((url, form.get("access_token")))
+        if "deauthorize" in url:
+            return {}
+        return {
+            "access_token": "token-access-secret",
+            "refresh_token": "token-refresh-secret",
+            "expires_at": 4_000_000_000,
+            "athlete": {"id": 7, "firstname": "Ada", "lastname": "Lovelace"},
+        }
+
+    client.app.state.strava_post = post
+    client.app.state.strava_get = lambda *_args, **_kwargs: []
+    _callback(client, _connect(client)["url"])
+    if "local@example.com" not in client.app.state.memory_strava.tokens:
+        raise AssertionError("the local token was not stored")
+    wrong = client.post(
+        "/auth/delete",
+        json={"confirm": True, "email": "local@example.com", "password": "wrong-password"},
+    )
+    mismatch = client.post(
+        "/auth/delete",
+        json={"confirm": True, "email": "other@example.com", "password": "correct-horse"},
+    )
+    if wrong.status_code != 400 or mismatch.status_code != 400:
+        raise AssertionError((wrong.text, mismatch.text))
+    if any("deauthorize" in url for url, _token in calls):
+        raise AssertionError(calls)
+    if "local@example.com" not in client.app.state.memory_strava.tokens:
+        raise AssertionError("a refused delete removed the token")
+    removed = client.post(
+        "/auth/delete",
+        json={"confirm": True, "email": "Local@Example.com", "password": "correct-horse"},
+    )
+    if removed.status_code != 200 or "token-access-secret" in removed.text:
+        raise AssertionError(removed.text)
+    if calls[-1] != ("https://www.strava.com/oauth/deauthorize", "token-access-secret"):
+        raise AssertionError(calls)
+    if client.app.state.memory_strava.tokens or client.app.state.memory_strava.activities:
+        raise AssertionError("delete left the local Strava token")
+    if client.post("/auth/sign-in", json={"email": "local@example.com", "password": "correct-horse"}).status_code != 401:
+        raise AssertionError("the local account was still there")
+
+
 def test_local_delete_requires_the_email_and_the_password(tmp_path: Path) -> None:
     path = tmp_path / "accounts.json"
     client = _client(None, accounts=path)
