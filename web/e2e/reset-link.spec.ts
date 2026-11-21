@@ -47,6 +47,17 @@ test("a hash fragment token and a recovery session are accepted", async ({ page 
   expect(fromSession?.type).toBe("recovery");
 });
 
+test("the update-password page is the same new-password form", async ({ page }) => {
+  const reset = await captureReset(page);
+  await page.goto("/update-password#access_token=frag-access&refresh_token=frag-refresh&type=recovery");
+  await expect(page.getByRole("heading", { name: "New password" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save password" })).toBeEnabled();
+  const posted = await reset.submit();
+  expect(posted?.access_token).toBe("frag-access");
+  expect(posted?.refresh_token).toBe("frag-refresh");
+  expect(posted?.type).toBe("recovery");
+});
+
 test("a link with no recovery token stays closed", async ({ page }) => {
   await page.goto("/reset-password");
   await expect(page.getByRole("heading", { name: "New password" })).toBeVisible();

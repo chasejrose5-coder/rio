@@ -169,12 +169,34 @@ def _restore(name: str, previous: str | None) -> None:
 
 
 def test_redirect_urls_are_the_next_origin_with_no_hardcoded_host() -> None:
-    if reset_redirect_url(NEXT) != NEXT + "/reset-password":
+    if reset_redirect_url(NEXT) != NEXT + "/update-password":
         raise AssertionError(reset_redirect_url(NEXT))
     if confirm_redirect_url(NEXT + "/") != NEXT + "/confirm":
         raise AssertionError(confirm_redirect_url(NEXT))
     if "streamlit" in reset_redirect_url(NEXT) or "localhost" in confirm_redirect_url(NEXT):
         raise AssertionError("the mail URL baked in a host")
+    if "riorunning.com" in reset_redirect_url(NEXT):
+        raise AssertionError(reset_redirect_url(NEXT))
+
+
+def test_public_hosts_open_the_live_site() -> None:
+    live = "https://www.riorunning.com"
+    if confirm_redirect_url(live) != live + "/confirm":
+        raise AssertionError(confirm_redirect_url(live))
+    if reset_redirect_url(live) != live + "/update-password":
+        raise AssertionError(reset_redirect_url(live))
+    for old in (
+        "https://riorunning.com/",
+        "http://www.riorunning.com",
+        "https://rio-one-mocha.vercel.app",
+        "https://rio-rio-44fa.vercel.app/",
+    ):
+        if reset_redirect_url(old) != live + "/update-password":
+            raise AssertionError((old, reset_redirect_url(old)))
+        if confirm_redirect_url(old) != live + "/confirm":
+            raise AssertionError((old, confirm_redirect_url(old)))
+    if reset_redirect_url("http://localhost:3000") != "http://localhost:3000/update-password":
+        raise AssertionError(reset_redirect_url("http://localhost:3000"))
 
 
 def test_streamlit_mail_stays_on_its_own_origin_when_the_frontend_is_set() -> None:
@@ -262,7 +284,7 @@ def test_api_mail_uses_the_frontend_origin_and_the_local_file_sends_none(tmp_pat
     known = client.post("/auth/forgot-password", json={"email": "ada@example.com"})
     if missing.status_code != 200 or known.status_code != 200 or missing.json() != known.json():
         raise AssertionError((missing.text, known.text))
-    if "token" in known.json() or directory.reset_redirect_to != NEXT + "/reset-password":
+    if "token" in known.json() or directory.reset_redirect_to != NEXT + "/update-password":
         raise AssertionError((known.json(), directory.reset_redirect_to))
     opened = directory.sign_in("ada@example.com", "correct-horse")
     saved = client.post(

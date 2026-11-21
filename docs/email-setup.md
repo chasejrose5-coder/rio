@@ -1,12 +1,12 @@
 # Email setup
 
-RIO does not send mail itself. Supabase Auth sends it, and Resend is the SMTP server Supabase uses. This page is the dashboard work. The app code is already in place. Do not put the Resend API key, or any Supabase key, in the repo or in a pull request.
+RIO does not send mail itself. Supabase Auth sends it, and Resend is the SMTP server Supabase uses. The checklist for `riorunning.com`, including the Vercel flag that shows **Forgot password?**, is `docs/resend-email-setup.md`. This page is the longer reference. Do not put the Resend API key, or any Supabase key, in the repo or in a pull request.
 
 The live site is `https://www.riorunning.com`. `riorunning.com` redirects there. On Render, `RIO_FRONTEND_ORIGIN` and `RIO_CALLBACK_BASE_URL` should both be `https://www.riorunning.com`, with `https://`, no path, and no trailing slash. This setup does not change Render, Vercel, or Supabase for you. You change Supabase in the dashboard after Resend is ready.
 
 What the app does once this is saved:
 
-- **Log in** shows **Forgot password?** when accounts are hosted. The reset link opens `/reset-password`. An address with no account gets the same sentence as one that has an account.
+- **Log in** shows **Forgot password?** when accounts are hosted and `NEXT_PUBLIC_PASSWORD_RESET_ENABLED` is `true`. Until that flag is set, the link stays hidden and `/forgot-password` returns to Log in. The reset link opens `https://www.riorunning.com/update-password`. `/reset-password` is the same form. An address with no account gets the same sentence as one that has an account.
 - **Create account** shows **Check your email** when Supabase asks for confirmation. The person cannot log in until they open the link. **Resend confirmation email** sends it again. The link opens `/confirm`.
 - **Settings → Account → Change email** asks Supabase to send its confirmation. The address in Settings stays the old one until that link is confirmed. With secure email change on, Supabase also mails the old address, and both links have to be opened.
 
@@ -116,20 +116,22 @@ Leave these redirect URLs in place. Do not delete them. The parked Streamlit app
 
 Add these if they are not already on the allow list. Supabase ignores a redirect that is not listed and falls back to the Site URL.
 
+- `https://www.riorunning.com/update-password`
 - `https://www.riorunning.com/reset-password`
 - `https://www.riorunning.com/confirm`
 - `https://www.riorunning.com/`
 
-Signup confirmation and email change both use `/confirm`. Password reset uses `/reset-password`. Mail uses the `www` origin. The apex `riorunning.com` redirects to `www`, and that redirect would drop the token fragment.
+Signup confirmation and email change both use `/confirm`. Password reset mail uses `/update-password`. `/reset-password` is the same form. Mail uses the `www` origin. The apex `riorunning.com` redirects to `www`, and that redirect would drop the token fragment. The API rewrites the apex and the old Vercel hosts to `https://www.riorunning.com`.
 
 For a laptop check against this same project, also add:
 
+- `http://localhost:3000/update-password`
 - `http://localhost:3000/reset-password`
 - `http://localhost:3000/confirm`
 
-The code builds those paths from `RIO_FRONTEND_ORIGIN`. On Render that value is `https://www.riorunning.com`, so the live mail uses the `www` URLs. A local API only uses the localhost URLs when `RIO_FRONTEND_ORIGIN` is `http://localhost:3000`.
+The code builds those paths from `RIO_FRONTEND_ORIGIN`. On Render that value is `https://www.riorunning.com`, so the live mail uses the `www` URLs. A local API only uses the localhost URLs when `RIO_FRONTEND_ORIGIN` is `http://localhost:3000`. When that origin is the apex or an old Vercel host, the mail still uses `https://www.riorunning.com`.
 
-A link Supabase marks expired lands on `/confirm` or `/reset-password` with an error, and the page says the link is no longer valid. Reset offers **Send a new reset email**. A signup that is still unconfirmed can use **Resend confirmation email** on Check your email, or on Log in after a try with the right password.
+A link Supabase marks expired lands on `/confirm`, `/update-password`, or `/reset-password` with an error, and the page says the link is no longer valid. Reset offers **Send a new reset email**. A signup that is still unconfirmed can use **Resend confirmation email** on Check your email, or on Log in after a try with the right password.
 
 ## 7. Existing accounts, including Chase's
 
@@ -156,5 +158,5 @@ Use a real inbox on the verified domain's sending path. `delivered@resend.dev` o
 1. Create a new account on `https://www.riorunning.com/create-account`. You should see **Check your email**, not a logged-in home page.
 2. Open the message. It should land on `https://www.riorunning.com/confirm` and say the email is confirmed. Then log in with that password.
 3. Before confirming, a login with the right password should say to check email and offer **Resend confirmation email**.
-4. **Forgot password?** on Log in should send a reset that opens `/reset-password`. Save a new password, then log in with it. Try an address you know has no account. The sentence should match the one a real account gets.
+4. After `NEXT_PUBLIC_PASSWORD_RESET_ENABLED` is `true` on the deployment you are looking at, **Forgot password?** on Log in should send a reset that opens `/update-password`. Save a new password, then log in with it. Try an address you know has no account. The sentence should match the one a real account gets. The steps for the flag are in `docs/resend-email-setup.md`.
 5. In Settings, under Account, change the email. The flash should say to check email. The address shown above the form should stay the old one until the confirmation link is opened.

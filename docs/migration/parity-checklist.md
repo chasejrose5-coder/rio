@@ -296,13 +296,13 @@ Hosted (Supabase configured) uses `ui/cloud_ui.py`. Otherwise the form in `ui/st
 
 ### L10. Forgot password link
 
-**Sees:** "Forgot password?" on a hosted log-in only. The local account file has no such control.
+**Sees:** "Forgot password?" on a hosted log-in only, and only when `NEXT_PUBLIC_PASSWORD_RESET_ENABLED` is `true`. The local account file has no such control. Until that flag is set, the public site hides the link.
 **Now:** `ui/cloud_ui.py` `_render_sign_in`. Local `_render_login` does not draw it.
 **API:** The link is not a route. The screen it opens is `PR #61: POST /auth/forgot-password`.
 **Step 3:** PR #61
 **Status:** done
-**Evidence:** `web/e2e/auth-home.spec.ts` "local sign-in hides forgot password" and "hosted sign-in shows forgot password". The link is only on a hosted log-in. Google stays hidden.
-**Verify:** Local API: no "Forgot password?" link. Hosted API: the link is there, and no control says Google. The e2e covers both.
+**Evidence:** `web/e2e/auth-home.spec.ts` "local sign-in hides forgot password" and "hosted sign-in shows forgot password". The link is only on a hosted log-in, and the e2e server sets the flag. Google stays hidden.
+**Verify:** Local API: no "Forgot password?" link. Hosted API with the flag `true`: the link is there, and no control says Google. The e2e covers both. The flag unset hides the link.
 
 ### L11. Floodlight photo
 

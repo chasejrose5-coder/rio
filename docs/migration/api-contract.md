@@ -135,7 +135,7 @@ No cookie. Body: `{"email": ""}`.
 
 `200` `{"ok": true, "message": "Check your email for the reset link."}`. An address with no account gets the same body. The reset token is not in the JSON. `400` when the text is not an email, or when this process is the local account file (that file has no mail). `400` when the reset mail could not be sent.
 
-The link in that mail is `{RIO_FRONTEND_ORIGIN}/reset-password`. `RIO_FRONTEND_ORIGIN` is the Next origin, scheme and host, no path. On the live service that origin is `https://www.riorunning.com`. Streamlit's own forgot screen still sends `{RIO_APP_URL}/?reset=password` (or `https://riotraining.streamlit.app/?reset=password` when `RIO_APP_URL` is unset). Add `https://www.riorunning.com/reset-password` and `https://www.riorunning.com/confirm` to the Supabase Auth redirect allow list. Leave the Streamlit URLs and the old Vercel URLs there.
+The link in that mail is `{RIO_FRONTEND_ORIGIN}/update-password`. `RIO_FRONTEND_ORIGIN` is the Next origin, scheme and host, no path. On the live service that origin is `https://www.riorunning.com`. The apex and the old Vercel hosts are rewritten to that origin. `/reset-password` is the same form. Streamlit's own forgot screen still sends `{RIO_APP_URL}/?reset=password` (or `https://riotraining.streamlit.app/?reset=password` when `RIO_APP_URL` is unset). Add `https://www.riorunning.com/update-password`, `https://www.riorunning.com/reset-password`, and `https://www.riorunning.com/confirm` to the Supabase Auth redirect allow list. Leave the Streamlit URLs and the old Vercel URLs there. Log in shows the request link only when `NEXT_PUBLIC_PASSWORD_RESET_ENABLED` is `true`.
 
 ### `POST /auth/reset-password`
 

@@ -30,6 +30,7 @@ export default defineConfig({
       timeout: 120_000,
       env: {
         NEXT_PUBLIC_RIO_API_URL: "http://localhost:8000",
+        NEXT_PUBLIC_PASSWORD_RESET_ENABLED: "true",
       },
     },
   ],
