@@ -262,6 +262,27 @@ def put_goal(body: GoalBody, request: Request) -> dict:
     return _profile(request, who, resolved, again)
 
 
+def _zone_breakdown(request: Request, who, found: dict, heart: dict | None) -> dict | None:
+    """Time in zone for the run matched to this day. No stream means no breakdown."""
+    if not heart:
+        return None
+    activity_id = found.get("activity_id")
+    if not isinstance(activity_id, str) or not activity_id:
+        return None
+    session = found.get("session") if isinstance(found.get("session"), dict) else {}
+    from api.strava_flow import _backend
+    from engines.heart_targets import zone_for_template
+    from engines.zone_time import zone_report
+
+    try:
+        store, _key, _nonce = _backend(request.app, who)
+        streams = store.get_streams(who.user_id) if hasattr(store, "get_streams") else {}
+    except Exception:
+        return None
+    sample = streams.get(activity_id) if isinstance(streams, dict) else None
+    return zone_report(sample, heart.get("zones"), zone_for_template(str(session.get("template_id") or "")))
+
+
 @router.get("/sessions/{day}")
 def one_session(day: str, request: Request) -> dict:
     who, resolved = _resolved(request)
@@ -274,6 +295,8 @@ def one_session(day: str, request: Request) -> dict:
 
     heart = None if preview is not None else training_profile(who, request.app.state.directory)
     found = session_view(season, day, resolved, heart)
+    if found is not None and preview is None:
+        found["zones"] = _zone_breakdown(request, who, found, heart)
     if found is None:
         raise ApiError(404, "That day is not in this season.")
     return found

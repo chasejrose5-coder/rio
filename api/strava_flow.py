@@ -504,6 +504,11 @@ def sync(app, principal, directory, today, season, scope: str) -> dict:
             fresh["athlete_name"] = fresh.get("athlete_name") or token.get("athlete_name") or ""
             try:
                 store.put_activities(principal.user_id, runs)
+                if hasattr(store, "put_streams"):
+                    try:
+                        store.put_streams(principal.user_id, runs)
+                    except Exception:
+                        pass
                 store.put_token(principal.user_id, fresh, key)
             except Exception:
                 notice = "Strava could not be saved."

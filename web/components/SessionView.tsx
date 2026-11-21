@@ -178,6 +178,35 @@ function ActivityCard({ row }: { row: LoggedActivity }) {
   );
 }
 
+function clock(seconds: number): string {
+  const whole = Math.max(0, Math.round(seconds));
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
+}
+
+function ZoneTime({ zones }: { zones: SessionResponse["zones"] }) {
+  if (!zones?.zones?.length) return null;
+  return (
+    <section className="rio-zone-breakdown" aria-label="Time in zone">
+      <p className="rio-mark-label">Time in zone</p>
+      <ul className="rio-zone-list">
+        {zones.zones.map((row) => (
+          <li key={row.zone}>
+            <p className="rio-zone-name">
+              Zone {row.zone} · {row.name}
+            </p>
+            <p className="rio-zone-bpm">{clock(row.seconds)}</p>
+          </li>
+        ))}
+      </ul>
+      {zones.warning ? (
+        <p className="rio-zone-warning" role="alert">
+          {zones.warning}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 function Workout({ session, onSaved }: { session: SessionResponse; onSaved: () => void }) {
   const prescription = session.prescription;
   const note = session.note && session.viewed !== true ? session.note : null;
@@ -213,6 +242,7 @@ function Workout({ session, onSaved }: { session: SessionResponse; onSaved: () =
         <Field label="Target outcome" value={session.target || "—"} />
         <Prep />
         {session.heart_rate ? <Field label="Avg HR" value={session.heart_rate} /> : null}
+        <ZoneTime zones={session.zones} />
         <section className="rio-session-section">
           <p className="rio-mark-label">Reasons</p>
           {session.reasons.length ? (

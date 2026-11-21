@@ -19,6 +19,7 @@ class MemoryStrava:
     def __init__(self) -> None:
         self.tokens: dict[str, dict] = {}
         self.activities: dict[str, list] = {}
+        self.streams: dict[str, dict] = {}
 
     def put_token(self, user_id: str, record: dict, service_key: str) -> None:
         if not service_key:
@@ -47,11 +48,24 @@ class MemoryStrava:
         del service_key
         return deepcopy(self.activities.get(user_id) or [])
 
+    def put_streams(self, user_id: str, rows: list) -> None:
+        bag = self.streams.setdefault(user_id, {})
+        for row in rows:
+            if not isinstance(row, dict) or not row.get("id"):
+                continue
+            stream = row.get("hr_stream")
+            if isinstance(stream, dict) and stream.get("time") and stream.get("hr"):
+                bag[str(row["id"])] = {"time": list(stream["time"]), "hr": list(stream["hr"])}
+
+    def get_streams(self, user_id: str) -> dict:
+        return deepcopy(self.streams.get(user_id) or {})
+
     def delete_user(self, user_id: str, service_key: str) -> None:
         if not service_key:
             raise PermissionError("tokens stay on the server")
         self.tokens.pop(user_id, None)
         self.activities.pop(user_id, None)
+        self.streams.pop(user_id, None)
 
 
 def memory_strava() -> MemoryStrava:
@@ -174,6 +188,54 @@ class SupabaseStrava:
                 payload[start : start + 500],
                 on_conflict="user_id,activity_id",
             ).execute()
+
+    def put_streams(self, user_id: str, rows: list) -> None:
+        payload = []
+        for row in rows:
+            if not isinstance(row, dict) or not row.get("id"):
+                continue
+            stream = row.get("hr_stream")
+            if not isinstance(stream, dict):
+                continue
+            times = stream.get("time")
+            rates = stream.get("hr")
+            if not isinstance(times, list) or not isinstance(rates, list) or len(times) < 2:
+                continue
+            payload.append(
+                {
+                    "user_id": user_id,
+                    "activity_id": str(row["id"]),
+                    "sample_time": times,
+                    "sample_hr": rates,
+                }
+            )
+        if not payload:
+            return
+        client = self._owner_client()
+        if self.owner_id() != user_id:
+            raise PermissionError("activities stay with their owner")
+        for start in range(0, len(payload), 100):
+            client.table("run_hr_streams").upsert(
+                payload[start : start + 100],
+                on_conflict="user_id,activity_id",
+            ).execute()
+
+    def get_streams(self, user_id: str) -> dict:
+        client = self._owner_client()
+        if self.owner_id() != user_id:
+            raise PermissionError("activities stay with their owner")
+        response = (
+            client.table("run_hr_streams")
+            .select("activity_id,sample_time,sample_hr")
+            .eq("user_id", user_id)
+            .execute()
+        )
+        found = {}
+        for row in getattr(response, "data", None) or []:
+            if not isinstance(row, dict) or not row.get("activity_id"):
+                continue
+            found[str(row["activity_id"])] = {"time": row.get("sample_time") or [], "hr": row.get("sample_hr") or []}
+        return found
 
     def get_activities(self, user_id: str, service_key: str = "") -> list:
         client = self._service() if self._server_write(service_key) else self._owner_client()
