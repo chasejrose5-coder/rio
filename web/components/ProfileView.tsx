@@ -229,11 +229,11 @@ function ProfileBody() {
                         id="profile-goal"
                         type="text"
                         value={goal}
-                        placeholder="1:55.0"
+                        placeholder="1:58.0"
                         onChange={(event) => setGoal(event.target.value)}
                       />
                     </label>
-                    <p className="rio-profile-hint">Minutes, seconds, and tenths, like 1:55.0.</p>
+                    <p className="rio-profile-hint">Minutes, seconds, and tenths, like 1:58.0.</p>
                     <button className="rio-primary" type="submit" disabled={goalBusy}>
                       Save
                     </button>

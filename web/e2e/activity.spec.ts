@@ -139,32 +139,16 @@ async function install(
       return json(route, activities({ connected: options.connected, notice: options.notice, cards: options.cards, last: options.connected ? 1794295800 : null }));
     }
     if (path === "/fixtures") return json(route, { fixtures: ["race_800"] });
-    if (path === "/fixtures/intervals") return json(route, { files: ["synthetic_se_400_with_recovery.json"] });
-    if (path.startsWith("/fixtures/intervals/")) {
-      return json(route, {
-        name: "synthetic_se_400_with_recovery.json",
-        times: [57.5],
-        source: "synthetic-se-400-with-recovery",
-        date: "2026-10-25",
-        banner: "SYNTHETIC / FIXTURE",
-        distance_heading: "Distance (m)",
-        rows: [{ Lap: 1, "Distance (m)": "400", Seconds: 57.5, "Rest (s)": 90 }],
-        family: "speed_endurance",
-        confidence: "high",
-        reason_codes: ["six_by_400"],
-        prose: "Speed endurance, from the lap times.",
-      });
-    }
     if (path === "/fixtures/session") {
       return json(route, {
         name: "race_800",
         date: "2026-10-17",
         banner: "FIXTURE",
         distance_heading: "Distance (m)",
-        rows: [],
-        family: "race",
+        rows: [{ Lap: 1, "Distance (m)": "800", Seconds: 120, "Rest (s)": 0 }],
+        family: "race_readiness",
         confidence: "high",
-        reason_codes: [],
+        reason_codes: ["single_800m"],
         prose: "A race.",
       });
     }
@@ -309,12 +293,12 @@ test("an admin sees the lap table and not the synthetic banner", async ({ page }
   await sign(page);
   await page.goto("/last-session");
   await expect(page.getByRole("heading", { name: "Last Session" })).toBeVisible();
-  await expect(page.getByLabel("Intervals file")).toBeVisible();
-  await page.getByLabel("Intervals file").selectOption("synthetic_se_400_with_recovery.json");
+  await expect(page.getByLabel("Session")).toBeVisible();
+  await expect(page.getByLabel("Intervals file")).toHaveCount(0);
   await expect(page.getByRole("columnheader", { name: "Seconds" })).toBeVisible();
-  await expect(page.getByRole("cell", { name: "57.5" })).toBeVisible();
-  await expect(page.getByRole("cell", { name: "90" })).toBeVisible();
-  await expect(page.locator(".rio-synthetic")).toHaveCount(0);
-  await expect(page.getByText("Speed endurance, from the lap times.")).toBeVisible();
+  await expect(page.getByRole("cell", { name: "120" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "800" })).toBeVisible();
+  await expect(page.locator(".rio-synthetic")).toHaveText("FIXTURE");
+  await expect(page.getByText("A race.")).toBeVisible();
   await expect(page.locator(".rio-mark-label", { hasText: "Laps" })).toHaveCSS("color", "rgb(60, 58, 54)");
 });

@@ -319,7 +319,7 @@ _TIME = re.compile(r"^(\d+):(\d{2})(\.\d+)?$")
 _ISO_DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _WORK = re.compile(r"_(\d+)_r\d+_x(\d+)$")
 _PHASE_CODE = re.compile(r"^phase_([1-8])$")
-# Hits write the goal as "(1:55.0)" or, on the race, "for 1:55.0".
+# Hits write the athlete's goal, as "(2:05.0)" or, on the race, "for 2:05.0".
 _GOAL_IN_TEXT = re.compile(
     r"(?:\(|\bfor )([0-9]+:[0-9]{2}(?:\.[0-9]+)?)\)?"
 )
@@ -494,14 +494,14 @@ def adapt(plan: dict, week_number: int, outcome) -> dict:
 
 
 def show_season(
-    current_time="2:02.9",
-    start_date: date | None = None,
-    goal_time="1:55.0",
-    goal_date: date | None = None,
+    current_time: str,
+    start_date: date,
+    goal_time: str,
+    goal_date: date,
 ) -> None:
-    """Print one line per week for the goal in docs/goal.md."""
-    start = date(2026, 4, 19) if start_date is None else start_date
-    goal_day = date(2027, 3, 19) if goal_date is None else goal_date
+    """Print one line per week for the four values the caller passes."""
+    start = start_date
+    goal_day = goal_date
     plan = sequence(current_time, start, goal_time, goal_day)
     menu = _menu()
     print(
@@ -1729,4 +1729,7 @@ def _as_date(value, name: str) -> date:
 
 
 if __name__ == "__main__":
-    show_season()
+    raise SystemExit(
+        "Pass current_time, start_date, goal_time, and goal_date to show_season. "
+        "This script does not fill in a season."
+    )

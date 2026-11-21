@@ -8,9 +8,9 @@ Strava is the only activity source. When it is not connected, the app shows a co
 
 These are the paths that exist. They do not all meet.
 
-1. **Season plan.** Start takes four inputs: current 800 time, start date, goal 800 time, goal date. `sequence()` builds an ordered list of sessions from the frozen menu and the locked 800 m weights. The four inputs go in the URL. Marks, entered results, and pulled activities stay in this browser. Season and Weekly can mark a week `on_track`, `not_hitting`, or `smashing`. `adapt()` then rewrites only the weeks after that week. Session can enter rep times, or fill them from a local Intervals JSON file, and the same adapt runs. Opening Dashboard, Weekly, Session, Progress, or Activity data can do that automatically for a matched Tuesday or Thursday that does not already have a mark. The stored times fill that day's boxes and stay editable.
+1. **Season plan.** Start takes four inputs: current 800 time, start date, goal 800 time, goal date. `sequence()` builds an ordered list of sessions from the frozen menu and the locked 800 m weights. The four inputs go in the URL. Marks, entered results, and pulled activities stay in this browser. Season and Weekly can mark a week `on_track`, `not_hitting`, or `smashing`. `adapt()` then rewrites only the weeks after that week. Session can enter rep times, and the same adapt runs. The Next app does not fill those boxes from a local JSON file. Opening Dashboard, Weekly, Session, Progress, or Activity data can do that automatically for a matched Tuesday or Thursday that does not already have a mark. The stored times fill that day's boxes and stay editable.
 
-2. **Classify a session.** A fixture YAML file, a local Intervals JSON file, or a live Intervals activity becomes laps in `normalize()`. `classify()` applies if-then rules and returns one family, reason codes, a confidence word (`high` or `unsure`), and `ontology_version` `v0.1`. Last Session shows that. The CLI prints it. The ledger can store it in memory. This path does not change the season plan.
+2. **Classify a session.** A fixture YAML file becomes laps in `normalize()`. `classify()` applies if-then rules and returns one family, reason codes, a confidence word (`high` or `unsure`), and `ontology_version` `v0.1`. Last Session shows that. The CLI prints it. The ledger can store it in memory. This path does not change the season plan. The shared API does not read a live activity service other than Strava.
 
 3. **Prescribe the next one to three days.** `prescribe()` reads the in-memory ledger, `constraints.yml`, and every template file. It returns one to three menu ids. Next shows that for one fixture. Accept can write the first row to a planned YAML file. Decisions reads that file. This path does not call `sequence()` or `adapt()`, and it does not call Intervals.
 
@@ -35,7 +35,7 @@ These are the paths that exist. They do not all meet.
 | `engines/season.py`, `engines/prescribe.py`, `engines/classify.py` | No | Menu files, paper files, and fixture YAML |
 | `db/load.py` | No | Writes fixture workouts into SQLite |
 
-The two JSON files in `tests/fixtures/intervals/` are synthetic. A file whose name or text says synthetic is labeled `SYNTHETIC / FIXTURE` on Last Session.
+The two JSON files in `tests/fixtures/intervals/` are synthetic. A file whose name or text says synthetic is labeled `SYNTHETIC / FIXTURE` on the parked Streamlit Last Session. The Next Last Session does not open them.
 
 ## Paper files
 
@@ -53,9 +53,9 @@ The two JSON files in `tests/fixtures/intervals/` are synthetic. A file whose na
 
 `rio/v0.1/adaptations.yml` lists useful, fade, recovery, and evidence notes per capacity. No Python file reads it. Season adaptation is the code in `adapt()`, not this file.
 
-`docs/goal.md` is a second goal, for athlete Chase Rose: current 2:02.9 on 4.19.26, target 1:55.0 on 3.19.27, meet Stanford Invitational qualifying standard, secondary event 400 m unscored, limiting capacity written as Speed Endurance. `classify()` reads the `Target 800` line and uses it as the pace the rules compare against. The season builder does not read this file. `show_season()` prints those same numbers only because they are the function's default arguments. The Start form uses the same numbers as hardcoded defaults. Editing `docs/goal.md` changes classification pace. It does not change a generated season unless someone types the new values into Start.
+`docs/goal.md` is a paper goal still stored for `classify()` and the admin Goal page: current 2:02.9 on 4.19.26, target 1:55.0 on 3.19.27, meet Stanford Invitational qualifying standard, secondary event 400 m unscored, limiting capacity written as Speed Endurance. `classify()` reads the `Target 800` line and uses it as the pace the rules compare against. The season builder does not read this file. `show_season()` prints only the four values the caller passes. Start leaves the times blank. Editing `docs/goal.md` changes classification pace. It does not change a generated season unless someone types the new values into Start.
 
-`docs/intervals_field_map.md` is the field list Activity data's detail groups follow. It is not parsed.
+Activity data labels distance, elapsed time, and pace in code. There is no separate field-map file.
 
 `docs/phase0_log.md` is a note from 2026-09-30. No code reads it.
 
@@ -225,7 +225,7 @@ Does not classify inside the season pages. Does not call explain except on Last 
 
 **Library** (`/library`). Every template `load_menu()` returns. Search matches name, id, or capacity. Capacity and phase narrow the same list. Phase membership comes from the season's phase lists, plus the easy day in every phase and the long runs in phases 1–7. Does not add templates. Does not call explain.
 
-**Last Session** (`/last-session`). A fixture YAML file, or a JSON file from `tests/fixtures/intervals`. The JSON path runs `to_normalize_input`, then `normalize`, `classify`, and `explain`. The YAML path parses the fixture and runs the same three. Does not call Intervals. Explain spend stays capped at $25.
+**Last Session** (`/last-session`). The Next page reads one fixture YAML file, then `normalize`, `classify`, and `explain`. The parked Streamlit page can also read a JSON file from `tests/fixtures/intervals`. That JSON path runs `to_normalize_input`, then the same three. The shared API does not serve those JSON files. Explain spend stays capped at $25.
 
 **Activity data** (`/activity`). After the 14-day pull, or a full pull from Refresh: one row per matched session with a date, a template or label, WORK meters, and average heart rate. A line is weekly completed WORK meters. A dot is each matched row that has an average heart rate. A second table lists every stored activity that has an activity distance or an average heart rate. An unmatched row is labeled extra. Warm-up and cool-down stay out of WORK meters. Template meters are not used. A local JSON file can fill a planned day that has a result ref and no matched work meters. Detail groups for distance, elapsed time, the interval table, max heart rate, zones, decoupling, and stream samples say `not pulled.` because those samples are not in the stored row. Does not call explain. Does call `adapt()` through auto-adapt when a matched quality day can be judged.
 
@@ -243,7 +243,7 @@ Does not classify inside the season pages. Does not call explain except on Last 
 
 **Season** (`/season`). The plan grouped by week, Sunday through Saturday, with the calendar date. A row opens Session. Reason codes are in an expander. The mark buttons call `adapt()`. Does not record workouts by itself.
 
-**Session** (`/session`). One planned day, or an extra activity opened by id. Shows the plain workout text, the recipe structure, the target outcome, then fixed pre-warm-up, warm-up, cool-down, and core notes. Those notes are the same on every session and are not stored on the session, so `adapt()` never reads them. Tuesday and Thursday quality, other than an `aer_` id, take one time per rep. A continuous session takes one time. A local JSON file fills WORK elapsed times into those boxes. The numbers stay editable. Filled times go through `judge()`. The activity id or the filename is stored on the actual. Opening the page reads the last 14 days. A matched quality day's stored WORK times fill the boxes and stay editable. A matched activity shows those rep times, the completed WORK distance, and the average heart rate beside the template. Does not write to Intervals and does not call explain.
+**Session** (`/session`). One planned day, or an extra activity opened by id. Shows the plain workout text, the recipe structure, the target outcome, then fixed pre-warm-up, warm-up, cool-down, and core notes. Those notes are the same on every session and are not stored on the session, so `adapt()` never reads them. Tuesday and Thursday quality, other than an `aer_` id, take one time per rep. A continuous session takes one time. The numbers stay editable. Filled times go through `judge()`. Opening the page reads the last 14 days. A matched quality day's stored WORK times fill the boxes and stay editable. A matched activity shows those rep times, the completed WORK distance, and the average heart rate beside the template, under Logged run. The Next page does not offer a local JSON file. The parked Streamlit page still can. Does not call explain.
 
 **Settings** (`/settings`). The display preferences above. Confirm sits in front of a hand-entered result and a hand-entered week mark. Nothing here is written onto the plan.
 
@@ -263,7 +263,7 @@ Does not write a file, an account, or the network. Does not call a model. The Ja
 
 Match stored activities by date. Strava is the only source.
 
-Reads the plan's sessions, today's date, and optional stored rows. Loads `.env` the same way as the CLI, then copies `INTERVALS_API_KEY` and `INTERVALS_ATHLETE_ID` onto the `RIO_` names when those are empty. Calls `list_activities` and `fetch_activity` unless the caller passes substitutes. Uses `work_elapsed`, `work_distance`, `activity_distance`, and `activity_heart_rate` from `last_session.py`.
+Reads the plan's sessions, today's date, and optional stored rows. Uses `work_elapsed`, `work_distance`, `activity_distance`, and `activity_heart_rate` from `last_session.py` on rows already in memory. It does not call an activity service.
 
 Writes a list of reduced activity dicts from records already in memory. `merge_activities` replaces stored rows inside a date window and keeps rows outside it. The same id keeps one row.
 

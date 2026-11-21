@@ -543,17 +543,9 @@ The Last Session, Next, Decisions, Ledger, and Goal pages. Admin only, same as `
 
 `200` `{"fixtures": ["easy", "race_800"]}`. The names are the stems in `tests/fixtures`.
 
-### `GET /fixtures/intervals`
-
-Admin. `200` `{"files": ["synthetic_se_400_with_recovery.json"]}`. Names only. A normal account is `403`.
-
-### `GET /fixtures/intervals/{name}`
-
-Admin. `200` `{"name": "", "times": [], "source": "", "laps": [], "rows": [], "distance_heading": "Distance (m)", "date": "", "banner": null, "family": "", "confidence": "", "reason_codes": [], "prose": ""}`. `times` are the WORK elapsed seconds. `laps` are the normalized laps (`distance_m`, `seconds`, `rest_s`), including rest. Warm-up and cool-down stay out of both. `rows` is the lap table in the Settings distance unit. `prose` is the rules paragraph from `explain`. `400` `{"detail": "{name} is not JSON."}` or `Could not read {name}.` `404` when the name is not in that folder. Nothing is requested from the network.
-
 ### `GET /fixtures/session?name=`
 
-Admin. One YAML fixture, the same fields as the intervals body except `times` and `source`. `banner` is `FIXTURE` when the file says so. `400` when the name is missing or the file cannot be read. `404` when the name is not a fixture. A normal account is `403`.
+Admin. One YAML fixture. `200` includes `laps`, `rows`, `distance_heading`, `date`, `banner`, `family`, `confidence`, `reason_codes`, and `prose`. `banner` is `FIXTURE` when the file says so. `rows` is the lap table in the Settings distance unit. `prose` is the rules paragraph from `explain`. `400` when the name is missing or the file cannot be read. `404` when the name is not a fixture. A normal account is `403`.
 
 ### `POST /fixtures/classify`
 

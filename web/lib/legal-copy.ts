@@ -1,11 +1,11 @@
 /** Draft privacy and terms. The sentences describe this codebase.
  *
- * Placeholders stay in brackets until Jay and Chase fill them in.
+ * Placeholders stay in brackets until the operator fills them in.
  * Do not add a company, address, court, or support address here.
  */
 
 export const DRAFT_NOTE =
-  "For Jay and Chase to review. This page is not in effect. [COMPANY NAME], [CONTACT EMAIL], and the governing law are placeholders.";
+  "For review. This page is not in effect. [COMPANY NAME], [CONTACT EMAIL], and the governing law are placeholders.";
 
 export const LEGAL_UPDATED = "November 16, 2026";
 
@@ -228,7 +228,7 @@ export const TERMS: LegalPage = {
       blocks: [
         {
           kind: "p",
-          text: "These are draft terms for RIO, a training app for any runner, at riorunning.com. They describe the product as it works today so Jay and Chase can review them. They are not in effect. Using the site while this draft is published does not make it a contract.",
+          text: "These are draft terms for RIO, a training app for any runner, at riorunning.com. They describe the product as it works today. They are not in effect. Using the site while this draft is published does not make it a contract.",
         },
         {
           kind: "p",

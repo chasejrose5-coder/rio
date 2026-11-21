@@ -399,7 +399,7 @@ export const api = {
     ),
 
   postResult: (
-    body: { date: string; text: string; slots?: (number | null)[] | null; intervals?: string | null },
+    body: { date: string; text: string; slots?: (number | null)[] | null },
     digest: string,
   ) =>
     request<ResultWrite>("/seasons/current/results", {
@@ -407,13 +407,6 @@ export const api = {
       body: JSON.stringify(body),
       headers: digest ? { "If-Match": digest } : {},
     }),
-
-  intervalFiles: () => request<{ files: string[] }>("/fixtures/intervals"),
-
-  intervalFill: (name: string) =>
-    request<LapTable & { name: string; times: (number | null)[]; source: string }>(
-      `/fixtures/intervals/${encodeURIComponent(name)}`,
-    ),
 
   fixtureNames: () => request<{ fixtures: string[] }>("/fixtures"),
 

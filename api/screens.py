@@ -490,8 +490,8 @@ def plan_view(season, today: date, prefs: dict, month: str | None) -> dict:
             raise ApiError(400, "The month is not YYYY-MM.") from None
     weeks = month_weeks(chosen.year, chosen.month, sessions, today)
     activities = season.activities if isinstance(season.activities, list) else []
-    # Matched WORK meters only. A day with no file and no match stays at 0.
-    # Template meters are not used. Intervals file laps are the known hole (W13).
+    # Matched WORK meters only. A day with no match stays at 0.
+    # Template meters are not used.
     progress = progress_weeks(
         start=start,
         goal=goal,
@@ -908,7 +908,7 @@ def session_view(season, day: str, resolved: dict | None = None) -> dict | None:
     from engines.pace import average_rep_text, effort_pace, pace_unit, workout_recipe, workout_times
     from services.season_commit import quality_day
     from ui.activities import matched_on
-    from ui.last_session import activity_by_ref, fit_slots, heart_rate_text
+    from ui.last_session import fit_slots
     from ui.result import result_box_count
 
     sessions = season.plan.get("sessions") if isinstance(season.plan, dict) else []
@@ -984,13 +984,6 @@ def session_view(season, day: str, resolved: dict | None = None) -> dict | None:
     if count and same is None and isinstance(match, dict) and not any(slot is not None for slot in seed):
         seed = fit_slots(match.get("reps"), count)
     extra_hr = ""
-    ref = same.get("intervals") if isinstance(same, dict) else None
-    if isinstance(ref, str) and ref.strip():
-        file_activity = activity_by_ref(ref)
-        text = heart_rate_text(file_activity) if isinstance(file_activity, dict) else None
-        shown = block.get("heart_rate") if isinstance(block, dict) else ""
-        if text and text != shown:
-            extra_hr = text
     target = presented.get("target") if isinstance(presented.get("target"), str) else ""
     if not target:
         raw_target = found.get("target_outcome")

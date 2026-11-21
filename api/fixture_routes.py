@@ -71,15 +71,6 @@ def names(request: Request) -> dict:
     return {"fixtures": [path.stem for path in _paths()]}
 
 
-@router.get("/intervals")
-def interval_names(request: Request) -> dict:
-    """JSON names under tests/fixtures/intervals. Rep times are not in this list."""
-    _admin(request)
-    from ui.last_session import intervals_json_paths
-
-    return {"files": [path.name for path in intervals_json_paths()]}
-
-
 def _today(request: Request):
     """Today in the Settings time zone. Fixture pages use the same clock."""
     from api.routes import _resolved
@@ -204,39 +195,6 @@ def present_session(payload: dict, units: str, banner: str | None) -> dict:
         "reason_codes": list(result.get("reason_codes") or []),
         "prose": explain(result),
     }
-
-
-def _interval_path(name: str):
-    from ui.last_session import intervals_json_paths
-
-    text = name.strip()
-    if not text or "/" in text or "\\" in text or text.startswith("."):
-        raise ApiError(404, "That file is not on this server.")
-    return next((path for path in intervals_json_paths() if path.name == text), None)
-
-
-@router.get("/intervals/{name}")
-def interval_fill(name: str, request: Request) -> dict:
-    """WORK times and the lap table from one local JSON file. Nothing is requested from the network."""
-    _admin(request)
-    from ui.last_session import IntervalsFileError, open_intervals, quality_fill
-
-    chosen = _interval_path(name)
-    if chosen is None:
-        raise ApiError(404, "That file is not on this server.")
-    try:
-        times, source = quality_fill(chosen)
-        payload, banner = open_intervals(chosen)
-        shown = present_session(payload, _units(request), banner)
-    except IntervalsFileError as exc:
-        raise ApiError(400, str(exc)) from exc
-    except (TypeError, ValueError, OSError) as exc:
-        message = str(exc).strip() or f"{chosen.name} could not be read."
-        raise ApiError(400, message) from exc
-    shown["name"] = chosen.name
-    shown["times"] = times
-    shown["source"] = source
-    return shown
 
 
 @router.get("/session")

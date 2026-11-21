@@ -84,7 +84,7 @@ export const PAGE_MEANINGS = {
   },
   creators: {
     section: "getting-started",
-    sentences: ["A short note from the person who built RIO, for any runner using the plan."],
+    sentences: ["A short note on how a season is built, for any runner using the plan."],
   },
   start: {
     section: "getting-started",
@@ -104,7 +104,7 @@ export const PAGE_MEANINGS = {
   },
   "last-session": {
     section: "getting-started",
-    sentences: ["This screen reads a fixture or an intervals file and shows the laps. Any other login is sent Home."],
+    sentences: ["This screen reads a fixture and shows the laps. Any other login is sent Home."],
   },
   next: {
     section: "getting-started",
