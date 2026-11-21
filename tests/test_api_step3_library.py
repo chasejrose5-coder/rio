@@ -123,7 +123,52 @@ def test_kilometers_keep_the_menu_phrase_and_ids_follow_the_setting(tmp_path: Pa
         raise AssertionError("a signed-out read opened the menu")
 
 
+def test_hosted_library_reads_units_without_the_plan_bundle() -> None:
+    from fastapi.testclient import TestClient
+
+    from api.main import create_app
+    from ui.cloud_store import MemoryDirectory
+
+    directory = MemoryDirectory()
+    directory.sign_up("ada@example.com", "correct-horse", "Ada")
+    client = TestClient(
+        create_app(directory=directory, frontend_origin="http://localhost:3000", load_env=False),
+        base_url="https://testserver",
+    )
+    signed = client.post("/auth/sign-in", json={"email": "ada@example.com", "password": "correct-horse"})
+    if signed.status_code != 200:
+        raise AssertionError(signed.text)
+    for user_id, user in directory.users.items():
+        user["pace_units"] = "km"
+        directory.plans[user_id] = [{"plan": {"sessions": [{"date": "2026-01-01"} for _ in range(800)]}}]
+    calls = {"n": 0}
+    real = directory.load_bundle
+
+    def wrapped(token):
+        calls["n"] += 1
+        return real(token)
+
+    directory.load_bundle = wrapped
+    opened = client.get("/library")
+    if opened.status_code != 200:
+        raise AssertionError(opened.text)
+    if calls["n"] != 0:
+        raise AssertionError(f"library loaded the plan bundle {calls['n']} times")
+    easy = next(row for row in opened.json()["workouts"] if row["id"] == "aer_10000_r0_x1")
+    if "10 km" not in easy["description"]:
+        raise AssertionError(easy["description"])
+    me = client.get("/auth/me")
+    if me.status_code != 200 or me.json()["next_session"] is not None:
+        raise AssertionError(me.text)
+    if calls["n"] != 1:
+        raise AssertionError(f"the session probe did not load the bundle once, saw {calls['n']}")
+
+
 def test_a_failed_menu_is_the_exception_sentence(monkeypatch) -> None:
+    import api.screens as screens
+
+    screens._LIBRARY_ROWS = None
+
     def broken() -> list:
         raise ValueError("menu <broken>")
 

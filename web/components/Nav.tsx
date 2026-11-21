@@ -8,7 +8,7 @@ import { api, stopPreview } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { forgetLanding, landingPath, rememberedLanding, rememberLanding } from "@/lib/landing";
 import { navShouldArm } from "@/lib/motion";
-import { sessionHref } from "@/lib/session";
+import { nextSessionDate, sessionHref } from "@/lib/session";
 
 const NAV = [
   { href: "/home", label: "Home" },
@@ -35,13 +35,15 @@ const MORE = [
   { href: "/creators", label: "Creators" },
 ];
 
-export function Nav({ active }: { active?: string }) {
+export function Nav({ active, pending = false }: { active?: string; pending?: boolean }) {
   const path = usePathname();
   const router = useRouter();
   const { status, athlete, signOut } = useAuth();
   const [arm, setArm] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [brand, setBrand] = useState("/");
+  const [planned, setPlanned] = useState<string | null>(null);
+  const showApp = status === "in" || (pending && status === "loading");
   const trainingOpen =
     path === "/library" ||
     path === "/stretch" ||
@@ -57,7 +59,7 @@ export function Nav({ active }: { active?: string }) {
     active === "Foam rolling";
   const moreOpen = path === "/more" || MORE.some((item) => path === item.href) || active === "More";
   const admin = athlete?.role === "admin";
-  const startSession = sessionHref(athlete?.next_session);
+  const startSession = sessionHref(athlete?.next_session || planned);
 
   useEffect(() => {
     const key = "rio-nav-path";
@@ -84,6 +86,7 @@ export function Nav({ active }: { active?: string }) {
         const next = landingPath(season);
         rememberLanding(next);
         setBrand(next);
+        setPlanned(nextSessionDate(season));
       })
       .catch(() => {
         if (!live) return;
@@ -95,7 +98,7 @@ export function Nav({ active }: { active?: string }) {
     };
   }, [status]);
 
-  if (status !== "in") {
+  if (!showApp) {
     return (
       <header className="rio-nav rio-nav-signed-out">
         <div className="rio-nav-row">

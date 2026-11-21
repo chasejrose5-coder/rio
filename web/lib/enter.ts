@@ -26,6 +26,12 @@ export function takeIntroMark(): boolean {
  */
 let destinationInflight: Promise<AppPath> | null = null;
 
+/** Start the reads sign-in needs so they overlap the session probe. */
+export function warmDestinationReads(): void {
+  void api.heartRate().catch(() => undefined);
+  void api.currentSeason().catch(() => undefined);
+}
+
 export function destinationAfterSignIn(athlete: Athlete): Promise<AppPath> {
   if (destinationInflight) return destinationInflight;
   destinationInflight = resolveDestination(athlete).finally(() => {
@@ -43,11 +49,13 @@ async function readHeartRate(): Promise<HeartRateProfile | null> {
 }
 
 async function resolveDestination(athlete: Athlete): Promise<AppPath> {
-  const heart = await readHeartRate();
+  const heartPromise = readHeartRate();
+  const seasonPromise = needsEasyPace(athlete) ? null : api.currentSeason();
+  const heart = await heartPromise;
   if (needsHeartRate(heart)) return "/heart-rate";
   if (needsEasyPace(athlete)) return "/easy-pace";
   void prefetchHome().catch(() => undefined);
-  const season = await api.currentSeason();
+  const season = await (seasonPromise ?? api.currentSeason());
   const path = pathAfterSeason(athlete, season);
   if (path === "/easy-pace" || path === "/intro") return path;
   rememberLanding(path);

@@ -38,15 +38,17 @@ export function PageSkeleton({
   title,
   variant = "cards",
   pageClass,
+  pending = false,
 }: {
   title?: string;
   variant?: "home" | "cards" | "calendar";
   pageClass?: string;
+  pending?: boolean;
 }) {
   const klass = pageClass || (variant === "home" ? "page-home" : "page-plain");
   return (
     <div className={`${klass} page-skeleton`} aria-busy="true">
-      <Nav />
+      <Nav pending={pending} />
       <main>
         {title ? (
           <header className="rio-hero">

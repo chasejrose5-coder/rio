@@ -138,6 +138,15 @@ def prefs_payload(resolved: dict) -> dict:
     }
 
 
+def distance_units(principal: Principal, directory) -> str:
+    """Miles or kilometers for a menu. A hosted read uses the auth user, not the plan bundle."""
+    if principal.kind == "hosted" and directory is not None and isinstance(principal.token, str):
+        reader = getattr(directory, "pace_units", None)
+        pace = reader(principal.token) if callable(reader) else None
+        return "km" if pace == "km" else "miles"
+    return str(account_prefs(principal, directory)["prefs"].get("units") or "miles")
+
+
 def athlete_payload(principal: Principal, resolved: dict) -> dict:
     """The signed-in athlete. The same shape as GET /auth/me."""
     from ui.access import viewer_is_admin

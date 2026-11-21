@@ -14,8 +14,8 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 from api.errors import ApiError
-from api.prefs import athlete_payload, prefs_payload
-from api.routes import _resolved
+from api.prefs import athlete_payload, distance_units, prefs_payload
+from api.routes import _principal, _resolved
 from api.goals import read_override, write_override
 from api.screens import (
     activity_view,
@@ -291,9 +291,8 @@ def _add_bike_zones(found: dict, who, directory, season) -> dict:
 
 @router.get("/library")
 def library(request: Request, q: str = "", family: str = "", phase: int | None = None) -> dict:
-    _who, resolved = _resolved(request)
-    units = str(resolved["prefs"].get("units") or "miles")
-    return library_view(q, family, phase, units)
+    who = _principal(request)
+    return library_view(q, family, phase, distance_units(who, request.app.state.directory))
 
 
 @router.get("/activities")

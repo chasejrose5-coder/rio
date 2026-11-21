@@ -7,7 +7,7 @@ import { Footer, PhotoCredit } from "./Footer";
 import { ApiError, afterSignIn, api, confirmOnce } from "@/lib/api";
 import { UNCONFIRMED } from "@/lib/auth-copy";
 import { confirmFromLocation, confirmRead } from "@/lib/confirm-link";
-import { destinationAfterSignIn } from "@/lib/enter";
+import { destinationAfterSignIn, warmDestinationReads } from "@/lib/enter";
 import { GoogleIdentityButton } from "./GoogleIdentityButton";
 import { GOOGLE_START_FAILED, googleAuthEnabled, googleAuthorizeUrl, googleClientId, googleGisHost } from "@/lib/google-auth";
 import { passwordResetEnabled, showForgotPassword } from "@/lib/password-reset";
@@ -285,6 +285,7 @@ export function SignInScreen() {
     setError("");
     try {
       await api.signIn(email, password);
+      warmDestinationReads();
       handoff.current = true;
       const signedIn = await refresh();
       const stuck = afterSignIn(signedIn);
@@ -375,6 +376,7 @@ export function CreateAccountScreen() {
         setSentTo(email.trim());
         return;
       }
+      warmDestinationReads();
       const signedIn = await refresh();
       if (!signedIn) {
         setError(SIGNUP_FAILED);

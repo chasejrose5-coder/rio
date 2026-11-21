@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { ApiError, afterSignIn, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { destinationAfterSignIn } from "@/lib/enter";
+import { destinationAfterSignIn, warmDestinationReads } from "@/lib/enter";
 import { GOOGLE_FAILED, googleNoncePair } from "@/lib/google-auth";
 
 const SCRIPT = "https://accounts.google.com/gsi/client";
@@ -93,6 +93,7 @@ export function GoogleIdentityButton({
           void (async () => {
             try {
               await api.googleIdToken(token, pair.raw);
+              warmDestinationReads();
               const signedIn = await refresh();
               const stuck = afterSignIn(signedIn);
               if (stuck) {

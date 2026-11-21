@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Footer } from "./Footer";
 import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
+import { SkeletonBlocks } from "./PageSkeleton";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api, isSignedOut } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -18,7 +19,7 @@ type Mode = "loading" | "ready" | "error";
 
 export function LibraryView() {
   return (
-    <RequireUser title="Library" pageClass="page-library">
+    <RequireUser title="Library" pageClass="page-library" pendingNav>
       <LibraryBody />
     </RequireUser>
   );
@@ -94,12 +95,12 @@ function LibraryBody() {
 
   return (
     <div className={compact ? "page-library is-compact" : "page-library"}>
-      <Nav active="Library" />
+      <Nav active="Library" pending={status !== "in"} />
       <main className={rise ? "rio-stagger" : undefined}>
         <header className="rio-hero">
           <h1>Library</h1>
         </header>
-        {mode === "loading" ? <p className="rio-wait">Loading</p> : null}
+        {mode === "loading" ? <SkeletonBlocks /> : null}
         {mode !== "loading" ? (
           <form className="rio-library" onSubmit={(event) => event.preventDefault()}>
             <label className="rio-library-search" htmlFor="library-search">
