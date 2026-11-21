@@ -1,10 +1,10 @@
 import { api, prefetchHome } from "./api";
-import { needsEasyPace, pathAfterSeason, rememberLanding } from "./landing";
-import type { Athlete } from "./types";
+import { needsEasyPace, needsHeartRate, pathAfterSeason, rememberLanding } from "./landing";
+import type { Athlete, HeartRateProfile } from "./types";
 
 export const MARK_INTRO_KEY = "rio_mark_intro";
 
-export type AppPath = "/home" | "/start" | "/easy-pace" | "/intro";
+export type AppPath = "/home" | "/start" | "/easy-pace" | "/intro" | "/heart-rate";
 
 export function markIntroLater(): void {
   if (typeof window === "undefined") return;
@@ -34,7 +34,17 @@ export function destinationAfterSignIn(athlete: Athlete): Promise<AppPath> {
   return destinationInflight;
 }
 
+async function readHeartRate(): Promise<HeartRateProfile | null> {
+  try {
+    return await api.heartRate();
+  } catch {
+    return null;
+  }
+}
+
 async function resolveDestination(athlete: Athlete): Promise<AppPath> {
+  const heart = await readHeartRate();
+  if (needsHeartRate(heart)) return "/heart-rate";
   if (needsEasyPace(athlete)) return "/easy-pace";
   void prefetchHome().catch(() => undefined);
   const season = await api.currentSeason();

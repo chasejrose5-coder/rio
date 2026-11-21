@@ -60,7 +60,7 @@ export const PRIVACY: LegalPage = {
         },
         {
           kind: "p",
-          text: "The profile row stores the email and the display name. Settings can also store a preferred name, a time zone from a fixed list, pace units (per mile or per kilometer), a date format, compact mode, whether the next season starts today or next Sunday, whether to ask before a timed run changes later weeks, an easy pace, and whether workouts are finished with Done instead of splits. Those preferences are saved on the auth user's metadata.",
+          text: "The profile row stores the email and the display name. Settings can also store a preferred name, a time zone from a fixed list, pace units (per mile or per kilometer), a date format, compact mode, whether the next season starts today or next Sunday, whether to ask before a timed run changes later weeks, an easy pace, and whether workouts are finished with Done instead of splits. Those preferences are saved on the auth user's metadata. Heart rate settings store a resting heart rate, a max heart rate, whether a heart rate monitor is used, and any zone boundaries the runner edits. That row is on the heart_rate table and is readable only by that athlete.",
         },
         {
           kind: "p",

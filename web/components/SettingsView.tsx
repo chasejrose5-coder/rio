@@ -8,6 +8,7 @@ import { Footer } from "./Footer";
 import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
+import { HeartRateSettings } from "./HeartRateForm";
 import { StravaPanel } from "./StravaSettings";
 import { ApiError, api, isSignedOut } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -497,6 +498,10 @@ function SettingsBody() {
             {"I don't use a watch"}
           </label>
           <p className="rio-settings-note">Complete workouts with Done instead of entering splits.</p>
+        </Expander>
+
+        <Expander title="Heart rate" defaultOpen>
+          <HeartRateSettings />
         </Expander>
 
         <Expander title="Preferences">

@@ -155,6 +155,7 @@ test("settings shows every section, and the hidden leftovers stay hidden", async
   await expect(summaries).toHaveText([
     "Profile",
     "Logging",
+    "Heart rate",
     "Preferences",
     "Data",
     "Account",

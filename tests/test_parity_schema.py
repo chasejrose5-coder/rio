@@ -42,6 +42,7 @@ WRITES = {
     "explain_spend": set(),
     "stretch_completions": {"user_id", "done_on", "routine_id"},
     "sore_spots": {"user_id", "region", "severity", "started_on", "check_in_on", "cleared"},
+    "heart_rate": {"user_id", "resting_hr", "max_hr", "no_monitor", "zones"},
 }
 
 
@@ -167,6 +168,17 @@ def test_local_catalog_has_every_column_the_app_writes() -> None:
         "profiles_lock_role",
         "profiles_lock_email",
         "strava_oauth_touch_updated_at",
+        "heart_rate_touch_updated_at",
     ):
         if required not in trigger_names:
             raise AssertionError(sorted(trigger_names))
+    if "heart_rate_pkey" not in index_names:
+        raise AssertionError(sorted(index_names))
+    policies = _psql(
+        "-tA",
+        "-c",
+        "select polname from pg_policies where schemaname = 'public' order by polname",
+    )
+    policy_names = {line.strip() for line in policies.splitlines() if line.strip()}
+    if "heart_rate_own" not in policy_names:
+        raise AssertionError(sorted(policy_names))

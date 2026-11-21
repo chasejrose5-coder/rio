@@ -68,7 +68,7 @@ export const PAGE_MEANINGS = {
   },
   settings: {
     section: "pages",
-    sentences: ["Settings holds your name, pace units, and Strava. The danger zone clears the plan or the account."],
+    sentences: ["Settings holds your name, pace units, heart rate, and Strava. The danger zone clears the plan or the account."],
   },
   about: {
     section: "phases",
@@ -93,6 +93,13 @@ export const PAGE_MEANINGS = {
   "easy-pace": {
     section: "paces",
     sentences: ["Enter an easy pace like 7:25, per mile or per kilometer. Easy and long runs use it."],
+  },
+  "heart-rate": {
+    section: "paces",
+    sentences: [
+      "Resting and max heart rate set five Karvonen zones.",
+      "Without a heart rate monitor, the easy pace question stays.",
+    ],
   },
   intro: {
     section: "getting-started",

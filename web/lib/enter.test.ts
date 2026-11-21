@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { api, GET_CACHE_MS, prefetchHome } from "./api.ts";
-import { needsEasyPace, needsIntro, pathAfterSeason } from "./landing.ts";
+import { needsEasyPace, needsHeartRate, needsIntro, pathAfterSeason } from "./landing.ts";
 import type { Athlete, CurrentSeason } from "./types.ts";
 
 const athlete: Athlete = {
@@ -44,6 +44,14 @@ describe("where sign-in lands", () => {
     assert.equal(pathAfterSeason(athlete, null), "/start");
     assert.equal(pathAfterSeason({ ...athlete, prefs: { easy_pace: "7:45", intro_seen: null } }, season), "/home");
     assert.equal(needsIntro(athlete, season), false);
+    assert.equal(needsHeartRate(null), false);
+    assert.equal(needsHeartRate({ no_monitor: true, resting_hr: null, max_hr: null }), false);
+    assert.equal(needsHeartRate({ no_monitor: false, resting_hr: null, max_hr: null }), true);
+    assert.equal(needsHeartRate({ no_monitor: false, resting_hr: 60, max_hr: 180 }), false);
+    assert.equal(pathAfterSeason({ ...athlete, prefs: { easy_pace: "" } }, season), "/easy-pace");
+    const routing = readFileSync(new URL("./enter.ts", import.meta.url), "utf8");
+    assert.match(routing, /needsHeartRate\(heart\)/);
+    assert.match(routing, /return "\/heart-rate"/);
     const enter = readFileSync(new URL("./enter.ts", import.meta.url), "utf8");
     const screen = readFileSync(new URL("../components/AuthScreen.tsx", import.meta.url), "utf8");
     const gate = readFileSync(new URL("../components/Gate.tsx", import.meta.url), "utf8");
