@@ -5,18 +5,25 @@ import { DRAFT_NOTE, PRIVACY, TERMS, legalPlainText } from "./legal-copy.ts";
 
 const pages = [PRIVACY, TERMS];
 
-test("both drafts name the placeholders and stay unpublished", () => {
+test("both drafts name the operator and stay unpublished", () => {
+  assert.equal(DRAFT_NOTE, "For review. This page is not in effect yet.");
+  assert.equal(DRAFT_NOTE.includes("Jay"), false);
+  assert.equal(DRAFT_NOTE.includes("Chase"), false);
+  assert.equal(DRAFT_NOTE.includes("["), false);
   for (const page of pages) {
     const text = legalPlainText(page);
     assert.match(text, /DRAFT|draft/);
-    assert.match(DRAFT_NOTE, /For review/);
-    assert.equal(DRAFT_NOTE.includes("Jay"), false);
-    assert.equal(DRAFT_NOTE.includes("Chase"), false);
-    assert.match(text, /\[COMPANY NAME\]/);
-    assert.match(text, /\[CONTACT EMAIL\]/);
+    assert.match(text, /not in effect/);
+    assert.match(text, /Chase Rose, an individual/);
+    assert.match(text, /The legal and privacy contact is riorunning\.app@gmail\.com/);
+    assert.match(text, /The governing law chosen here is the law of the State of California/);
+    assert.equal(text.includes("[COMPANY NAME]"), false);
+    assert.equal(text.includes("[CONTACT EMAIL]"), false);
     assert.equal(text.includes("chasejrose5"), false);
     assert.equal(text.includes("Inc."), false);
-    assert.equal(/governed by the laws/i.test(text), false);
+    assert.equal(text.includes("mailing address"), false);
+    assert.equal(text.includes("street address"), false);
+    assert.equal(/\bcourt\b/i.test(text), false);
     assert.equal(/\d{1,5} .+(Street|Avenue|Blvd)/i.test(text), false);
   }
 });
@@ -71,6 +78,26 @@ test("contents links and the legal wordmark are 44px targets", () => {
   assert.match(css, /\.rio-legal-contents a[\s\S]*?min-height:\s*44px/);
   assert.match(css, /\.rio-legal-top a[\s\S]*?min-height:\s*44px/);
   assert.match(css, /size-adjust:/);
+});
+
+test("the privacy draft states the age line and drops the filled-in open items", () => {
+  const text = legalPlainText(PRIVACY);
+  assert.match(text, /RIO is not directed to children under 13/);
+  assert.match(text, /If RIO learns that a user is under 13, the account will be deleted on request/);
+  assert.match(text, /does not ask for a birth date/);
+  assert.equal(text.includes("Still open"), false);
+  assert.equal(/not decided/i.test(text), false);
+});
+
+test("the terms draft states the age minimum and leaves the open product terms", () => {
+  const text = legalPlainText(TERMS);
+  assert.match(text, /Users must be at least 13/);
+  assert.match(text, /does not ask for a birth date and does not block signup by age/);
+  assert.match(text, /No price, warranty, liability cap, or refund rule is decided here/);
+  assert.match(text, /No warranty, liability cap, or refund rule is stated, because none is decided/);
+  assert.match(text, /No age rule is enforced by the signup form/);
+  assert.equal(text.includes("age minimum"), false);
+  assert.equal(text.includes("street address"), false);
 });
 
 test("the terms draft does not invent a contract", () => {
