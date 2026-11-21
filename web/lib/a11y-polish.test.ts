@@ -13,6 +13,14 @@ test("targets, focus, scroll hints, and font preloads stay in place", () => {
   assert.match(css, /\.rio-subnav[\s\S]*?scroll-snap-type: x proximity/);
   assert.match(css, /\.rio-phases[\s\S]*?scroll-snap-type: x proximity/);
   assert.match(css, /max-width: 360px/);
+  assert.match(css, /\.rio-meaning a \{[\s\S]*?min-height:\s*44px/);
+  assert.match(css, /\.rio-overflow \{[\s\S]*?flex: 1 1 0/);
+  const splash = readFileSync(new URL("../components/Splash.tsx", import.meta.url), "utf8");
+  const auth = readFileSync(new URL("../components/AuthScreen.tsx", import.meta.url), "utf8");
+  assert.match(splash, /<main className="rio-splash-copy">/);
+  assert.match(auth, /<main className="auth-screen">/);
+  assert.match(layout, /return r\.text\(\)/);
+  assert.match(layout, /AbortSignal\.timeout/);
   for (const file of [
     "inter-latin-500-normal.woff2",
     "inter-latin-600-normal.woff2",

@@ -5,7 +5,7 @@ import { Footer, PhotoCredit } from "./Footer";
 export function Splash({ onContinue }: { onContinue: () => void }) {
   return (
     <div className="rio-splash">
-      <section className="rio-splash-copy">
+      <main className="rio-splash-copy">
         <p className="rio-brand-mark">RIO</p>
         <p className="rio-brand-owned">Runner Intelligence Owned</p>
         <h1>Your Race, Your Plan, Your Result</h1>
@@ -16,8 +16,8 @@ export function Splash({ onContinue }: { onContinue: () => void }) {
         <button type="button" className="rio-primary rio-splash-go" onClick={onContinue}>
           Continue
         </button>
-      </section>
-      <PhotoCredit onPhoto>Photo by Giant Asparagus on Pexels</PhotoCredit>
+        <PhotoCredit onPhoto>Photo by Giant Asparagus on Pexels</PhotoCredit>
+      </main>
       <Footer onPhoto />
     </div>
   );

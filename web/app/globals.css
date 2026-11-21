@@ -2790,6 +2790,11 @@ button.rio-text-link:disabled {
   line-height: 1.45;
 }
 .rio-meaning a {
+  display: inline-flex;
+  align-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.35rem 0.15rem;
   color: var(--ink);
   font-weight: 600;
   text-decoration: underline;
@@ -3138,13 +3143,17 @@ button.rio-text-link:disabled {
     padding-left: 0;
     padding-right: 0;
   }
+  .rio-overflow {
+    flex: 1 1 0;
+    min-width: 0;
+  }
   .rio-links > a,
   .rio-overflow-toggle {
     flex: 1 1 0;
     min-width: 0;
-    padding-left: 0.04rem;
-    padding-right: 0.04rem;
-    font-size: 0.68rem;
+    padding-left: 0;
+    padding-right: 0;
+    font-size: 0.62rem;
     letter-spacing: 0;
   }
 }
