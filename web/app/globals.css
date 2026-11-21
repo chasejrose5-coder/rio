@@ -692,6 +692,36 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .rio-primary:hover { background: var(--button-hover); border-color: var(--button-hover); }
 .rio-primary:active { background: var(--button-active); border-color: var(--button-active); }
 .rio-primary:disabled { opacity: 0.7; cursor: wait; }
+.rio-auth-card .rio-google {
+  gap: 0.65rem;
+  width: 100%;
+  margin-top: 0.15rem;
+  cursor: pointer;
+  font: inherit;
+}
+.rio-auth-card .rio-google:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+.rio-google-mark { flex: none; }
+.rio-auth-or {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.95rem 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.rio-auth-or::before,
+.rio-auth-or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
 .rio-auth-card .rio-secondary, .rio-text-link {
   display: flex;
   justify-content: center;

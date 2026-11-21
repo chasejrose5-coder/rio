@@ -2001,12 +2001,12 @@ These are in the code and must stay hidden. Shipping them would add something th
 
 ### Z1. Google
 
-**Sees:** Nothing. "Continue with Google" exists in `ui/cloud_ui.py` `_google_button` and is not drawn (`SHOW_GOOGLE_SIGN_IN` is false).
-**Now:** `ui/cloud_ui.py`
-**API:** `PR #61: GET /auth/google` and `GET /auth/google/callback` exist. The button stays hidden, same as Streamlit. The plan says so.
-**Step 3:** PR #61
+**Sees:** Nothing, until `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED` is `true`. "Continue with Google" exists in `ui/cloud_ui.py` `_google_button` and is not drawn (`SHOW_GOOGLE_SIGN_IN` is false). The Next button is the same words, and it is omitted when the flag is unset.
+**Now:** `ui/cloud_ui.py`, `web/components/AuthScreen.tsx`
+**API:** `GET /auth/google` and `GET /auth/google/callback`. The return is `{RIO_FRONTEND_ORIGIN}/auth/callback`. The setup is `docs/google-auth-setup.md`.
+**Step 3:** PR #61, then the Next button behind the flag.
 **Status:** done
-**Verify:** Log in and create account have no Google control. The e2e asserts that.
+**Verify:** With the flag unset, Log in and Create account have no Google control. The e2e asserts that. With the flag on, both pages show the button, and `/auth/callback` uses the same landing as email.
 
 ### Z2. Check your inbox
 

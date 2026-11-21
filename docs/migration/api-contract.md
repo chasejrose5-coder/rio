@@ -169,7 +169,7 @@ A local delete matches Settings too: `email` must be this account’s email, and
 
 No cookie. `200` `{"url": "", "redirect_uri": ""}`. `url` is `directory.google_url` for `redirect_uri`. `503` when this process has no directory.
 
-`RIO_GOOGLE_REDIRECT_URI` is that redirect. When it is unset, the redirect is the Streamlit callback (`RIO_APP_URL` + `/`, or `http://localhost:8501/`). `ui/cloud_ui.py` still builds its own link with `app_url() + "/"` and the button stays hidden (`SHOW_GOOGLE_SIGN_IN` is false). Set the variable to this API’s callback when the new site should receive the return.
+`RIO_GOOGLE_REDIRECT_URI` is that redirect. When it is unset, the redirect is `{RIO_FRONTEND_ORIGIN}/auth/callback` (`http://localhost:3000/auth/callback` when the origin is unset). `ui/cloud_ui.py` still builds its own link with `app_url() + "/"` and that button stays hidden (`SHOW_GOOGLE_SIGN_IN` is false). The Next button is separate. It is shown only when `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED` is `true`. The page at `/auth/callback` calls this route with `X-RIO-Response: json`, then uses the same post-sign-in destination as email.
 
 ### `GET /auth/google/callback?code=&flow=`
 
@@ -594,7 +594,7 @@ If the file already has a balance, the first shared reserve copies that balance 
 The Next.js app can be built against the routes above. These are still not API routes:
 
 - About, Creators, photos, and the startup splash. They are static. The hero order is `GET /admin/hero`. The splash itself is not.
-- The Streamlit Google button and the "check your email" screen stay hidden. The API routes for both are above.
+- The Streamlit Google button stays hidden. The Next button is off until `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED` is `true`. The API routes are above. The Streamlit "check your email" screen stays hidden.
 - Confirm-before-adapt stays on the client. `confirm_adapt` is a setting. The API applies the mark on POST.
 - Workout and digest jobs still live in this process. A restart loses a job that had not finished. A saved note remains on the season.
 
