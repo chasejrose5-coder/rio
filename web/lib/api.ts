@@ -15,6 +15,7 @@ import type {
   PlanResponse,
   ResultWrite,
   StretchState,
+  InjuryState,
   HeartRateProfile,
   SeasonWrite,
   SessionResponse,
@@ -513,6 +514,26 @@ export const api = {
 
   stretchClear: (region: string) =>
     request<StretchState>(`/stretch/spots/${encodeURIComponent(region)}`, { method: "DELETE" }),
+
+  injury: () => request<InjuryState>("/injury"),
+
+  injurySelect: (areaId: string) =>
+    request<InjuryState>("/injury/areas", {
+      method: "POST",
+      body: JSON.stringify({ area_id: areaId }),
+    }),
+
+  injuryClear: (areaId: string) =>
+    request<InjuryState>(`/injury/areas/${encodeURIComponent(areaId)}`, { method: "DELETE" }),
+
+  injuryStepBack: (areaId: string) =>
+    request<InjuryState>(`/injury/areas/${encodeURIComponent(areaId)}/step-back`, { method: "POST" }),
+
+  injuryComplete: (blockId: string, done: boolean) =>
+    request<InjuryState>("/injury/completions", {
+      method: "POST",
+      body: JSON.stringify({ block_id: blockId, done }),
+    }),
 
   stravaCallback: (code: string, state: string) =>
     request<{ connected?: boolean; athlete_name?: string }>(
