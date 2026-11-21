@@ -458,6 +458,13 @@ export type SessionResponse = {
   summary: string;
   match: { reps: string; work: string; heart_rate: string } | null;
   heart_rate: string;
+  activity_id?: string;
+  zones?: {
+    zones: { zone: number; name: string; seconds: number }[];
+    above_seconds: number;
+    target_zone: number | null;
+    warning: string;
+  } | null;
 };
 
 export type ResultWrite = SeasonWrite & {

@@ -29,6 +29,9 @@ TOKEN_URL = "https://www.strava.com/oauth/token"
 DEAUTH_URL = "https://www.strava.com/oauth/deauthorize"
 LIST_URL = "https://www.strava.com/api/v3/athlete/activities"
 DETAIL_URL = "https://www.strava.com/api/v3/activities/{}"
+# Activity streams. activity:read_all already covers the signed-in athlete.
+# profile:read_all is not required here.
+STREAM_URL = "https://www.strava.com/api/v3/activities/{}/streams"
 QUARTER = 15 * 60
 DAY = 24 * 60 * 60
 
@@ -567,6 +570,9 @@ def import_runs(
                     detail = loaded
         parsed = parse_activity(summary, detail)
         if parsed is not None:
+            stream = _read_hr_stream(parsed, get, fresh["access_token"], gate, now)
+            if stream is not None:
+                parsed["hr_stream"] = stream
             runs.append(parsed)
     fresh["detail_skips"] = skipped
     return fresh, runs
@@ -585,6 +591,27 @@ def http_post(url: str, form: dict) -> dict:
     if not isinstance(payload, dict):
         raise StravaError("Strava could not be reached.")
     return payload
+
+
+def _read_hr_stream(run: dict, get, access_token: str, gate: RateGate, now: int) -> dict | None:
+    """The heartrate stream when this run has a heart rate. A miss leaves the run."""
+    from engines.zone_time import parse_hr_stream
+
+    if not isinstance(run.get("average_hr"), int):
+        return None
+    ident = run.get("strava_id")
+    if not isinstance(ident, int):
+        return None
+    try:
+        gate.take(now)
+        payload = get(
+            STREAM_URL.format(ident),
+            {"keys": "heartrate,time", "key_by_type": "true"},
+            access_token,
+        )
+    except Exception:
+        return None
+    return parse_hr_stream(payload)
 
 
 def http_get(url: str, query: dict, access_token: str) -> object:
@@ -619,6 +646,8 @@ def _fake_get(url: str, query: dict) -> object:
     page = query.get("page") if isinstance(query, dict) else None
     if page not in (None, 1, "1"):
         return []
+    if "/streams" in url:
+        return {"heartrate": {"data": []}, "time": {"data": []}}
     if "/activities/" in url and not url.rstrip("/").endswith("activities"):
         return {
             "id": 42,
