@@ -3013,18 +3013,22 @@ button.rio-text-link:disabled {
   text-decoration: none;
 }
 
+.page-core,
 .page-recovery {
   background: var(--paper);
   color: var(--ink);
   min-height: 100dvh;
 }
+.page-core main,
 .page-recovery main { padding: 0 5vw 3.5rem; }
+.page-core .rio-hero,
 .page-recovery .rio-hero {
   background: #121110;
   color: #f4f1ec;
   margin: 0 -5vw 1.5rem;
   padding: 2.78rem 5vw 2.2rem;
 }
+.page-core .rio-hero h1,
 .page-recovery .rio-hero h1 {
   margin: 0.1rem 0 0;
   color: #f4f1ec;
@@ -3034,9 +3038,13 @@ button.rio-text-link:disabled {
   letter-spacing: -0.04em;
   line-height: 0.92;
 }
+.page-core .rio-range,
 .page-recovery .rio-range { color: #d7d2cb; max-width: 40rem; }
+.page-core.is-compact .rio-hero,
 .page-recovery.is-compact .rio-hero { padding: 1.35rem 5vw 0.85rem; }
+.page-core.is-compact .rio-hero h1,
 .page-recovery.is-compact .rio-hero h1 { font-size: 2.35rem; }
+.page-core h2,
 .page-recovery h2 {
   margin: 1.4rem 0 0.55rem;
   font-family: var(--display);
@@ -3044,8 +3052,11 @@ button.rio-text-link:disabled {
   font-size: 1.7rem;
   letter-spacing: -0.03em;
 }
+.page-core h3,
 .page-recovery h3 { margin: 0; font-size: 1.05rem; }
+.rio-core-intro,
 .rio-recover-intro { max-width: 42rem; }
+.rio-core-intro p { margin: 0.35rem 0 1rem; line-height: 1.45; }
 .rio-recover-intro p { margin: 0.35rem 0; line-height: 1.45; }
 .rio-recover-group { margin-top: 0.4rem; }
 .rio-area-picks { display: flex; flex-wrap: wrap; gap: 0.45rem; max-width: 46rem; }
@@ -3081,10 +3092,15 @@ button.rio-text-link:disabled {
   line-height: 1.45;
   font-weight: 600;
 }
+.page-session .rio-core-block,
 .page-session .rio-recover-block { border-top: 1px solid #dadada; margin-top: 0.8rem; padding-top: 0.7rem; }
 .page-session .rio-recover-item { margin: 0.75rem 0 0.2rem; }
-.page-session .rio-recover-item h3 { margin: 0; font-size: 1.02rem; }
+.page-session .rio-core-block h3,
+.page-session .rio-recover-item h3 { margin: 0.35rem 0 0.2rem; font-size: 1.02rem; }
+.page-session .rio-core-block li span,
 .page-session .rio-recover-item li span { display: block; font-weight: 400; color: #3c3a36; }
+.page-session .rio-core-block .rio-primary,
+.page-session .rio-core-block .rio-secondary,
 .page-session .rio-recover-block .rio-primary,
 .page-session .rio-recover-block .rio-secondary { width: auto; min-height: 44px; margin-top: 0.45rem; margin-right: 0.4rem; }
 .rio-recover-library { margin-top: 1.5rem; }

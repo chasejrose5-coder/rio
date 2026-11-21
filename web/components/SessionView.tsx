@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { CoreDay } from "./CoreDay";
 import { Expander } from "./Expander";
 import { InjuryDay } from "./InjuryDay";
 import { HeartPace } from "./HeartPace";
@@ -243,6 +244,7 @@ function Workout({ session, onSaved }: { session: SessionResponse; onSaved: () =
         <Field label="Target outcome" value={session.target || "—"} />
         <Prep />
         <InjuryDay key={session.date} date={session.date} />
+        <CoreDay key={`${session.date}-core`} date={session.date} session={session.session} />
         {session.heart_rate ? <Field label="Avg HR" value={session.heart_rate} /> : null}
         <ZoneTime zones={session.zones} />
         <section className="rio-session-section">

@@ -15,6 +15,7 @@ import type {
   PlanResponse,
   ResultWrite,
   StretchState,
+  CoreState,
   InjuryState,
   HeartRateProfile,
   SeasonWrite,
@@ -514,6 +515,14 @@ export const api = {
 
   stretchClear: (region: string) =>
     request<StretchState>(`/stretch/spots/${encodeURIComponent(region)}`, { method: "DELETE" }),
+
+  core: () => request<CoreState>("/core"),
+
+  coreComplete: (done: boolean) =>
+    request<CoreState>("/core/completions", {
+      method: "POST",
+      body: JSON.stringify({ done }),
+    }),
 
   injury: () => request<InjuryState>("/injury"),
 

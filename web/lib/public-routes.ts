@@ -18,6 +18,7 @@ export const PRIVATE_PREFIXES = [
   "/activity",
   "/admin",
   "/api",
+  "/core",
   "/creators",
   "/decisions",
   "/easy-pace",

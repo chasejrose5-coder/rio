@@ -166,6 +166,11 @@ export type HomeResponse = {
   preview?: TestPreview;
 };
 
+export type CoreState = {
+  today: string;
+  completions: { date: string }[];
+};
+
 export type InjuryState = {
   today: string;
   areas: {
