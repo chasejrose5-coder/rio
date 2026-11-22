@@ -48,6 +48,21 @@
   --font: Inter, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --display: Manrope, Inter, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --shade: linear-gradient(180deg, rgba(18, 17, 16, 0.62) 0%, rgba(18, 17, 16, 0.78) 100%);
+  --ink-2: #3c3a36;
+  --on-dark-muted: #d7d2cb;
+  --accent-text: #b43c18;
+  --accent-deep: #9a3412;
+  --radius-sm: 10px;
+  --radius: 12px;
+  --radius-card: 16px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 2px rgba(18, 17, 16, 0.04), 0 8px 22px rgba(18, 17, 16, 0.045);
+  --control-h: 2.875rem;
+  --gutter: max(5vw, calc((100vw - 76rem) / 2));
+  --fs-hero: clamp(2.6rem, 5.6vw, 4.6rem);
+  --fs-hero-phone: 2.35rem;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
 }
 
 * { box-sizing: border-box; }
@@ -60,7 +75,7 @@ html, body {
   font-family: var(--font);
 }
 body { min-height: 100dvh; }
-::selection { background: #f6e7e1; color: #0e0e0e; }
+::selection { background: #f6e7e1; color: var(--ink); }
 a { color: inherit; text-decoration: none; }
 button, input { font-family: inherit; }
 button, a, input { transition: background-color 200ms var(--ease), color 200ms var(--ease), border-color 200ms var(--ease), transform 200ms var(--ease); }
@@ -68,6 +83,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
+:is(.rio-phase-details, .rio-expander, .rio-soft-card):has(> summary:focus-visible, > .rio-disclosure > button:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+:is(.rio-phase-details, .rio-expander) > summary:focus-visible { outline: none; }
+.rio-nav :focus-visible, .rio-start-session:focus-visible { outline-color: var(--paper); }
+input:focus-visible, select:focus-visible { outline-offset: 1px; }
 
 @keyframes rio-rise {
   from { opacity: 0; transform: translate3d(0, 8px, 0); }
@@ -93,7 +115,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   color: var(--paper);
   border-bottom: 1px solid rgba(244, 241, 236, 0.14);
   min-height: 64px;
-  padding: 0.72rem 5vw 0.65rem;
+  padding: 0.72rem var(--gutter) 0.65rem;
 }
 .rio-nav-row, .rio-links, .rio-subnav {
   display: flex;
@@ -239,7 +261,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
     padding: 0.45rem;
     background: #121110;
     border: 1px solid rgba(244, 241, 236, 0.22);
-    border-radius: 14px;
+    border-radius: var(--radius-card);
   }
   .rio-overflow.is-open .rio-overflow-panel { display: flex; }
   .rio-overflow-panel .rio-start-session,
@@ -298,7 +320,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   font-weight: 600;
 }
 
-.page-plain main, .page-home main { padding: 0 5vw 3.5rem; }
+.page-plain main, .page-home main { padding: 0 var(--gutter) 3.5rem; }
 .rio-hero h1, .rio-display {
   margin: 0.1rem 0 0;
   font-family: var(--display);
@@ -309,10 +331,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .page-plain .rio-hero {
   background: var(--ink);
   color: var(--paper);
-  margin: 0 -5vw;
-  padding: 2.78rem 5vw 2.2rem;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 2.78rem var(--gutter) 2.2rem;
 }
-.page-plain .rio-hero h1 { font-size: clamp(2.6rem, 6vw, 4.4rem); max-width: 16ch; }
+.page-plain .rio-hero h1 { font-size: var(--fs-hero); max-width: 16ch; }
 
 .rio-coming {
   margin: 1.4rem 0 0;
@@ -329,7 +351,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 }
 .rio-old-home {
   margin: 0;
-  padding: 0.55rem 5vw;
+  padding: 0.55rem var(--gutter);
   background: var(--surface);
   color: var(--ink);
   border-bottom: 1px solid var(--line);
@@ -338,7 +360,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   line-height: 1.45;
 }
 .rio-old-home a {
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 0.18em;
@@ -353,7 +375,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   background: var(--paper);
   color: var(--ink);
 }
-.rio-loading main { padding: 2.4rem 5vw 3.5rem; }
+.rio-loading main { padding: 2.4rem var(--gutter) 3.5rem; }
 .rio-skel {
   border-radius: 16px;
   background: rgba(18, 17, 16, 0.08);
@@ -441,7 +463,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   color: var(--ink);
   border: 1px solid var(--line);
   border-radius: 16px;
-  box-shadow: 0 8px 22px rgba(18, 17, 16, 0.045);
+  box-shadow: var(--shadow-card);
 }
 .rio-glossary { margin: 1.15rem 0 0.15rem; padding: 0.9rem 1.1rem 0.95rem; }
 .rio-glossary p, .rio-soft-card p { margin: 0.18rem 0; color: var(--muted); font-size: 0.92rem; line-height: 1.35; }
@@ -492,13 +514,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   padding: 0.42rem 0.62rem;
   text-align: center;
 }
-.rio-week-chip strong { display: block; color: var(--muted); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.rio-week-chip strong { display: block; color: var(--muted); font-size: var(--fs-xs); letter-spacing: 0.08em; text-transform: uppercase; }
 .rio-week-chip span { display: block; margin-top: 0.12rem; font-size: 0.78rem; font-weight: 600; }
 .rio-week-chip.is-hard { background: #f6e7e1; border-color: var(--accent); }
-.rio-week-chip.is-hard span { color: var(--accent); }
+.rio-week-chip.is-hard span { color: var(--accent-text); }
 .rio-week-chip.is-long { border-color: var(--ink); }
 .rio-phase-progress { display: flex; flex-wrap: wrap; gap: 0.35rem 0.7rem; }
-.rio-phase-step em { display: block; color: var(--muted); font-style: normal; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.rio-phase-step em { display: block; color: var(--muted); font-style: normal; font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
 .rio-phase-arrow { color: var(--accent); font-weight: 700; margin-right: 0.35rem; }
 .rio-phase-caption { color: var(--muted); font-size: 0.86rem; }
 
@@ -539,11 +561,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   border-radius: 999px;
   padding: 0.45rem 0.95rem;
   font-weight: 600;
+  min-height: 44px;
 }
 .rio-quick a {
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-size: var(--fs-sm);
 }
 .rio-auth-card .rio-secondary {
   min-height: 2.8rem;
@@ -577,7 +600,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 
 .auth-screen {
   min-height: 100dvh;
-  padding: 1.5rem 5vw 2.5rem;
+  padding: 1.5rem var(--gutter) 2.5rem;
   background-color: #121110;
   /* The floodlight photo is a black sky. The shared page shade hides the lamps. */
   --auth-shade: linear-gradient(180deg, rgba(18, 17, 16, 0.22) 0%, rgba(18, 17, 16, 0.42) 100%);
@@ -594,7 +617,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: var(--radius-card);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
 }
 .rio-auth-hero { padding: 0.15rem 0 0.85rem; }
@@ -609,7 +632,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .rio-synthetic {
   margin: 0 0 0.45rem;
   color: var(--accent);
-  font-size: 0.7rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -667,7 +690,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   border: 1px solid #6e6a64;
   background: transparent;
   color: #6e6a64;
-  font-size: 0.68rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   line-height: 1;
   padding: 0;
@@ -701,7 +724,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 }
 .rio-primary {
   margin-top: 0.85rem;
-  min-height: 3rem;
+  min-height: var(--control-h);
   width: 100%;
   border: 1px solid var(--button);
   border-radius: 999px;
@@ -926,11 +949,11 @@ button.rio-text-link:disabled {
   padding: 1.15rem 1.25rem 1rem;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: var(--radius-card);
 }
 .rio-easy-kicker, .rio-intro-kicker {
   margin: 0 0 0.25rem;
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -990,7 +1013,7 @@ button.rio-text-link:disabled {
 }
 .rio-hr-target { margin-top: 0.35rem; }
 .rio-hr-target .rio-pace-range { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
-.rio-hr-estimate { margin: 0.15rem 0 0; color: var(--accent); font-size: 0.82rem; font-weight: 600; }
+.rio-hr-estimate { margin: 0.15rem 0 0; color: var(--accent-text); font-size: 0.82rem; font-weight: 600; }
 .rio-hr-target .rio-settings-note, .rio-hr-target .rio-hr-safety { margin: 0.25rem 0 0; }
 .rio-hr-method { color: var(--ink); font-weight: 600; margin: 0.8rem 0 0.2rem; }
 .rio-hr-safety { color: var(--muted); line-height: 1.45; margin: 0.9rem 0 0.4rem; }
@@ -1048,6 +1071,7 @@ button.rio-text-link:disabled {
 .rio-intro-title { margin: 0; color: var(--ink) !important; font-family: var(--display); font-weight: 700; }
 .rio-intro-actions { display: flex; gap: 0.6rem; max-width: 36rem; }
 .rio-intro-actions .rio-primary { width: auto; min-width: 8rem; margin-top: 0; }
+.rio-intro-actions .rio-secondary { min-height: var(--control-h); min-width: 8rem; padding: 0 1.4rem; }
 .rio-watchless { margin-top: 0.8rem; }
 .rio-done-choices { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.55rem; }
 .rio-done-row {
@@ -1087,10 +1111,29 @@ button.rio-text-link:disabled {
   gap: 0.55rem;
   list-style: none;
   cursor: pointer;
-  color: #3c3a36;
+  color: var(--ink-2);
   font-weight: 400;
 }
 .rio-expander summary::-webkit-details-marker { display: none; }
+.rio-glossary-words > summary, .page-guide details > summary, .rio-zone-adjust > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 44px;
+  list-style: none;
+  cursor: pointer;
+}
+:is(.rio-glossary-words, .page-guide details, .rio-zone-adjust) > summary::-webkit-details-marker { display: none; }
+:is(.rio-glossary-words, .page-guide details, .rio-zone-adjust) > summary::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  flex: none;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg);
+}
+:is(.rio-glossary-words, .page-guide details, .rio-zone-adjust)[open] > summary::before { transform: rotate(45deg); }
 .rio-expander .rio-chevron {
   box-sizing: border-box;
   width: 0.45rem;
@@ -1149,18 +1192,18 @@ button.rio-text-link:disabled {
   background-attachment: fixed, fixed;
   color: var(--paper);
 }
-.page-start main { padding: 0 5vw 3.5rem; }
+.page-start main { padding: 0 var(--gutter) 3.5rem; }
 .rio-goal-card {
   position: relative;
   z-index: 2;
   max-width: 46rem;
   margin: 1.5rem auto 0;
   padding: 1.35rem 1.4rem 1.25rem;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
-  border: 1px solid #dadada;
-  border-radius: 18px;
-  box-shadow: 0 12px 32px rgba(14, 14, 14, 0.05);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 .rio-start-hero { padding: 0.15rem 0 0.85rem; }
 .rio-start-hero h1 {
@@ -1201,7 +1244,7 @@ button.rio-text-link:disabled {
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: var(--radius-card);
 }
 .rio-link-note p { margin: 0; line-height: 1.45; }
 .rio-link-note .rio-secondary { width: auto; min-width: 10rem; margin-top: 0.75rem; }
@@ -1218,14 +1261,14 @@ button.rio-text-link:disabled {
   .rio-start-grid { grid-template-columns: 1fr; }
 }
 .page-plan { background: var(--paper); color: var(--ink); min-height: 100dvh; }
-.page-plan main { padding: 0 5vw 3.5rem; }
+.page-plan main { padding: 0 var(--gutter) 3.5rem; }
 .rio-plan-hero {
   position: relative;
   isolation: isolate;
-  margin: 0 -5vw;
-  padding: 2.6rem 5vw 1.7rem;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 2.6rem var(--gutter) 1.7rem;
   min-height: 11rem;
-  background-color: #121110;
+  background-color: var(--ink);
   background-image: var(--shade), image-set(url("/photos/plan-curve.webp") type("image/webp"), url("/photos/plan-curve.jpg") type("image/jpeg"));
   background-size: cover;
   background-position: center;
@@ -1239,7 +1282,7 @@ button.rio-text-link:disabled {
   font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 0.92;
-  font-size: clamp(2.6rem, 6vw, 4.4rem);
+  font-size: var(--fs-hero);
 }
 .rio-plan-hero .rio-range,
 .rio-plan-hero .rio-error,
@@ -1278,7 +1321,7 @@ button.rio-text-link:disabled {
   min-width: 0;
   min-height: 44px;
   margin: 0;
-  padding: 0.45rem 0.4rem 0.4rem;
+  padding: 0.55rem 0.6rem;
   border: 0;
   border-radius: 12px;
   background: #efe6da;
@@ -1299,11 +1342,11 @@ button.rio-text-link:disabled {
 .rio-phase-now[aria-expanded="true"] { box-shadow: inset 0 0 0 2px var(--accent); }
 .rio-phase-label {
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   color: var(--ink);
-  font-size: clamp(0.68rem, 1.5vw, 0.84rem);
+  font-size: clamp(0.75rem, 1.4vw, 0.86rem);
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.2;
@@ -1311,8 +1354,8 @@ button.rio-text-link:disabled {
 .rio-phase-mark {
   display: block;
   margin-top: 0.2rem;
-  color: var(--button);
-  font-size: 0.68rem;
+  color: var(--accent-deep);
+  font-size: var(--fs-xs);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1337,7 +1380,7 @@ button.rio-text-link:disabled {
 }
 .rio-phase-week-list li.is-current { font-weight: 700; }
 .rio-phase-this {
-  color: var(--button);
+  color: var(--accent-text);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -1372,6 +1415,9 @@ button.rio-text-link:disabled {
 }
 .rio-segments label {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   padding: 0.42rem 0.9rem;
   border-radius: 999px;
   font-size: 0.92rem;
@@ -1434,7 +1480,7 @@ button.rio-text-link:disabled {
   font-size: 1rem;
 }
 .rio-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.35rem; }
-.rio-cal-dow { color: var(--muted); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 0 0.15rem 0.2rem; }
+.rio-cal-dow { color: var(--muted); font-size: var(--fs-xs); letter-spacing: 0.08em; text-transform: uppercase; padding: 0 0.15rem 0.2rem; }
 .rio-cal-day {
   display: block;
   min-height: 5.2rem;
@@ -1444,7 +1490,7 @@ button.rio-text-link:disabled {
   padding: 0.42rem 0.35rem 0.45rem;
   color: inherit;
 }
-.rio-cal-session { background: #fff; border-color: #dadada; }
+.rio-cal-session { background: var(--surface); border-color: var(--line); }
 .rio-cal-today { border-color: var(--accent); }
 .rio-cal-num { font-weight: 600; font-variant-numeric: tabular-nums; }
 .rio-cal-quiet .rio-cal-num, .rio-cal-label { color: var(--muted); }
@@ -1466,9 +1512,9 @@ button.rio-text-link:disabled {
 .rio-field dd { margin: 0; }
 .rio-daycard {
   display: block;
-  background: #fff;
-  border: 1px solid #dadada;
-  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
   padding: 1.2rem 1.25rem 1.05rem;
   margin: 0 0 0.75rem;
   color: inherit;
@@ -1476,7 +1522,7 @@ button.rio-text-link:disabled {
 .rio-daycard-dow { font-size: 1.35rem; font-weight: 600; letter-spacing: -0.03em; }
 .rio-daycard-date { margin-top: 0.25rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .rio-daycard-work { margin-top: 0.9rem; font-size: 1.12rem; font-weight: 600; line-height: 1.4; }
-.rio-daycard-target { margin-top: 0.75rem; padding-top: 0.7rem; border-top: 1px solid #dadada; color: var(--muted); line-height: 1.45; }
+.rio-daycard-target { margin-top: 0.75rem; padding-top: 0.7rem; border-top: 1px solid var(--line); color: var(--muted); line-height: 1.45; }
 .rio-daycard-actual { margin-top: 0.55rem; font-variant-numeric: tabular-nums; }
 .rio-pace-line, .rio-pace-range, .rio-pace-block { margin: 0.35rem 0 0; line-height: 1.4; }
 .rio-pace-range, .rio-pace-block { color: var(--muted); font-size: 0.92rem; }
@@ -1503,10 +1549,10 @@ button.rio-text-link:disabled {
 .rio-marks .rio-primary, .rio-marks .rio-secondary, .rio-confirm .rio-primary, .rio-confirm .rio-secondary {
   width: auto;
   min-width: 7.2rem;
-  min-height: 2.6rem;
+  min-height: var(--control-h);
   margin-top: 0;
 }
-.page-plan .rio-mark-label { color: #6b6b6b; }
+.page-plan .rio-mark-label { color: var(--muted); }
 .rio-season-prompt { margin: 1.2rem 0 0; }
 .rio-season-prompt a { font-weight: 600; border-bottom: 2px solid var(--accent); }
 @media (max-width: 1200px) {
@@ -1520,15 +1566,15 @@ button.rio-text-link:disabled {
   .rio-day { grid-template-columns: 1fr; }
 }
 .page-session { background: var(--paper); color: var(--ink); min-height: 100dvh; }
-.page-session main { padding: 0 5vw 3.5rem; }
+.page-session main { padding: 0 var(--gutter) 3.5rem; }
 .page-session .rio-hero {
   background: var(--ink);
   color: var(--paper);
-  margin: 0 -5vw;
-  padding: 2.4rem 5vw 1.8rem;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 2.4rem var(--gutter) 1.8rem;
 }
-.page-session .rio-hero h1 { font-size: clamp(2.6rem, 6vw, 4.4rem); color: var(--paper); max-width: 16ch; }
-.page-session .rio-range { color: #d7d2cb; }
+.page-session .rio-hero h1 { font-size: var(--fs-hero); color: var(--paper); max-width: 16ch; }
+.page-session .rio-range { color: var(--on-dark-muted); }
 .page-session .rio-card {
   margin: 0;
   background: transparent;
@@ -1542,8 +1588,8 @@ button.rio-text-link:disabled {
 .page-session .rio-mark-label {
   margin: 0;
   padding: 0.9rem 0 0.4rem;
-  color: #6b6b6b;
-  font-size: 0.68rem;
+  color: var(--muted);
+  font-size: var(--fs-xs);
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1551,7 +1597,7 @@ button.rio-text-link:disabled {
 }
 .page-session h2.rio-week-title {
   margin: 0 0 0.45rem;
-  color: #0e0e0e;
+  color: var(--ink);
   font-family: var(--display);
   font-size: 1.35rem;
   font-weight: 700;
@@ -1573,48 +1619,48 @@ button.rio-text-link:disabled {
   font-size: 0.86rem;
   line-height: 1.35;
 }
-.page-session .rio-session-section { border-top: 1px solid #dadada; margin-top: 0.35rem; }
+.page-session .rio-session-section { border-top: 1px solid var(--line); margin-top: 0.35rem; }
 .page-session .rio-note {
   margin: 0;
-  color: #0e0e0e;
+  color: var(--ink);
   font-size: 1.02rem;
   line-height: 1.5;
 }
 .page-session .rio-reason {
   margin: 0.28rem 0;
-  color: #0e0e0e;
+  color: var(--ink);
   font-size: 0.95rem;
   line-height: 1.45;
 }
 .rio-session-split { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(12rem, 0.8fr); gap: 1.2rem; }
-.rio-supplied { padding-left: 1rem; border-left: 1px solid #dadada; }
-.rio-template-id { margin: 0.2rem 0 0; color: #6b6b6b; font-size: 0.78rem; }
+.rio-supplied { padding-left: 1rem; border-left: 1px solid var(--line); }
+.rio-template-id { margin: 0.2rem 0 0; color: var(--muted); font-size: 0.78rem; }
 .rio-track-id { grid-column: 1 / -1; }
 .rio-daycard-id { margin-top: 0.45rem; }
 .page-session .rio-prep {
   margin: 0.85rem 0 0.15rem;
   padding-top: 0.15rem;
-  border-top: 1px solid #dadada;
+  border-top: 1px solid var(--line);
 }
 .page-session .rio-prep-block + .rio-prep-block {
   margin-top: 0.2rem;
-  border-top: 1px solid #dadada;
+  border-top: 1px solid var(--line);
 }
 .page-session .rio-prep-line,
 .page-session .rio-prep-lead {
   margin: 0;
-  color: #0e0e0e;
+  color: var(--ink);
   font-size: 0.95rem;
   line-height: 1.5;
 }
 .page-session .rio-prep-list { margin: 0.28rem 0 0.15rem; padding-left: 1.15rem; }
-.page-session .rio-prep-list li { margin: 0.16rem 0; color: #0e0e0e; font-size: 0.95rem; line-height: 1.45; }
-.page-session .rio-prep-list li::marker { color: #6b6b6b; }
+.page-session .rio-prep-list li { margin: 0.16rem 0; color: var(--ink); font-size: 0.95rem; line-height: 1.45; }
+.page-session .rio-prep-list li::marker { color: var(--muted); }
 .page-session .rio-settings-note,
-.page-session .rio-rep-note { color: #6b6b6b; }
-.rio-result { margin-top: 1rem; padding-top: 0.4rem; border-top: 1px solid #dadada; }
+.page-session .rio-rep-note { color: var(--muted); }
+.rio-result { margin-top: 1rem; padding-top: 0.4rem; border-top: 1px solid var(--line); }
 .rio-result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem 1rem; }
-.rio-result label, .rio-file { display: flex; flex-direction: column; gap: 0.25rem; color: #6b6b6b; font-size: 0.78rem; font-weight: 600; }
+.rio-result label, .rio-file { display: flex; flex-direction: column; gap: 0.25rem; color: var(--muted); font-size: 0.78rem; font-weight: 600; }
 .rio-result input, .rio-file select {
   min-height: 2.6rem;
   border: 1px solid var(--line);
@@ -1649,19 +1695,20 @@ button.rio-text-link:disabled {
   color: var(--ink);
   min-height: 100dvh;
 }
-.page-activity main, .page-last main, .page-settings main { padding: 0 5vw 3.5rem; }
+.page-activity main, .page-last main, .page-settings main { padding: 0 var(--gutter) 3.5rem; }
+.page-activity main > * { max-width: 60rem; }
 .page-activity .rio-hero, .page-last .rio-hero, .page-settings .rio-hero {
   background: var(--ink);
   color: var(--paper);
-  margin: 0 -5vw;
-  padding: 2.4rem 5vw 1.8rem;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 2.4rem var(--gutter) 1.8rem;
 }
 .page-activity .rio-hero h1, .page-last .rio-hero h1, .page-settings .rio-hero h1 {
   color: var(--paper);
-  font-size: clamp(2.6rem, 6vw, 4.4rem);
+  font-size: var(--fs-hero);
   max-width: 16ch;
 }
-.page-activity .rio-range, .page-last .rio-range { color: #d7d2cb; }
+.page-activity .rio-range, .page-last .rio-range { color: var(--on-dark-muted); }
 .page-activity .rio-mark-label,
 .page-last .rio-mark-label,
 .page-settings .rio-mark-label,
@@ -1671,20 +1718,20 @@ button.rio-text-link:disabled {
 .page-last .rio-table th,
 .page-last .rio-file,
 .page-activity .rio-week summary {
-  color: #3c3a36;
+  color: var(--ink-2);
 }
 .page-activity .rio-note, .page-last .rio-note, .page-settings .rio-note,
 .page-activity .rio-empty, .page-last .rio-empty,
 .page-settings .rio-settings-note, .page-last .rio-prose, .page-last .rio-v {
-  color: #3c3a36;
+  color: var(--ink-2);
 }
 .page-activity .rio-error, .page-settings .rio-error, .page-last .rio-error { color: #b42318; }
 .page-activity .rio-card, .page-last .rio-card, .page-settings .rio-card,
 .page-activity .rio-week-summary, .page-activity .rio-run, .page-activity .rio-volume, .page-activity .rio-heart {
-  background: #fff;
-  border: 1px solid #dadada;
-  border-radius: 18px;
-  box-shadow: 0 12px 32px rgba(14, 14, 14, 0.05);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 .page-activity .rio-card, .page-last .rio-card, .page-settings .rio-card { margin-top: 1rem; padding: 0.9rem 1rem 1rem; }
 .page-activity .rio-card-tight { margin-top: 0.8rem; }
@@ -1714,8 +1761,8 @@ button.rio-text-link:disabled {
 .page-activity .rio-summary-tile { background: #f2f2f2; border-radius: 12px; padding: 0.45rem 0.5rem 0.55rem; }
 .page-activity .rio-summary-kicker {
   margin: 0;
-  color: #3c3a36;
-  font-size: 0.68rem;
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1752,7 +1799,7 @@ button.rio-text-link:disabled {
 .page-activity .rio-activity-stats .rio-mark-label {
   margin: 0;
   padding: 0 0 0.35rem;
-  color: #3c3a36;
+  color: var(--ink-2);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -1769,7 +1816,7 @@ button.rio-text-link:disabled {
 .page-activity .rio-run { padding: 0.85rem 1rem 0.9rem; margin: 0 0 0.7rem; }
 .page-activity .rio-run-head { display: flex; justify-content: space-between; gap: 0.75rem; align-items: flex-start; }
 .page-activity .rio-run-name { margin: 0; color: #121110; font-family: var(--display); font-size: 1.15rem; font-weight: 700; }
-.page-activity .rio-run-date, .page-activity .rio-run-detail { margin: 0.2rem 0 0; color: #3c3a36; font-size: 0.92rem; }
+.page-activity .rio-run-date, .page-activity .rio-run-detail { margin: 0.2rem 0 0; color: var(--ink-2); font-size: 0.92rem; }
 .page-activity .rio-badge {
   display: inline-block;
   border-radius: 999px;
@@ -1783,7 +1830,7 @@ button.rio-text-link:disabled {
 .page-activity .rio-badge-behind { background: #8c3a2f; color: #fff; }
 .page-activity .rio-badge-extra { background: #e4e4e4; color: #3a3a3a; }
 .page-activity .rio-laps { width: 100%; border-collapse: collapse; margin-top: 0.65rem; font-size: 0.82rem; }
-.page-activity .rio-laps th { text-align: left; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.page-activity .rio-laps th { text-align: left; font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
 .page-activity .rio-laps td, .page-activity .rio-laps th { padding: 0.28rem 0.35rem; border-bottom: 1px solid #e6e6e6; }
 .page-activity .rio-laps td { color: #121110; }
 .page-activity .rio-volume, .page-activity .rio-heart { padding: 0.95rem 1.15rem 0.55rem; margin: 0 0 1rem; }
@@ -1794,7 +1841,7 @@ button.rio-text-link:disabled {
   padding: 0.45rem 0;
 }
 .page-last .rio-file-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; }
-.page-last .rio-file { color: #6b6b6b; }
+.page-last .rio-file { color: var(--muted); }
 .page-last .rio-table { width: 100%; border-collapse: collapse; }
 .page-last .rio-table th, .page-last .rio-table td {
   text-align: left;
@@ -1802,28 +1849,28 @@ button.rio-text-link:disabled {
   border-bottom: 1px solid #e6e6e6;
   color: #121110;
 }
-.page-last .rio-k { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-top: 0.7rem; }
+.page-last .rio-k { font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-top: 0.7rem; }
 .page-last .rio-v { color: #121110; margin-top: 0.15rem; }
-.page-last .rio-synthetic { color: #e25a32; letter-spacing: 0.16em; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; margin: 0 0 0.4rem; }
+.page-last .rio-synthetic { color: #e25a32; letter-spacing: 0.16em; font-size: var(--fs-xs); font-weight: 700; text-transform: uppercase; margin: 0 0 0.4rem; }
 .page-settings .rio-coming { color: #121110; }
 .page-settings .rio-error { color: #b42318; }
 .page-settings .rio-settings-note,
 .page-settings .rio-note,
-.page-settings .rio-wait { color: #3c3a36; }
+.page-settings .rio-wait { color: var(--ink-2); }
 .page-settings .rio-settings-flash { margin: 0.8rem 0 0; }
 .page-settings .rio-mark-label {
   margin: 0.15rem 0 0.35rem;
-  color: #3c3a36;
+  color: var(--ink-2);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 .page-settings .rio-expander {
-  background: #fff;
-  border: 1px solid #dadada;
-  border-radius: 18px;
-  box-shadow: 0 12px 32px rgba(14, 14, 14, 0.05);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   margin: 0.75rem 0 0;
   padding: 0.2rem 1rem 0.9rem;
 }
@@ -1869,7 +1916,7 @@ button.rio-text-link:disabled {
   font-weight: 500;
 }
 .page-settings .rio-stack input:disabled {
-  color: #3c3a36;
+  color: var(--ink-2);
   background: #f4f1ec;
 }
 .page-settings .rio-choice-set {
@@ -1949,7 +1996,7 @@ button.rio-text-link:disabled {
   white-space: nowrap;
   border: 0;
 }
-.page-settings.is-compact .rio-hero { padding: 1.35rem 5vw 0.85rem; }
+.page-settings.is-compact .rio-hero { padding: 1.35rem var(--gutter) 0.85rem; }
 .page-settings.is-compact .rio-hero h1 { font-size: 2.35rem; margin-top: 0.35rem; }
 .page-settings.is-compact .rio-expander { padding-bottom: 0.7rem; }
 @media (max-width: 720px) {
@@ -1964,32 +2011,32 @@ button.rio-text-link:disabled {
   overflow-x: clip;
   max-width: 100%;
 }
-.page-library main { padding: 0 5vw 3.5rem; min-width: 0; }
+.page-library main { padding: 0 var(--gutter) 3.5rem; min-width: 0; }
 .page-library .rio-hero {
-  background: #121110;
-  color: #f4f1ec;
-  margin: 0 -5vw;
-  padding: 2.78rem 5vw 2.2rem;
+  background: var(--ink);
+  color: var(--paper);
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 2.78rem var(--gutter) 2.2rem;
 }
 .page-library .rio-range { margin: 0.7rem 0 0; color: rgba(244, 241, 236, 0.86); font-size: 1.05rem; max-width: 36rem; }
 .page-library .rio-hero h1 {
   margin: 0.1rem 0 0;
-  color: #f4f1ec;
+  color: var(--paper);
   font-family: var(--display);
   font-weight: 800;
-  font-size: clamp(2.6rem, 6.05vw, 5.55rem);
+  font-size: var(--fs-hero);
   letter-spacing: -0.04em;
   line-height: 0.92;
   max-width: 16ch;
 }
-.page-library.is-compact .rio-hero { padding: 1.35rem 5vw 0.85rem; }
+.page-library.is-compact .rio-hero { padding: 1.35rem var(--gutter) 0.85rem; }
 .page-library.is-compact .rio-hero h1 { font-size: 2.35rem; margin-top: 0.35rem; }
 .page-library .rio-library { margin: 0.5rem 0 0.15rem; }
 .page-library label {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-  color: #3c3a36;
+  color: var(--ink-2);
   font-size: 0.95rem;
   font-weight: 600;
 }
@@ -2005,8 +2052,8 @@ button.rio-text-link:disabled {
   font-size: 1rem;
   font-weight: 500;
 }
-.page-library input::placeholder { color: #3c3a36; opacity: 1; }
-.page-library .rio-field-help { color: #3c3a36; font-size: 0.84rem; font-weight: 500; line-height: 1.4; }
+.page-library input::placeholder { color: var(--ink-2); opacity: 1; }
+.page-library .rio-field-help { color: var(--ink-2); font-size: 0.84rem; font-weight: 500; line-height: 1.4; }
 .page-library .rio-library-filters {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2016,15 +2063,15 @@ button.rio-text-link:disabled {
 }
 .page-library .rio-lib-count {
   margin: 0 0 0.85rem;
-  color: #3c3a36;
+  color: var(--ink-2);
   font-size: 0.78rem;
   letter-spacing: 0.06em;
 }
 .page-library .rio-empty,
 .page-library .rio-wait,
-.page-library .rio-contact { color: #3c3a36; }
+.page-library .rio-contact { color: var(--ink-2); }
 .page-library .rio-error { color: #b42318; margin: 0.85rem 0 0; }
-.page-library .rio-lib { margin: 0.35rem 0 1.15rem; }
+.page-library .rio-lib { margin: 0.35rem 0 1.15rem; max-width: 60rem; }
 .page-library .rio-lib-row {
   display: flex;
   justify-content: space-between;
@@ -2050,7 +2097,7 @@ button.rio-text-link:disabled {
 }
 .page-library .rio-lib-id {
   margin-top: 0.22rem;
-  color: #3c3a36;
+  color: var(--ink-2);
   font-size: 0.75rem;
   line-height: 1.3;
   font-variant-numeric: tabular-nums;
@@ -2069,7 +2116,7 @@ button.rio-text-link:disabled {
   white-space: nowrap;
 }
 .page-library .rio-cap-aerobic { color: #2458a8; border-color: #2458a8; background: #f3f7fc; }
-.page-library .rio-cap-threshold { color: #c94a25; border-color: #e25a32; background: #fdf3ef; }
+.page-library .rio-cap-threshold { color: var(--accent-text); border-color: #e25a32; background: #fdf3ef; }
 .page-library .rio-cap-aerobic_power { color: #b4532a; border-color: #e08a62; background: #fdf6f2; }
 .page-library .rio-cap-speed_endurance { color: #9a3412; border-color: #e7a07a; background: #fdf6f1; }
 .page-library .rio-cap-anaerobic_capacity { color: #9f1239; border-color: #e7a3b5; background: #fdf4f6; }
@@ -2103,30 +2150,30 @@ button.rio-text-link:disabled {
   color: var(--ink);
   min-height: 100dvh;
 }
-.page-profile main, .page-more main { padding: 0 5vw 3.5rem; }
+.page-profile main, .page-more main { padding: 0 var(--gutter) 3.5rem; }
 .page-profile .rio-hero, .page-more .rio-hero {
-  background: #121110;
-  color: #f4f1ec;
-  margin: 0 -5vw;
-  padding: 2.78rem 5vw 2.2rem;
+  background: var(--ink);
+  color: var(--paper);
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 2.78rem var(--gutter) 2.2rem;
 }
 .page-profile .rio-hero h1, .page-more .rio-hero h1 {
   margin: 0.1rem 0 0;
-  color: #f4f1ec;
+  color: var(--paper);
   font-family: var(--display);
   font-weight: 800;
-  font-size: clamp(2.6rem, 6.05vw, 5.55rem);
+  font-size: var(--fs-hero);
   letter-spacing: -0.04em;
   line-height: 0.92;
   max-width: 16ch;
 }
 .page-profile .rio-range, .page-more .rio-range {
   margin: 0.55rem 0 0;
-  color: #d7d2cb;
+  color: var(--on-dark-muted);
   font-size: 1.05rem;
   line-height: 1.4;
 }
-.page-profile.is-compact .rio-hero, .page-more.is-compact .rio-hero { padding: 1.35rem 5vw 0.85rem; }
+.page-profile.is-compact .rio-hero, .page-more.is-compact .rio-hero { padding: 1.35rem var(--gutter) 0.85rem; }
 .page-profile.is-compact .rio-hero h1, .page-more.is-compact .rio-hero h1 { font-size: 2.35rem; margin-top: 0.35rem; }
 .page-profile.is-compact .rio-card, .page-profile.is-compact .rio-profile-group, .page-profile.is-compact .rio-profile-race {
   padding: 0.85rem 1.1rem 0.7rem;
@@ -2135,18 +2182,18 @@ button.rio-text-link:disabled {
 .page-profile .rio-hero .rio-error { color: #ffb4a2; margin: 0.8rem 0 0; }
 .page-profile .rio-error, .page-more .rio-error { color: #b42318; margin: 0.85rem 0 0; }
 .page-profile .rio-empty, .page-profile .rio-wait, .page-profile .rio-contact,
-.page-more .rio-empty, .page-more .rio-wait, .page-more .rio-contact { color: #3c3a36; }
+.page-more .rio-empty, .page-more .rio-wait, .page-more .rio-contact { color: var(--ink-2); }
 .page-profile .rio-easy { max-width: none; width: 100%; margin-top: 1.15rem; }
 .page-profile .rio-easy-kicker { color: #9a3412; }
 .page-profile .rio-easy-body, .page-profile .rio-easy-hint, .page-profile .rio-soft-help, .page-profile .rio-profile-hint,
 .page-profile .rio-settings-note, .page-more .rio-note {
-  color: #3c3a36;
+  color: var(--ink-2);
 }
 .page-profile .rio-easy-now { margin: 0; color: #121110; }
 .page-profile .rio-easy-form label, .page-profile .rio-easy-form legend,
 .page-profile .rio-profile-edit label, .page-profile .rio-k, .page-profile .rio-mark-label,
 .page-more .rio-mark-label {
-  color: #3c3a36;
+  color: var(--ink-2);
 }
 .page-profile .rio-easy-form input[type="text"],
 .page-profile .rio-easy-form input:not([type="radio"]) {
@@ -2155,7 +2202,7 @@ button.rio-text-link:disabled {
   color: #121110;
 }
 .page-profile .rio-easy-form input::placeholder, .page-profile .rio-profile-edit input::placeholder {
-  color: #3c3a36;
+  color: var(--ink-2);
   opacity: 1;
 }
 .page-profile .rio-easy-form fieldset label {
@@ -2235,7 +2282,7 @@ button.rio-text-link:disabled {
 }
 .page-profile .rio-settings-note { margin: 0.45rem 0 0; font-size: 0.92rem; line-height: 1.4; }
 .page-profile .rio-season-prompt a { color: #121110; }
-.page-more .rio-more-list { margin-top: 1.15rem; }
+.page-more .rio-more-list { margin-top: 1.15rem; max-width: 46rem; }
 .page-more .rio-more-row {
   display: flex;
   align-items: center;
@@ -2248,7 +2295,7 @@ button.rio-text-link:disabled {
 .page-more .rio-more-row:hover { background: #ede8e1; }
 .page-more .rio-more-copy { display: flex; flex-direction: column; gap: 0.28rem; min-width: 0; }
 .page-more .rio-note { margin: 0; font-size: 0.95rem; line-height: 1.4; }
-.page-more .rio-more-chevron { color: #3c3a36; font-size: 1.25rem; line-height: 1; }
+.page-more .rio-more-chevron { color: var(--muted); font-size: 1.5rem; font-weight: 300; line-height: 1; }
 @media (max-width: 720px) {
   .page-profile .rio-field { grid-template-columns: 1fr; row-gap: 0.22rem; }
 }
@@ -2258,30 +2305,30 @@ button.rio-text-link:disabled {
   color: var(--ink);
   min-height: 100dvh;
 }
-.page-past main { padding: 0 5vw 3.5rem; }
+.page-past main { padding: 0 var(--gutter) 3.5rem; }
 .page-past .rio-hero {
-  background: #121110;
-  color: #f4f1ec;
-  margin: 0 -5vw;
-  padding: 2.78rem 5vw 2.2rem;
+  background: var(--ink);
+  color: var(--paper);
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 2.78rem var(--gutter) 2.2rem;
 }
 .page-past .rio-hero h1 {
   margin: 0.1rem 0 0;
-  color: #f4f1ec;
+  color: var(--paper);
   font-family: var(--display);
   font-weight: 800;
-  font-size: clamp(2.6rem, 6.05vw, 5.55rem);
+  font-size: var(--fs-hero);
   letter-spacing: -0.04em;
   line-height: 0.92;
   max-width: 16ch;
 }
-.page-past.is-compact .rio-hero { padding: 1.35rem 5vw 0.85rem; }
+.page-past.is-compact .rio-hero { padding: 1.35rem var(--gutter) 0.85rem; }
 .page-past.is-compact .rio-hero h1 { font-size: 2.35rem; margin-top: 0.35rem; }
 .page-past .rio-empty,
 .page-past .rio-wait,
-.page-past .rio-contact { color: #3c3a36; }
+.page-past .rio-contact { color: var(--ink-2); }
 .page-past .rio-error { color: #b42318; margin: 0.85rem 0 0; }
-.page-past .rio-past-list { margin: 1.15rem 0 1.15rem; }
+.page-past .rio-past-list { margin: 1.15rem 0 1.15rem; max-width: 56rem; }
 .page-past .rio-past-badge {
   display: inline-flex;
   align-items: center;
@@ -2317,9 +2364,10 @@ button.rio-text-link:disabled {
   min-height: 2.55rem;
   margin: 0.4rem 0 0.1rem;
   padding: 0.4rem 0.9rem;
+  min-height: 44px;
   border: 1px solid #d0cbc3;
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface);
   color: #121110;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -2328,8 +2376,8 @@ button.rio-text-link:disabled {
 .page-past .rio-stagger .rio-past-row { animation: rio-rise 200ms var(--ease) both; }
 .page-past .rio-past-k {
   display: block;
-  color: #3c3a36;
-  font-size: 0.68rem;
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -2365,9 +2413,9 @@ button.rio-text-link:disabled {
 .page-past .rio-past-delete:hover { background: transparent; color: #9a3412; }
 .page-past .rio-past-confirm {
   background: #fffcf7;
-  border: 1px solid #dadada;
-  border-radius: 18px;
-  box-shadow: 0 12px 32px rgba(14, 14, 14, 0.05);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   padding: 1rem 1.05rem 0.9rem;
   margin: 0.55rem 0 0;
 }
@@ -2388,7 +2436,7 @@ button.rio-text-link:disabled {
 }
 .page-past .rio-past-confirm-note {
   margin: 0.85rem 0 0;
-  color: #3c3a36;
+  color: var(--ink-2);
   font-size: 0.92rem;
   line-height: 1.45;
 }
@@ -2400,7 +2448,7 @@ button.rio-text-link:disabled {
   width: 100%;
   min-width: 0;
   margin: 0;
-  min-height: 2.4rem;
+  min-height: var(--control-h);
   border-radius: 999px;
 }
 .page-past .rio-past-actions .rio-primary {
@@ -2410,9 +2458,9 @@ button.rio-text-link:disabled {
 }
 .page-past .rio-past-deleted {
   background: #fffcf7;
-  border: 1px solid #dadada;
-  border-radius: 18px;
-  box-shadow: 0 12px 32px rgba(14, 14, 14, 0.05);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   margin: 1rem 0 0;
   padding: 0.75rem 1rem;
   color: #121110;
@@ -2427,8 +2475,8 @@ button.rio-text-link:disabled {
   color: var(--ink);
   min-height: 100dvh;
 }
-.page-about main, .page-creators main { padding: 0 5vw 3.5rem; }
-.page-about .rio-contact, .page-creators .rio-contact { color: #3c3a36; }
+.page-about main, .page-creators main { padding: 0 var(--gutter) 3.5rem; }
+.page-about .rio-contact, .page-creators .rio-contact { color: var(--ink-2); }
 .page-creators .rio-contact { margin-top: 1.6rem; }
 .page-about [hidden] { display: none !important; }
 
@@ -2438,7 +2486,7 @@ button.rio-text-link:disabled {
   align-items: flex-end;
   height: 78vh;
   min-height: 24rem;
-  margin: 0 -5vw 0;
+  margin: 0 calc(-1 * var(--gutter)) 0;
   overflow: hidden;
   background-color: #121110;
   background-image: image-set(url("/photos/about-1200.webp") type("image/webp"), url("/photos/about.jpg") type("image/jpeg"));
@@ -2453,7 +2501,7 @@ button.rio-text-link:disabled {
 .page-about .rio-about-title {
   position: relative;
   z-index: 2;
-  padding: 0 5vw 2.4rem;
+  padding: 0 var(--gutter) 2.4rem;
 }
 .page-about .rio-index-light { color: #e25a32; margin-bottom: 0.45rem; }
 .page-about .rio-about-title h1 {
@@ -2461,7 +2509,7 @@ button.rio-text-link:disabled {
   color: #f4f1ec;
   font-family: var(--display);
   font-weight: 800;
-  font-size: clamp(56px, 9vw, 140px);
+  font-size: clamp(56px, 8vw, 120px);
   letter-spacing: -0.04em;
   line-height: 0.88;
 }
@@ -2491,7 +2539,7 @@ button.rio-text-link:disabled {
   display: block;
   margin: 0;
   padding: 0 0 0.45rem;
-  color: #3c3a36;
+  color: var(--ink-2);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -2528,7 +2576,7 @@ button.rio-text-link:disabled {
 }
 .page-about .rio-field + .rio-field { border-top: 1px solid #dcd6cc; }
 .page-about .rio-k {
-  color: #3c3a36;
+  color: var(--ink-2);
   font-size: 0.78rem;
   font-weight: 600;
   line-height: 1.35;
@@ -2542,10 +2590,10 @@ button.rio-text-link:disabled {
 .page-about.is-compact .rio-card { padding: 1.15rem 0 0.8rem; }
 
 .page-creators .rio-hero {
-  background: #121110;
-  color: #f4f1ec;
-  margin: 0 -5vw;
-  padding: 2.78rem 5vw 2.2rem;
+  background: var(--ink);
+  color: var(--paper);
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 2.78rem var(--gutter) 2.2rem;
 }
 .page-creators .rio-synthetic {
   margin: 0 0 0.54rem;
@@ -2557,15 +2605,15 @@ button.rio-text-link:disabled {
 }
 .page-creators .rio-hero h1 {
   margin: 0.1rem 0 0;
-  color: #f4f1ec;
+  color: var(--paper);
   font-family: var(--display);
   font-weight: 800;
-  font-size: clamp(2.6rem, 6.05vw, 5.55rem);
+  font-size: var(--fs-hero);
   letter-spacing: -0.04em;
   line-height: 0.92;
   max-width: 7.8em;
 }
-.page-creators.is-compact .rio-hero { padding: 1.35rem 5vw 0.85rem; }
+.page-creators.is-compact .rio-hero { padding: 1.35rem var(--gutter) 0.85rem; }
 .page-creators.is-compact .rio-hero h1 { font-size: 2.35rem; margin-top: 0.35rem; }
 .page-creators .rio-creator-layout {
   display: grid;
@@ -2657,29 +2705,29 @@ button.rio-text-link:disabled {
   color: var(--ink);
   min-height: 100dvh;
 }
-.page-admin main, .page-fixture main { padding: 0 5vw 3.5rem; }
+.page-admin main, .page-fixture main { padding: 0 var(--gutter) 3.5rem; }
 .page-admin .rio-hero, .page-fixture .rio-hero {
-  background: #121110;
-  color: #f4f1ec;
-  margin: 0 -5vw;
-  padding: 2.4rem 5vw 1.8rem;
+  background: var(--ink);
+  color: var(--paper);
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 2.4rem var(--gutter) 1.8rem;
 }
 .page-admin .rio-hero h1, .page-fixture .rio-hero h1 {
   margin: 0.1rem 0 0;
-  color: #f4f1ec;
+  color: var(--paper);
   font-family: var(--display);
   font-weight: 800;
-  font-size: clamp(2.6rem, 6vw, 4.4rem);
+  font-size: var(--fs-hero);
   letter-spacing: -0.04em;
   line-height: 0.92;
 }
-.page-admin .rio-range, .page-fixture .rio-range { color: #d7d2cb; }
+.page-admin .rio-range, .page-fixture .rio-range { color: var(--on-dark-muted); }
 .page-admin .rio-card, .page-fixture .rio-card {
   margin-top: 1rem;
-  background: #fff;
-  border: 1px solid #dadada;
-  border-radius: 18px;
-  box-shadow: 0 12px 32px rgba(14, 14, 14, 0.05);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   padding: 0.9rem 1rem 1rem;
 }
 .page-admin .rio-card {
@@ -2692,10 +2740,10 @@ button.rio-text-link:disabled {
 .page-admin .rio-mark-label, .page-fixture .rio-mark-label,
 .page-admin .rio-k, .page-fixture .rio-k,
 .page-admin .rio-table th, .page-fixture .rio-table th,
-.page-fixture .rio-file { color: #3c3a36; }
+.page-fixture .rio-file { color: var(--ink-2); }
 .page-admin .rio-note, .page-fixture .rio-note,
 .page-admin .rio-empty, .page-fixture .rio-empty,
-.page-admin .rio-settings-note, .page-fixture .rio-prose, .page-fixture .rio-v { color: #3c3a36; }
+.page-admin .rio-settings-note, .page-fixture .rio-prose, .page-fixture .rio-v { color: var(--ink-2); }
 .page-admin .rio-error, .page-fixture .rio-error { color: #b42318; }
 .page-admin .rio-table, .page-fixture .rio-table { width: 100%; border-collapse: collapse; }
 .page-admin .rio-table th, .page-admin .rio-table td,
@@ -2718,7 +2766,7 @@ button.rio-text-link:disabled {
   flex-direction: column;
   gap: 0.25rem;
   margin: 0.45rem 0;
-  color: #3c3a36;
+  color: var(--ink-2);
 }
 .page-admin label.rio-check {
   flex-direction: row;
@@ -2761,7 +2809,7 @@ button.rio-text-link:disabled {
   width: 1.05rem;
   height: 1.05rem;
   margin: 0;
-  border: 1px solid #dadada;
+  border: 1px solid var(--line);
   border-radius: 4px;
   background: #f7f7f7;
   display: grid;
@@ -2798,7 +2846,7 @@ button.rio-text-link:disabled {
 .page-home.is-compact .rio-glossary,
 .page-home.is-compact .rio-card { padding: 0.85rem 1.1rem 0.7rem; margin-bottom: 0.7rem; }
 
-.page-plan.is-compact .rio-plan-hero { padding: 1.35rem 5vw 0.85rem; min-height: 0; }
+.page-plan.is-compact .rio-plan-hero { padding: 1.35rem var(--gutter) 0.85rem; min-height: 0; }
 .page-plan.is-compact .rio-plan-hero h1 { font-size: 2.35rem; margin-top: 0.35rem; }
 .page-plan.is-compact .rio-plan-hero .rio-range { margin-top: 0.4rem; }
 .page-plan.is-compact .rio-card { padding: 0.85rem 1.1rem 0.7rem; margin-bottom: 0.7rem; }
@@ -2809,7 +2857,7 @@ button.rio-text-link:disabled {
 .page-plan.is-compact .rio-week { padding: 0.85rem 0 0.65rem; margin-bottom: 0.85rem; }
 .page-plan.is-compact .rio-pick { margin-bottom: 0.85rem; }
 
-.page-session.is-compact .rio-hero { padding: 1.35rem 5vw 0.85rem; }
+.page-session.is-compact .rio-hero { padding: 1.35rem var(--gutter) 0.85rem; }
 .page-session.is-compact .rio-hero h1 { font-size: 2.35rem; margin-top: 0.35rem; }
 .page-session.is-compact .rio-range { margin-top: 0.4rem; }
 .page-session.is-compact .rio-card {
@@ -2822,7 +2870,7 @@ button.rio-text-link:disabled {
   box-shadow: none;
 }
 
-.page-activity.is-compact .rio-hero { padding: 1.35rem 5vw 0.85rem; }
+.page-activity.is-compact .rio-hero { padding: 1.35rem var(--gutter) 0.85rem; }
 .page-activity.is-compact .rio-hero h1 { font-size: 2.35rem; margin-top: 0.35rem; }
 .page-activity.is-compact .rio-range { margin-top: 0.4rem; }
 .page-activity.is-compact .rio-card { padding: 0.85rem 1.1rem 0.7rem; margin-bottom: 0.7rem; }
@@ -2835,24 +2883,23 @@ button.rio-text-link:disabled {
   color: var(--ink);
   min-height: 100dvh;
 }
-.page-guide main { padding: 0 5vw 3.5rem; }
+.page-guide main { padding: 0 var(--gutter) 3.5rem; }
 .page-guide .rio-hero {
-  background: #121110;
-  color: #f4f1ec;
-  margin: 0 -5vw 1.5rem;
-  padding: 2.78rem 5vw 2.2rem;
+  background: var(--ink);
+  color: var(--paper);
+  margin: 0 calc(-1 * var(--gutter)) 1.5rem;
+  padding: 2.78rem var(--gutter) 2.2rem;
 }
 .page-guide .rio-hero h1 {
   margin: 0.1rem 0 0;
-  color: #f4f1ec;
+  color: var(--paper);
   font-family: var(--display);
   font-weight: 800;
-  font-size: clamp(2.6rem, 6vw, 4.8rem);
+  font-size: var(--fs-hero);
   letter-spacing: -0.04em;
   line-height: 0.92;
-  max-width: 14ch;
 }
-.page-guide .rio-range { color: #d7d2cb; max-width: 42rem; }
+.page-guide .rio-range { color: var(--on-dark-muted); max-width: 42rem; }
 .page-guide .rio-guide-contents {
   display: flex;
   flex-wrap: wrap;
@@ -2881,7 +2928,7 @@ button.rio-text-link:disabled {
 .page-guide section p,
 .page-guide section li {
   margin: 0.45rem 0 0;
-  color: #3c3a36;
+  color: var(--ink-2);
   font-size: 1rem;
   line-height: 1.45;
 }
@@ -2901,7 +2948,7 @@ button.rio-text-link:disabled {
   font-weight: 700;
 }
 .page-guide details p { max-width: 40rem; }
-.page-guide .rio-contact { color: #3c3a36; }
+.page-guide .rio-contact { color: var(--ink-2); }
 .rio-meaning {
   margin: 1.75rem 0 0.35rem;
   padding: 0.95rem 1.1rem 1.05rem;
@@ -2909,7 +2956,7 @@ button.rio-text-link:disabled {
   color: var(--ink);
   border: 1px solid var(--line);
   border-radius: 16px;
-  box-shadow: 0 8px 22px rgba(18, 17, 16, 0.045);
+  box-shadow: var(--shadow-card);
   max-width: 42rem;
 }
 .page-home .rio-meaning,
@@ -2925,7 +2972,7 @@ button.rio-text-link:disabled {
 }
 .rio-meaning p {
   margin: 0.4rem 0 0;
-  color: #3c3a36;
+  color: var(--ink-2);
   font-size: 0.95rem;
   line-height: 1.45;
 }
@@ -2950,24 +2997,24 @@ button.rio-text-link:disabled {
   color: var(--ink);
   min-height: 100dvh;
 }
-.page-stretch main { padding: 0 5vw 3.5rem; }
+.page-stretch main { padding: 0 var(--gutter) 3.5rem; }
 .page-stretch .rio-hero {
-  background: #121110;
-  color: #f4f1ec;
-  margin: 0 -5vw 1.5rem;
-  padding: 2.78rem 5vw 2.2rem;
+  background: var(--ink);
+  color: var(--paper);
+  margin: 0 calc(-1 * var(--gutter)) 1.5rem;
+  padding: 2.78rem var(--gutter) 2.2rem;
 }
 .page-stretch .rio-hero h1 {
   margin: 0.1rem 0 0;
-  color: #f4f1ec;
+  color: var(--paper);
   font-family: var(--display);
   font-weight: 800;
-  font-size: clamp(2.6rem, 6vw, 4.8rem);
+  font-size: var(--fs-hero);
   letter-spacing: -0.04em;
   line-height: 0.92;
 }
-.page-stretch .rio-range { color: #d7d2cb; max-width: 40rem; }
-.page-stretch.is-compact .rio-hero { padding: 1.35rem 5vw 0.85rem; }
+.page-stretch .rio-range { color: var(--on-dark-muted); max-width: 40rem; }
+.page-stretch.is-compact .rio-hero { padding: 1.35rem var(--gutter) 0.85rem; }
 .page-stretch.is-compact .rio-hero h1 { font-size: 2.35rem; }
 .page-stretch h2 {
   margin: 0 0 0.35rem;
@@ -3033,7 +3080,7 @@ button.rio-text-link:disabled {
   color: #f4f1ec;
   border-color: #121110;
 }
-.rio-disclaimer { max-width: 42rem; color: #3c3a36; }
+.rio-disclaimer { max-width: 42rem; color: var(--ink-2); }
 .rio-bodies {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3146,7 +3193,7 @@ button.rio-text-link:disabled {
 .page-missing p {
   margin: 0.9rem 0 0;
   max-width: 32rem;
-  color: #3c3a36;
+  color: var(--ink-2);
   font-size: 1.05rem;
   line-height: 1.45;
 }
@@ -3168,32 +3215,32 @@ button.rio-text-link:disabled {
 }
 .page-core main,
 .page-recovery main,
-.page-foam main { padding: 0 5vw 3.5rem; }
+.page-foam main { padding: 0 var(--gutter) 3.5rem; }
 .page-core .rio-hero,
 .page-recovery .rio-hero,
 .page-foam .rio-hero {
-  background: #121110;
-  color: #f4f1ec;
-  margin: 0 -5vw 1.5rem;
-  padding: 2.78rem 5vw 2.2rem;
+  background: var(--ink);
+  color: var(--paper);
+  margin: 0 calc(-1 * var(--gutter)) 1.5rem;
+  padding: 2.78rem var(--gutter) 2.2rem;
 }
 .page-core .rio-hero h1,
 .page-recovery .rio-hero h1,
 .page-foam .rio-hero h1 {
   margin: 0.1rem 0 0;
-  color: #f4f1ec;
+  color: var(--paper);
   font-family: var(--display);
   font-weight: 800;
-  font-size: clamp(2.6rem, 6vw, 4.8rem);
+  font-size: var(--fs-hero);
   letter-spacing: -0.04em;
   line-height: 0.92;
 }
 .page-core .rio-range,
 .page-recovery .rio-range,
-.page-foam .rio-range { color: #d7d2cb; max-width: 40rem; }
+.page-foam .rio-range { color: var(--on-dark-muted); max-width: 40rem; }
 .page-core.is-compact .rio-hero,
 .page-recovery.is-compact .rio-hero,
-.page-foam.is-compact .rio-hero { padding: 1.35rem 5vw 0.85rem; }
+.page-foam.is-compact .rio-hero { padding: 1.35rem var(--gutter) 0.85rem; }
 .page-core.is-compact .rio-hero h1,
 .page-recovery.is-compact .rio-hero h1,
 .page-foam.is-compact .rio-hero h1 { font-size: 2.35rem; }
@@ -3235,7 +3282,7 @@ button.rio-text-link:disabled {
 .rio-issue-blurb { display: block; margin-top: 0.15rem; color: var(--muted); font-weight: 500; font-size: 0.92rem; line-height: 1.35; }
 .rio-issue-tag {
   color: var(--button);
-  font-size: 0.68rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -3278,14 +3325,14 @@ button.rio-text-link:disabled {
 .page-session .rio-core-block,
 .page-session .rio-recover-block,
 .page-session .rio-foam-block,
-.page-session .rio-bike-block { border-top: 1px solid #dadada; margin-top: 0.8rem; padding-top: 0.7rem; }
+.page-session .rio-bike-block { border-top: 1px solid var(--line); margin-top: 0.8rem; padding-top: 0.7rem; }
 .page-session .rio-recover-item { margin: 0.75rem 0 0.2rem; }
 .page-session .rio-core-block h3,
 .page-session .rio-foam-block h3,
 .page-session .rio-recover-item h3 { margin: 0.35rem 0 0.2rem; font-size: 1.02rem; }
 .page-session .rio-core-block li span,
 .page-session .rio-foam-block li span,
-.page-session .rio-recover-item li span { display: block; font-weight: 400; color: #3c3a36; }
+.page-session .rio-recover-item li span { display: block; font-weight: 400; color: var(--ink-2); }
 .page-session .rio-bike-block label { display: block; margin-top: 0.55rem; font-weight: 700; }
 .page-session .rio-bike-block input {
   display: block;

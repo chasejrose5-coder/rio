@@ -22,7 +22,7 @@
   font-family: Inter, "Inter Fallback", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 .rio-legal-top {
-  padding: 0.55rem 5vw 0;
+  padding: 0.55rem var(--gutter) 0;
 }
 .rio-legal-top a {
   display: inline-flex;
@@ -35,7 +35,7 @@
   font-size: 0.95rem;
 }
 .page-legal main {
-  padding: 1.4rem 5vw 3.5rem;
+  padding: 1.4rem var(--gutter) 3.5rem;
   max-width: 48rem;
 }
 .rio-draft-banner {
@@ -97,7 +97,7 @@
 .page-legal section p,
 .page-legal section li {
   margin: 0.55rem 0 0;
-  color: #3c3a36;
+  color: var(--ink-2);
   font-size: 1.02rem;
   line-height: 1.5;
 }
@@ -110,6 +110,6 @@
 }
 .page-legal .rio-contact {
   margin-top: 1.4rem;
-  color: #3c3a36;
+  color: var(--ink-2);
   text-align: left;
 }
