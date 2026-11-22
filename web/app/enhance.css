@@ -898,3 +898,13 @@
   .rio-v3 .rio-guide-contents { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter); }
   .rio-v3 .rio-guide-contents a { flex: none; white-space: nowrap; }
 }
+
+/* Batch 2 — type and color. Hover lift on every card stays as specified. */
+.rio-v3 .rio-index { color: var(--ink); }
+.rio-v3.page-home .rio-contact { color: var(--ink-2); }
+.rio-v3.page-home .rio-contact a { color: var(--ink); }
+.rio-v3 :is(.rio-phase-now, .rio-phase.is-now) :is(.rio-phase-label, .rio-phase-mark) { color: #fff; }
+.rio-v3 .rio-lib-row :is(h3, .rio-lib-name) { font-family: var(--font); font-size: 16px; line-height: 24px; font-weight: 600; letter-spacing: 0; }
+.rio-v3.page-home .rio-glossary .rio-disclosure > button { color: rgba(255, 255, 255, 0.86); }
+.rio-v3.page-home .rio-glossary .rio-chevron { border-color: rgba(255, 255, 255, 0.86); }
+.rio-v3 .rio-expander[open] > summary .rio-chevron { transform: rotate(45deg); }
