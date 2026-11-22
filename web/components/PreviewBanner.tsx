@@ -8,7 +8,7 @@ export function PreviewBanner({ banner }: { banner?: string }) {
   if (!previewing() && !banner) return null;
   return (
     <div className="rio-preview">
-      <p className="rio-note">{banner || "TEST Athlete · read only. This login is not changed."}</p>
+      <p className="rio-note">{banner || "Test athlete preview. Read only: nothing here is saved."}</p>
       <button
         type="button"
         className="rio-secondary"

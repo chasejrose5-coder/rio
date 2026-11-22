@@ -130,7 +130,8 @@ test("an easy day offers a bike swap, and the week recap keeps bike distance off
   await expect(swap.getByRole("button", { name: "Bike instead" })).toBeVisible();
   await expect(swap.getByText("50 min")).toBeVisible();
   await expect(swap.getByText(/Zone 2, 126-138 bpm/)).toBeVisible();
-  await expect(swap.getByText("Not medical advice. See a professional if it hurts.")).toBeVisible();
+  await expect(swap.getByText("Suggested while a shin, Achilles, or foot area is rebuilding.")).toBeVisible();
+  await expect(page.getByText("Not medical advice.")).toBeVisible();
   await expect(page.getByText(/cadence|rpm/i)).toHaveCount(0);
   await expect(page.getByText("Run at 7:45 per mile")).toBeVisible();
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Footer } from "./Footer";
 import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
@@ -25,6 +25,17 @@ function EasyPaceForm() {
   const [unit, setUnit] = useState<"mi" | "km">("mi");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [kicker, setKicker] = useState("Start here");
+
+  useEffect(() => {
+    let live = true;
+    void api.currentSeason().then((season) => {
+      if (live && season) setKicker("Your paces");
+    }).catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, []);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -50,7 +61,7 @@ function EasyPaceForm() {
       <Nav active="Home" />
       <main>
         <section className="rio-easy">
-          <p className="rio-easy-kicker">Start here</p>
+          <p className="rio-easy-kicker">{kicker}</p>
           <h1>Your easy pace</h1>
           <p>
             Easy and long runs use this pace. Enter minutes and seconds, like 7:25, and choose per mile or per

@@ -14,7 +14,6 @@ import {
   BONE_MESSAGE,
   EXERCISES,
   GROUPS,
-  INJURY_DISCLAIMER,
   LEVELS,
   exercisesFor,
   type InjuryArea,
@@ -210,7 +209,6 @@ function RecoveryBody() {
         {mode === "loading" ? <p className="rio-wait">Loading saved areas</p> : null}
         {mode === "error" ? <LoadError message={problem} onRetry={() => setAttempt((value) => value + 1)} /> : null}
         {problem && mode !== "error" ? <ErrorText>{problem}</ErrorText> : null}
-        <p className="rio-medical">{INJURY_DISCLAIMER}</p>
         <PageMeaning page="recovery" />
         <Footer />
       </main>

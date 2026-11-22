@@ -126,6 +126,6 @@ test("an expired confirmation link and a valid one land on the confirm page", as
 
 test("a confirmation link with no token asks for the email", async ({ page }) => {
   await page.goto("/confirm");
-  await expect(page.getByText("Open the confirmation link in your email. It lands on this page.")).toBeVisible();
+  await expect(page.getByText("Open the link in the email we sent you. It brings you back here.")).toBeVisible();
   await expect(page.getByText("That confirmation link is no longer valid.")).toHaveCount(0);
 });

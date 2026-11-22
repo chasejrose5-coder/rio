@@ -153,12 +153,12 @@ test("settings shows every section, and the hidden leftovers stay hidden", async
   await openSettings(page);
   const summaries = page.locator(".page-settings summary");
   await expect(summaries).toHaveText([
-    "Profile",
+    "Account",
     "Logging",
     "Heart rate",
     "Preferences",
     "Data",
-    "Account",
+    "Email",
     "Privacy",
     "About",
     "Strava",
@@ -284,7 +284,7 @@ test("password and email keep the person signed in when the secret is wrong", as
   await page.getByLabel("Current password").fill("correct-horse");
   await page.getByRole("button", { name: "Change password" }).click();
   await expect(page.locator(".rio-settings-flash")).toHaveText("Password updated.");
-  await page.locator("summary", { hasText: "Account" }).click();
+  await page.locator("summary", { hasText: "Email" }).click();
   await page.getByLabel("New email").fill("taken@example.com");
   await page.locator("#settings-email-password").fill("correct-horse");
   await page.getByRole("button", { name: "Change email" }).click();
@@ -300,7 +300,7 @@ test("hosted email success can ask for a confirmation mail", async ({ page }) =>
   await expect(
     page.locator("details", { has: page.locator("summary", { hasText: /^Privacy$/ }) }).locator(".rio-settings-note"),
   ).toHaveText("Signs you out on this browser. Your season stays in your account.");
-  await page.locator("summary", { hasText: "Account" }).click();
+  await page.locator("summary", { hasText: "Email" }).click();
   await page.getByLabel("New email").fill("ada.new@example.com");
   await page.locator("#settings-email-password").fill("correct-horse");
   await page.getByRole("button", { name: "Change email" }).click();
@@ -364,7 +364,7 @@ test("save failures use the account sentences", async ({ page }) => {
   });
   await page.getByRole("button", { name: "Change password" }).click();
   await expect(page.locator(".rio-error")).toHaveText("Error: This session could not be saved.");
-  await page.locator("summary", { hasText: "Account" }).click();
+  await page.locator("summary", { hasText: "Email" }).click();
   await page.route("**/auth/email", async (route) => {
     await json(route, { detail: "This account could not be saved." }, 400);
   });

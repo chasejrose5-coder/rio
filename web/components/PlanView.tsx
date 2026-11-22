@@ -14,6 +14,7 @@ import { SkeletonBlocks } from "./PageSkeleton";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api, isSignedOut, previewing } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { PHASE_PLAIN } from "@/lib/glossary";
 import {
   PLAN_VIEWS,
   activityNotice,
@@ -368,6 +369,9 @@ function PlanReady({
         {openSpan ? (
           <div id="rio-phase-panel" className="rio-phase-detail">
             <p className="rio-phase-heading">{openSpan.name}</p>
+            {PHASE_PLAIN[Number(openSpan.phase)] ? (
+              <p className="rio-phase-plain">{PHASE_PLAIN[Number(openSpan.phase)]}</p>
+            ) : null}
             <ul className="rio-phase-week-list">
               {openSpan.weeks.map((week) => (
                 <li key={week} className={week === openSpan.currentWeek ? "is-current" : undefined}>
@@ -820,7 +824,7 @@ function PaceLines({ session }: { session: PlanSession }) {
   return (
     <div className="rio-pace">
       {prescription.line ? <p className="rio-pace-line">{prescription.line}</p> : null}
-      {prescription.tolerance ? <p className="rio-pace-range">Tolerance {prescription.tolerance}</p> : null}
+      {prescription.tolerance ? <p className="rio-pace-range">Target range {prescription.tolerance}</p> : null}
       {prescription.block ? <p className="rio-pace-block">Block {prescription.block}</p> : null}
       <HeartPace heart={prescription.heart} />
     </div>
@@ -864,6 +868,7 @@ function Marks({
           </button>
         ))}
       </div>
+      <p className="rio-settings-note">Not hitting moves later weeks back a phase. Smashing moves them forward.</p>
       {asking ? (
         <div className="rio-confirm">
           <p className="rio-week-meta">Confirm {markLabel(asking.choice)} before the plan changes.</p>

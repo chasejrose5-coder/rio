@@ -622,7 +622,8 @@ export const api = {
     ),
 };
 
-export const SESSION_STUCK = "Signed in, but the session didn't stick. Try again.";
+export const SESSION_STUCK =
+  "You're signed in, but this browser didn't keep the session. Allow cookies for riorunning.com and try again.";
 
 export type SessionView = {
   athlete: Athlete | null;

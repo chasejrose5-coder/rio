@@ -156,8 +156,8 @@ test("reasons are plain words, and an unknown code keeps its words", () => {
   assert.equal(plainReason("custom_code"), "custom code");
   assert.equal(statusLabel(["phase_4", "weekly_aerobic_long_run"]), "Long");
   assert.equal(statusLabel(["phase_4"]), "");
-  assert.equal(paceStatusLine("No runs yet"), "Pace status No runs yet.");
-  assert.equal(paceStatusLine("On track"), "Pace status On track.");
+  assert.equal(paceStatusLine("No runs yet"), "Progress: No runs yet");
+  assert.equal(paceStatusLine("On track"), "Progress: On track");
 });
 
 test("extras are the unmatched runs inside Sunday through Saturday", () => {

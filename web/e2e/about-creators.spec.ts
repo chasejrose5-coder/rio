@@ -140,7 +140,7 @@ test("More opens About and Creators", async ({ page }) => {
   await page.locator(".rio-more-list").getByRole("link", { name: /About/ }).click();
   await expect(page).toHaveURL(/\/about$/);
   await expect(page.getByRole("heading", { name: "About", exact: true })).toBeVisible();
-  await expect(page.getByText("Eight phases")).toBeVisible();
+  await expect(page.getByText("Eight phases", { exact: true })).toBeVisible();
   await page.getByRole("navigation", { name: "More" }).getByRole("link", { name: "Creators" }).click();
   await expect(page).toHaveURL(/\/creators$/);
   await expect(page.getByRole("heading", { name: "Built for any runner." })).toBeVisible();
@@ -166,7 +166,7 @@ test("about stays open when nobody is signed in", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Log out" })).toHaveCount(0);
   await expect(page.getByRole("navigation", { name: "Pages" })).toHaveCount(0);
   await expect(page.getByText(ABOUT.credit)).toBeVisible();
-  await expect(page.getByText("Eight phases")).toBeVisible();
+  await expect(page.getByText("Eight phases", { exact: true })).toBeVisible();
   await expect(page.getByText("Friday is off")).toBeVisible();
 });
 

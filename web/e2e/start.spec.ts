@@ -393,7 +393,8 @@ test("a current season opens Home instead of the generate form", async ({ page }
 test("splash continue opens log in, and a new tab shows it again", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Your Race, Your Plan, Your Result" })).toBeVisible();
-  await expect(page.getByText(/“Most plans tell you what to run/)).toBeVisible();
+  await expect(page.getByText(/Most plans tell you what to run/)).toBeVisible();
+  await expect(page.getByText("A training plan for any runner, built from your own times.")).toBeVisible();
   await expect(page.getByText("Photo by Giant Asparagus on Pexels")).toBeVisible();
   const credit = await page.locator(".rio-splash .rio-photo-credit").evaluate((el) => getComputedStyle(el).position);
   const contact = await page.locator(".rio-splash .rio-contact").evaluate((el) => getComputedStyle(el).position);
@@ -401,11 +402,11 @@ test("splash continue opens log in, and a new tab shows it again", async ({ page
   expect(contact).toBe("fixed");
   await expect(page.getByText("chasejrose5@gmail.com")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Privacy" })).toBeVisible();
-  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Get started" }).click();
   await expect(page).toHaveURL(/\/sign-in\?skip=1$/);
   await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
   const again = await page.context().newPage();
   await again.goto("/");
-  await expect(again.getByRole("button", { name: "Continue" })).toBeVisible();
+  await expect(again.getByRole("button", { name: "Get started" })).toBeVisible();
   await again.close();
 });

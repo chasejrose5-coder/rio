@@ -47,7 +47,7 @@ function MoreBody() {
       <main className={rise ? "rio-stagger" : undefined}>
         <header className="rio-hero">
           <h1>More</h1>
-          <p className="rio-range">The rest of the season, still in this tab.</p>
+          <p className="rio-range">Past seasons, your profile, settings, and help.</p>
         </header>
         <div className="rio-more-list">
           {MORE_LINKS.map((item) => (

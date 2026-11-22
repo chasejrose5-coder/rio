@@ -8,7 +8,6 @@ import { ApiError, api, previewing } from "@/lib/api";
 import {
   CATEGORIES,
   CATEGORY_LABEL,
-  CORE_DISCLAIMER,
   CORE_EXERCISES,
   circuitFor,
 } from "@/lib/core-content";
@@ -57,7 +56,6 @@ export function CoreDay({ date, session }: { date: string; session?: StretchSess
   return (
     <section className="rio-core-block" aria-label="Core circuit">
       <p className="rio-mark-label">Core circuit</p>
-      <p className="rio-medical">{CORE_DISCLAIMER}</p>
       {circuit == null ? (
         <p className="rio-note">None today. Race day and the day before stay clear.</p>
       ) : (

@@ -114,7 +114,7 @@ export function prepFor(session: KindSession): PrepBlock[] {
 
 const OUTCOME: Record<string, string> = {
   not_hitting: "Behind",
-  on_track: "On target",
+  on_track: "On track",
   smashing: "Ahead",
 };
 
@@ -189,6 +189,6 @@ export function watchlessSummary(saved: { mark?: string; text?: string } | null 
 
 export function needsOutcome(quality: boolean, choice: string): string {
   if (!quality) return "";
-  if (choice === "Behind" || choice === "On target" || choice === "Ahead") return "";
+  if (choice === "Behind" || choice === "On track" || choice === "Ahead") return "";
   return "Choose behind, on target, or ahead.";
 }

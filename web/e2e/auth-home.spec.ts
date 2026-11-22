@@ -180,7 +180,7 @@ test("sign-in with a current season opens Home", async ({ page }) => {
   await expect(page.getByText("Coming in the next step.")).toHaveCount(0);
   await page.goto("/");
   await expect(page).toHaveURL(/\/home$/);
-  await expect(page.getByRole("button", { name: "Continue" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Get started" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "RIO" })).toHaveAttribute("href", "/home");
   await page.getByRole("link", { name: "RIO" }).click();
   await expect(page).toHaveURL(/\/home$/);
@@ -361,7 +361,7 @@ test("home shows rest-day copy, extras, the open index, and no-watch controls", 
   await expect(page.getByText("Shakeout")).toBeVisible();
   await expect(page.getByRole("button", { name: "Done" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Couldn't finish" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "On target" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "On track" })).toBeVisible();
 });
 
 test("a current season skips the intro, and intro_seen false shows it again", async ({ page }) => {

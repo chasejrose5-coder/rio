@@ -33,7 +33,7 @@ test("privacy and terms are public drafts with footer links", async ({ page }) =
   await expect(page.getByRole("link", { name: "Privacy" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Terms" })).toBeVisible();
   await expect(page.getByText("Photo by Giant Asparagus on Pexels")).toBeVisible();
-  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Get started" }).click();
   await expect(page).toHaveURL(/\/sign-in/);
   await expect(page.getByRole("link", { name: "Privacy" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Terms" })).toBeVisible();

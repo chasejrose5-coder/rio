@@ -148,7 +148,10 @@ describe("refresh session", { concurrency: false }, () => {
 describe("sign-in when refresh returns null", () => {
   it("stays on the page with a visible error", () => {
     assert.equal(afterSignIn(null), SESSION_STUCK);
-    assert.equal(SESSION_STUCK, "Signed in, but the session didn't stick. Try again.");
+    assert.equal(
+      SESSION_STUCK,
+      "You're signed in, but this browser didn't keep the session. Allow cookies for riorunning.com and try again.",
+    );
     assert.equal(afterSignIn(athlete), null);
     const screen = readFileSync(new URL("../components/AuthScreen.tsx", import.meta.url), "utf8");
     assert.match(screen, /const signedIn = await refresh\(\)/);

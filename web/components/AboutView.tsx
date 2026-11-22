@@ -5,6 +5,7 @@ import { Footer } from "./Footer";
 import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { ABOUT } from "@/lib/about";
+import { Glossary } from "./Glossary";
 import { useAuth } from "@/lib/auth";
 
 export function AboutView() {
@@ -47,6 +48,7 @@ function AboutBody() {
           </div>
           <p className="rio-photo-credit">{ABOUT.credit}</p>
         </header>
+        <Glossary />
         {ABOUT.sections.map((section) => (
           <section key={section.title} className="rio-card">
             <p className="rio-mark-label">{section.title}</p>

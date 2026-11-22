@@ -160,7 +160,7 @@ test("a quality day states the rep time, the average, and asks before it saves",
   await expect(page.getByText("6 × 400 m near goal 800 pace, 90 s rest")).toBeVisible();
   await expect(page.getByText("6 × 400 m @ 71.2 s, 90 s rest")).toBeVisible();
   await expect(page.getByText(/^Average /)).toHaveCount(0);
-  await expect(page.getByText("Tolerance 68.0-74.4 s")).toBeVisible();
+  await expect(page.getByText("Target range 68.0-74.4 s")).toBeVisible();
   await expect(page.getByText("Block 12:06.0")).toBeVisible();
   await expect(page.getByText("Pre-warm-up")).toBeVisible();
   await expect(page.getByText("1 × 800 m easy")).toBeVisible();
@@ -229,7 +229,7 @@ test("no-watch shows Done and the confirm dialog only when a time is entered", a
   await expect(page.getByRole("button", { name: "Behind" })).toBeVisible();
   await page.getByRole("button", { name: "Done" }).click();
   await expect(page.getByText("Choose behind, on target, or ahead.")).toBeVisible();
-  await page.getByRole("button", { name: "On target" }).click();
+  await page.getByRole("button", { name: "On track" }).click();
   await page.getByRole("button", { name: "Add a time" }).click();
   await page.getByLabel("Time").fill("1:12.4");
   await page.getByRole("button", { name: "Done" }).click();

@@ -7,8 +7,6 @@ import { Nav } from "./Nav";
 import { PageMeaning } from "./PageMeaning";
 import { RequireUser } from "./RequireUser";
 import { useAuth } from "@/lib/auth";
-import { CORE_DISCLAIMER } from "@/lib/core-content";
-
 export function CoreView() {
   return (
     <RequireUser title="Core" pageClass="page-core">
@@ -37,7 +35,6 @@ function CoreBody() {
           </section>
         </Disclosure>
         <CoreLibrary />
-        <p className="rio-medical">{CORE_DISCLAIMER}</p>
         <PageMeaning page="core" />
         <Footer />
       </main>

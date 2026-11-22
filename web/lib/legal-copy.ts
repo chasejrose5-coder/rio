@@ -37,6 +37,16 @@ export const PRIVACY: LegalPage = {
       title: "What this draft is",
       blocks: [
         {
+          kind: "ul",
+          items: [
+            "RIO is a training app for any runner. This page is still a draft.",
+            "RIO stores your account, your plan, the workouts you log, and Strava runs if you connect them.",
+            "Strava is the only place runs are imported from. Those runs are visible only to you.",
+            "Log in and Create account load Google's sign-in script and fonts. Google may set a g_state cookie on those two pages.",
+            "Vercel and Render keep hosting request logs, including IP addresses, for the public site and the API.",
+          ],
+        },
+        {
           kind: "p",
           text: "RIO (Runner Intelligence Owned) is a training app for any runner. This draft says what the public site at riorunning.com stores today. It is a description of the code, for review. It is not a finished privacy policy, and it does not claim that any privacy law is already met.",
         },

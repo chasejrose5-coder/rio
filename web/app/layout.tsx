@@ -7,7 +7,7 @@ import { LIVE_ORIGIN } from "@/lib/old-host";
 import "./globals.css";
 
 const description =
-  "RIO builds an 800 meter plan from the times you enter and the runs you log. Your race, your plan, your result.";
+  "RIO is a training plan for any runner, built from the times you enter and the runs you log. Your race, your plan, your result.";
 
 /** Same-origin `/api` only. A laptop talks to localhost and does not ping Render. */
 function wakeTarget(): string | null {

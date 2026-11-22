@@ -151,8 +151,8 @@ test("the four values, a saved goal, a bad time, and a new easy pace", async ({ 
   await expect(page.getByRole("heading", { name: "Your easy pace" })).toBeVisible();
   await expect(page.getByText("Saved: 7:25 per mile. You can change it here.")).toBeVisible();
   await expect(page.getByText("Quality workouts stay on your 800.")).toBeVisible();
-  await expect(page.getByText("Four values from Start.")).toBeVisible();
-  await expect(page.getByText("Current 800 time")).toBeVisible();
+  await expect(page.getByText("These four came from Start when you built this season.")).toBeVisible();
+  await expect(page.getByText("Current 800 time", { exact: true })).toBeVisible();
   await expect(page.getByText("—", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Apr 19, 2026")).toBeVisible();
   await expect(page.getByText("Mar 19, 2027")).toBeVisible();
@@ -167,7 +167,7 @@ test("the four values, a saved goal, a bad time, and a new easy pace", async ({ 
   expect(goalBox!.y).toBeGreaterThan(goalLabel!.y + 12);
   await expect(page.getByText("Minutes, seconds, and tenths, like 1:58.0.")).toBeVisible();
   await expect(page.getByText("Saving keeps this time on your account. It does not rebuild the season.")).toBeVisible();
-  const current = page.getByText("Current 800 time");
+  const current = page.getByText("Current 800 time", { exact: true });
   await expect(page.locator("input").filter({ hasText: "Current 800 time" })).toHaveCount(0);
   await expect(current).toBeVisible();
 
@@ -221,7 +221,7 @@ test("the More menu lists its pages", async ({ page }) => {
   await install(page);
   await page.goto("/more");
   await expect(page.getByRole("heading", { name: "More", exact: true })).toBeVisible();
-  await expect(page.getByText("The rest of the season, still in this tab.")).toBeVisible();
+  await expect(page.getByText("Past seasons, your profile, settings, and help.")).toBeVisible();
   await expect(page.getByText("Coming in the next step.")).toHaveCount(0);
   await expect(page.locator("img")).toHaveCount(0);
   const cards = page.locator(".rio-more-list");

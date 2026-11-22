@@ -279,7 +279,7 @@ function Workout({
         {!hideRun && prescription?.line ? (
           <div className="rio-pace">
             <p className="rio-pace-line">{prescription.line}</p>
-            {prescription.tolerance ? <p className="rio-pace-range">Tolerance {prescription.tolerance}</p> : null}
+            {prescription.tolerance ? <p className="rio-pace-range">Target range {prescription.tolerance}</p> : null}
             {prescription.block ? <p className="rio-pace-block">Block {prescription.block}</p> : null}
             <HeartPace heart={prescription.heart} />
           </div>
@@ -527,15 +527,18 @@ function Watchless({ session, onSaved }: { session: SessionResponse; onSaved: ()
 
   return (
     <section className="rio-watchless">
-      {same?.missed ? <p className="rio-settings-note">Couldn&apos;t finish. Done still completes this workout.</p> : null}
+      {same?.missed ? <p className="rio-settings-note">Saved as couldn&apos;t finish. Finished after all? Tap Done.</p> : null}
       {session.quality ? (
         <div className="rio-done-choices">
-          {["Behind", "On target", "Ahead"].map((label) => (
+          {["Behind", "On track", "Ahead"].map((label) => (
             <button key={label} type="button" className={choice === label ? "rio-primary" : "rio-secondary"} aria-pressed={choice === label} onClick={() => setChoice(label)}>
               {label}
             </button>
           ))}
         </div>
+      ) : null}
+      {session.quality ? (
+        <p className="rio-settings-note">Behind: slower than the target. On track: within 3%. Ahead: faster.</p>
       ) : null}
       {open ? (
         <>

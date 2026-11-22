@@ -83,7 +83,7 @@ function LibraryBody() {
         if (!live) return;
         if (isSignedOut(caught) && statusRef.current !== "in") return;
         setData(null);
-        setProblem(caught instanceof ApiError ? caught.message : "The menu could not be loaded.");
+        setProblem(caught instanceof ApiError ? caught.message : "The workout library could not be loaded. Try again.");
         setMode("error");
       });
     return () => {
@@ -101,7 +101,7 @@ function LibraryBody() {
       <main className={rise ? "rio-stagger" : undefined}>
         <header className="rio-hero">
           <h1>Library</h1>
-          <p className="rio-range">Every workout in the menu, in one list.</p>
+          <p className="rio-range">Every workout RIO can put in your plan.</p>
         </header>
         {mode === "loading" ? <SkeletonBlocks /> : null}
         {mode !== "loading" ? (

@@ -11,7 +11,6 @@ import { useAuth } from "@/lib/auth";
 import { destinationAfterSignIn } from "@/lib/enter";
 import {
   METHOD_SENTENCE,
-  SAFETY_NOTE,
   anchorError,
   boundsError,
   formatRange,
@@ -347,7 +346,6 @@ export function HeartRateForm({ profile, mode }: { profile: HeartRateProfile; mo
             ) : null}
           </>
         )}
-        <p className="rio-hr-safety">{SAFETY_NOTE}</p>
         {error ? <ErrorText>{error}</ErrorText> : null}
         {mode === "onboarding" ? (
           <button className="rio-primary" type="submit" disabled={busy}>
@@ -418,10 +416,14 @@ function HeartRateStepBody() {
   const { athlete } = useAuth();
   const [profile, setProfile] = useState<HeartRateProfile | null>(null);
   const [problem, setProblem] = useState("");
+  const [kicker, setKicker] = useState("Start here");
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let live = true;
+    void api.currentSeason().then((season) => {
+      if (live && season) setKicker("Your heart rate");
+    }).catch(() => undefined);
     api
       .heartRate()
       .then((body) => {
@@ -452,11 +454,11 @@ function HeartRateStepBody() {
       <Nav />
       <main>
         <section className="rio-easy">
-          <p className="rio-easy-kicker">Start here</p>
+          <p className="rio-easy-kicker">{kicker}</p>
           <h1>Heart rate</h1>
           <p>
             Resting heart rate is measured lying in bed when you wake up. Max heart rate is the highest you can reach
-            in a hard effort. Both are required.
+            in a hard effort. Both are needed to set your zones. No monitor? Tick the box above.
           </p>
         </section>
         {problem ? <LoadError message={problem} onRetry={() => setAttempt((value) => value + 1)} /> : null}

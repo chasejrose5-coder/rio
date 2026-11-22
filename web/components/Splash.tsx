@@ -10,11 +10,12 @@ export function Splash({ onContinue }: { onContinue: () => void }) {
         <p className="rio-brand-owned">Runner Intelligence Owned</p>
         <h1>Your Race, Your Plan, Your Result</h1>
         <p className="rio-reason-line">Every rep has a reason</p>
+        <p>A training plan for any runner, built from your own times.</p>
         <blockquote>
-          <p>“Most plans tell you what to run. RIO shows you why, and adjusts when the season doesn&apos;t go to script.”</p>
+          <p>Most plans tell you what to run. RIO shows you why, and adjusts when the season doesn’t go to script.</p>
         </blockquote>
         <button type="button" className="rio-primary rio-splash-go" onClick={onContinue}>
-          Continue
+          Get started
         </button>
         <PhotoCredit onPhoto>Photo by Giant Asparagus on Pexels</PhotoCredit>
       </main>

@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { Disclosure } from "./Disclosure";
 import { ApiError, api, previewing } from "@/lib/api";
 import {
-  INJURY_DISCLAIMER,
   dayBlocks,
   levelOn,
   type DayBlock,
@@ -81,7 +80,6 @@ export function InjuryDay({ date }: { date: string }) {
   return (
     <section className="rio-recover-block" aria-label="Injury prevention">
       <p className="rio-mark-label">Injury prevention</p>
-      <p className="rio-medical">{INJURY_DISCLAIMER}</p>
       {blocks.length === 0 ? (
         <p className="rio-note">None today. Race day and the day before stay clear, and the other days rotate.</p>
       ) : (
