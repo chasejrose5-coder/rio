@@ -172,10 +172,10 @@ function HomeBody() {
         {error ? <LoadError message={error} onRetry={() => setAttempt((value) => value + 1)} /> : null}
         {!home && !linkProblem && !error ? <SkeletonBlocks variant="home" /> : null}
         {home && !linkProblem ? (
-          <>
+          <div className="rio-home-stack">
             <HeartRatePrompt />
             <HomeMain home={home} offer={offer} readOnly={readOnly} onDismiss={() => setOffer(false)} reload={() => void load(false)} />
-          </>
+          </div>
         ) : null}
         <PageMeaning page="home" />
         <PhotoCredit onPhoto>Photo by Gaby Lopez on Pexels</PhotoCredit>
@@ -379,20 +379,22 @@ function HomeMain({
         )}
         <StretchLink today={home.today} />
       </section>
-      <p className="rio-index rio-index-pad">{upcomingIndex}</p>
-      <div className="rio-next3">
-        {(season.next_days || []).map((day) => (
-          <DayCard key={day.date} card={day} />
-        ))}
+      <div className="rio-home-tail">
+        <p className="rio-index rio-index-pad">{upcomingIndex}</p>
+        <div className="rio-next3">
+          {(season.next_days || []).map((day) => (
+            <DayCard key={day.date} card={day} />
+          ))}
+        </div>
+        {!showedPhase ? <p className="rio-index rio-index-pad">03  /  Open</p> : null}
+        <div className="rio-quick">
+          <Link href="/plan">Plan</Link>
+          <Link href="/activity">Activity</Link>
+          <Link href="/library">Library</Link>
+          <Link href="/more">More</Link>
+        </div>
+        <Extras today={home.today} activities={season.activities} />
       </div>
-      {!showedPhase ? <p className="rio-index rio-index-pad">03  /  Open</p> : null}
-      <div className="rio-quick">
-        <Link href="/plan">Plan</Link>
-        <Link href="/activity">Activity</Link>
-        <Link href="/library">Library</Link>
-        <Link href="/more">More</Link>
-      </div>
-      <Extras today={home.today} activities={season.activities} />
     </>
   );
 }

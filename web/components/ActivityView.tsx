@@ -194,7 +194,6 @@ function ActivityBody() {
                 </p>
               </section>
             )}
-            {noticeKind === "missing" && !connected ? <StravaCard /> : null}
             {noticeKind === "failed" ? (
               <div className="rio-card rio-card-tight">
                 <p className="rio-note">Runs could not be loaded. Try Refresh in a moment.</p>
@@ -285,18 +284,6 @@ function stravaSentence(notice: string | null | undefined): string {
   const text = (notice || "").trim();
   if (!text || !text.startsWith("Strava")) return "";
   return text;
-}
-
-function StravaCard() {
-  return (
-    <div className="rio-card rio-card-tight">
-      <p className="rio-mark-label">Strava isn&apos;t connected</p>
-      <p className="rio-note">Connect Strava in Settings to see your runs here.</p>
-      <p className="rio-strava-settings">
-        <Link href="/settings">Open Settings</Link>
-      </p>
-    </div>
-  );
 }
 
 function Run({ card }: { card: RunCard }) {

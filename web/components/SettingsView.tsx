@@ -494,7 +494,6 @@ function SettingsBody() {
         </Expander>
 
         <Expander title="Logging" defaultOpen>
-          <p className="rio-mark-label">Logging</p>
           <label className="rio-toggle">
             <input type="checkbox" checked={noWatch} onChange={(event) => void commitNoWatch(event.target.checked)} />
             {"I don't use a watch"}
@@ -507,7 +506,6 @@ function SettingsBody() {
         </Expander>
 
         <Expander title="Preferences">
-          <p className="rio-mark-label">Preferences</p>
           <fieldset className="rio-choice-set">
             <legend>Pace units</legend>
             <div className="rio-choice">
@@ -572,7 +570,6 @@ function SettingsBody() {
         </Expander>
 
         <Expander title="Data">
-          <p className="rio-mark-label">Data</p>
           {hasSeason ? (
             <button type="button" className="rio-settings-button" onClick={() => void exportSeason()}>
               Export season as JSON
@@ -585,7 +582,6 @@ function SettingsBody() {
         </Expander>
 
         <Expander title="Email">
-          <p className="rio-mark-label">Email</p>
           <form onSubmit={changeEmail} noValidate>
             <label className="rio-stack" htmlFor="settings-new-email">
               New email
@@ -613,12 +609,10 @@ function SettingsBody() {
         </Expander>
 
         <Expander title="Privacy">
-          <p className="rio-mark-label">Privacy</p>
           <p className="rio-settings-note">{clearNote}</p>
         </Expander>
 
         <Expander title="About">
-          <p className="rio-mark-label">About</p>
           <p className="rio-settings-note">RIO {APP_VERSION}</p>
         </Expander>
 

@@ -11,7 +11,7 @@ export function RequireUser({
   title,
   variant = "cards",
   pageClass,
-  pendingNav = true,
+  pendingNav = false,
 }: {
   children: React.ReactNode;
   title?: string;
