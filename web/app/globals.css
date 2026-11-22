@@ -607,11 +607,13 @@ a .rio-mini:hover, a.rio-daycard:hover, .rio-hit:hover .rio-mini {
 .rio-strava-offer .rio-primary, .rio-strava-offer .rio-secondary { margin-top: 0.7rem; margin-right: 0.5rem; }
 .rio-hr-prompt { margin: 1rem 0; padding: 1rem 1.15rem; }
 .rio-home-stack { display: contents; }
-@media (max-width: 480px) {
+@media (max-width: 720px) {
   .rio-home-stack { display: flex; flex-direction: column; }
   .rio-home-stack > .rio-home-today { order: 1; }
   .rio-home-stack > .rio-hr-prompt { order: 2; }
   .rio-home-stack > .rio-home-tail { order: 3; }
+}
+@media (max-width: 480px) {
   .page-home .rio-hero { padding: 0.7rem 0 0.4rem; }
   .page-home .rio-hello { margin-top: 0.3rem; font-size: 1.15rem; }
   .page-home .rio-hello-plan { margin-top: 0.15rem; }

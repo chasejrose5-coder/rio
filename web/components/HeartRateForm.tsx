@@ -468,7 +468,7 @@ function HeartRateStepBody() {
           <p className="rio-easy-kicker">{kicker}</p>
           <p>
             Resting heart rate is measured lying in bed when you wake up. Max heart rate is the highest you can reach
-            in a hard effort. Both are needed to set your zones. No monitor? Tick the box above.
+            in a hard effort. Both are needed to set your zones. No monitor? Tick the box below.
           </p>
         </section>
         {problem ? <LoadError message={problem} onRetry={() => setAttempt((value) => value + 1)} /> : null}
