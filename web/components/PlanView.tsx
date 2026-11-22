@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Disclosure } from "./Disclosure";
 import { Expander } from "./Expander";
 import { HeartPace } from "./HeartPace";
 import { Footer, PhotoCredit } from "./Footer";
@@ -373,38 +372,26 @@ function PlanReady({
             );
           })}
         </div>
-      </section>
-      <div className="rio-plan-split">
-        <div className="rio-plan-side">
         {openSpan ? (
-          <div id="rio-phase-panel" className="rio-phase-detail rio-card">
+          <div id="rio-phase-panel" className="rio-phase-detail" role="region" aria-label={openSpan.name}>
             <p className="rio-phase-heading">{openSpan.name}</p>
             {PHASE_PLAIN[Number(openSpan.phase)] ? (
               <p className="rio-phase-plain">{PHASE_PLAIN[Number(openSpan.phase)]}</p>
             ) : null}
             <ul className="rio-phase-week-list">
-              {nearWeeks(openSpan.weeks, openSpan.currentWeek).map((week) => (
+              {openSpan.weeks.map((week) => (
                 <li key={week} className={week === openSpan.currentWeek ? "is-current" : undefined}>
-                  <span>{weekOption(plan.inputs.start_date, week, format)}</span>
-                  {week === openSpan.currentWeek ? <span className="rio-phase-this">Now</span> : null}
+                  <button type="button" onClick={() => onWeek(week)}>
+                    <span>{weekOption(plan.inputs.start_date, week, format)}</span>
+                    {week === openSpan.currentWeek ? <span className="rio-phase-this">Now</span> : null}
+                  </button>
                 </li>
               ))}
             </ul>
-            {otherWeeks(openSpan.weeks, openSpan.currentWeek).length ? (
-              <Disclosure title="Other weeks">
-                <ul className="rio-phase-week-list">
-                  {otherWeeks(openSpan.weeks, openSpan.currentWeek).map((week) => (
-                    <li key={week}>
-                      <span>{weekOption(plan.inputs.start_date, week, format)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </Disclosure>
-            ) : null}
           </div>
         ) : null}
-        </div>
-        <div>
+      </section>
+      <div className="rio-plan-main">
       <fieldset className="rio-segments">
         <legend className="rio-sr">Plan view</legend>
         {PLAN_VIEWS.map((name) => (
@@ -475,21 +462,9 @@ function PlanReady({
           />
         ) : null}
       </div>
-        </div>
       </div>
     </>
   );
-}
-
-function nearWeeks(weeks: number[], current: number | null | undefined): number[] {
-  if (current == null) return weeks.slice(0, 3);
-  const near = weeks.filter((week) => Math.abs(week - current) <= 1);
-  return near.length ? near : weeks.slice(0, 3);
-}
-
-function otherWeeks(weeks: number[], current: number | null | undefined): number[] {
-  const shown = new Set(nearWeeks(weeks, current));
-  return weeks.filter((week) => !shown.has(week));
 }
 
 function Calendar({ plan, onMonth }: { plan: PlanResponse; onMonth: (month: string) => void }) {

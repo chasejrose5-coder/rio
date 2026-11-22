@@ -10,6 +10,7 @@ import { Expander } from "./Expander";
 import { FoamDay } from "./FoamDay";
 import { InjuryDay } from "./InjuryDay";
 import { HeartPace } from "./HeartPace";
+import { StretchLink } from "./StretchLink";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
@@ -269,22 +270,30 @@ function Workout({
       <ResultForm key={`${session.digest}:${session.summary}`} session={session} onSaved={onSaved} />
     ) : null;
 
+  const blocks = prepFor(session.session);
+  const before = blocks.filter((block) => block.title !== "Cool-down" && block.title !== "Core");
+  const cooldown = blocks.find((block) => block.title === "Cool-down");
+  const corePrep = blocks.find((block) => block.title === "Core");
+
   return (
-    <div className="rio-session-grid">
-      <div className="rio-session-log">
-        <p className="rio-eyebrow">Log</p>
-        {log}
-      </div>
-      <div>
-      <p className="rio-eyebrow">Before you run</p>
-      <section className="rio-card">
-        <div className={session.match && !hideRun ? "rio-session-split" : undefined}>
-          <div>
-            <p className="rio-mark-label">Workout</p>
-            {session.show_id && session.session.template_id ? (
-              <p className="rio-template-id">{session.session.template_id}</p>
-            ) : null}
-          </div>
+    <div className="rio-session-stack">
+      {!hideRun && before.length ? (
+        <section className="rio-session-group" aria-label="Before workout">
+          <p className="rio-eyebrow">Before workout</p>
+          {before.map((block) => (
+            <Disclosure className="rio-session-box" title={block.title} key={block.title}>
+              <PrepBody block={block} />
+            </Disclosure>
+          ))}
+        </section>
+      ) : null}
+      <section className="rio-session-group" aria-label="Workout">
+        <p className="rio-eyebrow">Workout</p>
+        <section className="rio-card rio-session-box">
+          <p className="rio-mark-label">Workout</p>
+          {session.show_id && session.session.template_id ? (
+            <p className="rio-template-id">{session.session.template_id}</p>
+          ) : null}
           {session.match && !hideRun ? (
             <div className="rio-supplied">
               <p className="rio-mark-label">Logged run</p>
@@ -293,48 +302,55 @@ function Workout({
               {session.match.heart_rate ? <Field label="Avg HR" value={session.match.heart_rate} /> : null}
             </div>
           ) : null}
-        </div>
-        {active && offer ? card : null}
-        {!hideRun && (prescription?.block || prescription?.heart) ? (
-          <div className="rio-pace">
-            {prescription?.block ? <p className="rio-pace-block">Block {prescription.block}</p> : null}
-            <HeartPace heart={prescription.heart} />
-          </div>
-        ) : null}
-        {!hideRun ? (
-          <Disclosure title="Details">
-            <Field label="Structure" value={session.structure || "—"} />
-            <Field label="Target outcome" value={session.target || "—"} />
-          </Disclosure>
-        ) : null}
-        {!hideRun ? <Prep session={session.session} /> : null}
-        <p className="rio-eyebrow">After you run</p>
-        <InjuryDay key={session.date} date={session.date} />
-        {!hideRun ? (
-          <Disclosure className="rio-prep-block" title="Core">
-            <PrepBody block={prepFor(session.session).find((block) => block.title === "Core") || { title: "Core" }} />
-            <CoreDay key={`${session.date}-core`} date={session.date} session={session.session} bare />
-          </Disclosure>
-        ) : (
-          <CoreDay key={`${session.date}-core`} date={session.date} session={session.session} bare />
-        )}
-        <FoamDay key={`${session.date}-foam`} date={session.date} session={session.session} />
-        {session.heart_rate ? <Field label="Avg HR" value={session.heart_rate} /> : null}
-        <ZoneTime zones={session.zones} />
-        <section className="rio-session-section">
-          <p className="rio-mark-label">Reasons</p>
-          {session.reasons.length ? (
-            session.reasons.map((line) => (
-              <p className="rio-reason" key={line}>
-                {line}
-              </p>
-            ))
-          ) : (
-            <p className="rio-empty">—</p>
-          )}
+          {!hideRun && (prescription?.block || prescription?.heart) ? (
+            <div className="rio-pace">
+              {prescription?.block ? <p className="rio-pace-block">Block {prescription.block}</p> : null}
+              <HeartPace heart={prescription.heart} />
+            </div>
+          ) : null}
+          {!hideRun ? (
+            <Disclosure title="Details">
+              <Field label="Structure" value={session.structure || "—"} />
+              <Field label="Target outcome" value={session.target || "—"} />
+            </Disclosure>
+          ) : null}
+          {log}
+          {session.heart_rate ? <Field label="Avg HR" value={session.heart_rate} /> : null}
+          <ZoneTime zones={session.zones} />
+          <section className="rio-session-section">
+            <p className="rio-mark-label">Reasons</p>
+            {session.reasons.length ? (
+              session.reasons.map((line) => (
+                <p className="rio-reason" key={line}>
+                  {line}
+                </p>
+              ))
+            ) : (
+              <p className="rio-empty">—</p>
+            )}
+          </section>
         </section>
+        {active && offer ? <div className="rio-card rio-session-box">{card}</div> : null}
       </section>
-      </div>
+      <section className="rio-session-group" aria-label="After workout">
+        <p className="rio-eyebrow">After workout</p>
+        {!hideRun && cooldown ? (
+          <Disclosure className="rio-session-box" title={cooldown.title}>
+            <PrepBody block={cooldown} />
+          </Disclosure>
+        ) : null}
+        <Disclosure className="rio-session-box" title="Core">
+          {corePrep ? <PrepBody block={corePrep} /> : null}
+          <CoreDay key={`${session.date}-core`} date={session.date} session={session.session} bare />
+        </Disclosure>
+        <FoamDay key={`${session.date}-foam`} date={session.date} session={session.session} />
+        <Disclosure className="rio-session-box" title="Stretching">
+          <StretchLink today={session.date} />
+        </Disclosure>
+        <Disclosure className="rio-session-box" title="Injury prevention">
+          <InjuryDay key={session.date} date={session.date} bare />
+        </Disclosure>
+      </section>
       {note?.headline && note.body ? <Insight session={session} note={note} onSaved={onSaved} /> : null}
     </div>
   );
@@ -370,27 +386,6 @@ function PrepBody({ block }: { block: PrepBlock }) {
         </div>
       ))}
     </>
-  );
-}
-
-function Prep({ session }: { session: SessionResponse["session"] }) {
-  return (
-    <div className="rio-prep">
-      {prepFor(session)
-        .filter((block) => block.title !== "Core")
-        .map((block) =>
-          block.title === "Cool-down" ? (
-            <Disclosure className="rio-prep-block" title={block.title} key={block.title}>
-              <PrepBody block={block} />
-            </Disclosure>
-          ) : (
-            <section className="rio-prep-block" key={block.title}>
-              <p className="rio-mark-label">{block.title}</p>
-              <PrepBody block={block} />
-            </section>
-          ),
-        )}
-    </div>
   );
 }
 

@@ -163,8 +163,10 @@ test("a quality day states the rep time, the average, and asks before it saves",
   await expect(page.getByText("Target range 68.0-74.4 s")).toBeVisible();
   await expect(page.getByText("Block 12:06.0")).toBeVisible();
   await expect(page.getByText("Pre-warm-up")).toBeVisible();
+  await page.getByRole("button", { name: "Pre-warm-up", exact: true }).click();
   await expect(page.getByText("1 × 800 m easy")).toBeVisible();
   await expect(page.getByText("Warm-up", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Warm-up", exact: true }).click();
   await expect(page.getByText("4 × 100 m strides with walk-back")).toBeVisible();
   await expect(page.getByText("A-skips")).toBeVisible();
   await expect(page.getByText("Cool-down", { exact: true })).toBeVisible();
@@ -177,6 +179,8 @@ test("a quality day states the rep time, the average, and asks before it saves",
   await page.getByRole("button", { name: "Got it" }).click();
   await expect(page.getByText("On track today")).toHaveCount(0);
   await expect(page.getByText("Times save as you type.")).toBeVisible();
+  await expect(page.locator(".rio-session-log")).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Workout" }).getByLabel("Rep 1")).toBeVisible();
   await page.getByLabel("Rep 1").fill("70");
   await expect(page.getByText("Confirm this result before the plan changes.")).toBeVisible();
   await page.getByRole("button", { name: "Cancel" }).click();
@@ -192,6 +196,7 @@ test("an easy run uses the saved pace and does not ask for a rep time", async ({
   await signIn(page);
   await page.goto("/session?date=2026-11-12");
   await expect(page.getByText("Run at 7:45 per mile")).toBeVisible();
+  await page.getByRole("button", { name: "Warm-up", exact: true }).click();
   await expect(page.getByText("3–5 min easy jog")).toBeVisible();
   await expect(page.getByText("Then leg swings and a few light stretches:")).toBeVisible();
   await expect(page.getByText("Lateral leg swings")).toBeVisible();
@@ -207,6 +212,8 @@ test("an easy run uses the saved pace and does not ask for a rep time", async ({
     await page.setViewportSize({ width: 390, height: 844 });
     await page.screenshot({ path: "/opt/cursor/artifacts/easy-warmup-phone.png" });
   }
+  await expect(page.locator(".rio-session-log")).toHaveCount(0);
+  await expect(page.getByText("Log", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Behind" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Done" })).toHaveCount(0);
   await expect(page.getByText("Times save as you type.")).toHaveCount(0);
@@ -223,7 +230,7 @@ test("no-watch shows Done and the confirm dialog only when a time is entered", a
   await install(page, { session: "done" });
   await signIn(page);
   await page.goto("/session?date=2026-11-10");
-  await expect(page.getByRole("button", { name: "Done" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Workout" }).getByRole("button", { name: "Done" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Couldn't finish" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Add a time" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Behind" })).toBeVisible();

@@ -998,3 +998,38 @@
 
 .rio-v3 .rio-prep-block { border-bottom: 1px solid var(--line); }
 .rio-v3 .rio-prep-block > button { width: 100%; min-height: 44px; justify-content: flex-start; }
+
+/* Plan: the calendar is the full content column. The phase weeks open under the strip. */
+.rio-v3 .rio-plan-main { min-width: 0; }
+.rio-v3 .rio-phase-detail { margin-top: 12px; }
+.rio-v3 .rio-phase-week-list { list-style: none; margin: 12px 0 0; padding: 0; }
+.rio-v3 .rio-phase-week-list button {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--line);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Session is one column. Each block is its own card. */
+.rio-v3 .rio-session-stack { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
+.rio-v3 .rio-session-group { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.rio-v3 .rio-session-group > .rio-session-box,
+.rio-v3 .rio-session-group > .rio-card,
+.rio-v3 .rio-session-group > .rio-foam-block {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-1);
+  padding: 8px 16px 16px;
+}
+.rio-v3 .rio-session-stack .rio-disclosure > button { width: 100%; min-height: 44px; justify-content: flex-start; }
