@@ -73,6 +73,11 @@ function dropGetCache(): void {
   homeHandoff = null;
 }
 
+/** Keep a value the next GET would otherwise miss, such as a heart rate just saved. */
+export function rememberRead(path: string, value: unknown): void {
+  settledGets.set(path, { at: Date.now(), value });
+}
+
 /** Home reads this exact path. Kept aside so the next `api.home(false)` reuses it. */
 export function prefetchHome(): Promise<HomeResponse> {
   if (homeHandoff) return homeHandoff;

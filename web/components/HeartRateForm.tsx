@@ -6,7 +6,7 @@ import { Footer } from "./Footer";
 import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
-import { ApiError, api } from "@/lib/api";
+import { ApiError, api, rememberRead } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { destinationAfterSignIn } from "@/lib/enter";
 import {
@@ -21,7 +21,7 @@ import {
   zonesMatch,
   type ZoneDraft,
 } from "@/lib/heart-rate";
-import { needsHeartRate } from "@/lib/landing";
+import { markHeartRateSaved, needsHeartRate } from "@/lib/landing";
 import { PACE_ERROR, canonicalEasyPace } from "@/lib/profile";
 import type { HeartRateProfile } from "@/lib/types";
 
@@ -101,6 +101,8 @@ export function HeartRateForm({ profile, mode }: { profile: HeartRateProfile; mo
       setZones(draftFrom(saved));
       setCustom(saved.custom);
       savedAnchors.current = { resting: saved.resting_hr, max: saved.max_hr };
+      rememberRead("/heart-rate", saved);
+      markHeartRateSaved(saved);
       return saved;
     } catch (caught) {
       if (generation === saveGeneration.current) {

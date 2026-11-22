@@ -52,6 +52,7 @@ describe("where sign-in lands", () => {
     assert.equal(heartPromptOpen({ no_monitor: false, resting_hr: null, max_hr: null }, false), true);
     assert.equal(heartPromptOpen({ no_monitor: false, resting_hr: null, max_hr: null }, true), false);
     assert.equal(heartPromptOpen({ no_monitor: false, resting_hr: 60, max_hr: 180 }, false), false);
+    assert.equal(heartPromptOpen({ no_monitor: false, resting_hr: null, max_hr: null }, false, true), false);
     assert.equal(heartPromptOpen(null, false), false);
     assert.equal(pathAfterSeason({ ...athlete, prefs: { easy_pace: "" } }, season), "/easy-pace");
     const routing = readFileSync(new URL("./enter.ts", import.meta.url), "utf8");

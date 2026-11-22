@@ -106,13 +106,16 @@ test("sunday start, generate errors, a scored plan, and a failed link stay on St
   await expect(page.getByText("Your 800 m time today, the day you start, the time you want, and the race date.")).toBeVisible();
   await expect(page.getByText("SYNTHETIC / DEMO")).toHaveCount(0);
   await expect(page.getByLabel("Your 800 m time today")).toHaveValue("");
-  await expect(page.getByLabel("Your 800 m time today")).toHaveAttribute("placeholder", "2:05.0");
-  await expect(page.getByText("Your best recent 800 metres, as minutes:seconds.tenths. A rough guess is fine.")).toBeVisible();
+  await page.getByLabel("Your 800 m time today").pressSequentially("202");
+  await expect(page.getByLabel("Your 800 m time today")).toHaveValue("2:02");
+  await page.getByLabel("Your 800 m time today").fill("");
+  await expect(page.getByLabel("Your 800 m time today")).toHaveAttribute("placeholder", "2:02.00");
+  await expect(page.getByText("Your best recent 800 m, as m:ss.cc, like 2:02.00. A rough guess is fine.")).toBeVisible();
   await expect(page.getByLabel("Start date")).toHaveValue("2026-11-15");
   await expect(page.getByText("The day this season starts.")).toBeVisible();
   await expect(page.getByLabel("800 m time you're aiming for")).toHaveValue("");
-  await expect(page.getByLabel("800 m time you're aiming for")).toHaveAttribute("placeholder", "1:58.0");
-  await expect(page.getByText("The race time you want on your goal date. Same minutes:seconds.tenths format.")).toBeVisible();
+  await expect(page.getByLabel("800 m time you're aiming for")).toHaveAttribute("placeholder", "1:58.00");
+  await expect(page.getByText("The race time you want on your goal date. Same m:ss.cc format, like 1:58.00.")).toBeVisible();
   await expect(page.getByLabel("Goal date")).toHaveValue("2027-04-10");
   await expect(page.getByText("The day of the race.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Generate season plan" })).toBeVisible();
@@ -140,14 +143,10 @@ test("sunday start, generate errors, a scored plan, and a failed link stay on St
   await page.getByRole("button", { name: "Generate season plan" }).click();
   await expect(page.getByText("goal_date is before start_date")).toBeVisible();
 
-  await page.getByLabel("Start date").fill("not-a-date");
-  await page.getByRole("button", { name: "Generate season plan" }).click();
-  await expect(page.getByText("start_date is not a calendar date")).toBeVisible();
-
+  await expect(page.getByLabel("Start date")).toHaveAttribute("type", "date");
+  await expect(page.getByLabel("Goal date")).toHaveAttribute("type", "date");
   await page.getByLabel("Start date").fill("2026-11-15");
-  await page.getByLabel("Goal date").fill("not-a-date");
-  await page.getByRole("button", { name: "Generate season plan" }).click();
-  await expect(page.getByText("goal_date is not a calendar date")).toBeVisible();
+  await page.getByLabel("Goal date").fill("2027-04-10");
   const color = await page.locator(".rio-goal-card .rio-error").evaluate((el) => getComputedStyle(el).color);
   expect(color).toBe("rgb(180, 35, 24)");
 
@@ -259,14 +258,9 @@ test("a brand-new local account generates from Start and can dismiss Strava", as
   await page.getByRole("button", { name: "Generate season plan" }).click();
   await expect(page.getByText("goal_date is before start_date")).toBeVisible();
 
-  await page.getByLabel("Start date").fill("not-a-date");
-  await page.getByRole("button", { name: "Generate season plan" }).click();
-  await expect(page.getByText("start_date is not a calendar date")).toBeVisible();
-
+  await expect(page.getByLabel("Start date")).toHaveAttribute("type", "date");
+  await expect(page.getByLabel("Goal date")).toHaveAttribute("type", "date");
   await page.getByLabel("Start date").fill(today);
-  await page.getByLabel("Goal date").fill("not-a-date");
-  await page.getByRole("button", { name: "Generate season plan" }).click();
-  await expect(page.getByText("goal_date is not a calendar date")).toBeVisible();
   expect(await currentInputs(page)).toBeNull();
 
   await page.getByLabel("Goal date").fill(goal);

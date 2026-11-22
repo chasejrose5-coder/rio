@@ -17,7 +17,7 @@ import { TrackArt } from "./TrackArt";
 import { ApiError, api, isSignedOut, previewing, stopPreview } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { takeIntroMark } from "@/lib/enter";
-import { HR_PROMPT_KEY, heartPromptOpen } from "@/lib/landing";
+import { HR_PROMPT_KEY, heartPromptOpen, heartRateSatisfied, subscribeHeartRate } from "@/lib/landing";
 import { pageShouldRise } from "@/lib/motion";
 import { linkError } from "@/lib/plan";
 import { shownName } from "@/lib/settings";
@@ -186,16 +186,30 @@ function HeartRatePrompt() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (window.sessionStorage.getItem(HR_PROMPT_KEY) === "1") return;
     let live = true;
-    api
-      .heartRate()
-      .then((profile) => {
-        if (live && heartPromptOpen(profile, false)) setOpen(true);
-      })
-      .catch(() => undefined);
+    const check = () => {
+      const dismissed = window.sessionStorage.getItem(HR_PROMPT_KEY) === "1";
+      if (heartRateSatisfied()) {
+        setOpen(false);
+        return;
+      }
+      void api
+        .heartRate()
+        .then((profile) => {
+          if (!live) return;
+          setOpen(heartPromptOpen(profile, dismissed, heartRateSatisfied()));
+        })
+        .catch(() => undefined);
+    };
+    check();
+    const stop = subscribeHeartRate(() => {
+      if (heartRateSatisfied()) setOpen(false);
+    });
+    window.addEventListener("focus", check);
     return () => {
       live = false;
+      stop();
+      window.removeEventListener("focus", check);
     };
   }, []);
 
