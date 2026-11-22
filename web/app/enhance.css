@@ -571,16 +571,10 @@
 .rio-v3 .rio-help.is-open .rio-help-tip { animation: rio-pop 160ms var(--rio-ease-out); }
 @keyframes rio-pop { from { opacity: 0; scale: 0.96; } }
 
-/* Stretch, recovery, core, foam */
-.rio-v3 .rio-stretch-split,
-.rio-v3 .rio-recover-split,
-.rio-v3 .rio-heart-split { display: grid; gap: 24px; }
-@media (min-width: 1280px) {
-  .rio-v3 .rio-stretch-split { grid-template-columns: 7fr 5fr; }
-  .rio-v3 .rio-recover-split,
-  .rio-v3 .rio-heart-split { grid-template-columns: 8fr 4fr; }
-  .rio-v3 .rio-heart-split { grid-template-columns: 7fr 5fr; }
-}
+/* Stretch, recovery, core, foam.
+   The unused .rio-stretch-split / .rio-recover-split / .rio-heart-split wrappers had no markup.
+   Recovery and heart rate place their existing children on the 12-column grid below.
+   The stretching map stays full width (the 7/5 split shrinks the body-map hits). */
 .rio-v3 .rio-week-bar { height: 6px; border-radius: var(--radius-pill); background: #e6dfd3; overflow: hidden; }
 .rio-v3 .rio-week-bar > span { display: block; height: 100%; background: var(--button); transform-origin: left center; animation: rio-fill 400ms var(--rio-ease-out); }
 @keyframes rio-fill { from { scale: 0 1; } }
@@ -807,4 +801,100 @@
   .page-more.rio-v3, .page-past.rio-v3, .page-profile.rio-v3, .page-settings.rio-v3, .page-guide.rio-v3 {
     --nav-h: 108px;
   }
+}
+
+/* Batch 1 — one container and one vertical rhythm. Legacy max-widths stay in globals.css for non-v3 pages. */
+.rio-v3 main > *:not(.rio-hero):not(.rio-plan-hero) { margin-top: 0; margin-bottom: 0; }
+.rio-v3 main > .rio-hero,
+.rio-v3 main > .rio-plan-hero { margin-top: 0; margin-bottom: 0; }
+.rio-v3 main > .rio-meaning:not(.rio-hero) { margin-top: var(--space-5); }
+.rio-v3 main > .rio-contact:not(.rio-hero) { margin-top: var(--space-2); margin-bottom: var(--space-6); }
+.rio-v3 :is(.rio-more-list, .rio-past-list, .rio-recover-ask, .rio-lib, .rio-stretch-card, .rio-easy, .rio-profile-race, .rio-guide-contents) { max-width: none; }
+.rio-v3 :is(.rio-medical, .rio-profile-lead, .rio-note, .rio-disclosure > div) { max-width: 68ch; }
+.rio-v3 .rio-past-feature { max-width: none; }
+.rio-v3 .rio-meaning { max-width: none; width: 100%; padding: var(--space-4) var(--space-5); }
+@media (min-width: 1024px) {
+  .rio-v3 .rio-meaning { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); column-gap: var(--space-5); align-items: start; }
+  .rio-v3 .rio-meaning > .rio-meaning-kicker { grid-column: 1; grid-row: 1 / span 4; margin: 0; }
+  .rio-v3 .rio-meaning > :not(.rio-meaning-kicker) { grid-column: 2; margin: 0 0 var(--space-2); }
+  .rio-v3 .rio-meaning > :last-child { margin-bottom: 0; }
+}
+@media (min-width: 1280px) { .rio-v3.page-home .rio-hero { height: auto; } }
+.rio-v3 .rio-hero,
+.rio-v3 .rio-plan-hero { justify-content: safe flex-end; }
+.rio-v3 .rio-home-today .rio-track-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4) var(--space-5); }
+@media (min-width: 768px) { .rio-v3 .rio-home-today .rio-track-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.rio-v3 .rio-track-facts .rio-hr-target { grid-column: 1 / -1; max-width: 68ch; }
+.rio-v3 .rio-home-today .rio-track-day,
+.rio-v3 .rio-home-today .rio-track-fact-value { font-size: 24px; line-height: 28px; }
+.rio-v3.page-home .rio-home-today { padding: var(--space-5); }
+@media (min-width: 1280px) { .rio-v3.page-home .rio-home-phase { position: sticky; top: calc(var(--nav-h) + 16px); } }
+.rio-v3.page-home :where(main, .rio-home-stack) > * { order: 3; }
+.rio-v3.page-home :where(main, .rio-home-stack) > :is(.rio-secondary, .rio-primary) { justify-self: start; width: auto; padding: 0 var(--space-5); }
+.rio-v3 .rio-stretch-card { margin: 0; }
+.rio-v3 .rio-stretch-routine { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--space-3); align-items: start; }
+.rio-v3 .rio-stretch-routine > .rio-stretch-routine-head { grid-column: 1 / -1; }
+.rio-v3 .rio-stretch-library { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-3); align-items: start; }
+.rio-v3 .rio-stretch-library > :not(.rio-stretch-card) { grid-column: 1 / -1; }
+.rio-v3 .rio-stretch-routine + .rio-stretch-routine { margin-top: var(--space-4); }
+@media (max-width: 767px) { .rio-v3 .rio-bodies { max-width: 280px; margin-inline: auto; } }
+@media (min-width: 1280px) {
+  .rio-v3.page-recovery main > :is(.rio-recover-ask, .rio-disclosure, .rio-medical) { grid-column: 1 / span 8; }
+  .rio-v3.page-recovery main > .rio-meaning:not(.rio-hero) { grid-column: 9 / -1; grid-row: 2 / span 4; margin-top: 0; display: block; }
+}
+.rio-v3.page-recovery main > .rio-disclosure,
+.rio-v3.page-core main > .rio-disclosure,
+.rio-v3.page-foam main > .rio-disclosure,
+.rio-v3.page-stretch main > .rio-disclosure { max-width: none; border-bottom: 1px solid var(--line); }
+.rio-v3 main > .rio-disclosure > button { width: 100%; min-height: 56px; padding: 0 4px; }
+.rio-v3.page-heart .rio-hr { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: var(--shadow-1); padding: var(--space-5); }
+@media (min-width: 1024px) {
+  .rio-v3.page-heart main > .rio-hr { grid-column: 1 / span 7; grid-row: 2; }
+  .rio-v3.page-heart main > .rio-easy { grid-column: 8 / -1; grid-row: 2; max-width: none; }
+}
+.rio-v3.page-profile main > .rio-easy { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: 0; margin-bottom: -16px; }
+.rio-v3.page-profile main > .rio-easy-form { background: var(--surface); border: 1px solid var(--line); border-top: 0; border-radius: 0 0 var(--radius-card) var(--radius-card); box-shadow: var(--shadow-1); padding: 0 var(--space-5) var(--space-5); }
+.rio-v3.page-profile .rio-easy-form .rio-primary { width: auto; justify-self: start; padding: 0 var(--space-5); }
+@media (min-width: 768px) { .rio-v3.page-profile main { row-gap: 16px; } }
+@media (min-width: 1024px) {
+  .rio-v3.page-profile main > .rio-easy { grid-column: 1 / span 6; grid-row: 2 / span 2; align-self: stretch; margin-bottom: -16px; }
+  .rio-v3.page-profile main > .rio-easy-form { grid-column: 1 / span 6; grid-row: 4 / span 2; align-self: start; }
+  .rio-v3.page-profile main > .rio-profile-lead { grid-column: 7 / -1; grid-row: 2; align-self: start; margin: 0; }
+  .rio-v3.page-profile main > .rio-profile-group { grid-column: 7 / -1; grid-row: 3; }
+  .rio-v3.page-profile main > .rio-profile-race { grid-column: 7 / -1; grid-row: 4 / span 2; align-self: start; }
+}
+@media (max-width: 767px) { .rio-v3 .rio-more-row { min-height: 0; padding: var(--space-4); } }
+.rio-v3 .rio-session-log { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: var(--shadow-1); padding: var(--space-5); }
+.page-session.rio-v3 .rio-card { padding: var(--space-2) var(--space-5) var(--space-5); box-shadow: var(--shadow-1); }
+.page-session.rio-v3 .rio-card > :first-child .rio-mark-label { padding-top: var(--space-4); }
+.rio-v3 :is(.rio-hero, .rio-plan-hero) > :is(.rio-hero-chip, .rio-hero-chips) { align-self: flex-start; justify-self: start; width: fit-content; max-width: 100%; }
+.rio-v3 .rio-hero-chips { align-items: center; }
+.rio-v3 .rio-hero-chips .rio-stretch-link { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; }
+.rio-v3 .rio-hero-chips .rio-stretch-link span { color: rgba(255, 255, 255, 0.86); font-size: 13px; line-height: 18px; }
+.rio-v3 .rio-refresh { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: var(--shadow-1); align-content: start; }
+@media (min-width: 1024px) {
+  .rio-v3 .rio-refresh { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "label prev" "note prev" "cta prev"; column-gap: var(--space-6); row-gap: var(--space-2); align-items: start; }
+  .rio-v3 .rio-refresh > .rio-mark-label { grid-area: label; }
+  .rio-v3 .rio-refresh > .rio-note { grid-area: note; margin: 0; }
+  .rio-v3 .rio-refresh > :is(.rio-strava-settings, button) { grid-area: cta; justify-self: start; margin-top: var(--space-2); }
+  .rio-v3 .rio-refresh > .rio-activity-preview { grid-area: prev; }
+}
+@media (max-width: 767px) {
+  .rio-v3 .rio-library { position: static; }
+  .rio-v3 .rio-library-filters { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); width: 100%; }
+  .rio-v3 .rio-library select { min-width: 0; width: 100%; }
+}
+.rio-v3 .rio-lib-group { margin: var(--space-5) 0 0; }
+.rio-v3 .rio-lib-group:first-child { margin-top: 0; }
+.rio-v3 .rio-cal-day.rio-cal-out { background: transparent; border-color: transparent; box-shadow: none; }
+@media (min-width: 1280px) { .rio-v3 .rio-plan-side { position: sticky; top: calc(var(--nav-h) + 16px); align-self: start; } }
+.rio-splash-copy { position: static; }
+.rio-splash-copy > :not(.rio-splash-strip) { position: relative; z-index: 1; }
+.rio-splash { padding-bottom: 96px; }
+.rio-splash-strip { position: absolute; left: 0; right: 0; bottom: 0; justify-content: space-between; padding: 12px var(--gutter, 24px); }
+.rio-splash-strip .rio-contact { text-align: left; display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; }
+.rio-splash-strip .rio-contact p { margin: 0; }
+@media (max-width: 767px) {
+  .rio-v3 .rio-guide-contents { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter); }
+  .rio-v3 .rio-guide-contents a { flex: none; white-space: nowrap; }
 }
