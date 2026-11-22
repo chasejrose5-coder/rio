@@ -49,7 +49,7 @@ export function FoamDay({ date, session }: { date: string; session?: StretchSess
 
   return (
     <section className="rio-foam-block" aria-label="Foam rolling">
-      <p className="rio-mark-label">Foam rolling</p>
+    <Disclosure className="rio-prep-block" title="Foam rolling">
       <p className="rio-medical">{FOAM_DISCLAIMER}</p>
       {routine ? (
         <>
@@ -63,13 +63,11 @@ export function FoamDay({ date, session }: { date: string; session?: StretchSess
               </li>
             ))}
           </ul>
-          <Disclosure title="Details">
-            {routine.areas.map((area) => (
-              <p key={`${area.id}-how`}>
-                <strong>{area.name}.</strong> {area.howTo}
-              </p>
-            ))}
-          </Disclosure>
+          {routine.areas.map((area) => (
+            <p key={`${area.id}-how`}>
+              <strong>{area.name}.</strong> {area.howTo}
+            </p>
+          ))}
           {canSave ? (
             <button
               type="button"
@@ -97,6 +95,7 @@ export function FoamDay({ date, session }: { date: string; session?: StretchSess
       <p className="rio-stretch-link">
         <Link href="/foam">Browse foam rolling</Link>
       </p>
+    </Disclosure>
     </section>
   );
 }
@@ -105,13 +104,13 @@ export function FoamLibrary() {
   return (
     <>
       {FOAM_AREAS.map((area) => (
-        <article key={area.id} className="rio-stretch-card">
-          <h3>{area.name}</h3>
-          <p className="rio-stretch-meta">60 s after a hard day or a long run · 30 s when it is optional</p>
-          <Disclosure title="Details">
+        <Disclosure key={area.id} className="rio-calm-group" title={area.name}>
+          <div className="rio-calm-row">
+            <h3>{area.name}</h3>
+            <p>60 s after a hard day or a long run · 30 s when it is optional</p>
             <p>{area.howTo}</p>
-          </Disclosure>
-        </article>
+          </div>
+        </Disclosure>
       ))}
     </>
   );

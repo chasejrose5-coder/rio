@@ -4,22 +4,38 @@ import { WakeHint } from "./LoadingScreen";
 export function SkeletonBlocks({ variant = "cards" }: { variant?: "home" | "cards" | "calendar" }) {
   if (variant === "calendar") {
     return (
-      <div className="rio-skel-cal" aria-hidden="true">
-        {Array.from({ length: 35 }, (_, index) => (
-          <div key={index} className="rio-skel" />
-        ))}
+      <div className="rio-skel-stack" aria-hidden="true">
+        <div className="rio-skel rio-skel-hero" />
+        <div className="rio-skel" style={{ height: 40 }} />
+        <div className="rio-skel-split">
+          <div className="rio-skel rio-skel-card" />
+          <div className="rio-skel-cal">
+            {Array.from({ length: 35 }, (_, index) => (
+              <div key={index} className="rio-skel" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
   if (variant === "home") {
     return (
-      <div className="rio-skel-stack" aria-hidden="true">
-        <div className="rio-skel rio-skel-display" />
-        <div className="rio-skel rio-skel-line" />
-        <div className="rio-skel-grid">
+      <div className="rio-skel-stack rio-skel-home" aria-hidden="true">
+        <div className="rio-skel rio-skel-hero" />
+        <div className="rio-skel-tiles">
+          <div className="rio-skel" />
+          <div className="rio-skel" />
+          <div className="rio-skel" />
+          <div className="rio-skel" />
+        </div>
+        <div className="rio-skel-split">
           <div className="rio-skel rio-skel-card" />
           <div className="rio-skel rio-skel-card" />
-          <div className="rio-skel rio-skel-card" />
+        </div>
+        <div className="rio-skel-three">
+          <div className="rio-skel" />
+          <div className="rio-skel" />
+          <div className="rio-skel" />
         </div>
       </div>
     );

@@ -222,6 +222,9 @@ function AuthFrame({
         {children}
       </div>
       <PhotoCredit>Photo by Steve Pancrate on Pexels</PhotoCredit>
+      <p className="rio-auth-about">
+        <Link href="/about">About</Link>
+      </p>
       <Footer onPhoto />
     </main>
   );

@@ -232,7 +232,7 @@ test("a bad link is red and a bad length is a dash", async ({ page }) => {
   await page.goto("/plan?current_time=nope&start_date=2026-11-10&goal_time=1:58.0&goal_date=2027-04-10");
   const error = page.locator(".rio-plan-hero .rio-error");
   await expect(error).toHaveText("Error: current_time is not an 800 time");
-  await expect(error).toHaveCSS("color", "rgb(255, 107, 74)");
+  await expect(error).toHaveCSS("color", "rgb(18, 17, 16)");
   await expect(page.getByRole("link", { name: "Generate season plan" })).toHaveCount(0);
   await expect(page.locator(".rio-cal")).toHaveCount(0);
 
@@ -266,6 +266,10 @@ test("a season shows the hero, phases, weeks, and all three views", async ({ pag
   await expect(page.getByText("Week 2 · 2026-11-15 — 2026-11-21")).toHaveCount(0);
   await currentPhase.click();
   await expect(page.getByText("Week 2 · 2026-11-15 — 2026-11-21")).toBeVisible();
+  await page.getByRole("button", { name: /Week 1 · 2026-11-08/ }).click();
+  await expect(page.getByRole("radio", { name: "This week" })).toBeChecked();
+  await expect(page.getByRole("heading", { name: "Week 1" })).toBeVisible();
+  await page.getByRole("radio", { name: "Calendar" }).click();
   if (process.env.RIO_SHOTS) {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.screenshot({ path: "/opt/cursor/artifacts/plan-phases-desktop.png" });

@@ -16,7 +16,7 @@ import type { StretchSession } from "@/lib/stretch-content";
 import type { CoreState } from "@/lib/types";
 import { LoadError } from "./ErrorText";
 
-export function CoreDay({ date, session }: { date: string; session?: StretchSession }) {
+export function CoreDay({ date, session, bare = false }: { date: string; session?: StretchSession; bare?: boolean }) {
   const [state, setState] = useState<CoreState | null>(null);
   const [sessions, setSessions] = useState<StretchSession[]>([]);
   const [offline, setOffline] = useState(false);
@@ -56,7 +56,7 @@ export function CoreDay({ date, session }: { date: string; session?: StretchSess
 
   return (
     <section className="rio-core-block" aria-label="Core circuit">
-      <p className="rio-mark-label">Core circuit</p>
+      {bare ? null : <p className="rio-mark-label">Core circuit</p>}
       <p className="rio-medical">{CORE_DISCLAIMER}</p>
       {circuit == null ? (
         <p className="rio-note">None today. Race day and the day before stay clear.</p>
@@ -75,16 +75,14 @@ export function CoreDay({ date, session }: { date: string; session?: StretchSess
               </li>
             ))}
           </ul>
-          <Disclosure title="Details">
-            {circuit.exercises.map((exercise, index) => (
-              <p key={`${exercise.id}-how-${index}`}>
-                <strong>
-                  {exercise.name}. {CATEGORY_LABEL[exercise.category]}.
-                </strong>{" "}
-                {exercise.howTo}
-              </p>
-            ))}
-          </Disclosure>
+          {circuit.exercises.map((exercise, index) => (
+            <p key={`${exercise.id}-how-${index}`}>
+              <strong>
+                {exercise.name}. {CATEGORY_LABEL[exercise.category]}.
+              </strong>{" "}
+              {exercise.howTo}
+            </p>
+          ))}
           {canSave ? (
             <button
               type="button"
@@ -120,18 +118,16 @@ export function CoreLibrary() {
   return (
     <>
       {CATEGORIES.map((category) => (
-        <section key={category}>
-          <h2>{CATEGORY_LABEL[category]}</h2>
+        <Disclosure key={category} className="rio-calm-group" title={CATEGORY_LABEL[category]}>
           {CORE_EXERCISES.filter((exercise) => exercise.category === category).map((exercise) => (
-            <article key={exercise.id} className="rio-stretch-card">
+            <div key={exercise.id} className="rio-calm-row">
               <h3>{exercise.name}</h3>
-              <p className="rio-stretch-meta">{exercise.dose}</p>
-              <Disclosure title="Details">
-                <p>{exercise.howTo}</p>
-              </Disclosure>
-            </article>
+              <p>
+                {exercise.dose}. {exercise.howTo}
+              </p>
+            </div>
           ))}
-        </section>
+        </Disclosure>
       ))}
       <Expander title="How the day is chosen">
         <p>

@@ -214,7 +214,7 @@ test("the title band spans the viewport and the title stays on the content colum
     expect(band.scrollWidth, `scroll at ${width}`).toBeLessThanOrEqual(band.clientWidth + 1);
     expect(band.columnLeft, `column at ${width}`).not.toBeNull();
     expect(Math.abs((band.columnLeft ?? 0) - band.titleLeft), `align at ${width}`).toBeLessThan(1);
-    if (width >= 1280) expect(band.columnWidth ?? 0).toBeLessThanOrEqual(60 * 16 + 1);
+    if (width >= 1280) expect(band.columnWidth ?? 0).toBeLessThanOrEqual(1200 + 1);
   }
 });
 
@@ -229,7 +229,7 @@ test("a disconnected account shows the empty line and the Strava card", async ({
   await expect(page.getByRole("link", { name: "Open Settings" })).toHaveCount(0);
   await expect(page.getByText("Strava is not configured.")).toHaveCount(0);
   await expect(page.getByText("Refresh from Strava")).toHaveCount(0);
-  await expect(page.locator(".rio-mark-label").first()).toHaveCSS("color", "rgb(60, 58, 54)");
+  await expect(page.locator(".rio-mark-label").first()).toHaveCSS("color", "rgb(95, 91, 85)");
 });
 
 test("a pull failure stays off the raw sentence and keeps the stored runs", async ({ page }) => {

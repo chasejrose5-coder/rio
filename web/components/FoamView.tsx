@@ -4,7 +4,6 @@ import { Disclosure } from "./Disclosure";
 import { FoamLibrary } from "./FoamDay";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
-import { PageMeaning } from "./PageMeaning";
 import { RequireUser } from "./RequireUser";
 import { useAuth } from "@/lib/auth";
 import { FOAM_DISCLAIMER } from "@/lib/foam-content";
@@ -21,7 +20,7 @@ function FoamBody() {
   const { athlete } = useAuth();
   const compact = athlete?.prefs.compact === true;
   return (
-    <div className={compact ? "page-foam is-compact" : "page-foam"}>
+    <div className={compact ? "page-foam rio-v3 is-compact" : "page-foam rio-v3"}>
       <Nav active="Foam rolling" />
       <main>
         <header className="rio-hero">
@@ -39,8 +38,7 @@ function FoamBody() {
         </Disclosure>
         <FoamLibrary />
         <p className="rio-medical">{FOAM_DISCLAIMER}</p>
-        <PageMeaning page="foam" />
-        <Footer />
+        <Footer page="foam" />
       </main>
     </div>
   );

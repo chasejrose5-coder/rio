@@ -76,6 +76,27 @@ export function Nav({ active, pending = false }: { active?: string; pending?: bo
   }, [path]);
 
   useEffect(() => {
+    const place = () => {
+      document.querySelectorAll<HTMLElement>(".rio-links, .rio-subnav").forEach((row) => {
+        const bar = row.querySelector<HTMLElement>(":scope > .rio-nav-indicator");
+        const current = row.querySelector<HTMLElement>(":scope > a.is-active");
+        if (!bar) return;
+        if (!current) {
+          bar.style.width = "0px";
+          return;
+        }
+        const parent = row.getBoundingClientRect();
+        const box = current.getBoundingClientRect();
+        bar.style.width = `${box.width}px`;
+        bar.style.transform = `translate3d(${box.left - parent.left}px, 0, 0)`;
+      });
+    };
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, [path, trainingOpen, moreOpen, menuOpen, showApp]);
+
+  useEffect(() => {
     if (!menuOpen) return;
     const close = (event: MouseEvent) => {
       if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false);
@@ -155,6 +176,7 @@ export function Nav({ active, pending = false }: { active?: string; pending?: bo
           RIO
         </Link>
         <nav className="rio-links" aria-label="Pages">
+          <span className="rio-nav-indicator" aria-hidden="true" />
           {NAV.map((item) => {
             const on =
               item.label === "Training"
@@ -210,6 +232,7 @@ export function Nav({ active, pending = false }: { active?: string; pending?: bo
       </div>
       {trainingOpen ? (
         <nav className="rio-subnav" aria-label="Training">
+          <span className="rio-nav-indicator" aria-hidden="true" />
           {TRAINING.map((item) => {
             const on = path === item.href || active === item.label;
             return (
@@ -222,6 +245,7 @@ export function Nav({ active, pending = false }: { active?: string; pending?: bo
       ) : null}
       {moreOpen ? (
         <nav className="rio-subnav" aria-label="More">
+          <span className="rio-nav-indicator" aria-hidden="true" />
           {MORE.map((item) => {
             const on = path === item.href;
             return (

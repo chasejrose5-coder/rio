@@ -7,7 +7,7 @@ import { Disclosure } from "./Disclosure";
 import { Expander } from "./Expander";
 import { HeartPace } from "./HeartPace";
 import { Footer, PhotoCredit } from "./Footer";
-import { PageMeaning } from "./PageMeaning";
+import { shareHero } from "./present/motion";
 import { Nav } from "./Nav";
 import { PreviewBanner } from "./PreviewBanner";
 import { SkeletonBlocks } from "./PageSkeleton";
@@ -49,7 +49,9 @@ function headline(days: number | null | undefined, goal: string): ReactNode {
     const unit = days === 1 ? "day" : "days";
     return (
       <>
-        <span className="rio-display-num">{days}</span>
+        <span className="rio-display-num">
+          <Countdown days={days} />
+        </span>
         <span className="rio-display-rest">
           {" "}
           {unit} to your {goal || "goal"} 800 m
@@ -58,6 +60,35 @@ function headline(days: number | null | undefined, goal: string): ReactNode {
     );
   }
   return "—";
+}
+
+function HomeCredit() {
+  return (
+    <PhotoCredit onPhoto href="https://www.pexels.com/photo/birds-eye-view-of-athletics-stadium-18588227/">
+      Photo by Gaby Lopez on Pexels
+    </PhotoCredit>
+  );
+}
+
+function Countdown({ days }: { days: number }) {
+  const text = String(days);
+  return (
+    <span className="rio-roll">
+      {text.split("").map((digit, index) => (
+        <span key={`${digit}-${index}`} style={{ animationDelay: `${index * 40}ms` }}>
+          {digit}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function edgeClass(text: string): string {
+  const value = text.toLowerCase();
+  if (/\blong\b/.test(value)) return "is-long";
+  if (/\beasy\b/.test(value)) return "is-easy";
+  if (/\bspeed\b/.test(value) || /×/.test(text)) return "is-speed";
+  return "";
 }
 
 function WorkoutFacts({ card, title, showId }: { card: WorkoutCard; title: string; showId: boolean }) {
@@ -159,7 +190,7 @@ function HomeBody() {
 
   const compact = home?.athlete.prefs.compact === true;
   return (
-    <div className={compact ? "page-home is-compact" : "page-home"}>
+    <div className={compact ? "page-home rio-v3 is-compact" : "page-home rio-v3"}>
       <Nav />
       <main className={rise ? "rio-stagger" : undefined}>
         {readOnly || home?.preview?.active ? <PreviewBanner banner={home?.preview?.banner} /> : null}
@@ -167,6 +198,7 @@ function HomeBody() {
           <header className="rio-hero rio-home-hero">
             <h1>Home</h1>
             <ErrorText>{linkProblem}</ErrorText>
+            <HomeCredit />
           </header>
         ) : null}
         {error ? <LoadError message={error} onRetry={() => setAttempt((value) => value + 1)} /> : null}
@@ -177,9 +209,7 @@ function HomeBody() {
             <HomeMain home={home} offer={offer} readOnly={readOnly} onDismiss={() => setOffer(false)} reload={() => void load(false)} />
           </div>
         ) : null}
-        <PageMeaning page="home" />
-        <PhotoCredit onPhoto>Photo by Gaby Lopez on Pexels</PhotoCredit>
-        <Footer onPhoto />
+        <Footer page="home" />
       </main>
     </div>
   );
@@ -227,9 +257,10 @@ function HeartRatePrompt() {
       <button
         type="button"
         className="rio-secondary"
-        onClick={() => {
+        onClick={(event) => {
           window.sessionStorage.setItem(HR_PROMPT_KEY, "1");
-          setOpen(false);
+          event.currentTarget.closest("section")?.classList.add("is-leaving");
+          window.setTimeout(() => setOpen(false), 240);
         }}
       >
         Not now
@@ -261,6 +292,7 @@ function HomeMain({
         <header className="rio-hero rio-home-hero">
           <h1>Home</h1>
           {home.hello ? <p className="rio-hello">{home.hello}</p> : null}
+          <HomeCredit />
         </header>
         <p className="rio-empty">—</p>
       </>
@@ -273,6 +305,7 @@ function HomeMain({
         <header className="rio-hero rio-home-hero">
           <h1>Home</h1>
           {home.hello ? <p className="rio-hello">{home.hello}</p> : null}
+          <HomeCredit />
         </header>
         {home.copy ? <p className="rio-note">{home.copy}</p> : null}
         <StretchLink today={home.today} />
@@ -295,30 +328,35 @@ function HomeMain({
       <header className="rio-hero rio-home-hero">
         <div className="rio-home-grid">
           <div className="rio-home-copy">
+            {planLine ? <p className="rio-hello-plan">{planLine}</p> : null}
             <h1 className="rio-display">{headline(season.view.days_remaining, season.inputs.goal_time)}</h1>
             {home.hello ? <p className="rio-hello">{home.hello}</p> : null}
-            {planLine ? <p className="rio-hello-plan">{planLine}</p> : null}
           </div>
           <div className="rio-hero-art">
             <TrackArt />
           </div>
         </div>
+        <div className="rio-stat-row rio-stat-words">
+          <Stat label="Phase" value={phaseText(season.view.phase)} />
+          <Stat label="Last timed effort" value={markText(season.view.mark)} />
+          <Stat label="This week" value={season.view.focus || "—"} />
+          <Stat label="Progress" value={season.pace_status || "No runs yet"} />
+        </div>
+        <div className="rio-glossary rio-soft-card">
+          <Disclosure title="Details">
+            <p>A training block is one phase of the season.</p>
+            <p>A timed effort is a run you logged.</p>
+            <p>Times use minutes:seconds.tenths, like 2:05.0.</p>
+          </Disclosure>
+        </div>
+        <HomeCredit />
       </header>
-      <div className="rio-stat-row rio-stat-words">
-        <Stat label="Phase" value={phaseText(season.view.phase)} />
-        <Stat label="Last timed effort" value={markText(season.view.mark)} />
-        <Stat label="This week" value={season.view.focus || "—"} />
-        <Stat label="Progress" value={season.pace_status || "No runs yet"} />
-      </div>
-      <div className="rio-glossary rio-soft-card">
-        <Disclosure title="Details">
-          <p>A training block is one phase of the season.</p>
-          <p>A timed effort is a run you logged.</p>
-          <p>Times use minutes:seconds.tenths, like 2:05.0.</p>
-        </Disclosure>
-      </div>
+      {season.notes.map((item) => (
+        <Insight key={item.date} date={item.date} note={item.note} onDone={reload} />
+      ))}
+      <div className="rio-home-pair">
       {showedPhase && season.phase ? (
-        <section>
+        <section className="rio-home-phase">
           <p className="rio-index rio-index-pad">01  /  Current phase</p>
           <Expander className="rio-phase-details" title={season.phase.collapsed}>
             <div className="rio-phase-panel">
@@ -351,14 +389,11 @@ function HomeMain({
           </Expander>
         </section>
       ) : null}
-      {season.notes.map((item) => (
-        <Insight key={item.date} date={item.date} note={item.note} onDone={reload} />
-      ))}
       <section className="rio-home-today">
         <p className="rio-index">{workoutIndex}</p>
         {season.next ? (
           <>
-            <Link className="rio-hit" href={`/session?date=${season.next.date || ""}`}>
+            <Link className="rio-hit" href={`/session?date=${season.next.date || ""}`} onPointerDown={shareHero}>
               <WorkoutFacts
                 card={season.next}
                 title={todayWorkout ? "Today's workout" : "Next workout"}
@@ -379,13 +414,16 @@ function HomeMain({
         )}
         <StretchLink today={home.today} />
       </section>
-      <div className="rio-home-tail">
-        <p className="rio-index rio-index-pad">{upcomingIndex}</p>
-        <div className="rio-next3">
-          {(season.next_days || []).map((day) => (
-            <DayCard key={day.date} card={day} />
-          ))}
+        <div className="rio-home-upcoming">
+          <p className="rio-index rio-index-pad">{upcomingIndex}</p>
+          <div className="rio-next3">
+            {(season.next_days || []).map((day) => (
+              <DayCard key={day.date} card={day} />
+            ))}
+          </div>
         </div>
+      </div>
+      <div className="rio-home-tail">
         {!showedPhase ? <p className="rio-index rio-index-pad">03  /  Open</p> : null}
         <div className="rio-quick">
           <Link href="/plan">Plan</Link>
@@ -420,7 +458,7 @@ function roleWord(role: string | undefined): string {
 function DayCard({ card }: { card: WorkoutCard }) {
   const work = card.template_id ? card.label || "—" : "Rest day";
   const body = (
-    <div className="rio-mini">
+    <div className={`rio-mini ${edgeClass(work)}`}>
       <div className="rio-mini-dow">{card.day_of_week || "—"}</div>
       <div className="rio-mini-date">{card.shown_date || card.date}</div>
       <div className="rio-mini-work">{work}</div>

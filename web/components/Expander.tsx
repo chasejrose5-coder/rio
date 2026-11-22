@@ -4,6 +4,7 @@ type Props = {
   title: ReactNode;
   children: ReactNode;
   className?: string;
+  id?: string;
   /** Controlled open state. Leave unset to let the browser toggle it. */
   open?: boolean;
   /** Starts open. The person can still close it. */
@@ -12,10 +13,10 @@ type Props = {
 };
 
 /** The Streamlit expander: a thin gray chevron and a regular-weight title. */
-export function Expander({ title, children, className, open, defaultOpen, onToggle }: Props) {
+export function Expander({ title, children, className, id, open, defaultOpen, onToggle }: Props) {
   const classes = className ? `rio-expander ${className}` : "rio-expander";
   return (
-    <details className={classes} open={open ?? (defaultOpen ? true : undefined)} onToggle={onToggle}>
+    <details id={id} className={classes} open={open ?? (defaultOpen ? true : undefined)} onToggle={onToggle}>
       <summary>
         <span className="rio-chevron" aria-hidden="true" />
         {title}

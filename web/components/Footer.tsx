@@ -1,19 +1,33 @@
 import Link from "next/link";
 import { MEDICAL_NOTE } from "@/lib/glossary";
+import type { PageMeaningId } from "@/lib/guide-copy";
+import { PageMeaning } from "./PageMeaning";
 
-export function Footer({ onPhoto = false }: { onPhoto?: boolean }) {
+export function Footer({ onPhoto = false, page }: { onPhoto?: boolean; page?: PageMeaningId }) {
   return (
     <footer className={onPhoto ? "rio-contact on-photo" : "rio-contact"}>
       <p className="rio-medical-note">{MEDICAL_NOTE}</p>
-      <p className="rio-legal-links">
+      <div className="rio-legal-links">
+        {page ? <PageMeaning page={page} /> : null}
+        {page ? <span aria-hidden="true"> · </span> : null}
         <Link href="/privacy">Privacy</Link>
         <span aria-hidden="true"> · </span>
         <Link href="/terms">Terms</Link>
-      </p>
+      </div>
     </footer>
   );
 }
 
-export function PhotoCredit({ children, onPhoto = false }: { children: string; onPhoto?: boolean }) {
-  return <p className={onPhoto ? "rio-photo-credit on-photo" : "rio-photo-credit"}>{children}</p>;
+export function PhotoCredit({ children, onPhoto = false, href }: { children: string; onPhoto?: boolean; href?: string }) {
+  const klass = onPhoto ? "rio-photo-credit on-photo" : "rio-photo-credit";
+  const match = href ? /^(Photo by )(.+)( on Pexels)$/.exec(children) : null;
+  if (!match) return <p className={klass}>{children}</p>;
+  return (
+    <p className={klass}>
+      {match[1]}
+      <a href={href}>{match[2]}</a>
+      {" on "}
+      <a href="https://www.pexels.com">Pexels</a>
+    </p>
+  );
 }

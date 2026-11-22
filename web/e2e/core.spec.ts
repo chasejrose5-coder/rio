@@ -93,8 +93,11 @@ test("the core library and a hard-day circuit stay near eight minutes", async ({
     "aria-current",
     "page",
   );
+  await page.getByRole("button", { name: "Anti-extension" }).click();
   await expect(page.getByRole("heading", { name: "Plank", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Anti-rotation" }).click();
   await expect(page.getByRole("heading", { name: "Pallof press" })).toBeVisible();
+  await page.getByRole("button", { name: "Lateral" }).click();
   await expect(page.getByRole("heading", { name: "Copenhagen plank" })).toBeVisible();
 
   if (process.env.RIO_SHOTS) {
@@ -106,13 +109,14 @@ test("the core library and a hard-day circuit stay near eight minutes", async ({
 
   const circuit = circuitFor(today, [quality]);
   await page.goto(`/session?date=${today}`);
+  await page.getByRole("button", { name: "Core", exact: true }).click();
   const block = page.getByRole("region", { name: "Core circuit" });
   await expect(block).toBeVisible();
   await expect(block.getByText("About 8 min")).toBeVisible();
   await expect(page.getByText(MEDICAL_NOTE).first()).toBeVisible();
   await expect(block.getByText(CORE_DISCLAIMER)).toBeVisible();
   await expect(block.getByText(MEDICAL_NOTE)).toHaveCount(0);
-  await expect(block.getByText(circuit?.exercises[0]?.name || "", { exact: false })).toBeVisible();
+  await expect(block.getByText(circuit?.exercises[0]?.name || "", { exact: false }).first()).toBeVisible();
   await block.getByRole("button", { name: "Mark done" }).click();
   await expect(block.getByRole("button", { name: "Done" })).toBeVisible();
 

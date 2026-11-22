@@ -3,7 +3,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
-import { PageMeaning } from "./PageMeaning";
 import type { PageMeaningId } from "@/lib/guide-copy";
 import { RequireUser } from "./RequireUser";
 import { useAdminOnly } from "./useAdminOnly";
@@ -38,8 +37,7 @@ function Shell({
             {subtitle ? <p className="rio-range">{subtitle}</p> : null}
           </header>
           {allowed ? children : <p className="rio-wait">Loading</p>}
-          <PageMeaning page={page} />
-          <Footer />
+          <Footer page={page} />
         </main>
       </div>
     </RequireUser>

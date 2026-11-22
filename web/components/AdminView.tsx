@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Footer } from "./Footer";
-import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { useAdminOnly } from "./useAdminOnly";
@@ -244,8 +243,7 @@ function AdminBody() {
             Save photos
           </button>
         </section>
-        <PageMeaning page="admin" />
-        <Footer />
+        <Footer page="admin" />
       </main>
     </div>
   );

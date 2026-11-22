@@ -191,7 +191,7 @@ test("the four values, a saved goal, a bad time, and a new easy pace", async ({ 
 
   const label = page.locator(".rio-mark-label").first();
   const color = await label.evaluate((el) => getComputedStyle(el).color);
-  expect(color).toBe("rgb(60, 58, 54)");
+  expect(color).toBe("rgb(95, 91, 85)");
 });
 
 test("no season shows easy pace and the way to Start", async ({ page }) => {
@@ -235,7 +235,7 @@ test("the More menu lists its pages", async ({ page }) => {
   await expect(cards.getByRole("link", { name: /Profile/ })).toHaveAttribute("href", "/profile");
   await expect(cards.getByRole("link", { name: /Settings/ })).toHaveAttribute("href", "/settings");
   await expect(cards.getByRole("link", { name: /Guide/ })).toHaveAttribute("href", "/guide");
-  await expect(cards.getByRole("link", { name: /About/ })).toHaveAttribute("href", "/about");
+  await expect(cards.getByRole("link", { name: /^About/ })).toHaveAttribute("href", "/about");
   await expect(cards.getByRole("link", { name: /Creators/ })).toHaveAttribute("href", "/creators");
   const sub = page.getByRole("navigation", { name: "More" });
   await expect(sub.getByRole("link", { name: "Profile" })).toHaveAttribute("href", "/profile");

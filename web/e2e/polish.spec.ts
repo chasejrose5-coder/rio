@@ -91,6 +91,7 @@ test("the splash and sign-in put their copy in a main landmark", async ({ page }
 test("the guide link is at least 24px and Menu fits at 320px", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/about");
+  await page.getByRole("button", { name: "What this page means" }).click();
   const guide = page.getByRole("link", { name: "Read this in the guide" });
   await expect(guide).toBeVisible();
   const guideBox = await guide.boundingBox();

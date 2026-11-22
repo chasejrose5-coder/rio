@@ -4,7 +4,6 @@ import { Disclosure } from "./Disclosure";
 import { Footer } from "./Footer";
 import { CoreLibrary } from "./CoreDay";
 import { Nav } from "./Nav";
-import { PageMeaning } from "./PageMeaning";
 import { RequireUser } from "./RequireUser";
 import { useAuth } from "@/lib/auth";
 import { CORE_DISCLAIMER } from "@/lib/core-content";
@@ -21,7 +20,7 @@ function CoreBody() {
   const { athlete } = useAuth();
   const compact = athlete?.prefs.compact === true;
   return (
-    <div className={compact ? "page-core is-compact" : "page-core"}>
+    <div className={compact ? "page-core rio-v3 is-compact" : "page-core rio-v3"}>
       <Nav active="Core" />
       <main>
         <header className="rio-hero">
@@ -38,8 +37,7 @@ function CoreBody() {
         </Disclosure>
         <CoreLibrary />
         <p className="rio-medical">{CORE_DISCLAIMER}</p>
-        <PageMeaning page="core" />
-        <Footer />
+        <Footer page="core" />
       </main>
     </div>
   );

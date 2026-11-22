@@ -171,7 +171,7 @@ test("tapping a region adds its stretches, sharp pain does not, and Done sticks"
   await page.getByRole("button", { name: `Mark ${warmup} done` }).click();
   await expect(page.getByRole("button", { name: `${warmup} done` })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("stretch-week")).toHaveText("1 routine done this week · 1-day streak");
-  await expect(page.getByText("What this means")).toBeVisible();
+  await expect(page.getByText("What this page means")).toBeVisible();
   await page.getByRole("button", { name: `${warmup} done` }).click();
   await expect(page.getByRole("button", { name: `Mark ${warmup} done` })).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByTestId("stretch-week")).toHaveText("0 routines done this week · No streak yet");

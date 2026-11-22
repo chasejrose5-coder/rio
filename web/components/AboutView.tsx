@@ -3,10 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Footer } from "./Footer";
-import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { ABOUT } from "@/lib/about";
-import { Glossary } from "./Glossary";
 import { useAuth } from "@/lib/auth";
 
 export function AboutView() {
@@ -49,7 +47,6 @@ function AboutBody() {
           </div>
           <p className="rio-photo-credit">{ABOUT.credit}</p>
         </header>
-        <Glossary />
         {ABOUT.sections.map((section) => (
           <section key={section.title} className="rio-card">
             <p className="rio-mark-label">{section.title}</p>
@@ -90,16 +87,17 @@ function AboutBody() {
             ) : null}
           </section>
         ))}
-        <div className="rio-quick">
-          <Link className="rio-secondary" href="/create-account">
-            Create account
-          </Link>
-          <Link className="rio-secondary" href="/sign-in">
-            Sign in
-          </Link>
-        </div>
-        <PageMeaning page="about" />
-        <Footer />
+        {athlete ? null : (
+          <div className="rio-quick">
+            <Link className="rio-secondary" href="/create-account">
+              Create account
+            </Link>
+            <Link className="rio-secondary" href="/sign-in">
+              Sign in
+            </Link>
+          </div>
+        )}
+        <Footer page="about" />
       </main>
     </div>
   );

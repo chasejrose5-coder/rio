@@ -21,7 +21,7 @@ function label(level: LevelName): string {
   return "Hard";
 }
 
-export function InjuryDay({ date }: { date: string }) {
+export function InjuryDay({ date, bare = false }: { date: string; bare?: boolean }) {
   const [state, setState] = useState<InjuryState | null>(null);
   const [sessions, setSessions] = useState<StretchSession[]>([]);
   const [offline, setOffline] = useState(false);
@@ -80,7 +80,7 @@ export function InjuryDay({ date }: { date: string }) {
 
   return (
     <section className="rio-recover-block" aria-label="Injury prevention">
-      <p className="rio-mark-label">Injury prevention</p>
+      {bare ? null : <p className="rio-mark-label">Injury prevention</p>}
       <p className="rio-medical">{INJURY_DISCLAIMER}</p>
       {blocks.length === 0 ? (
         <p className="rio-note">None today. Race day and the day before stay clear, and the other days rotate.</p>

@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Footer } from "./Footer";
-import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api } from "@/lib/api";
@@ -69,8 +68,7 @@ function IntroBody() {
             Done
           </button>
         </div>
-        <PageMeaning page="intro" />
-        <Footer />
+        <Footer page="intro" />
       </main>
     </div>
   );

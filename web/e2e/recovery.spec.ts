@@ -169,6 +169,7 @@ test("recovery lists every exercise, saves a rebuilding area, and the day shows 
   const monday = dayBlocks(today, [], []);
   const first = monday[0]?.exercises[0]?.exercise.name || "";
   await page.goto(`/session?date=${today}`);
+  await page.getByRole("button", { name: "Injury prevention", exact: true }).click();
   await expect(page.getByRole("region", { name: "Injury prevention" })).toBeVisible();
   await expect(page.getByText(INJURY_DISCLAIMER).first()).toBeVisible();
   await expect(page.getByText(MEDICAL_NOTE).first()).toBeVisible();

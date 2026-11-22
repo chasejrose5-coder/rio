@@ -4,7 +4,6 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Disclosure } from "./Disclosure";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
-import { PageMeaning } from "./PageMeaning";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api, isSignedOut, previewing } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -118,7 +117,7 @@ function RecoveryBody() {
   const shown = EXERCISES.filter((exercise) => libraryGroup === "All" || AREAS.find((area) => area.id === exercise.areaId)?.group === libraryGroup);
 
   return (
-    <div className={compact ? "page-recovery is-compact" : "page-recovery"}>
+    <div className={compact ? "page-recovery rio-v3 is-compact" : "page-recovery rio-v3"}>
       <Nav active="Recovery" />
       <main>
         <header className="rio-hero">
@@ -157,7 +156,7 @@ function RecoveryBody() {
               ))}
             </div>
           ) : (
-            <p className="rio-note">Choose an area.</p>
+            <p className="rio-note rio-choose">Choose an area.</p>
           )}
         </section>
         <Disclosure title="Details">
@@ -211,8 +210,7 @@ function RecoveryBody() {
         {mode === "error" ? <LoadError message={problem} onRetry={() => setAttempt((value) => value + 1)} /> : null}
         {problem && mode !== "error" ? <ErrorText>{problem}</ErrorText> : null}
         <p className="rio-medical">{INJURY_DISCLAIMER}</p>
-        <PageMeaning page="recovery" />
-        <Footer />
+        <Footer page="recovery" />
       </main>
     </div>
   );
