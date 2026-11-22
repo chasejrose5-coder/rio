@@ -20,7 +20,7 @@ type Mode = "loading" | "ready" | "error";
 
 export function LibraryView() {
   return (
-    <RequireUser title="Library" pageClass="page-library" pendingNav>
+    <RequireUser title="Library" pageClass="page-library">
       <LibraryBody />
     </RequireUser>
   );

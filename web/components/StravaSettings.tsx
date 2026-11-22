@@ -57,7 +57,6 @@ export function StravaPanel({ flag }: { flag: string }) {
 
   return (
     <>
-      <p className="rio-mark-label">Strava</p>
       {status && !status.configured ? <p className="rio-note">Strava is not set up on this server yet.</p> : null}
       {status?.configured ? (
         <>

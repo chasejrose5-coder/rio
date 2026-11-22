@@ -266,7 +266,9 @@ test("connect opens Strava and disconnect clears the name", async ({ page }) => 
   await page.locator("summary", { hasText: "Strava" }).click();
   await expect(page.getByText("Strava data is only visible to you.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Connect with Strava" })).toBeVisible();
-  await expect(page.locator(".rio-mark-label", { hasText: "Strava" })).toHaveCSS("color", "rgb(60, 58, 54)");
+  const strava = page.locator("details", { has: page.locator("summary", { hasText: /^Strava$/ }) });
+  await expect(strava.locator("summary")).toHaveText("Strava");
+  await expect(strava.locator(".rio-mark-label", { hasText: /^Strava$/ })).toHaveCount(0);
   await page.getByRole("button", { name: "Connect with Strava" }).click();
   await page.waitForURL(/strava\.com\/oauth\/authorize/);
   expect(page.url()).toContain("redirect_uri=");
