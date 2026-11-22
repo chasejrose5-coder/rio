@@ -101,29 +101,28 @@ test("about shows the stadium photo, the credit, and the eight phases", async ({
   await expect.poll(() => page.evaluate(() => window.sessionStorage.getItem("rio-motion-page"))).toBe("about");
 });
 
-test("creators describes any runner and does not name one athlete", async ({ page }) => {
+test("creators shows Chase and keeps the Jay Rose placeholder in a comment", async ({ page }) => {
   await install(page);
   await page.goto("/creators");
   await expect(page.getByRole("heading", { name: CREATORS.heading })).toBeVisible();
   await expect(page.getByRole("heading", { name: CREATORS.name })).toBeVisible();
   await expect(page.getByText("Coming in the next step.")).toHaveCount(0);
-  await expect(page.getByText("Photo by Giant Asparagus on Pexels")).toBeVisible();
+  await expect(page.getByText("Photo by")).toHaveCount(0);
   await expect(page.getByText("SYNTHETIC")).toHaveCount(0);
   const img = page.locator(".rio-creator-photo img");
   await expect(img).toHaveAttribute("alt", CREATORS.alt);
-  await expect(img).toHaveAttribute("src", "/photos/startup-track.jpg");
+  await expect(img).toHaveAttribute("src", "/photos/chase-blocks.jpg");
   const visible = await page.locator(".page-creators").evaluate((root) => {
     const nodes = root.querySelectorAll(".rio-synthetic, h1, .rio-creator-name, .rio-creator-bio, .rio-creator-close");
     return Array.from(nodes).map((node) => (node.textContent || "").trim());
   });
   expect(visible).toEqual([CREATORS.banner, CREATORS.heading, CREATORS.name, ...CREATORS.paragraphs, CREATORS.close]);
   const text = await page.locator(".page-creators").innerText();
-  expect(text).not.toContain("Chase");
-  expect(text).not.toContain("Jay");
+  expect(text).not.toContain("Jay Rose");
   expect(text).not.toContain("Editable placeholder");
   expect(text).not.toContain("Bio coming soon");
   const html = await page.content();
-  expect(html).not.toContain("chase-blocks");
+  expect(html).toContain(CREATORS.comment);
   await expect(page.locator(".page-creators .rio-synthetic")).toHaveCSS("color", "rgb(226, 90, 50)");
   await expect(page.locator(".page-creators .rio-hero h1")).toHaveCSS("color", "rgb(244, 241, 236)");
   await expect(page.locator(".rio-creator-name")).toHaveCSS("color", "rgb(18, 17, 16)");
@@ -143,8 +142,8 @@ test("More opens About and Creators", async ({ page }) => {
   await expect(page.getByText("Eight phases", { exact: true })).toBeVisible();
   await page.getByRole("navigation", { name: "More" }).getByRole("link", { name: "Creators" }).click();
   await expect(page).toHaveURL(/\/creators$/);
-  await expect(page.getByRole("heading", { name: "Built for any runner." })).toBeVisible();
-  await expect(page.locator(".page-creators").getByText("Photo by Giant Asparagus on Pexels")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Built by a runner, for runners." })).toBeVisible();
+  await expect(page.locator(".page-creators").getByText("Photo by")).toHaveCount(0);
 });
 
 test("about stays open when nobody is signed in", async ({ page }) => {
