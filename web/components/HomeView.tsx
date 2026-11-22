@@ -353,6 +353,10 @@ function HomeMain({
         </div>
         <HomeCredit />
       </header>
+      {season.notes.map((item) => (
+        <Insight key={item.date} date={item.date} note={item.note} onDone={reload} />
+      ))}
+      <div className="rio-home-pair">
       {showedPhase && season.phase ? (
         <section className="rio-home-phase">
           <p className="rio-index rio-index-pad">01  /  Current phase</p>
@@ -387,9 +391,6 @@ function HomeMain({
           </Expander>
         </section>
       ) : null}
-      {season.notes.map((item) => (
-        <Insight key={item.date} date={item.date} note={item.note} onDone={reload} />
-      ))}
       <section className="rio-home-today">
         <p className="rio-index">{workoutIndex}</p>
         {season.next ? (
@@ -415,6 +416,7 @@ function HomeMain({
         )}
         <StretchLink today={home.today} />
       </section>
+      </div>
       <div className="rio-home-tail">
         <p className="rio-index rio-index-pad">{upcomingIndex}</p>
         <div className="rio-next3">
