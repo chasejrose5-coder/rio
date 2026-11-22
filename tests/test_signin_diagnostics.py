@@ -313,7 +313,7 @@ def test_health_auth_is_closed_without_a_project() -> None:
     if health.status_code != 200 or health.json() != {"ok": True}:
         raise AssertionError(health.text)
     probe = client.get("/health/auth")
-    if probe.status_code != 200 or probe.json() != blank:
+    if probe.status_code != 200 or probe.json() != {"ok": True}:
         raise AssertionError(probe.text)
     if ANON in probe.text or SERVICE in probe.text:
         raise AssertionError(probe.text)
@@ -348,21 +348,15 @@ def test_health_auth_reports_the_settings_status_without_secrets() -> None:
         raise AssertionError(body)
     _secrets_absent(str(body))
     client = _client(directory)
-    with patch("ui.cloud_store.fetch_auth_settings", lambda *_args, **_kwargs: 401):
+    calls = {"n": 0}
+
+    def _count(*_args, **_kwargs):
+        calls["n"] += 1
+        return 401
+
+    with patch("ui.cloud_store.fetch_auth_settings", _count):
         response = client.get("/health/auth")
-    if response.status_code != 200:
-        raise AssertionError(response.text)
-    refused = {
-        "configured": True,
-        "url_host": HOST,
-        "auth_reachable": False,
-        "status": 401,
-        "service_key_configured": True,
-        "service_key_format": "other",
-        "sessions_ok": {"ok": True, "code": None, "message": None},
-        "session_key_configured": bool(os.environ.get("RIO_SESSION_KEY", "").strip()),
-    }
-    if response.json() != refused:
+    if response.status_code != 200 or response.json() != {"ok": True} or calls["n"] != 0:
         raise AssertionError(response.text)
     _secrets_absent(response.text)
     with patch("ui.cloud_store.fetch_auth_settings", lambda *_args, **_kwargs: None):
@@ -450,3 +444,27 @@ def test_auth_settings_probe_is_a_get_and_drops_the_body() -> None:
         raise AssertionError(text)
     if any(record.levelno != logging.WARNING for record in records):
         raise AssertionError(text)
+
+
+def test_docs_and_openapi_stay_off_unless_enabled() -> None:
+    previous = os.environ.get("RIO_ENABLE_DOCS")
+    try:
+        os.environ.pop("RIO_ENABLE_DOCS", None)
+        closed = TestClient(create_app(directory=MemoryDirectory(), load_env=False))
+        for path in ("/docs", "/openapi.json", "/redoc"):
+            response = closed.get(path)
+            if response.status_code != 404:
+                raise AssertionError(path + " " + str(response.status_code))
+        os.environ["RIO_ENABLE_DOCS"] = "1"
+        opened = TestClient(create_app(directory=MemoryDirectory(), load_env=False))
+        spec = opened.get("/openapi.json")
+        if spec.status_code != 200 or "/health/auth" not in spec.text:
+            raise AssertionError(spec.text[:200])
+        page = opened.get("/docs")
+        if page.status_code != 200:
+            raise AssertionError(page.status_code)
+    finally:
+        if previous is None:
+            os.environ.pop("RIO_ENABLE_DOCS", None)
+        else:
+            os.environ["RIO_ENABLE_DOCS"] = previous

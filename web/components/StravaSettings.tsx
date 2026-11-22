@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ApiError, api } from "@/lib/api";
 import type { StravaStatus } from "@/lib/types";
+import { ErrorText } from "./ErrorText";
 
 export function StravaPanel({ flag }: { flag: string }) {
   const [status, setStatus] = useState<StravaStatus | null>(null);
@@ -75,7 +76,7 @@ export function StravaPanel({ flag }: { flag: string }) {
           )}
         </>
       ) : null}
-      {problem ? <p className="rio-error">{problem}</p> : null}
+      {problem ? <ErrorText>{problem}</ErrorText> : null}
     </>
   );
 }

@@ -50,7 +50,13 @@ def create_app(
     if load_env:
         load_local_env()
     settings = load_settings(frontend_origin)
-    app = FastAPI(title="RIO", docs_url="/docs", redoc_url=None)
+    docs = os.environ.get("RIO_ENABLE_DOCS", "").strip() == "1"
+    app = FastAPI(
+        title="RIO",
+        docs_url="/docs" if docs else None,
+        redoc_url=None,
+        openapi_url="/openapi.json" if docs else None,
+    )
     app.state.settings = settings
     app.state.directory = directory
     app.state.accounts_path = accounts if accounts is not None else accounts_path()

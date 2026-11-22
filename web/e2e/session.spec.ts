@@ -50,7 +50,16 @@ async function json(route: Route, body: unknown, status = 200) {
   await route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
 
-async function install(page: Page, options: { session?: "quality" | "easy" | "done" | "missing" | "bad"; role?: string; posted?: { count: number } }) {
+async function install(
+  page: Page,
+  options: {
+    session?: "quality" | "easy" | "done" | "missing" | "bad";
+    role?: string;
+    posted?: { count: number };
+    watchless?: { count: number };
+    delay?: number;
+  },
+) {
   let signed = false;
   let viewed = false;
   await page.route("**/*", async (route) => {
@@ -99,7 +108,11 @@ async function install(page: Page, options: { session?: "quality" | "easy" | "do
       viewed = true;
       return json(route, { note_saved: true });
     }
-    if (path === "/seasons/current/watchless") return json(route, { committed: true, insight: { status: "skipped" } });
+    if (path === "/seasons/current/watchless") {
+      if (options.watchless) options.watchless.count += 1;
+      if (options.delay) await new Promise((resolve) => setTimeout(resolve, options.delay));
+      return json(route, { committed: true, digest: "digest-2", insight: { status: "skipped" } });
+    }
     if (path === "/fixtures/intervals" || path.startsWith("/fixtures/intervals/")) {
       return json(route, { detail: "Not Found" }, 404);
     }
@@ -223,6 +236,18 @@ test("no-watch shows Done and the confirm dialog only when a time is entered", a
   await expect(page.getByText("Confirm this workout before the plan changes.")).toBeVisible();
   await page.getByRole("button", { name: "Cancel" }).click();
   await expect(page.getByText("Confirm this workout before the plan changes.")).toHaveCount(0);
+});
+
+test("double-clicking Couldn't finish saves once and does not show a stale-season error", async ({ page }) => {
+  const watchless = { count: 0 };
+  await install(page, { session: "done", watchless, delay: 400 });
+  await signIn(page);
+  await page.goto("/session?date=2026-11-10");
+  const missed = page.getByRole("button", { name: "Couldn't finish" });
+  await missed.dblclick();
+  await expect.poll(() => watchless.count).toBe(1);
+  await expect(page.getByText("another tab")).toHaveCount(0);
+  await expect.poll(() => watchless.count).toBe(1);
 });
 
 test("an extra activity has no Done form", async ({ page }) => {

@@ -17,6 +17,7 @@ import {
   shownField,
 } from "@/lib/profile";
 import type { ProfileResponse } from "@/lib/types";
+import { ErrorText, LoadError } from "./ErrorText";
 
 type Mode = "loading" | "ready" | "error";
 
@@ -33,6 +34,7 @@ function ProfileBody() {
   const [mode, setMode] = useState<Mode>("loading");
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [problem, setProblem] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const [pace, setPace] = useState("");
   const [unit, setUnit] = useState<"mi" | "km">("mi");
   const [paceError, setPaceError] = useState("");
@@ -81,7 +83,7 @@ function ProfileBody() {
     return () => {
       live = false;
     };
-  }, []);
+  }, [attempt]);
 
   useEffect(() => {
     if (seeded) return;
@@ -163,7 +165,7 @@ function ProfileBody() {
       <main className={rise ? "rio-stagger" : undefined}>
         <header className="rio-hero">
           <h1>Profile</h1>
-          {failed ? <p className="rio-error">{problem}</p> : null}
+          {failed ? <LoadError message={problem} onRetry={() => setAttempt((value) => value + 1)} /> : null}
         </header>
         {mode === "loading" ? <p className="rio-wait">Loading</p> : null}
         {mode !== "loading" ? (
@@ -177,7 +179,7 @@ function ProfileBody() {
               </p>
               {phrase ? <p className="rio-easy-now">{savedPaceLine(phrase)}</p> : null}
             </section>
-            {paceError ? <p className="rio-error">{paceError}</p> : null}
+            {paceError ? <ErrorText>{paceError}</ErrorText> : null}
             <form className="rio-easy-form" onSubmit={savePace} noValidate>
               <label htmlFor="profile-easy-pace">
                 Easy pace
@@ -241,7 +243,7 @@ function ProfileBody() {
                       Saving keeps this time on your account. It does not rebuild the season.
                     </p>
                   </form>
-                  {goalError ? <p className="rio-error">{goalError}</p> : null}
+                  {goalError ? <ErrorText>{goalError}</ErrorText> : null}
                   {profile.goal_override ? <p className="rio-settings-note">Saved for this account.</p> : null}
                 </section>
               </>

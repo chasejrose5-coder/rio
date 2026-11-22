@@ -196,7 +196,7 @@ test("a rejected name stays an error and the saved name is unchanged", async ({ 
   await openSettings(page);
   await page.locator("#settings-name").fill("!!!");
   await page.locator("#settings-name").blur();
-  await expect(page.locator(".rio-error")).toHaveText("Enter a name.");
+  await expect(page.locator(".rio-error")).toHaveText("Error: Enter a name.");
   expect(state.patches.some((patch) => patch.display_name === "!!!")).toBeFalsy();
   await page.reload();
   await expect(page.locator("#settings-name")).toHaveValue("Ada");
@@ -279,7 +279,7 @@ test("password and email keep the person signed in when the secret is wrong", as
   await page.getByLabel("Current password").fill("nope");
   await page.getByLabel("New password").fill("another-horse");
   await page.getByRole("button", { name: "Change password" }).click();
-  await expect(page.locator(".rio-error")).toHaveText("Password does not match.");
+  await expect(page.locator(".rio-error")).toHaveText("Error: Password does not match.");
   await expect(page).toHaveURL(/\/settings$/);
   await page.getByLabel("Current password").fill("correct-horse");
   await page.getByRole("button", { name: "Change password" }).click();
@@ -288,7 +288,7 @@ test("password and email keep the person signed in when the secret is wrong", as
   await page.getByLabel("New email").fill("taken@example.com");
   await page.locator("#settings-email-password").fill("correct-horse");
   await page.getByRole("button", { name: "Change email" }).click();
-  await expect(page.locator(".rio-error")).toHaveText("An account with that email already exists.");
+  await expect(page.locator(".rio-error")).toHaveText("Error: An account with that email already exists.");
   await expect(page.locator("#settings-email")).toHaveValue("ada@example.com");
 });
 
@@ -335,19 +335,19 @@ test("danger actions ask before they run", async ({ page }) => {
   ).toBeVisible();
   await page.locator("summary", { hasText: "Danger zone" }).click();
   await page.getByRole("button", { name: "Clear all marks / actuals" }).click();
-  await expect(page.locator(".rio-error")).toHaveText("Confirm to clear marks and actuals.");
+  await expect(page.locator(".rio-error")).toHaveText("Error: Confirm to clear marks and actuals.");
   await page.getByLabel("Confirm clear").check();
   await page.getByRole("button", { name: "Clear all marks / actuals" }).click();
   await expect(page.locator(".rio-settings-flash")).toHaveText("Marks and actuals are cleared.");
   await page.getByRole("button", { name: "Reset plan" }).click();
-  await expect(page.locator(".rio-error")).toHaveText("Confirm to reset the plan.");
+  await expect(page.locator(".rio-error")).toHaveText("Error: Confirm to reset the plan.");
   await page.getByRole("button", { name: "Delete my account" }).click();
-  await expect(page.locator(".rio-error")).toHaveText("Confirm to delete this account.");
+  await expect(page.locator(".rio-error")).toHaveText("Error: Confirm to delete this account.");
   await page.getByLabel("I understand this permanently deletes my season and runs").check();
   await page.getByRole("button", { name: "Delete my account" }).click();
-  await expect(page.locator(".rio-error")).toHaveText("Confirm with your email to delete this account.");
+  await expect(page.locator(".rio-error")).toHaveText("Error: Confirm with your email to delete this account.");
   await page.getByRole("button", { name: "Clear local data" }).click();
-  await expect(page.locator(".rio-error")).toHaveText("Confirm to clear local data.");
+  await expect(page.locator(".rio-error")).toHaveText("Error: Confirm to clear local data.");
   expect(state.posts.map((post) => post.path)).toEqual(["/seasons/current/clear"]);
   await expect(page.locator(".rio-expander-danger").getByText("Clears this browser. The account stays on this machine.")).toBeVisible();
   await expect(page.getByText("Reset removes stored seasons. The account stays.")).toBeVisible();
@@ -356,14 +356,14 @@ test("danger actions ask before they run", async ({ page }) => {
 test("save failures use the account sentences", async ({ page }) => {
   await install(page, { failOpen: "This account could not be opened." });
   await openSettings(page);
-  await expect(page.locator(".rio-error")).toHaveText("This account could not be opened.");
+  await expect(page.locator(".rio-error")).toHaveText("Error: This account could not be opened.");
   await page.getByLabel("Current password").fill("correct-horse");
   await page.getByLabel("New password").fill("another-horse");
   await page.route("**/auth/password", async (route) => {
     await json(route, { detail: "This session could not be saved." }, 400);
   });
   await page.getByRole("button", { name: "Change password" }).click();
-  await expect(page.locator(".rio-error")).toHaveText("This session could not be saved.");
+  await expect(page.locator(".rio-error")).toHaveText("Error: This session could not be saved.");
   await page.locator("summary", { hasText: "Email" }).click();
   await page.route("**/auth/email", async (route) => {
     await json(route, { detail: "This account could not be saved." }, 400);
@@ -371,5 +371,5 @@ test("save failures use the account sentences", async ({ page }) => {
   await page.getByLabel("New email").fill("ada.new@example.com");
   await page.locator("#settings-email-password").fill("correct-horse");
   await page.getByRole("button", { name: "Change email" }).click();
-  await expect(page.locator(".rio-error")).toHaveText("This account could not be saved.");
+  await expect(page.locator(".rio-error")).toHaveText("Error: This account could not be saved.");
 });

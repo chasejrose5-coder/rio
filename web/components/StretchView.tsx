@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { EXERCISE_AREAS, SHARP_MESSAGE, regionById, type Exercise, type StretchType } from "@/lib/stretch-content";
 import { filterExercises, prescribe, spotState, weekLabel, weekProgress, type Routine, type SoreSpot, type StretchSession } from "@/lib/stretch";
 import type { StretchState } from "@/lib/types";
+import { LoadError } from "./ErrorText";
 
 type Mode = "loading" | "ready" | "error";
 
@@ -62,6 +63,7 @@ function StretchBody() {
   }, [status]);
   const [mode, setMode] = useState<Mode>("loading");
   const [problem, setProblem] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<StretchState | null>(null);
   const [session, setSession] = useState<StretchSession | null>(null);
   const [sessions, setSessions] = useState<StretchSession[]>([]);
@@ -94,7 +96,7 @@ function StretchBody() {
     return () => {
       live = false;
     };
-  }, []);
+  }, [attempt]);
 
   async function run(key: string, work: () => Promise<StretchState>) {
     if (busyRef.current) return;
@@ -138,9 +140,7 @@ function StretchBody() {
         </Disclosure>
         {mode === "loading" ? <p className="rio-wait">Loading</p> : null}
         {problem ? (
-          <p className="rio-error" data-testid="stretch-error">
-            {problem}
-          </p>
+          <LoadError message={problem} testId="stretch-error" onRetry={() => setAttempt((value) => value + 1)} />
         ) : null}
         {mode === "ready" && prescription && progress ? (
           <>

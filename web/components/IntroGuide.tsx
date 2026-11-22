@@ -8,6 +8,7 @@ import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { ErrorText } from "./ErrorText";
 
 const STEPS = [
   ["Set your goal", "On Start, enter your 800 m times and choose Generate season plan."],
@@ -59,7 +60,7 @@ function IntroBody() {
             ))}
           </ol>
         </section>
-        {error ? <p className="rio-error">{error}</p> : null}
+        {error ? <ErrorText>{error}</ErrorText> : null}
         <div className="rio-intro-actions">
           <button type="button" className="rio-secondary" onClick={() => void finish()}>
             Skip

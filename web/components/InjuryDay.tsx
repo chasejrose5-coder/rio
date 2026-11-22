@@ -12,6 +12,7 @@ import {
 } from "@/lib/injury-content";
 import type { StretchSession } from "@/lib/stretch-content";
 import type { InjuryState } from "@/lib/types";
+import { LoadError } from "./ErrorText";
 
 function label(level: LevelName): string {
   if (level === "easy") return "Easy";
@@ -24,6 +25,7 @@ export function InjuryDay({ date }: { date: string }) {
   const [sessions, setSessions] = useState<StretchSession[]>([]);
   const [offline, setOffline] = useState(false);
   const [problem, setProblem] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState("");
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export function InjuryDay({ date }: { date: string }) {
     return () => {
       live = false;
     };
-  }, [date]);
+  }, [date, attempt]);
 
   const areas = (state?.areas ?? []).map((area) => ({
     areaId: area.area_id,
@@ -95,7 +97,7 @@ export function InjuryDay({ date }: { date: string }) {
         ))
       )}
       {offline ? <p className="rio-note">Saving is unavailable until the injury-prevention tables are in place.</p> : null}
-      {problem ? <p className="rio-error">{problem}</p> : null}
+      {problem ? <LoadError message={problem} onRetry={() => setAttempt((value) => value + 1)} /> : null}
       <p className="rio-stretch-link">
         <Link href="/recovery">Choose areas on Recovery</Link>
       </p>

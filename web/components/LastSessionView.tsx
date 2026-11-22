@@ -11,6 +11,7 @@ import { hideBanner } from "@/lib/activity";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/plan";
 import type { LapTable } from "@/lib/types";
+import { ErrorText } from "./ErrorText";
 
 type Mode = "loading" | "empty" | "ready" | "error";
 
@@ -90,7 +91,7 @@ function LastBody() {
         </header>
         {mode === "loading" ? <p className="rio-wait">Loading</p> : null}
         {mode === "empty" ? <p className="rio-empty">No session files.</p> : null}
-        {mode === "error" ? <p className="rio-error">{problem}</p> : null}
+        {mode === "error" ? <ErrorText>{problem}</ErrorText> : null}
         {mode === "ready" ? (
           <>
             <div className="rio-file-row">

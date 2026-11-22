@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LoadingScreen } from "./LoadingScreen";
 import { ApiError, api } from "@/lib/api";
+import { ErrorText } from "./ErrorText";
 
 export function StravaCallback() {
   const params = useSearchParams();
@@ -29,7 +30,7 @@ export function StravaCallback() {
   return (
     <>
       <LoadingScreen label="Connecting Strava" />
-      {problem ? <p className="rio-error">{problem}</p> : null}
+      {problem ? <ErrorText>{problem}</ErrorText> : null}
     </>
   );
 }

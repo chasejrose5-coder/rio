@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { WakeHint } from "./LoadingScreen";
 import { api, stopPreview } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -41,6 +41,8 @@ export function Nav({ active, pending = false }: { active?: string; pending?: bo
   const { status, athlete, signOut } = useAuth();
   const [arm, setArm] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const [brand, setBrand] = useState("/");
   const [planned, setPlanned] = useState<string | null>(null);
   const showApp = status === "in" || (pending && status === "loading");
@@ -69,7 +71,27 @@ export function Nav({ active, pending = false }: { active?: string; pending?: bo
     setArm(navShouldArm(previous, path));
     window.sessionStorage.setItem(key, path);
     setMenuOpen(false);
+    const active = document.querySelector<HTMLElement>(".rio-subnav a.is-active");
+    active?.scrollIntoView({ inline: "nearest", block: "nearest" });
   }, [path]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setMenuOpen(false);
+      menuButtonRef.current?.focus();
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
 
   useEffect(() => {
     if (status !== "in") return;
@@ -153,10 +175,11 @@ export function Nav({ active, pending = false }: { active?: string; pending?: bo
               Admin
             </Link>
           ) : null}
-          <div className={menuOpen ? "rio-overflow is-open" : "rio-overflow"}>
+          <div className={menuOpen ? "rio-overflow is-open" : "rio-overflow"} ref={menuRef}>
             <button
               type="button"
               className="rio-overflow-toggle"
+              ref={menuButtonRef}
               aria-expanded={menuOpen}
               aria-controls="rio-account-menu"
               onClick={() => setMenuOpen((open) => !open)}
@@ -173,7 +196,10 @@ export function Nav({ active, pending = false }: { active?: string; pending?: bo
                 onClick={() => {
                   stopPreview();
                   forgetLanding();
-                  void signOut().then(() => router.replace("/sign-in"));
+                  void signOut().then(() => {
+                    router.replace("/sign-in");
+                    router.refresh();
+                  });
                 }}
               >
                 Log out

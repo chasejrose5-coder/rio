@@ -8,6 +8,7 @@ import { PageMeaning } from "./PageMeaning";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api, isSignedOut, previewing } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { ErrorText, LoadError } from "./ErrorText";
 import {
   AREAS,
   BONE_MESSAGE,
@@ -59,6 +60,7 @@ function RecoveryBody() {
   }, [status]);
   const [mode, setMode] = useState<Mode>("loading");
   const [problem, setProblem] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<InjuryState | null>(null);
   const [group, setGroup] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -83,7 +85,7 @@ function RecoveryBody() {
     return () => {
       live = false;
     };
-  }, []);
+  }, [attempt]);
 
   async function save(area: InjuryArea, next: "select" | "clear" | "back") {
     if (!state || busyRef.current || previewing()) return;
@@ -205,8 +207,8 @@ function RecoveryBody() {
           </section>
         </Disclosure>
         {mode === "loading" ? <p className="rio-wait">Loading saved areas</p> : null}
-        {mode === "error" ? <p className="rio-error">{problem}</p> : null}
-        {problem && mode !== "error" ? <p className="rio-error">{problem}</p> : null}
+        {mode === "error" ? <LoadError message={problem} onRetry={() => setAttempt((value) => value + 1)} /> : null}
+        {problem && mode !== "error" ? <ErrorText>{problem}</ErrorText> : null}
         <PageMeaning page="recovery" />
         <Footer />
       </main>

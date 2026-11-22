@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { api, refreshSession } from "./api";
+import { api, clearClientSession, forgetReads, refreshSession } from "./api";
 import type { Athlete } from "./types";
 
 type Status = "loading" | "in" | "out" | "unreachable";
@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     generation.current += 1;
+    clearClientSession();
     try {
       await api.signOut();
     } catch {
@@ -63,11 +64,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     };
     run();
+    const onShow = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      // Back can restore the previous runner's screen from the page cache.
+      forgetReads();
+      setAthlete(null);
+      setStatus("loading");
+      void refresh();
+    };
+    window.addEventListener("pageshow", onShow);
     return () => {
       live = false;
       window.clearTimeout(timer);
+      window.removeEventListener("pageshow", onShow);
     };
-  }, []);
+  }, [refresh]);
 
   const value = useMemo(() => ({ status, athlete, refresh, signOut }), [status, athlete, refresh, signOut]);
 
