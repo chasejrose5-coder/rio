@@ -15,10 +15,9 @@ export function maskRaceTime(raw: string): string {
   return fraction ? `${text}.${fraction}` : text;
 }
 
-/** Pad a finished m:ss so the field matches 2:02.00. A time that is already valid stays. */
+/** Pad a finished m:ss so the field matches 2:02.00. A tenth becomes hundredths: 2:02.5 is 2:02.50. */
 export function commitRaceTime(raw: string): string {
   const masked = maskRaceTime(raw);
-  if (/^\d:\d{2}\.\d+$/.test(masked)) return masked;
   const match = RACE.exec(masked);
   if (!match) return masked;
   const fraction = match[3] ?? "";

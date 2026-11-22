@@ -63,7 +63,7 @@ test("sunday start, generate errors, a scored plan, and a failed link stay on St
         score?: boolean;
       };
       if (failSave) return json(route, { detail: "This account could not be saved." }, 400);
-      if (body.current_time === "score") {
+      if (body.current_time === "9:00.00") {
         return json(route, { inputs: body, committed: true, plan: { probability: 0.2 }, strava_offer: false });
       }
       const problem = problemFor(body);
@@ -127,16 +127,42 @@ test("sunday start, generate errors, a scored plan, and a failed link stay on St
   expect(photo).not.toContain("home-aerial");
   expect(photo).not.toContain("startup-track");
 
+  await page.getByLabel("Your 800 m time today").fill("2:02.5");
+  await page.getByLabel("Your 800 m time today").blur();
+  await expect(page.getByLabel("Your 800 m time today")).toHaveValue("2:02.50");
+  await page.getByLabel("Your 800 m time today").fill("");
+
+  await page.evaluate(() => {
+    const input = document.querySelector<HTMLInputElement>("#start-date");
+    if (!input) throw new Error("missing start date");
+    (window as unknown as { pickerCalls: number }).pickerCalls = 0;
+    input.showPicker = () => {
+      (window as unknown as { pickerCalls: number }).pickerCalls += 1;
+    };
+  });
+  await page.getByLabel("Start date").click();
+  await page.getByLabel("Start date").focus();
+  expect(await page.evaluate(() => (window as unknown as { pickerCalls: number }).pickerCalls)).toBeGreaterThan(0);
+  await page.evaluate(() => {
+    const input = document.querySelector<HTMLInputElement>("#start-date");
+    if (!input) throw new Error("missing start date");
+    input.showPicker = () => {
+      throw new DOMException("The picker is not supported.");
+    };
+  });
+  await page.getByLabel("Start date").click();
+  await expect(page.getByRole("heading", { name: "Start" })).toBeVisible();
+
   await page.getByLabel("Your 800 m time today").fill("nope");
   await page.getByLabel("800 m time you're aiming for").fill("1:58.0");
   await page.getByRole("button", { name: "Generate season plan" }).click();
-  await expect(page.getByText("current_time is not an 800 time")).toBeVisible();
+  await expect(page.getByText("Enter a time like 2:02.00.")).toBeVisible();
   await expect(page).toHaveURL(/\/start$/);
 
   await page.getByLabel("Your 800 m time today").fill("2:05.0");
   await page.getByLabel("800 m time you're aiming for").fill("nope");
   await page.getByRole("button", { name: "Generate season plan" }).click();
-  await expect(page.getByText("goal_time is not an 800 time")).toBeVisible();
+  await expect(page.getByText("Enter a time like 2:02.00.")).toBeVisible();
 
   await page.getByLabel("800 m time you're aiming for").fill("1:58.0");
   await page.getByLabel("Goal date").fill("2026-11-01");
@@ -150,7 +176,7 @@ test("sunday start, generate errors, a scored plan, and a failed link stay on St
   const color = await page.locator(".rio-goal-card .rio-error").evaluate((el) => getComputedStyle(el).color);
   expect(color).toBe("rgb(180, 35, 24)");
 
-  await page.getByLabel("Your 800 m time today").fill("score");
+  await page.getByLabel("Your 800 m time today").fill("9:00.00");
   await page.getByLabel("Goal date").fill("2027-04-10");
   await page.getByRole("button", { name: "Generate season plan" }).click();
   await expect(page.getByText("season plan has a score")).toBeVisible();
@@ -174,7 +200,7 @@ test("sunday start, generate errors, a scored plan, and a failed link stay on St
   await page.getByRole("button", { name: "Use this season" }).click();
   await expect(page.getByText("This account could not be saved.")).toBeVisible();
   await expect(page).toHaveURL(/\/start\?/);
-  expect(stored.current_time).toBe("2:05.0");
+  expect(stored.current_time).toBe("2:05.00");
 
   failSave = false;
   await page.getByRole("button", { name: "Use this season" }).click();
@@ -245,13 +271,13 @@ test("a brand-new local account generates from Start and can dismiss Strava", as
   await page.getByLabel("Your 800 m time today").fill("nope");
   await page.getByLabel("800 m time you're aiming for").fill("1:58.0");
   await page.getByRole("button", { name: "Generate season plan" }).click();
-  await expect(page.getByText("current_time is not an 800 time")).toBeVisible();
+  await expect(page.getByText("Enter a time like 2:02.00.")).toBeVisible();
   expect(await currentInputs(page)).toBeNull();
 
   await page.getByLabel("Your 800 m time today").fill("2:05.0");
   await page.getByLabel("800 m time you're aiming for").fill("nope");
   await page.getByRole("button", { name: "Generate season plan" }).click();
-  await expect(page.getByText("goal_time is not an 800 time")).toBeVisible();
+  await expect(page.getByText("Enter a time like 2:02.00.")).toBeVisible();
 
   await page.getByLabel("800 m time you're aiming for").fill("1:58.0");
   await page.getByLabel("Goal date").fill("2020-01-01");
@@ -274,7 +300,7 @@ test("a brand-new local account generates from Start and can dismiss Strava", as
   await expect(page.getByText("probability")).toHaveCount(0);
   await expect(page.getByText("readiness")).toHaveCount(0);
   const made = await currentInputs(page);
-  expect(made).toMatchObject({ current_time: "2:05.0", start_date: today, goal_time: "1:58.0", goal_date: goal });
+  expect(made).toMatchObject({ current_time: "2:05.00", start_date: today, goal_time: "1:58.00", goal_date: goal });
 
   await page.getByRole("button", { name: "Not now" }).click();
   await expect(page.getByRole("heading", { name: "Your plan is ready." })).toHaveCount(0);
@@ -289,7 +315,7 @@ test("a brand-new local account generates from Start and can dismiss Strava", as
   });
   await page.goto(`/start?${link.toString()}`);
   await expect(page.getByText("This link names a different season. Your saved season was left as it is.")).toBeVisible();
-  expect(await currentInputs(page)).toMatchObject({ current_time: "2:05.0", goal_time: "1:58.0" });
+  expect(await currentInputs(page)).toMatchObject({ current_time: "2:05.00", goal_time: "1:58.00" });
   await page.getByRole("button", { name: "Use this season" }).click();
   await expect(page).toHaveURL(/\/home\?/);
   expect(page.url()).not.toContain("just_generated=true");

@@ -127,7 +127,7 @@ export function Nav({ active, pending = false }: { active?: string; pending?: bo
           <Link className="rio-brand" href="/">
             RIO
           </Link>
-          {status === "loading" ? null : (
+          {status === "loading" || pending ? null : (
             <Link className="rio-signed-out-login" href="/sign-in">
               Log in
             </Link>

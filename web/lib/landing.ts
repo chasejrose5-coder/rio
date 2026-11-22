@@ -57,6 +57,12 @@ export function subscribeHeartRate(listen: () => void): () => void {
   };
 }
 
+/** Log out drops the saved-heart-rate flag so the next runner sees their own card. */
+export function resetHeartRateSaved(): void {
+  heartSatisfied = false;
+  heartListeners.forEach((listen) => listen());
+}
+
 export const LANDING_KEY = "rio_landing";
 
 /** Home when the goal date is today or later in the Settings time zone. */

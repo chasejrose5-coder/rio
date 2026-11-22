@@ -435,7 +435,6 @@ function SettingsBody() {
         {note ? <p className="rio-settings-note rio-settings-flash">{note}</p> : null}
 
         <Expander title="Account" defaultOpen>
-          <p className="rio-mark-label">Account</p>
           <label className="rio-stack" htmlFor="settings-name">
             Name
             <input
@@ -648,7 +647,7 @@ function SettingsBody() {
             Reset plan
           </button>
           <p className="rio-settings-note">Reset removes stored seasons. The account stays.</p>
-          <p className="rio-mark-label">Account</p>
+          <p className="rio-mark-label">Delete account</p>
           <p className="rio-settings-kept" aria-hidden="true">
             Delete account
           </p>

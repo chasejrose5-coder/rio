@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Disclosure } from "./Disclosure";
 import { ApiError, api, previewing } from "@/lib/api";
-import { FOAM_AREAS, clock, foamRoutine } from "@/lib/foam-content";
+import { FOAM_AREAS, FOAM_DISCLAIMER, clock, foamRoutine } from "@/lib/foam-content";
 import type { StretchSession } from "@/lib/stretch-content";
 import type { FoamState } from "@/lib/types";
 import { LoadError } from "./ErrorText";
@@ -50,6 +50,7 @@ export function FoamDay({ date, session }: { date: string; session?: StretchSess
   return (
     <section className="rio-foam-block" aria-label="Foam rolling">
       <p className="rio-mark-label">Foam rolling</p>
+      <p className="rio-medical">{FOAM_DISCLAIMER}</p>
       {routine ? (
         <>
           <h3>{routine.label}</h3>

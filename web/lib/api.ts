@@ -1,4 +1,5 @@
 import type { ConfirmLink } from "./confirm-link";
+import { resetHeartRateSaved } from "./landing.ts";
 import { isPublicPath } from "./public-routes.ts";
 import type {
   ActivitiesResponse,
@@ -84,6 +85,7 @@ const BROWSER_KEYS = ["rio_test_preview", "rio_landing", "rio_hr_prompt_dismisse
 /** Drop cached reads and this tab's runner flags. Used on log out and on a 401. */
 export function clearClientSession(): void {
   dropGetCache();
+  resetHeartRateSaved();
   if (typeof window === "undefined") return;
   try {
     for (const key of BROWSER_KEYS) window.sessionStorage.removeItem(key);

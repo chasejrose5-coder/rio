@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { circuitFor } from "../lib/core-content";
+import { CORE_DISCLAIMER, circuitFor } from "../lib/core-content";
 import { MEDICAL_NOTE } from "../lib/glossary";
 
 const today = "2026-11-10";
@@ -88,6 +88,7 @@ test("the core library and a hard-day circuit stay near eight minutes", async ({
   await page.goto("/core");
   await expect(page.getByRole("heading", { name: "Core", exact: true })).toBeVisible();
   await expect(page.getByText(MEDICAL_NOTE).first()).toBeVisible();
+  await expect(page.getByText(CORE_DISCLAIMER).first()).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Training" }).getByRole("link", { name: "Core" })).toHaveAttribute(
     "aria-current",
     "page",
@@ -109,6 +110,7 @@ test("the core library and a hard-day circuit stay near eight minutes", async ({
   await expect(block).toBeVisible();
   await expect(block.getByText("About 8 min")).toBeVisible();
   await expect(page.getByText(MEDICAL_NOTE).first()).toBeVisible();
+  await expect(block.getByText(CORE_DISCLAIMER)).toBeVisible();
   await expect(block.getByText(MEDICAL_NOTE)).toHaveCount(0);
   await expect(block.getByText(circuit?.exercises[0]?.name || "", { exact: false })).toBeVisible();
   await block.getByRole("button", { name: "Mark done" }).click();

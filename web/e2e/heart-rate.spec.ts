@@ -18,7 +18,8 @@ test("onboarding saves Karvonen zones and settings can edit them", async ({ page
 
   await expect(page.getByRole("heading", { name: "Heart rate" })).toBeVisible();
   await expect(page.getByText("Zones use the Karvonen (heart rate reserve) method.")).toBeVisible();
-  await expect(page.getByText("Not medical advice.")).toBeVisible();
+  await expect(page.getByText("This is not medical advice. Stop and seek help if your heart rate stays unusually high or you feel unwell.")).toBeVisible();
+  await expect(page.getByText("Not medical advice. If pain is sharp or getting worse, or your heart rate stays unusually high, stop and see a doctor or physio.")).toBeVisible();
   await page.getByLabel("Resting heart rate").fill("20");
   await page.getByLabel("Max heart rate").fill("180");
   await page.getByRole("button", { name: "Save heart rate" }).click();

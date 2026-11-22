@@ -124,6 +124,20 @@ test("an expired confirmation link and a valid one land on the confirm page", as
   await expect(page.getByRole("button", { name: "Save password" })).toBeEnabled();
 });
 
+test("inherited note query keys still render Log in", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(String(error)));
+  for (const note of ["__proto__", "constructor", "toString"]) {
+    await page.goto(`/sign-in?note=${encodeURIComponent(note)}`);
+    await expect(page).toHaveTitle(/Log in/);
+    await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
+    await expect(page.getByLabel("Email")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Log in" })).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("lang", /[a-z]/);
+  }
+  expect(errors).toEqual([]);
+});
+
 test("a confirmation link with no token asks for the email", async ({ page }) => {
   await page.goto("/confirm");
   await expect(page.getByText("Open the link in the email we sent you. It brings you back here.")).toBeVisible();
