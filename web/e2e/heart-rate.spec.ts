@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 
-const shots = "/opt/cursor/artifacts";
+const shots = process.env.RIO_ARTIFACTS || "test-results";
 
 test("onboarding saves Karvonen zones and settings can edit them", async ({ page }) => {
   test.setTimeout(120_000);

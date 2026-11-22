@@ -531,7 +531,7 @@
   .rio-v3 .rio-phase { min-width: 96px; scroll-snap-align: start; }
   .rio-v3 .rio-cal-label { font-size: 11px; line-height: 14px; }
 }
-.rio-v3 .rio-plan-view { animation: none; opacity: 1; }
+.rio-v3 .rio-plan-view { animation: none; opacity: 1; scroll-margin-top: calc(var(--nav-h) + 12px); }
 .rio-v3 .rio-plan-view.is-next { animation: rio-slide-next 260ms var(--rio-ease-out); }
 .rio-v3 .rio-plan-view.is-prev { animation: rio-slide-prev 260ms var(--rio-ease-out); }
 @keyframes rio-slide-next { from { opacity: 0; translate: 24px 0; } }
@@ -921,8 +921,35 @@
 .page-session.rio-v3 .rio-card p > a:only-child { display: inline-flex; align-items: center; min-height: 44px; }
 .rio-v3 .rio-hero-chips a { position: relative; }
 .rio-v3 .rio-hero-chips a::before { content: ""; position: absolute; inset: -6px 0; }
-.rio-v3 .rio-help-btn { position: relative; }
-.rio-v3 .rio-help-btn::before { content: ""; position: absolute; inset: -10px; }
+.rio-v3 .rio-help-btn {
+  position: relative;
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+}
+.rio-v3 .rio-help-btn::after {
+  content: "";
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border: 1px solid currentColor;
+  border-radius: 99px;
+  pointer-events: none;
+}
+.rio-v3 .rio-stretch-link a {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 6px 0;
+}
 @media (max-width: 860px) {
   .rio-v3 .rio-body-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .rio-v3 .rio-body-legend button { min-height: 44px; width: 100%; padding: 0 8px; }

@@ -114,10 +114,10 @@ test("the weekly recap shows distance, sessions, zones, tracked work, and the go
   if (process.env.RIO_SHOTS) {
     await page.setViewportSize({ width: 1280, height: 1100 });
     await recap.scrollIntoViewIfNeeded();
-    await page.screenshot({ path: "/opt/cursor/artifacts/pr-d-recap-desktop.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/pr-d-recap-desktop.png` });
     await page.setViewportSize({ width: 390, height: 844 });
     await recap.evaluate((element) => element.scrollIntoView({ block: "start" }));
-    await page.screenshot({ path: "/opt/cursor/artifacts/pr-d-recap-phone.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/pr-d-recap-phone.png` });
   }
 });
 

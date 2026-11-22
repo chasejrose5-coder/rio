@@ -130,6 +130,9 @@ test("the menu, a search, an empty result, and a load error", async ({ page }) =
   await expect(page.locator("img")).toHaveCount(0);
   await expect(page.getByLabel("Search")).toHaveAttribute("placeholder", "Search workouts");
   await expect(page.getByText("The quality that workout builds, such as speed or endurance.")).toBeHidden();
+  const help = await page.getByRole("button", { name: "What it trains: help" }).boundingBox();
+  expect(Math.round(help?.width || 0)).toBeGreaterThanOrEqual(44);
+  expect(Math.round(help?.height || 0)).toBeGreaterThanOrEqual(44);
   await page.getByRole("button", { name: "What it trains: help" }).hover();
   await expect(page.getByText("The quality that workout builds, such as speed or endurance.")).toBeVisible();
   await page.getByRole("button", { name: "Phase: help" }).focus();

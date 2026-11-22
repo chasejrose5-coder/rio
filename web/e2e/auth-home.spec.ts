@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { expect, test, type Page, type Route } from "@playwright/test";
 
-const shots = "/opt/cursor/artifacts";
+const shots = process.env.RIO_ARTIFACTS || "test-results";
 
 const athlete = {
   id: "ada",
