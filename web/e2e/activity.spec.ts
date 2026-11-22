@@ -182,6 +182,42 @@ test("a bad plan is an em dash", async ({ page }) => {
   await expect(page.getByText("—", { exact: true })).toBeVisible();
 });
 
+test("the title band spans the viewport and the title stays on the content column", async ({ page }) => {
+  await install(page, { notice: "Strava is not configured." });
+  await sign(page);
+  for (const width of [375, 768, 1280, 1600]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/activity");
+    await expect(page.getByText("2026-04-19 — 2027-03-19")).toBeVisible();
+    const band = await page.evaluate(() => {
+      const el = document.querySelector(".page-activity .rio-hero");
+      if (!el) return null;
+      const hero = el.getBoundingClientRect();
+      const title = el.querySelector("h1")!.getBoundingClientRect();
+      const column = document.querySelector(".page-activity .rio-refresh");
+      const columnBox = column?.getBoundingClientRect();
+      return {
+        heroLeft: hero.left,
+        heroRight: hero.right,
+        heroWidth: hero.width,
+        titleLeft: title.left,
+        columnLeft: columnBox?.left ?? null,
+        columnWidth: columnBox?.width ?? null,
+        clientWidth: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+      };
+    });
+    if (!band) throw new Error(`missing band at ${width}`);
+    expect(band.heroLeft, `left at ${width}`).toBeGreaterThanOrEqual(-1);
+    expect(band.heroLeft, `left at ${width}`).toBeLessThan(1);
+    expect(Math.abs(band.heroRight - band.clientWidth), `right at ${width}`).toBeLessThan(1);
+    expect(band.scrollWidth, `scroll at ${width}`).toBeLessThanOrEqual(band.clientWidth + 1);
+    expect(band.columnLeft, `column at ${width}`).not.toBeNull();
+    expect(Math.abs((band.columnLeft ?? 0) - band.titleLeft), `align at ${width}`).toBeLessThan(1);
+    if (width >= 1280) expect(band.columnWidth ?? 0).toBeLessThanOrEqual(60 * 16 + 1);
+  }
+});
+
 test("a disconnected account shows the empty line and the Strava card", async ({ page }) => {
   await install(page, { notice: "Strava is not configured." });
   await sign(page);

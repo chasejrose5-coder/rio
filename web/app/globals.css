@@ -1755,10 +1755,11 @@ button.rio-text-link:disabled {
   min-height: 100dvh;
 }
 .page-activity main, .page-last main, .page-settings main { padding: 0 var(--gutter) 3.5rem; }
-.page-activity main > * { max-width: 60rem; }
+.page-activity main > *:not(.rio-hero) { max-width: 60rem; }
 .page-activity .rio-hero, .page-last .rio-hero, .page-settings .rio-hero {
   background: var(--ink);
   color: var(--paper);
+  max-width: none;
   margin: 0 calc(-1 * var(--gutter));
   padding: 2.4rem var(--gutter) 1.8rem;
 }
@@ -3513,5 +3514,16 @@ button.rio-text-link:disabled {
   .rio-plan-hero .rio-range {
     font-size: 0.95rem;
     margin-top: 0.4rem;
+  }
+}
+/* The phone calendar uses a tighter inset than the shared gutter. The title band
+   has to use that same inset or it spills past the viewport. */
+@media (max-width: 480px) {
+  .page-plan .rio-plan-hero,
+  .page-plan.is-compact .rio-plan-hero {
+    margin-left: -0.35rem;
+    margin-right: -0.35rem;
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
   }
 }

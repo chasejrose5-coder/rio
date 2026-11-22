@@ -506,3 +506,29 @@ test("a brand-new account reaches Plan from Start and can mark a week", async ({
   await page.reload();
   await expect(page.getByRole("button", { name: "On track" }).first()).toHaveAttribute("aria-pressed", "true");
 });
+
+test("the plan title band matches the phone viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  await installApi(page, { season: true });
+  await signIn(page);
+  await page.goto("/plan");
+  await expect(page.locator(".rio-plan-hero h1")).toBeVisible();
+  const band = await page.locator(".rio-plan-hero").evaluate((el) => {
+    const box = el.getBoundingClientRect();
+    const title = el.querySelector("h1")!.getBoundingClientRect();
+    const content = [...el.parentElement!.children].find((child) => child !== el && child.getBoundingClientRect().height > 8);
+    return {
+      left: box.left,
+      right: box.right,
+      client: document.documentElement.clientWidth,
+      scroll: document.documentElement.scrollWidth,
+      title: title.left,
+      column: content?.getBoundingClientRect().left ?? null,
+    };
+  });
+  expect(Math.abs(band.left)).toBeLessThan(1);
+  expect(Math.abs(band.right - band.client)).toBeLessThan(1);
+  expect(band.scroll).toBeLessThanOrEqual(band.client + 1);
+  expect(band.column).not.toBeNull();
+  expect(Math.abs((band.column ?? 0) - band.title)).toBeLessThan(1);
+});
