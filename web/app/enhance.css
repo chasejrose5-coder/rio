@@ -908,3 +908,21 @@
 .rio-v3.page-home .rio-glossary .rio-disclosure > button { color: rgba(255, 255, 255, 0.86); }
 .rio-v3.page-home .rio-glossary .rio-chevron { border-color: rgba(255, 255, 255, 0.86); }
 .rio-v3 .rio-expander[open] > summary .rio-chevron { transform: rotate(45deg); }
+
+/* Batch 3 — 44px targets. No new motion. */
+.rio-v3 .rio-on-page nav { display: flex; flex-direction: column; }
+.rio-v3 .rio-on-page nav a { display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-left: 2px solid var(--line); color: var(--ink-2); font-size: 14px; line-height: 20px; }
+.rio-v3 .rio-on-page nav a:hover { color: var(--ink); border-left-color: var(--accent); }
+.rio-v3 .rio-settings-index a { min-height: 44px; white-space: nowrap; flex: none; }
+.rio-v3 .rio-stretch-filters button { min-height: 44px; }
+.rio-v3.page-settings :is(input:not([type="checkbox"]):not([type="radio"]), select) { min-height: 44px; }
+.rio-v3.page-settings :is(.rio-settings-button, .rio-danger-button) { min-height: 44px; }
+.page-session.rio-v3 .rio-card p > a:only-child { display: inline-flex; align-items: center; min-height: 44px; }
+.rio-v3 .rio-hero-chips a { position: relative; }
+.rio-v3 .rio-hero-chips a::before { content: ""; position: absolute; inset: -6px 0; }
+.rio-v3 .rio-help-btn { position: relative; }
+.rio-v3 .rio-help-btn::before { content: ""; position: absolute; inset: -10px; }
+@media (max-width: 860px) {
+  .rio-v3 .rio-body-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .rio-v3 .rio-body-legend button { min-height: 44px; width: 100%; padding: 0 8px; }
+}

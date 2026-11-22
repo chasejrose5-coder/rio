@@ -83,6 +83,24 @@ async function layout(page: Page, width: number) {
   }
 }
 
+async function targets(page: Page, path: string, width: number) {
+  if (path === "/guide" && width >= 1280) {
+    await expect(page.locator(".rio-on-page nav a").first()).toBeVisible();
+  }
+  if (path !== "/settings" && path !== "/guide") return;
+  const small = await page.evaluate((which) => {
+    const selector = which === "/settings"
+      ? ".rio-settings-index a, .rio-v3.page-settings input:not([type=checkbox]):not([type=radio]), .rio-v3.page-settings select, .rio-settings-button, .rio-danger-button"
+      : ".rio-on-page nav a";
+    return [...document.querySelectorAll<HTMLElement>(selector)].flatMap((node) => {
+      const box = node.getBoundingClientRect();
+      if (box.width < 1 || box.height < 1) return [];
+      return box.height < 44 ? [`${Math.round(box.height)}px ${node.textContent?.trim().slice(0, 40)}`] : [];
+    });
+  }, path);
+  expect(small, `${width} ${path} under 44px`).toEqual([]);
+}
+
 test("signed-out routes stay quiet", async ({ page }) => {
   test.setTimeout(180_000);
   const log = watch(page);
@@ -93,6 +111,7 @@ test("signed-out routes stay quiet", async ({ page }) => {
       await page.waitForTimeout(200);
       expect(log.take(path), `${width} ${path}`).toEqual([]);
       await layout(page, width);
+      await targets(page, path, width);
     }
   }
 });
@@ -132,6 +151,7 @@ test("signed-in routes stay quiet", async ({ page }) => {
       await page.waitForTimeout(200);
       expect(log.take(path), `${width} ${path}`).toEqual([]);
       await layout(page, width);
+      await targets(page, path, width);
     }
   }
 });
