@@ -64,11 +64,21 @@ test("the guide explains the season in plain words and stays free of photos", as
   await expect(contents.getByRole("link", { name: "Today's workout" })).toHaveAttribute("href", "#today");
   await expect(contents.getByRole("link", { name: "Paces" })).toHaveAttribute("href", "#paces");
   await expect(contents.getByRole("link", { name: "The week" })).toHaveAttribute("href", "#week");
+  await expect(contents.getByRole("link", { name: "10% rule" })).toHaveAttribute("href", "#ten-percent");
+  await expect(contents.getByRole("link", { name: "Classification" })).toHaveAttribute("href", "#classification");
+  await expect(contents.getByRole("link", { name: "Hard days" })).toHaveAttribute("href", "#hard-days");
   await expect(page.getByRole("heading", { name: "Getting started" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Today's workout" })).toBeVisible();
   await page.getByText("Long-run ladder").click();
   await expect(page.getByText("8 km is outside the ladder.")).toBeVisible();
   await page.getByText("The eight phases").click();
+  await expect(page.getByText("The short fast reps step up from phase 1.")).toBeVisible();
+  await page.getByText("Counting the rise").click();
+  await expect(page.getByText(/times 10 is still no more than the previous week times 11/)).toBeVisible();
+  await expect(page.getByText("Classification is rules, not AI.")).toBeVisible();
+  await page.getByText("What a model may rephrase").click();
+  await expect(page.getByText("Those calls stop once recorded spend reaches $25.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hard days" })).toBeVisible();
   for (const name of ["Admin", "Creators", "Next", "Decisions", "Ledger", "Last Session", "Goal"]) {
     await expect(page.getByRole("heading", { name, exact: true })).toHaveCount(0);
     await expect(contents.getByRole("link", { name, exact: true })).toHaveCount(0);
@@ -108,6 +118,8 @@ test("library, plan, and about link their notes to the matching guide section", 
   const about = page.locator(".rio-meaning");
   await expect(about.getByText("What this means")).toBeVisible();
   await expect(about.getByRole("link", { name: GUIDE_LINK })).toHaveAttribute("href", "/guide#phases");
-  await expect(page.getByText("Eight phases", { exact: true })).toBeVisible();
-  await expect(page.locator(".page-about .rio-field")).toHaveCount(8);
+  await expect(page.getByText("RIO plans an 800 m season from rules.")).toBeVisible();
+  await expect(page.getByText("The full details are in the Guide after you sign in.")).toBeVisible();
+  await expect(page.locator(".rio-quick").getByRole("link", { name: "Create account" })).toHaveAttribute("href", "/create-account");
+  await expect(page.locator(".rio-quick").getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/sign-in");
 });

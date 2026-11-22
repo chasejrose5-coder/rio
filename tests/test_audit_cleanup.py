@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from ui.about import about_sections
+from ui.about import about_sections, rule_sections
 from ui.dashboard import mark_label, plain_marks
 from ui.settings import normalize
 from ui.startup import HEADLINE, startup_html
@@ -65,7 +65,11 @@ def test_marks_and_reasons_use_plain_words() -> None:
 
 def test_about_shows_athlete_language_and_keeps_the_old_lines() -> None:
     """The visible lines skip the developer words. The older lines stay on the section."""
-    sections = {section["title"]: section for section in about_sections()}
+    sections = {section["title"]: section for section in rule_sections()}
+    public = "\n".join(paragraph for section in about_sections() for paragraph in section["paragraphs"])
+    for banned in ("ontology", "$25", "Last Session", "on_track", "not_hitting"):
+        if banned in public:
+            raise AssertionError(banned)
     shown = "\n".join(sections["Classification"]["shown"] + sections["Hard days"]["shown"])
     for banned in ("ontology", "$25", "Last Session", "on_track", "not_hitting"):
         if banned in shown:

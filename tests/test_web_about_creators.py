@@ -170,7 +170,12 @@ def test_rendered_about_and_creators_text_matches_streamlit() -> None:
     if '<p class="rio-index rio-index-light">About</p>' not in page or "<h1>About</h1>" not in page:
         raise AssertionError("the About banner moved")
     if "about_sections(" not in page or "hidden" not in page:
-        raise AssertionError("About no longer keeps the long paragraphs")
+        raise AssertionError("About no longer renders its sections")
+    if "rule_sections(" in page:
+        raise AssertionError("About still draws the long sections")
+    for token in ('href="/create-account"', 'href="/sign-in"', "Create account", "Sign in"):
+        if token not in page or token not in about_view:
+            raise AssertionError(token)
     for token in (
         "section.title",
         "section.visible",
@@ -211,10 +216,11 @@ def test_rendered_about_and_creators_text_matches_streamlit() -> None:
         raise AssertionError("the shared creators page still keeps a hidden bio")
     hidden = "\n".join(_hidden(actual_about))
     shown = "\n".join(_lines(actual_about))
-    if "Those calls stop once recorded spend reaches $25." not in hidden:
+    guide = (ROOT / "web" / "lib" / "guide-copy.ts").read_text(encoding="utf-8")
+    if "Those calls stop once recorded spend reaches $25." not in guide:
         raise AssertionError("the $25 sentence was dropped")
-    if "$25" in shown:
-        raise AssertionError("the $25 sentence is in the visible About text")
+    if "$25" in shown or "$25" in hidden:
+        raise AssertionError("the $25 sentence is still on About")
 
 
 def main() -> None:

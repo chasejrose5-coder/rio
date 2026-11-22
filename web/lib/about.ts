@@ -1,8 +1,24 @@
 /** About lines. The sentences live in about-copy.ts, generated from Streamlit. */
 
-import { ABOUT } from "./about-copy";
+import { ABOUT as generated } from "./about-copy";
 
-export { ABOUT };
+export type AboutRow = { label: string; line: string };
+
+export type AboutSection = {
+  title: string;
+  visible: readonly string[];
+  rows: readonly AboutRow[];
+  closing: readonly string[];
+  hidden: readonly string[];
+};
+
+/** Empty phase rows are still rows. The generated const would type them as never. */
+export const ABOUT = generated as {
+  index: string;
+  heading: string;
+  credit: string;
+  sections: readonly AboutSection[];
+};
 
 export function visibleAboutLines(): string[] {
   const lines: string[] = [ABOUT.heading, ABOUT.credit];
