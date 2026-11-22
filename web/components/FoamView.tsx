@@ -7,8 +7,6 @@ import { Nav } from "./Nav";
 import { PageMeaning } from "./PageMeaning";
 import { RequireUser } from "./RequireUser";
 import { useAuth } from "@/lib/auth";
-import { FOAM_DISCLAIMER } from "@/lib/foam-content";
-
 export function FoamView() {
   return (
     <RequireUser title="Foam rolling" pageClass="page-foam">
@@ -38,7 +36,6 @@ function FoamBody() {
           </section>
         </Disclosure>
         <FoamLibrary />
-        <p className="rio-medical">{FOAM_DISCLAIMER}</p>
         <PageMeaning page="foam" />
         <Footer />
       </main>

@@ -13,7 +13,7 @@ import { nextSessionDate, sessionHref } from "@/lib/session";
 const NAV = [
   { href: "/home", label: "Home" },
   { href: "/plan", label: "Plan" },
-  { href: "/stretch", label: "Training" },
+  { href: "/library", label: "Training" },
   { href: "/activity", label: "Activity" },
   { href: "/more", label: "More" },
 ];

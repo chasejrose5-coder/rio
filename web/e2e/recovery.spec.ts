@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { INJURY_DISCLAIMER, dayBlocks } from "../lib/injury-content";
+import { dayBlocks } from "../lib/injury-content";
+import { MEDICAL_NOTE } from "../lib/glossary";
 
 const today = "2026-11-09";
 
@@ -108,7 +109,7 @@ test("recovery lists every exercise, saves a rebuilding area, and the day shows 
   await page.goto("/recovery");
   await expect(page.getByRole("heading", { name: "Recovery", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "What's bothering you?" })).toBeVisible();
-  await expect(page.getByText(INJURY_DISCLAIMER).first()).toBeVisible();
+  await expect(page.getByText(MEDICAL_NOTE).first()).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Training" }).getByRole("link", { name: "Recovery" })).toHaveAttribute(
     "aria-current",
     "page",
@@ -168,7 +169,7 @@ test("recovery lists every exercise, saves a rebuilding area, and the day shows 
   const first = monday[0]?.exercises[0]?.exercise.name || "";
   await page.goto(`/session?date=${today}`);
   await expect(page.getByRole("region", { name: "Injury prevention" })).toBeVisible();
-  await expect(page.getByText(INJURY_DISCLAIMER).first()).toBeVisible();
+  await expect(page.getByText(MEDICAL_NOTE).first()).toBeVisible();
   await expect(page.getByText(first, { exact: false }).first()).toBeVisible();
   await page.getByRole("button", { name: "Mark done" }).click();
   await expect(page.getByRole("button", { name: "Done" })).toBeVisible();

@@ -93,9 +93,7 @@ export function BikeCard({
       )}
       <p className="rio-note">Used {offer.swaps_used} of 2 this week.</p>
       {offer.suggest_first ? (
-        <p className="rio-medical">
-          Suggested while a shin, Achilles, or foot area is rebuilding. Not medical advice. See a professional if it hurts.
-        </p>
+        <p className="rio-note">Suggested while a shin, Achilles, or foot area is rebuilding.</p>
       ) : null}
       {logged && offer.log?.strava_id ? <p className="rio-note">This ride came in from Strava.</p> : null}
       {offer.swapped ? (

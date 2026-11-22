@@ -304,7 +304,7 @@ export function SignInScreen() {
   }
 
   return (
-    <AuthFrame title="Log in" subtitle="Use your email and password." error={error} notice={notice}>
+    <AuthFrame title="Log in" subtitle="Use Google, or your email and password." error={error} notice={notice}>
       {unconfigured ? (
         <div className="rio-setup-card">
           <p className="rio-mark-label">Accounts aren&apos;t set up yet</p>
@@ -604,7 +604,7 @@ export function ConfirmScreen() {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setView(
         keptConfirm() ?? {
-          body: "Open the confirmation link in your email. It lands on this page.",
+          body: "Open the link in the email we sent you. It brings you back here.",
           error: false,
           refreshed: false,
         },

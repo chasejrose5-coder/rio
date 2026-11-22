@@ -64,7 +64,7 @@ export const ABOUT = {
     {
       "title": "Classification",
       "visible": [
-        "RIO labels each session with rules. It reads how far the rep is, how long you rest, and how that pace compares with your goal 800. You see one kind of work and a short reason."
+        "RIO labels each session with rules. It reads how far the rep is, how long you rest, and how that pace compares with your goal 800 m time. You see one kind of work and a short reason."
       ],
       "rows": [],
       "closing": [],

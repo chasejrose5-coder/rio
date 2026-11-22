@@ -6,6 +6,7 @@ import { Nav } from "./Nav";
 import { PageMeaning } from "./PageMeaning";
 import { RequireUser } from "./RequireUser";
 import { GUIDE_LEDE, GUIDE_SECTIONS, GUIDE_TITLE } from "@/lib/guide-copy";
+import { Glossary } from "./Glossary";
 
 export function GuideView() {
   return (
@@ -17,6 +18,7 @@ export function GuideView() {
             <h1>{GUIDE_TITLE}</h1>
             <p className="rio-range">{GUIDE_LEDE}</p>
           </header>
+          <Glossary />
           <nav className="rio-guide-contents" aria-label="Guide sections">
             {GUIDE_SECTIONS.map((section) => (
               <Link key={section.id} href={`#${section.id}`}>

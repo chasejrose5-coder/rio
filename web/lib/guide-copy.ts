@@ -59,38 +59,35 @@ export const PAGE_MEANINGS = {
   },
   "past-seasons": {
     section: "pages",
-    sentences: ["Past seasons lists every saved season. Open plan loads one, and Delete shows the stored facts."],
+    sentences: ["Past seasons lists every saved season. Delete shows what will be removed and asks you to confirm."],
   },
   library: {
     section: "pages",
-    sentences: ["Library sits under Training, next to Stretching, Recovery, Core, and Foam rolling. Search, What it trains, and Phase narrow the list."],
+    sentences: ["Every workout RIO can put in your plan. Search, or filter by what it trains and by phase."],
   },
   recovery: {
     section: "pages",
     sentences: [
       "Recovery, under Training, lists injury-prevention exercises with an easy, medium, and hard dose, and a runner can mark areas to rebuild.",
-      "Not medical advice, and a painful area is a reason to see a professional.",
     ],
   },
   core: {
     section: "pages",
     sentences: [
       "Core, under Training, is a daily circuit: about 8 minutes on a hard day, 12 to 15 minutes on an easy day, and none on race day or the day before.",
-      "Not medical advice, and a painful area is a reason to see a professional.",
     ],
   },
   foam: {
     section: "pages",
     sentences: [
       "Foam rolling, under Training, is a short pass over the calves, quads, hamstrings, IT band, glutes, hips, and feet after a hard day or a long run.",
-      "Not medical advice, and a painful spot is a reason to see a professional.",
     ],
   },
   stretching: {
     section: "stretching",
     sentences: [
-      "Stretching sits under Training, next to Library, and follows today's plan in your Settings time zone, and the date picks a different routine for the next day of that kind.",
-      "A hard day warms up and cools down, a long run recovers longer, an easy or rest day stays short, a race day gets a primer, and sharp pain adds no stretches.",
+      "Stretching follows today's plan.",
+      "Hard days get a warm-up and cool-down, long runs get a longer recovery, and easy days stay short.",
     ],
   },
   settings: {
@@ -99,7 +96,7 @@ export const PAGE_MEANINGS = {
   },
   about: {
     section: "phases",
-    sentences: ["About is the short account of the phases and the weekly rise."],
+    sentences: ["How RIO builds your season: eight phases, and no more than 10% more each week."],
   },
   more: {
     section: "pages",
@@ -124,8 +121,7 @@ export const PAGE_MEANINGS = {
   "heart-rate": {
     section: "paces",
     sentences: [
-      "Resting and max heart rate set five Karvonen zones.",
-      "Without a heart rate monitor, the easy pace question stays.",
+      "Resting and max heart rate set five Karvonen zones. Skip this if you have no monitor, and RIO keeps using your easy pace.",
     ],
   },
   intro: {
@@ -166,9 +162,9 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
     title: "Getting started",
     paragraphs: ["Create an account, save an easy pace, then generate the season."],
     bullets: [
-      "Name, email, and a password of at least 8 characters. A local account needs only a first name. A hosted account sends a confirmation link.",
+      "Name, email, and a password of at least 8 characters. On riorunning.com, RIO emails you a link to confirm your account.",
       "Easy pace is minutes and seconds, like 7:25, per mile or per kilometer.",
-      "On Start, enter today's 800, the start date, the goal 800, and the race date. Times look like 2:05.0. Generate season plan opens Home.",
+      "On Start, enter today's 800, the start date, the goal 800 m time, and the race date. Times look like 2:05.0. Generate season plan opens Home.",
       "Connect Strava on Home or in Settings. Strava is the only place runs are imported from, and those runs are only visible to you.",
     ],
   },
@@ -176,7 +172,7 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
     id: "today",
     title: "Today's workout",
     paragraphs: [
-      "Home shows the days left until your goal 800, the current phase, and today's workout or the next one. Start session opens that day.",
+      "Home shows the days left until your goal 800 m time, the current phase, and today's workout or the next one. Start session opens that day.",
     ],
     bullets: [
       "A quality line reads like 6 × 400 m @ 71.2 s, 90 s rest: the reps, the time for each rep, and the rest.",
@@ -238,7 +234,7 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
         summary: "What a mark changes",
         paragraphs: [
           "On a hard Tuesday or Thursday, mark the week On track, Not hitting, or Smashing. Within 3% of the target is On track and leaves later weeks as they are. Slower or shorter is Not hitting and moves later weeks back one phase. Faster or longer is Smashing and moves them forward, stopping at phase 7.",
-          "Phase 8 stays the taper. Not hitting wins when more than one mark applies. Without a watch, a hard day asks for Behind, On target, or Ahead. Easy and long runs do not.",
+          "Phase 8 stays the taper. Not hitting wins when more than one mark applies. Without a watch, a hard day asks for Behind, On track, or Ahead. Easy and long runs do not.",
         ],
       },
     ],
@@ -250,13 +246,13 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
     bullets: [
       "Plan shows the weeks from the start date to the goal date, as Calendar, This week, or Full season.",
       "Activity shows Strava runs, distance, and heart rate. Refresh asks for newer runs.",
-      "Library, under Training, is the workout menu. Search, What it trains, and Phase narrow the same list.",
+      "Library, under Training, is every workout RIO can put in your plan. Search, or filter by what it trains and by phase.",
       "Recovery, under Training, is injury prevention by body part. Mark an area to rebuild it three days a week.",
       "Core, under Training, rotates anti-extension, anti-rotation, lateral, flexion, and running-specific work.",
       "Foam rolling, under Training, follows a hard day or a long run, and stays optional on other days.",
-      "Past seasons lists each saved season by start date, goal date, and goal time. Open plan loads it. Delete shows facts already stored, such as workouts logged and a timed 800.",
+      "Past seasons lists each saved season by start date, goal date, and goal time. Open plan loads it. Delete shows what will be removed, including workouts logged, and asks you to confirm.",
       "Settings holds your name, time zone, pace units, and Strava. The danger zone clears marks, the plan, or the account.",
-      "Profile keeps the easy pace and the season from Start. Saving a new goal 800 time does not rebuild the season.",
+      "Profile keeps the easy pace and the season from Start. Saving a new goal 800 m time does not rebuild the season.",
       "About is the short version of the phases and the 10% rise. More links to Past seasons, Profile, Settings, Guide, and About.",
     ],
   },
@@ -264,8 +260,7 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
     id: "stretching",
     title: "Stretching",
     paragraphs: [
-      "Stretching sits under Training, next to Library, and follows today's plan in your Settings time zone. The date picks a different routine for the next day of that kind.",
-      "A hard day warms up and cools down, a long run recovers longer, an easy or rest day stays short, a race day gets a primer, and sharp pain adds no stretches.",
+      "Stretching follows today's plan. Hard days get a warm-up and cool-down. Long runs get a longer recovery. Easy and rest days stay short, and race day gets a short primer. Sharp pain adds no stretches.",
     ],
   },
 ];

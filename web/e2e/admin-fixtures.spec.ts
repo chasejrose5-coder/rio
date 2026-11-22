@@ -22,12 +22,12 @@ test("continue puts skip=1 on log in and a later visit skips the splash", async 
   await expect(page).toHaveTitle("RIO · Runner Intelligence Owned");
   await expect(page.getByRole("heading", { name: "Your Race, Your Plan, Your Result" })).toBeVisible();
   await expect(page.getByText("Photo by Giant Asparagus on Pexels")).toBeVisible();
-  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Get started" }).click();
   await expect(page).toHaveURL(/\/sign-in\?skip=1$/);
   await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
   await page.goto("/?skip=1");
   await expect(page).toHaveURL(/\/sign-in\?skip=1$/);
-  await expect(page.getByRole("button", { name: "Continue" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Get started" })).toHaveCount(0);
 });
 
 test("a non-admin never sees admin and the API refuses them", async ({ page }) => {

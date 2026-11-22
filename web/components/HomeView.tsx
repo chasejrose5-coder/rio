@@ -50,7 +50,7 @@ function headline(days: number | null | undefined, goal: string): ReactNode {
         <span className="rio-display-num">{days}</span>
         <span className="rio-display-rest">
           {" "}
-          {unit} to {goal || "goal"}
+          {unit} to your {goal || "goal"} 800 m
         </span>
       </>
     );
@@ -77,7 +77,7 @@ function WorkoutFacts({ card, title, showId }: { card: WorkoutCard; title: strin
       <Fact label="Reps" value={facts?.reps || "—"} />
       {showId && templateId ? <div className="rio-template-id rio-track-id">{templateId}</div> : null}
       {prescription?.line ? <p className="rio-pace-line">{prescription.line}</p> : null}
-      {prescription?.tolerance ? <p className="rio-pace-range">Tolerance {prescription.tolerance}</p> : null}
+      {prescription?.tolerance ? <p className="rio-pace-range">Target range {prescription.tolerance}</p> : null}
       {prescription?.block ? <p className="rio-pace-block">Block {prescription.block}</p> : null}
       <HeartPace heart={prescription?.heart} />
     </div>
@@ -288,10 +288,10 @@ function HomeMain({
         </div>
       </header>
       <div className="rio-stat-row rio-stat-words">
-        <Stat label="Training block" value={phaseText(season.view.phase)} />
+        <Stat label="Phase" value={phaseText(season.view.phase)} />
         <Stat label="Last timed effort" value={markText(season.view.mark)} />
         <Stat label="This week" value={season.view.focus || "—"} />
-        <Stat label="Progress status" value={season.pace_status || "No runs yet"} />
+        <Stat label="Progress" value={season.pace_status || "No runs yet"} />
       </div>
       <div className="rio-glossary rio-soft-card">
         <Disclosure title="Details">
@@ -406,7 +406,7 @@ function DayCard({ card }: { card: WorkoutCard }) {
       <div className="rio-mini-date">{card.shown_date || card.date}</div>
       <div className="rio-mini-work">{work}</div>
       {card.prescription?.line ? <p className="rio-pace-line">{card.prescription.line}</p> : null}
-      {card.prescription?.tolerance ? <p className="rio-pace-range">Tolerance {card.prescription.tolerance}</p> : null}
+      {card.prescription?.tolerance ? <p className="rio-pace-range">Target range {card.prescription.tolerance}</p> : null}
       {card.prescription?.block ? <p className="rio-pace-block">Block {card.prescription.block}</p> : null}
       <HeartPace heart={card.prescription?.heart} compact />
     </div>
@@ -523,7 +523,7 @@ function Watchless({
   if (saved?.completed) {
     const parts = ["Completed"];
     if (saved.mark === "not_hitting") parts.push("Behind");
-    if (saved.mark === "on_track") parts.push("On target");
+    if (saved.mark === "on_track") parts.push("On track");
     if (saved.mark === "smashing") parts.push("Ahead");
     if (saved.text) parts.push(saved.text);
     return <p className="rio-week-meta">{parts.join(" · ")}</p>;
@@ -531,7 +531,7 @@ function Watchless({
 
   async function send(missed: boolean) {
     if (readOnly || previewing()) return;
-    if (!missed && hard && choice !== "Behind" && choice !== "On target" && choice !== "Ahead") {
+    if (!missed && hard && choice !== "Behind" && choice !== "On track" && choice !== "Ahead") {
       setError("Choose behind, on target, or ahead.");
       return;
     }
@@ -546,7 +546,7 @@ function Watchless({
   }
 
   function done() {
-    if (hard && choice !== "Behind" && choice !== "On target" && choice !== "Ahead") {
+    if (hard && choice !== "Behind" && choice !== "On track" && choice !== "Ahead") {
       setError("Choose behind, on target, or ahead.");
       return;
     }
@@ -560,12 +560,12 @@ function Watchless({
 
   return (
     <div className="rio-watchless">
-      {saved?.missed ? <p className="rio-settings-note">Couldn&apos;t finish. Done still completes this workout.</p> : null}
+      {saved?.missed ? <p className="rio-settings-note">Saved as couldn&apos;t finish. Finished after all? Tap Done.</p> : null}
       {hard ? (
         <div className="rio-done-choices">
           {[
             ["Behind", "Behind"],
-            ["On target", "On target"],
+            ["On track", "On track"],
             ["Ahead", "Ahead"],
           ].map(([label, value]) => (
             <button key={value} type="button" className={choice === value ? "rio-primary" : "rio-secondary"} onClick={() => setChoice(value)}>
@@ -574,6 +574,7 @@ function Watchless({
           ))}
         </div>
       ) : null}
+      {hard ? <p className="rio-settings-note">Behind: slower than the target. On track: within 3%. Ahead: faster.</p> : null}
       {open ? (
         <>
           <label htmlFor="done-time">Time</label>

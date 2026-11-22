@@ -63,6 +63,6 @@ test("easy days jog, swing, and stretch, and other days keep the drills", () => 
 });
 
 test("a finished no-watch row reads completed", () => {
-  assert.equal(watchlessSummary({ mark: "on_track", text: "1:12.4" }), "Completed · On target · 1:12.4");
+  assert.equal(watchlessSummary({ mark: "on_track", text: "1:12.4" }), "Completed · On track · 1:12.4");
   assert.equal(watchlessSummary({}), "Completed");
 });

@@ -198,7 +198,7 @@ function SettingsBody() {
     }
     const cleaned = normalizeName(preferred);
     if (!cleaned) {
-      setProblem("That nickname will not work.");
+      setProblem("Use a name of up to 40 characters.");
       return;
     }
     setPreferred(cleaned);
@@ -431,8 +431,8 @@ function SettingsBody() {
         {problem ? <p className="rio-error">{problem}</p> : null}
         {note ? <p className="rio-settings-note rio-settings-flash">{note}</p> : null}
 
-        <Expander title="Profile" defaultOpen>
-          <p className="rio-mark-label">Profile</p>
+        <Expander title="Account" defaultOpen>
+          <p className="rio-mark-label">Account</p>
           <label className="rio-stack" htmlFor="settings-name">
             Name
             <input
@@ -582,8 +582,8 @@ function SettingsBody() {
           )}
         </Expander>
 
-        <Expander title="Account">
-          <p className="rio-mark-label">Account</p>
+        <Expander title="Email">
+          <p className="rio-mark-label">Email</p>
           <form onSubmit={changeEmail} noValidate>
             <label className="rio-stack" htmlFor="settings-new-email">
               New email

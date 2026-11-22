@@ -9,7 +9,7 @@ import { PageMeaning } from "./PageMeaning";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api, isSignedOut } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { EXERCISE_AREAS, STRETCH_DISCLAIMER, SHARP_MESSAGE, regionById, type Exercise, type StretchType } from "@/lib/stretch-content";
+import { EXERCISE_AREAS, SHARP_MESSAGE, regionById, type Exercise, type StretchType } from "@/lib/stretch-content";
 import { filterExercises, prescribe, spotState, weekLabel, weekProgress, type Routine, type SoreSpot, type StretchSession } from "@/lib/stretch";
 import type { StretchState } from "@/lib/types";
 
@@ -133,7 +133,7 @@ function StretchBody() {
           <h1>Stretching</h1>
           <p className="rio-range">A short routine for today, taken from the plan.</p>
         </header>
-        <Disclosure title="Details">
+        <Disclosure title="How today's routine is chosen">
           <p className="rio-train-copy">The date changes which version you get, so the next day of the same kind is a different sequence.</p>
         </Disclosure>
         {mode === "loading" ? <p className="rio-wait">Loading</p> : null}
@@ -215,7 +215,7 @@ function StretchBody() {
                       disabled={busy !== ""}
                       onClick={() => void run(item.routine.id, () => api.stretchComplete(item.routine.id, !item.done))}
                     >
-                      {item.done ? "Done today" : "Done"}
+                      {item.done ? "Done today" : "Mark done"}
                     </button>
                   </div>
                   {item.exercises.map((exercise) => (
@@ -252,7 +252,6 @@ function StretchBody() {
                   </div>
                 </div>
               ) : null}
-              <p className="rio-disclaimer">{STRETCH_DISCLAIMER}</p>
             </section>
             <section className="rio-stretch-library" data-testid="stretch-library" aria-labelledby="stretch-library-title">
               <h2 id="stretch-library-title">Exercise library</h2>

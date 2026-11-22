@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { FOAM_DISCLAIMER, foamRoutine } from "../lib/foam-content";
+import { foamRoutine } from "../lib/foam-content";
+import { MEDICAL_NOTE } from "../lib/glossary";
 
 const today = "2026-11-10";
 
@@ -86,7 +87,7 @@ test("foam rolling follows a hard day and lists every area", async ({ page }) =>
   await install(page);
   await page.goto("/foam");
   await expect(page.getByRole("heading", { name: "Foam rolling", exact: true })).toBeVisible();
-  await expect(page.getByText(FOAM_DISCLAIMER).first()).toBeVisible();
+  await expect(page.getByText(MEDICAL_NOTE).first()).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Training" }).getByRole("link", { name: "Foam rolling" })).toHaveAttribute(
     "aria-current",
     "page",

@@ -169,7 +169,7 @@ function ProfileBody() {
         {mode !== "loading" ? (
           <>
             <section className="rio-easy">
-              <p className="rio-easy-kicker">Start here</p>
+              <p className="rio-easy-kicker">{profile?.ready ? "Your paces" : "Start here"}</p>
               <h1>Your easy pace</h1>
               <p className="rio-easy-body">
                 Easy and long runs use this pace. Enter minutes and seconds, like 7:25, and choose per mile or per
@@ -207,8 +207,8 @@ function ProfileBody() {
             {profile?.ready ? (
               <>
                 <p className="rio-profile-lead">
-                  Four values from Start. Current 800, the start date, and the goal date stay with the season. Goal
-                  800m time is the one you can change.
+                  These four came from Start when you built this season. Your current 800 time, the start date, and the
+                  goal date stay with it. You can change your goal 800 m time here.
                 </p>
                 <section className="rio-soft-card rio-profile-group">
                   <p className="rio-mark-label">Starting point</p>

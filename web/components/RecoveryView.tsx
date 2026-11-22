@@ -13,7 +13,6 @@ import {
   BONE_MESSAGE,
   EXERCISES,
   GROUPS,
-  INJURY_DISCLAIMER,
   LEVELS,
   exercisesFor,
   type InjuryArea,
@@ -208,7 +207,6 @@ function RecoveryBody() {
         {mode === "loading" ? <p className="rio-wait">Loading saved areas</p> : null}
         {mode === "error" ? <p className="rio-error">{problem}</p> : null}
         {problem && mode !== "error" ? <p className="rio-error">{problem}</p> : null}
-        <p className="rio-medical">{INJURY_DISCLAIMER}</p>
         <PageMeaning page="recovery" />
         <Footer />
       </main>

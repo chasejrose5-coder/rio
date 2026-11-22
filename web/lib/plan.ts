@@ -567,5 +567,5 @@ export function activityNotice(notice: string | null | undefined): "missing" | "
 
 export function paceStatusLine(status: string | undefined): string {
   const text = (status || "No runs yet").trim() || "No runs yet";
-  return `Pace status ${text}.`;
+  return `Progress: ${text}`;
 }

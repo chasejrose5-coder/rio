@@ -250,7 +250,7 @@ test("a season shows the hero, phases, weeks, and all three views", async ({ pag
   await page.goto("/plan");
   await expect(page.getByRole("heading", { name: "2 weeks" })).toBeVisible();
   await expect(page.getByText("2026-11-08 — 2026-11-21")).toBeVisible();
-  await expect(page.getByText("Pace status No runs yet.")).toBeVisible();
+  await expect(page.getByText("Progress: No runs yet")).toBeVisible();
   await expect(page.getByText("Photo by Jan van der Wolf on Pexels")).toBeVisible();
   await expect(page.getByText("This week is phase 4.")).toBeVisible();
   const currentPhase = page.locator(".rio-phase-now");
@@ -305,7 +305,7 @@ test("a season shows the hero, phases, weeks, and all three views", async ({ pag
   await expect(page.getByRole("heading", { name: "Week 1" })).toBeVisible();
   await expect(page.getByText("Phase 4 · 2026-11-08 — 2026-11-14")).toBeVisible();
   await expect(page.getByText("6 × 400 m @ 71.2 s, 90 s rest")).toBeVisible();
-  await expect(page.getByText("Tolerance 68.0-74.4 s")).toBeVisible();
+  await expect(page.getByText("Target range 68.0-74.4 s")).toBeVisible();
   await expect(page.getByText("Block 12:06.0")).toBeVisible();
   await expect(page.getByText("Run at 7:45 per mile").first()).toBeVisible();
   await expect(page.getByText("Extra sessions")).toBeVisible();
@@ -448,7 +448,7 @@ test("a brand-new account reaches Plan from Start and can mark a week", async ({
 
   await page.goto("/plan");
   await expect(page.getByRole("heading", { name: /\d+ weeks/ })).toBeVisible();
-  await expect(page.getByText("Pace status No runs yet.")).toBeVisible();
+  await expect(page.getByText("Progress: No runs yet")).toBeVisible();
   await expect(page.getByText(/^This week is phase \d+\.$/)).toBeVisible();
   await expect(page.locator(".rio-phase-now")).toBeVisible();
   const todayCell = page.locator(".rio-cal-today");
