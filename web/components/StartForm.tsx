@@ -201,7 +201,6 @@ function StartFields({ today, behavior }: { today: string; behavior: string }) {
               aria-describedby="start-date-help"
               onChange={(event) => setStartDate(event.target.value)}
               onClick={openDatePicker}
-              onFocus={openDatePicker}
             />
           </Field>
           <Field
@@ -229,7 +228,6 @@ function StartFields({ today, behavior }: { today: string; behavior: string }) {
               aria-describedby="goal-date-help"
               onChange={(event) => setGoalDate(event.target.value)}
               onClick={openDatePicker}
-              onFocus={openDatePicker}
             />
           </Field>
         </div>

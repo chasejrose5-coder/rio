@@ -189,8 +189,8 @@ test("a disconnected account shows the empty line and the Strava card", async ({
   await expect(page.getByText("2026-04-19 — 2027-03-19")).toBeVisible();
   await expect(page.getByText("No runs yet.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Connect Strava in Settings" })).toHaveAttribute("href", "/settings");
-  await expect(page.getByText("Strava isn't connected")).toHaveCount(2);
-  await expect(page.getByRole("link", { name: "Open Settings" })).toBeVisible();
+  await expect(page.getByText("Strava isn't connected")).toHaveCount(1);
+  await expect(page.getByRole("link", { name: "Open Settings" })).toHaveCount(0);
   await expect(page.getByText("Strava is not configured.")).toHaveCount(0);
   await expect(page.getByText("Refresh from Strava")).toHaveCount(0);
   await expect(page.locator(".rio-mark-label").first()).toHaveCSS("color", "rgb(60, 58, 54)");

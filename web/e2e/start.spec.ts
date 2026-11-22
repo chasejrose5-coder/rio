@@ -237,7 +237,7 @@ test("a brand-new local account generates from Start and can dismiss Strava", as
   await page.getByRole("button", { name: "Create account" }).click();
   await saveMeasuredHeartRate(page);
   await expect(page.getByRole("heading", { name: "Your easy pace" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("navigation", { name: "Pages" }).locator("[aria-current='page']")).toHaveCount(0);
 
   const patched = await page.evaluate(async () => {
     const response = await fetch("http://localhost:8000/settings", {

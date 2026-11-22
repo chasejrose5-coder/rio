@@ -407,7 +407,6 @@ export function HeartRateSettings() {
 
   return (
     <>
-      <p className="rio-mark-label">Heart rate</p>
       {note ? <p className="rio-settings-note">{note}</p> : null}
       {!profile && !note ? <p className="rio-wait">Loading</p> : null}
       {profile ? <HeartRateForm profile={profile} mode="settings" /> : null}
@@ -462,9 +461,11 @@ function HeartRateStepBody() {
     <div className="page-plain">
       <Nav />
       <main>
+        <header className="rio-hero">
+          <h1>Heart rate</h1>
+        </header>
         <section className="rio-easy">
           <p className="rio-easy-kicker">{kicker}</p>
-          <h1>Heart rate</h1>
           <p>
             Resting heart rate is measured lying in bed when you wake up. Max heart rate is the highest you can reach
             in a hard effort. Both are needed to set your zones. No monitor? Tick the box above.

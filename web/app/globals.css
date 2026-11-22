@@ -233,7 +233,7 @@ a .rio-mini:hover, a.rio-daycard:hover, .rio-hit:hover .rio-mini {
     gap: 0;
     width: auto;
     margin: 0;
-    padding: 0 0.2rem env(safe-area-inset-bottom);
+    padding: 0 calc(0.5rem + env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom) 0.2rem;
     background: #121110;
     border-top: 1px solid rgba(244, 241, 236, 0.16);
     overflow: visible;
@@ -606,6 +606,20 @@ a .rio-mini:hover, a.rio-daycard:hover, .rio-hit:hover .rio-mini {
 .rio-strava-offer h2 { margin: 0 0 0.35rem; font-size: 1.28rem; font-weight: 500; }
 .rio-strava-offer .rio-primary, .rio-strava-offer .rio-secondary { margin-top: 0.7rem; margin-right: 0.5rem; }
 .rio-hr-prompt { margin: 1rem 0; padding: 1rem 1.15rem; }
+.rio-home-stack { display: contents; }
+@media (max-width: 480px) {
+  .rio-home-stack { display: flex; flex-direction: column; }
+  .rio-home-stack > .rio-home-today { order: 1; }
+  .rio-home-stack > .rio-hr-prompt { order: 2; }
+  .rio-home-stack > .rio-home-tail { order: 3; }
+  .page-home .rio-hero { padding: 0.7rem 0 0.4rem; }
+  .page-home .rio-hello { margin-top: 0.3rem; font-size: 1.15rem; }
+  .page-home .rio-hello-plan { margin-top: 0.15rem; }
+  .page-home .rio-stat-tile { padding-top: 0.45rem; padding-bottom: 0.5rem; }
+  .page-home .rio-glossary { margin-top: 0.45rem; }
+  .page-home .rio-index-pad { padding-top: 0.45rem; }
+  .page-home .rio-home-today { margin-top: 0.25rem; }
+}
 .rio-hr-prompt h2 { margin: 0 0 0.35rem; font-size: 1.28rem; font-weight: 500; }
 .rio-hr-prompt p { margin: 0; }
 .rio-hr-prompt .rio-primary,
@@ -903,13 +917,6 @@ button.rio-text-link:disabled {
   .rio-hero h1, .rio-display { font-size: clamp(2.275rem, 10.5vw, 3.325rem); }
   .rio-week-strip { flex-wrap: nowrap; }
   .rio-week-chip { flex: 1 1 0; min-width: 0; padding: 0.32rem 0.08rem; }
-}
-@media (max-width: 480px) {
-  .page-plan main { padding-left: 0.35rem; padding-right: 0.35rem; }
-  .page-plan .rio-cal { gap: 2px; }
-  .rio-cal-label { overflow-wrap: normal; font-size: var(--fs-xs); letter-spacing: -0.01em; }
-  .rio-cal-day { padding-left: 0.25rem; padding-right: 0.2rem; }
-  .rio-cal-day:not(.rio-cal-session):not(.rio-cal-today) { min-height: 3.4rem; }
 }
 @media (max-width: 600px) {
   .page-home {
@@ -1544,6 +1551,13 @@ button.rio-text-link:disabled {
   overflow-wrap: anywhere;
 }
 .rio-cal-out { min-height: 5.2rem; }
+@media (max-width: 480px) {
+  .page-plan main { padding-left: 0.35rem; padding-right: 0.35rem; }
+  .page-plan .rio-cal { gap: 2px; }
+  .page-plan .rio-cal-label { overflow-wrap: normal; font-size: var(--fs-xs); letter-spacing: -0.01em; }
+  .page-plan .rio-cal-day { padding-left: 0.25rem; padding-right: 0.2rem; }
+  .page-plan .rio-cal-day:not(.rio-cal-session):not(.rio-cal-today) { min-height: 3.4rem; }
+}
 .rio-hero-week { padding: 0.2rem 0 0.4rem; }
 .rio-hero-week h2 { margin: 0; font-family: var(--display); font-weight: 800; letter-spacing: -0.04em; font-size: clamp(2rem, 4vw, 2.8rem); }
 .rio-hero-week .rio-range { margin: 0.35rem 0 0; color: var(--muted); }
@@ -3099,6 +3113,8 @@ button.rio-text-link:disabled {
   letter-spacing: -0.03em;
 }
 .page-stretch h3 { margin: 0; font-size: 1.05rem; }
+.page-stretch .rio-index { color: var(--ink); }
+.page-stretch .rio-index::before { content: none; }
 .rio-stretch-today, .rio-stretch-map, .rio-stretch-library { margin: 0 0 2rem; }
 .rio-stretch-week { color: var(--muted); font-weight: 600; margin: 0.2rem 0 1rem; }
 .rio-stretch-meta { margin: 0.15rem 0 0.35rem; color: var(--muted); font-size: 0.86rem; }
