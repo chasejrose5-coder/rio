@@ -531,7 +531,7 @@ function Watchless({ session, onSaved }: { session: SessionResponse; onSaved: ()
       {session.quality ? (
         <div className="rio-done-choices">
           {["Behind", "On target", "Ahead"].map((label) => (
-            <button key={label} type="button" className={choice === label ? "rio-primary" : "rio-secondary"} onClick={() => setChoice(label)}>
+            <button key={label} type="button" className={choice === label ? "rio-primary" : "rio-secondary"} aria-pressed={choice === label} onClick={() => setChoice(label)}>
               {label}
             </button>
           ))}

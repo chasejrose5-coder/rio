@@ -119,6 +119,7 @@ function PastSeasonsBody() {
               return (
                 <section className="rio-past-item" key={key}>
                   <div className="rio-past-row">
+                    {row.current ? <span className="rio-past-badge">Current season</span> : null}
                     <span className="rio-past-cell">
                       <span className="rio-past-k">Start date</span>
                       <span className="rio-past-v">{shown.start}</span>

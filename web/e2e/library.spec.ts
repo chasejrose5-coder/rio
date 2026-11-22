@@ -130,12 +130,12 @@ test("the menu, a search, an empty result, and a load error", async ({ page }) =
   await expect(page.locator("img")).toHaveCount(0);
   await expect(page.getByLabel("Search")).toHaveAttribute("placeholder", "Search workouts");
   await expect(page.getByText("The quality that workout builds, such as speed or endurance.")).toBeHidden();
-  await page.getByRole("button", { name: "Help" }).first().hover();
+  await page.getByRole("button", { name: "What it trains: help" }).hover();
   await expect(page.getByText("The quality that workout builds, such as speed or endurance.")).toBeVisible();
-  await page.getByRole("button", { name: "Help" }).nth(1).focus();
+  await page.getByRole("button", { name: "Phase: help" }).focus();
   await expect(page.getByText("A phase is a training block. The season moves through eight of them.")).toBeVisible();
-  await expect(page.getByLabel("What it trains")).toContainText("Aerobic power");
-  await expect(page.getByLabel("Phase")).toContainText("Phase 8");
+  await expect(page.locator("#library-capacity")).toContainText("Aerobic power");
+  await expect(page.locator("#library-phase")).toContainText("Phase 8");
   await expect(page.getByText("4 workouts")).toBeVisible();
   await expect(page.getByText("Easy 50–60 min, about 6.2 mi")).toBeVisible();
   await expect(page.getByText("800 m race")).toBeVisible();
@@ -154,11 +154,11 @@ test("the menu, a search, an empty result, and a load error", async ({ page }) =
   await expect(page.getByText("0 workouts")).toBeVisible();
 
   await page.getByLabel("Search").fill("");
-  await page.getByLabel("What it trains").selectOption("speed_endurance");
+  await page.locator("#library-capacity").selectOption("speed_endurance");
   await expect(page.getByText("1 workout")).toBeVisible();
   await expect(page.getByText("6 × 400 m, 90 s rest")).toBeVisible();
-  await page.getByLabel("What it trains").selectOption("All");
-  await page.getByLabel("Phase").selectOption("8");
+  await page.locator("#library-capacity").selectOption("All");
+  await page.locator("#library-phase").selectOption("8");
   await expect(page.getByText("800 m race")).toBeVisible();
   await expect(page.getByText("Long easy, about 7.5 mi")).toHaveCount(0);
 });

@@ -185,6 +185,7 @@ function ActivityBody() {
               </section>
             ) : (
               <section className="rio-refresh">
+                <p className="rio-mark-label">Strava isn&apos;t connected</p>
                 <p className="rio-note">
                   <strong>No runs yet.</strong> Connect Strava and your runs will show up here, matched to your plan.
                 </p>
@@ -193,7 +194,7 @@ function ActivityBody() {
                 </p>
               </section>
             )}
-            {noticeKind === "missing" ? <StravaCard /> : null}
+            {noticeKind === "missing" && connected ? <StravaCard /> : null}
             {noticeKind === "failed" ? (
               <div className="rio-card rio-card-tight">
                 <p className="rio-note">Runs could not be loaded. Try Refresh in a moment.</p>

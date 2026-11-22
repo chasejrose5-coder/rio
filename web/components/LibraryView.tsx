@@ -119,7 +119,7 @@ function LibraryBody() {
               <label htmlFor="library-capacity">
                 <span className="rio-filter-label">
                   What it trains
-                  <HelpTip text={FAMILY_HELP} />
+                  <HelpTip text={FAMILY_HELP} label="What it trains: help" />
                 </span>
                 <select id="library-capacity" value={family} onChange={(event) => setFamily(event.target.value)}>
                   <option value="All">All</option>
@@ -133,7 +133,7 @@ function LibraryBody() {
               <label htmlFor="library-phase">
                 <span className="rio-filter-label">
                   Phase
-                  <HelpTip text={PHASE_HELP} />
+                  <HelpTip text={PHASE_HELP} label="Phase: help" />
                 </span>
                 <select id="library-phase" value={phase} onChange={(event) => setPhase(event.target.value)}>
                   <option value="All">All</option>
@@ -175,13 +175,25 @@ function LibraryBody() {
   );
 }
 
-function HelpTip({ text }: { text: string }) {
+function HelpTip({ text, label }: { text: string; label: string }) {
+  const [open, setOpen] = useState(false);
+  const tipId = `help-${label.replace(/\s+/g, "-").toLowerCase()}`;
   return (
-    <span className="rio-help">
-      <button type="button" className="rio-help-btn" aria-label="Help">
+    <span className={open ? "rio-help is-open" : "rio-help"}>
+      <button
+        type="button"
+        className="rio-help-btn"
+        aria-label={label}
+        aria-expanded={open}
+        aria-describedby={open ? tipId : undefined}
+        onClick={() => setOpen((value) => !value)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") setOpen(false);
+        }}
+      >
         ?
       </button>
-      <span className="rio-help-tip" role="tooltip">
+      <span className="rio-help-tip" id={tipId} role="tooltip">
         {text}
       </span>
     </span>

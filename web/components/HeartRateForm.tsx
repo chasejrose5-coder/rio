@@ -449,7 +449,7 @@ function HeartRateStepBody() {
 
   return (
     <div className="page-plain">
-      <Nav active="Home" />
+      <Nav />
       <main>
         <section className="rio-easy">
           <p className="rio-easy-kicker">Start here</p>
