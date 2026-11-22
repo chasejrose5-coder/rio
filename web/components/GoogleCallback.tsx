@@ -3,10 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { LoadingScreen } from "./LoadingScreen";
-import { ApiError, afterSignIn, api } from "@/lib/api";
+import { afterSignIn, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { destinationAfterSignIn, warmDestinationReads } from "@/lib/enter";
-import { GOOGLE_FAILED, clearGoogleReturn, takeGoogleReturn } from "@/lib/google-auth";
+import { clearGoogleReturn, takeGoogleReturn } from "@/lib/google-auth";
 
 export function GoogleCallback() {
   const router = useRouter();
@@ -20,12 +20,12 @@ export function GoogleCallback() {
     if (window.location.search || window.location.hash) {
       window.history.replaceState({}, "", "/auth/callback");
     }
-    const fail = (message: string) => {
+    const fail = (key: "google-failed" | "session-stuck") => {
       clearGoogleReturn();
-      router.replace(`/sign-in?note=${encodeURIComponent(message)}`);
+      router.replace(`/sign-in?note=${key}`);
     };
     if (back.error || !back.code) {
-      fail(GOOGLE_FAILED);
+      fail("google-failed");
       return;
     }
     void (async () => {
@@ -35,13 +35,13 @@ export function GoogleCallback() {
         const signedIn = await refresh();
         const stuck = afterSignIn(signedIn);
         if (stuck) {
-          fail(stuck);
+          fail("session-stuck");
           return;
         }
         clearGoogleReturn();
         router.replace(await destinationAfterSignIn(signedIn!));
       } catch (caught) {
-        fail(caught instanceof ApiError ? caught.message : GOOGLE_FAILED);
+        fail("google-failed");
       }
     })();
   }, [refresh, router]);

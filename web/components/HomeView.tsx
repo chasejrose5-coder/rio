@@ -568,7 +568,7 @@ function Watchless({
             ["On target", "On target"],
             ["Ahead", "Ahead"],
           ].map(([label, value]) => (
-            <button key={value} type="button" className={choice === value ? "rio-primary" : "rio-secondary"} onClick={() => setChoice(value)}>
+            <button key={value} type="button" className={choice === value ? "rio-primary" : "rio-secondary"} aria-pressed={choice === value} onClick={() => setChoice(value)}>
               {label}
             </button>
           ))}
