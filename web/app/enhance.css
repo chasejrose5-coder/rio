@@ -419,10 +419,25 @@
 @keyframes rio-bar-out { to { block-size: 0; opacity: 0; padding: 0; margin: 0; } }
 .rio-v3.page-home .rio-home-pair { display: grid; gap: 24px; align-items: start; }
 .rio-v3.page-home .rio-home-today { padding: 16px; }
+@media (max-width: 1279px) {
+  .rio-v3.page-home .rio-home-phase-col { display: contents; }
+  .rio-v3.page-home .rio-home-phase { order: 1; }
+  .rio-v3.page-home .rio-home-today { order: 2; }
+  .rio-v3.page-home .rio-home-upcoming { order: 3; }
+}
 @media (min-width: 1280px) {
   .rio-v3.page-home .rio-home-pair { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
   .rio-v3.page-home .rio-home-today { grid-column: 1; grid-row: 1; }
-  .rio-v3.page-home .rio-home-phase { grid-column: 2; grid-row: 1; }
+  .rio-v3.page-home .rio-home-phase-col {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    align-self: start;
+    min-width: 0;
+  }
+  .rio-v3.page-home .rio-home-phase-col .rio-next3 { grid-template-columns: 1fr; }
   .rio-v3.page-home .rio-home-pair > :only-child { grid-column: 1 / -1; }
 }
 .rio-v3.page-home .rio-next3 { display: grid; grid-template-columns: 1fr; gap: 16px; }
@@ -926,3 +941,10 @@
   .rio-v3 .rio-body-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .rio-v3 .rio-body-legend button { min-height: 44px; width: 100%; padding: 0 8px; }
 }
+
+/* N1–N4. The stretching card grid stays as committed; the body map is not put in a 7/5 split. */
+@media (max-width: 767px) {
+  .rio-v3.page-home .rio-display { font-size: clamp(44px, 6vw, 88px); }
+}
+.rio-v3 :is(.rio-stretch-card, .rio-lib-row, .rio-past-item):hover { transform: none; box-shadow: var(--shadow-1); }
+.rio-v3 div.rio-cal-day:hover { translate: none; }

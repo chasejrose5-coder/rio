@@ -357,6 +357,32 @@ function HomeMain({
         <Insight key={item.date} date={item.date} note={item.note} onDone={reload} />
       ))}
       <div className="rio-home-pair">
+      <section className="rio-home-today">
+        <p className="rio-index">{workoutIndex}</p>
+        {season.next ? (
+          <>
+            <Link className="rio-hit" href={`/session?date=${season.next.date || ""}`} onPointerDown={shareHero}>
+              <WorkoutFacts
+                card={season.next}
+                title={todayWorkout ? "Today's workout" : "Next workout"}
+                showId={home.athlete.prefs.show_ids === true}
+              />
+            </Link>
+            {season.logging === "done" ? (
+              <Watchless
+                card={season.next}
+                confirmAdapt={home.athlete.prefs.confirm_adapt === true}
+                readOnly={readOnly}
+                onSaved={reload}
+              />
+            ) : null}
+          </>
+        ) : (
+          <p className="rio-empty">No workout left in this plan.</p>
+        )}
+        <StretchLink today={home.today} />
+      </section>
+      <div className="rio-home-phase-col">
       {showedPhase && season.phase ? (
         <section className="rio-home-phase">
           <p className="rio-index rio-index-pad">01  /  Current phase</p>
@@ -391,39 +417,17 @@ function HomeMain({
           </Expander>
         </section>
       ) : null}
-      <section className="rio-home-today">
-        <p className="rio-index">{workoutIndex}</p>
-        {season.next ? (
-          <>
-            <Link className="rio-hit" href={`/session?date=${season.next.date || ""}`} onPointerDown={shareHero}>
-              <WorkoutFacts
-                card={season.next}
-                title={todayWorkout ? "Today's workout" : "Next workout"}
-                showId={home.athlete.prefs.show_ids === true}
-              />
-            </Link>
-            {season.logging === "done" ? (
-              <Watchless
-                card={season.next}
-                confirmAdapt={home.athlete.prefs.confirm_adapt === true}
-                readOnly={readOnly}
-                onSaved={reload}
-              />
-            ) : null}
-          </>
-        ) : (
-          <p className="rio-empty">No workout left in this plan.</p>
-        )}
-        <StretchLink today={home.today} />
-      </section>
+        <div className="rio-home-upcoming">
+          <p className="rio-index rio-index-pad">{upcomingIndex}</p>
+          <div className="rio-next3">
+            {(season.next_days || []).map((day) => (
+              <DayCard key={day.date} card={day} />
+            ))}
+          </div>
+        </div>
+      </div>
       </div>
       <div className="rio-home-tail">
-        <p className="rio-index rio-index-pad">{upcomingIndex}</p>
-        <div className="rio-next3">
-          {(season.next_days || []).map((day) => (
-            <DayCard key={day.date} card={day} />
-          ))}
-        </div>
         {!showedPhase ? <p className="rio-index rio-index-pad">03  /  Open</p> : null}
         <div className="rio-quick">
           <Link href="/plan">Plan</Link>
