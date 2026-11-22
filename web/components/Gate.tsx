@@ -7,6 +7,7 @@ import { LoadingScreen } from "./LoadingScreen";
 import { Splash } from "./Splash";
 import { useAuth } from "@/lib/auth";
 import { destinationAfterSignIn } from "@/lib/enter";
+import { ErrorText } from "./ErrorText";
 
 const SPLASH_KEY = "rio_startup_seen";
 
@@ -52,7 +53,7 @@ export function Gate() {
   if (seasonProblem) {
     return (
       <div className="rio-gate-retry">
-        <p className="rio-error">The season could not be loaded.</p>
+        <ErrorText>The season could not be loaded.</ErrorText>
         <button
           type="button"
           className="rio-primary"

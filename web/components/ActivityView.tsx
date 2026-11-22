@@ -24,6 +24,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { activityNotice, displayDistance, formatDate } from "@/lib/plan";
 import type { ActivitiesResponse, RunCard, StravaStatus } from "@/lib/types";
+import { ErrorText } from "./ErrorText";
 
 type Mode = "loading" | "missing" | "bad" | "ready" | "error";
 
@@ -163,7 +164,7 @@ function ActivityBody() {
         <header className="rio-hero">
           <h1>Activity</h1>
           {mode === "ready" && range ? <p className="rio-range">{range}</p> : null}
-          {problem ? <p className="rio-error">{problem}</p> : null}
+          {problem ? <ErrorText>{problem}</ErrorText> : null}
         </header>
         {mode === "loading" ? <SkeletonBlocks /> : null}
         {mode === "missing" ? (
@@ -198,7 +199,7 @@ function ActivityBody() {
                 <p className="rio-note">Runs could not be loaded. Try Refresh in a moment.</p>
               </div>
             ) : null}
-            {stravaProblem ? <p className="rio-error">{stravaProblem}</p> : null}
+            {stravaProblem ? <ErrorText>{stravaProblem}</ErrorText> : null}
             {body.preview?.status ? <p className="rio-note">{body.preview.status}</p> : null}
             {synced && !body.preview?.active ? <p className="rio-note">{synced}</p> : null}
             {cards.length ? (

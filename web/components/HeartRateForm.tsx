@@ -24,6 +24,7 @@ import {
 import { needsHeartRate } from "@/lib/landing";
 import { PACE_ERROR, canonicalEasyPace } from "@/lib/profile";
 import type { HeartRateProfile } from "@/lib/types";
+import { ErrorText, LoadError } from "./ErrorText";
 
 type Mode = "onboarding" | "settings";
 
@@ -347,11 +348,7 @@ export function HeartRateForm({ profile, mode }: { profile: HeartRateProfile; mo
           </>
         )}
         <p className="rio-hr-safety">{SAFETY_NOTE}</p>
-        {error ? (
-          <p className="rio-error" role="alert">
-            {error}
-          </p>
-        ) : null}
+        {error ? <ErrorText>{error}</ErrorText> : null}
         {mode === "onboarding" ? (
           <button className="rio-primary" type="submit" disabled={busy}>
             {noMonitor ? "Continue" : "Save heart rate"}
@@ -377,11 +374,7 @@ export function HeartRateForm({ profile, mode }: { profile: HeartRateProfile; mo
               <input type="radio" name="settings-hr-unit" checked={unit === "km"} onChange={() => setUnit("km")} /> per kilometer
             </label>
           </fieldset>
-          {paceError ? (
-            <p className="rio-error" role="alert">
-              {paceError}
-            </p>
-          ) : null}
+          {paceError ? <ErrorText>{paceError}</ErrorText> : null}
           <button className="rio-primary" type="submit" disabled={busy}>
             Save easy pace
           </button>
@@ -425,6 +418,7 @@ function HeartRateStepBody() {
   const { athlete } = useAuth();
   const [profile, setProfile] = useState<HeartRateProfile | null>(null);
   const [problem, setProblem] = useState("");
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let live = true;
@@ -440,7 +434,7 @@ function HeartRateStepBody() {
     return () => {
       live = false;
     };
-  }, []);
+  }, [attempt]);
 
   useEffect(() => {
     if (!profile || !athlete || needsHeartRate(profile)) return;
@@ -465,7 +459,7 @@ function HeartRateStepBody() {
             in a hard effort. Both are required.
           </p>
         </section>
-        {problem ? <p className="rio-error">{problem}</p> : null}
+        {problem ? <LoadError message={problem} onRetry={() => setAttempt((value) => value + 1)} /> : null}
         {!profile && !problem ? <p className="rio-wait">Loading</p> : null}
         {profile && needsHeartRate(profile) ? <HeartRateForm profile={profile} mode="onboarding" /> : null}
         <PageMeaning page="heart-rate" />

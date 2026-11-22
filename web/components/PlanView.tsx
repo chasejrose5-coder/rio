@@ -48,6 +48,7 @@ import {
   type PlanViewName,
 } from "@/lib/plan";
 import type { ActivitiesResponse, BikeWeek, CurrentSeason, PlanDay, PlanResponse, PlanSession } from "@/lib/types";
+import { ErrorText } from "./ErrorText";
 
 const VIEW_KEY = "rio_plan_last";
 
@@ -208,7 +209,7 @@ function PlanBody() {
         <header className="rio-plan-hero">
           <h1>{title}</h1>
           {range ? <p className="rio-range">{range}</p> : null}
-          {problem ? <p className="rio-error">{problem}</p> : null}
+          {problem ? <ErrorText>{problem}</ErrorText> : null}
           <PhotoCredit onPhoto>Photo by Jan van der Wolf on Pexels</PhotoCredit>
         </header>
         {mode === "loading" ? <SkeletonBlocks variant="calendar" /> : null}
@@ -874,7 +875,7 @@ function Marks({
           </button>
         </div>
       ) : null}
-      {markError ? <p className="rio-error">{markError}</p> : null}
+      {markError ? <ErrorText>{markError}</ErrorText> : null}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/plan";
 import type { FixturePrescription, LedgerBody, PlannedRow } from "@/lib/types";
+import { ErrorText } from "./ErrorText";
 
 function Shell({
   title,
@@ -200,7 +201,7 @@ export function DecisionsView() {
   return (
     <Shell title="Decisions" page="decisions" banner={banner}>
       {empty ? <p className="rio-empty">No planned rows.</p> : null}
-      {problem ? <p className="rio-error">{problem}</p> : null}
+      {problem ? <ErrorText>{problem}</ErrorText> : null}
       {rows.length > 1 ? (
         <label className="rio-file">
           Planned
@@ -251,7 +252,7 @@ export function LedgerView() {
   const subtitle = body?.as_of ? `As of ${formatDate(body.as_of, format)}` : "";
   return (
     <Shell title="Ledger" page="ledger" subtitle={subtitle} banner={body?.banner}>
-      {problem ? <p className="rio-error">{problem}</p> : null}
+      {problem ? <ErrorText>{problem}</ErrorText> : null}
       {body ? (
         <>
           <section className="rio-card">
@@ -289,7 +290,7 @@ export function GoalView() {
 
   return (
     <Shell title="Goal" page="goal">
-      {problem ? <p className="rio-error">{problem}</p> : null}
+      {problem ? <ErrorText>{problem}</ErrorText> : null}
       {goal ? (
         <section className="rio-card">
           {GOAL_FIELDS.map((key) => (

@@ -22,6 +22,7 @@ import { pageShouldRise } from "@/lib/motion";
 import { linkError } from "@/lib/plan";
 import { shownName } from "@/lib/settings";
 import type { HomeResponse, WorkoutCard } from "@/lib/types";
+import { ErrorText, LoadError } from "./ErrorText";
 
 const MARKS: Record<string, string> = {
   on_track: "On track",
@@ -110,6 +111,7 @@ function HomeBody() {
   }, [status]);
   const [home, setHome] = useState<HomeResponse | null>(null);
   const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const [linkProblem, setLinkProblem] = useState("");
   const [offer, setOffer] = useState(false);
   const [rise, setRise] = useState(false);
@@ -152,7 +154,7 @@ function HomeBody() {
       }
       setError(caught instanceof ApiError ? caught.message : "Home could not be loaded.");
     });
-  }, [router]);
+  }, [router, attempt]);
 
   const compact = home?.athlete.prefs.compact === true;
   return (
@@ -163,10 +165,10 @@ function HomeBody() {
         {linkProblem ? (
           <header className="rio-hero rio-home-hero">
             <h1>Home</h1>
-            <p className="rio-error">{linkProblem}</p>
+            <ErrorText>{linkProblem}</ErrorText>
           </header>
         ) : null}
-        {error ? <p className="rio-error">{error}</p> : null}
+        {error ? <LoadError message={error} onRetry={() => setAttempt((value) => value + 1)} /> : null}
         {!home && !linkProblem && !error ? <SkeletonBlocks variant="home" /> : null}
         {home && !linkProblem ? (
           <>
@@ -450,7 +452,7 @@ function Insight({
       >
         Got it
       </button>
-      {error ? <p className="rio-error">{error}</p> : null}
+      {error ? <ErrorText>{error}</ErrorText> : null}
     </section>
   );
 }
@@ -603,7 +605,7 @@ function Watchless({
           </button>
         </div>
       ) : null}
-      {error ? <p className="rio-error">{error}</p> : null}
+      {error ? <ErrorText>{error}</ErrorText> : null}
     </div>
   );
 }
@@ -645,7 +647,7 @@ function StravaOffer({ onDismiss }: { onDismiss: () => void }) {
       >
         Not now
       </button>
-      {error ? <p className="rio-error">{error}</p> : null}
+      {error ? <ErrorText>{error}</ErrorText> : null}
     </section>
   );
 }

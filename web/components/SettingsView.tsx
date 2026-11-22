@@ -23,6 +23,7 @@ import {
   zoneOptions,
 } from "@/lib/settings";
 import type { Athlete } from "@/lib/types";
+import { ErrorText } from "./ErrorText";
 
 type Pace = "mi" | "km";
 type StartOn = "today" | "sunday";
@@ -428,7 +429,7 @@ function SettingsBody() {
         <header className="rio-hero">
           <h1>Settings</h1>
         </header>
-        {problem ? <p className="rio-error">{problem}</p> : null}
+        {problem ? <ErrorText>{problem}</ErrorText> : null}
         {note ? <p className="rio-settings-note rio-settings-flash">{note}</p> : null}
 
         <Expander title="Profile" defaultOpen>
