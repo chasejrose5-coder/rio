@@ -21,7 +21,7 @@ function CoreBody() {
   const { athlete } = useAuth();
   const compact = athlete?.prefs.compact === true;
   return (
-    <div className={compact ? "page-core is-compact" : "page-core"}>
+    <div className={compact ? "page-core rio-v3 is-compact" : "page-core rio-v3"}>
       <Nav active="Core" />
       <main>
         <header className="rio-hero">

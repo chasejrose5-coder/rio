@@ -203,7 +203,7 @@ function PlanBody() {
 
   const compact = plan?.prefs.compact === true;
   return (
-    <div className={compact ? "page-plan is-compact" : "page-plan"}>
+    <div className={compact ? "page-plan rio-v3 is-compact" : "page-plan rio-v3"}>
       <Nav active="Plan" />
       <main className={rise ? "rio-stagger" : undefined}>
         {plan?.preview?.active || previewing() ? <PreviewBanner banner={plan?.preview?.banner} /> : null}
@@ -211,7 +211,19 @@ function PlanBody() {
           <h1>{title}</h1>
           {range ? <p className="rio-range">{range}</p> : null}
           {problem ? <ErrorText>{problem}</ErrorText> : null}
-          <PhotoCredit onPhoto>Photo by Jan van der Wolf on Pexels</PhotoCredit>
+          {mode === "ready" && plan ? (
+            <div className="rio-hero-chips">
+              <p className={`rio-pace-pill is-${paceStatusTone(pace)}`}>{paceStatusLine(pace)}</p>
+              <StretchLink
+                today={plan.prefs.today || ""}
+                session={plan.sessions.find((item) => item.date === (plan.prefs.today || "")) ?? null}
+                sessions={plan.sessions}
+              />
+            </div>
+          ) : null}
+          <PhotoCredit onPhoto href="https://www.pexels.com/@jan-van-der-wolf-11680885/">
+            Photo by Jan van der Wolf on Pexels
+          </PhotoCredit>
         </header>
         {mode === "loading" ? <SkeletonBlocks variant="calendar" /> : null}
         {mode === "missing" && !problem ? (
@@ -226,7 +238,6 @@ function PlanBody() {
             season={season}
             activities={activities}
             activityNote={activityNote}
-            pace={pace}
             view={view}
             picked={picked}
             pending={pending}
@@ -253,7 +264,6 @@ function PlanReady({
   season,
   activities,
   activityNote,
-  pace,
   view,
   picked,
   pending,
@@ -269,7 +279,6 @@ function PlanReady({
   season: CurrentSeason | null;
   activities: ActivitiesResponse | null;
   activityNote: string;
-  pace: string;
   view: PlanViewName;
   picked: number | null;
   pending: Pending | null;
@@ -333,12 +342,6 @@ function PlanReady({
 
   return (
     <>
-      <p className={`rio-pace-pill rio-after-hero is-${paceStatusTone(pace)}`}>{paceStatusLine(pace)}</p>
-      <StretchLink
-        today={today}
-        session={plan.sessions.find((item) => item.date === today) ?? null}
-        sessions={plan.sessions}
-      />
       <section className="rio-card rio-card-tight">
         <p className="rio-mark-label">Phases</p>
         {phaseNote ? <p className="rio-phase-now-line">{phaseNote}</p> : null}
@@ -350,8 +353,13 @@ function PlanReady({
               <button
                 key={span.key}
                 type="button"
-                className={span.currentWeek != null ? "rio-phase rio-phase-now" : "rio-phase"}
-                style={{ flexGrow: weeks }}
+                className={
+                  span.currentWeek != null
+                    ? "rio-phase rio-phase-now is-now"
+                    : current && span.weeks[span.weeks.length - 1] < current.week
+                      ? "rio-phase is-past"
+                      : "rio-phase"
+                }
                 data-phase={span.phase}
                 aria-expanded={open}
                 aria-controls="rio-phase-panel"
@@ -366,8 +374,11 @@ function PlanReady({
             );
           })}
         </div>
+      </section>
+      <div className="rio-plan-split">
+        <div className="rio-plan-side">
         {openSpan ? (
-          <div id="rio-phase-panel" className="rio-phase-detail">
+          <div id="rio-phase-panel" className="rio-phase-detail rio-card">
             <p className="rio-phase-heading">{openSpan.name}</p>
             {PHASE_PLAIN[Number(openSpan.phase)] ? (
               <p className="rio-phase-plain">{PHASE_PLAIN[Number(openSpan.phase)]}</p>
@@ -382,7 +393,8 @@ function PlanReady({
             </ul>
           </div>
         ) : null}
-      </section>
+        </div>
+        <div>
       <fieldset className="rio-segments">
         <legend className="rio-sr">Plan view</legend>
         {PLAN_VIEWS.map((name) => (
@@ -453,20 +465,31 @@ function PlanReady({
           />
         ) : null}
       </div>
+        </div>
+      </div>
     </>
   );
 }
 
 function Calendar({ plan, onMonth }: { plan: PlanResponse; onMonth: (month: string) => void }) {
+  const sectionRef = useRef<HTMLElement>(null);
   return (
-    <section>
+    <section ref={sectionRef}>
       <h2 className="rio-section">{plan.month_title}</h2>
       <div className="rio-pick">
         <label htmlFor="plan-month">Month</label>
         <select
           id="plan-month"
           value={plan.month}
-          onChange={(event) => onMonth(event.target.value)}
+          onChange={(event) => {
+            const next = event.target.value;
+            const node = sectionRef.current;
+            if (node) {
+              node.classList.remove("is-next", "is-prev");
+              node.classList.add(next > plan.month ? "is-next" : "is-prev");
+            }
+            onMonth(next);
+          }}
         >
           {plan.months.map((iso) => (
             <option key={iso} value={monthKey(iso)}>
@@ -495,10 +518,15 @@ function CalCell({ cell }: { cell: PlanDay }) {
   else if (cell.template_id) classes.push("rio-cal-session");
   else classes.push("rio-cal-quiet");
   if (cell.today && cell.in_month) classes.push("rio-cal-today");
+  const label = cell.label || "";
+  if (/long/i.test(label)) classes.push("is-long");
+  else if (/easy/i.test(label)) classes.push("is-easy");
+  else if (/speed/i.test(label)) classes.push("is-speed");
   const body = (
     <>
       <div className="rio-cal-num">{cell.in_month ? cell.day : ""}</div>
-      <div className="rio-cal-label">{cell.in_month ? cell.label : ""}</div>
+      <div className="rio-cal-label">{cell.in_month ? label : ""}</div>
+      {cell.in_month && !cell.template_id ? <div className="rio-rest">Rest</div> : null}
     </>
   );
   if (!cell.in_month || !cell.template_id) {

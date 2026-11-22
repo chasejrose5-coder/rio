@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
+import { shareHero } from "./present/motion";
 import { Footer } from "./Footer";
 import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
@@ -99,7 +100,7 @@ function PastSeasonsBody() {
   }
 
   return (
-    <div className={compact ? "page-past is-compact" : "page-past"}>
+    <div className={compact ? "page-past rio-v3 is-compact" : "page-past rio-v3"}>
       <Nav active="More" pending={status !== "in"} />
       <main className={rise ? "rio-stagger" : undefined}>
         <header className="rio-hero">
@@ -111,13 +112,16 @@ function PastSeasonsBody() {
         {rows && rows.length === 0 ? <p className="rio-empty">No seasons on this account.</p> : null}
         {rows && rows.length > 0 ? (
           <div className="rio-past-list">
-            {rows.map((row) => {
+            {[...rows.filter((row) => row.current), ...rows.filter((row) => !row.current)].map((row, index, ordered) => {
               const key = seasonKey(row.inputs);
               const shown = rowValues(row.inputs, dateFormat);
               const open = pending === key;
               const label = rowLabel(row.inputs, dateFormat);
+              const earlier = index > 0 && !row.current && ordered[index - 1]?.current;
               return (
-                <section className="rio-past-item" key={key}>
+                <Fragment key={key}>
+                {earlier ? <p className="rio-eyebrow is-quiet rio-past-earlier">Earlier</p> : null}
+                <section className={row.current ? "rio-past-item rio-past-feature" : "rio-past-item"}>
                   <div className="rio-past-row">
                     {row.current ? <span className="rio-past-badge">Current season</span> : null}
                     <span className="rio-past-cell">
@@ -133,7 +137,7 @@ function PastSeasonsBody() {
                       <span className="rio-past-v">{shown.time}</span>
                     </span>
                   </div>
-                  <Link className="rio-past-open" href={planQuery(row.inputs)} aria-label={`Open plan, ${label}`}>
+                  <Link className="rio-past-open" href={planQuery(row.inputs)} aria-label={`Open plan, ${label}`} onPointerDown={shareHero}>
                     Open plan
                   </Link>
                   <button
@@ -178,6 +182,7 @@ function PastSeasonsBody() {
                     </div>
                   ) : null}
                 </section>
+                </Fragment>
               );
             })}
           </div>

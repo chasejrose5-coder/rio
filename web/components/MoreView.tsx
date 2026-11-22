@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { shareHero } from "./present/motion";
 import { useEffect, useState } from "react";
 import { Footer } from "./Footer";
 import { PageMeaning } from "./PageMeaning";
@@ -42,7 +43,7 @@ function MoreBody() {
   }, [arm]);
 
   return (
-    <div className={compact ? "page-more is-compact" : "page-more"}>
+    <div className={compact ? "page-more rio-v3 is-compact" : "page-more rio-v3"}>
       <Nav />
       <main className={rise ? "rio-stagger" : undefined}>
         <header className="rio-hero">
@@ -51,7 +52,12 @@ function MoreBody() {
         </header>
         <div className="rio-more-list">
           {MORE_LINKS.map((item) => (
-            <Link key={item.href} href={item.href} className="rio-card rio-card-tight rio-more-row">
+            <Link
+              key={item.href}
+              href={item.href}
+              className="rio-card rio-card-tight rio-more-row"
+              onPointerDown={item.href === "/about" || item.href === "/creators" ? undefined : shareHero}
+            >
               <span className="rio-more-copy">
                 <span className="rio-mark-label">{item.label}</span>
                 <span className="rio-note">{item.blurb}</span>

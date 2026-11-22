@@ -29,6 +29,41 @@ type Pace = "mi" | "km";
 type StartOn = "today" | "sunday";
 type Dates = "iso" | "short";
 
+const SETTINGS_SECTIONS = [
+  ["toc-account", "Account"],
+  ["toc-logging", "Logging"],
+  ["toc-heart-rate", "Heart rate"],
+  ["toc-preferences", "Preferences"],
+  ["toc-data", "Data"],
+  ["toc-email", "Email"],
+  ["toc-privacy", "Privacy"],
+  ["toc-about", "About"],
+  ["toc-strava", "Strava"],
+  ["toc-danger-zone", "Danger zone"],
+] as const;
+
+function SettingsIndex() {
+  return (
+    <nav className="rio-settings-index" aria-label="Settings sections">
+      {SETTINGS_SECTIONS.map(([id, title]) => (
+        <a
+          key={id}
+          href={`#${id}`}
+          onClick={(event) => {
+            event.preventDefault();
+            const section = document.getElementById(id);
+            if (section instanceof HTMLDetailsElement) section.open = true;
+            const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            section?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+          }}
+        >
+          {title}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
 export function SettingsView() {
   return (
     <RequireUser title="Settings" pageClass="page-settings">
@@ -145,7 +180,7 @@ function SettingsBody() {
 
   if (!athlete) {
     return (
-      <div className="page-settings">
+      <div className="page-settings rio-v3">
         <Nav />
         <main>
           <header className="rio-hero">
@@ -425,16 +460,19 @@ function SettingsBody() {
   }
 
   return (
-    <div className={compact ? "page-settings is-compact" : "page-settings"}>
+    <div className={compact ? "page-settings rio-v3 is-compact" : "page-settings rio-v3"}>
       <Nav active="More" />
       <main className={rise ? "rio-stagger" : undefined}>
         <header className="rio-hero">
           <h1>Settings</h1>
         </header>
+        <div className="rio-settings-layout">
+        <SettingsIndex />
+        <div>
         {problem ? <ErrorText>{problem}</ErrorText> : null}
         {note ? <p className="rio-settings-note rio-settings-flash">{note}</p> : null}
 
-        <Expander title="Account" defaultOpen>
+        <Expander id="toc-account" title="Account" defaultOpen>
           <label className="rio-stack" htmlFor="settings-name">
             Name
             <input
@@ -493,7 +531,7 @@ function SettingsBody() {
           </form>
         </Expander>
 
-        <Expander title="Logging" defaultOpen>
+        <Expander id="toc-logging" title="Logging">
           <label className="rio-toggle">
             <input type="checkbox" checked={noWatch} onChange={(event) => void commitNoWatch(event.target.checked)} />
             {"I don't use a watch"}
@@ -501,11 +539,11 @@ function SettingsBody() {
           <p className="rio-settings-note">Complete workouts with Done instead of entering splits.</p>
         </Expander>
 
-        <Expander title="Heart rate" defaultOpen>
+        <Expander id="toc-heart-rate" title="Heart rate">
           <HeartRateSettings />
         </Expander>
 
-        <Expander title="Preferences">
+        <Expander id="toc-preferences" title="Preferences">
           <fieldset className="rio-choice-set">
             <legend>Pace units</legend>
             <div className="rio-choice">
@@ -569,7 +607,7 @@ function SettingsBody() {
           </label>
         </Expander>
 
-        <Expander title="Data">
+        <Expander id="toc-data" title="Data">
           {hasSeason ? (
             <button type="button" className="rio-settings-button" onClick={() => void exportSeason()}>
               Export season as JSON
@@ -581,7 +619,7 @@ function SettingsBody() {
           )}
         </Expander>
 
-        <Expander title="Email">
+        <Expander id="toc-email" title="Email">
           <form onSubmit={changeEmail} noValidate>
             <label className="rio-stack" htmlFor="settings-new-email">
               New email
@@ -608,15 +646,15 @@ function SettingsBody() {
           </form>
         </Expander>
 
-        <Expander title="Privacy">
+        <Expander id="toc-privacy" title="Privacy">
           <p className="rio-settings-note">{clearNote}</p>
         </Expander>
 
-        <Expander title="About">
+        <Expander id="toc-about" title="About">
           <p className="rio-settings-note">RIO {APP_VERSION}</p>
         </Expander>
 
-        <Expander title="Strava" {...(flag ? { open: true } : {})}>
+        <Expander id="toc-strava" title="Strava" {...(flag ? { open: true } : {})}>
           <StravaPanel flag={flag} />
         </Expander>
 
@@ -624,7 +662,7 @@ function SettingsBody() {
         <p className="rio-settings-note">
           Reset the plan, delete this account, or clear this browser. These sit apart from the settings above.
         </p>
-        <Expander title="Danger zone" className="rio-expander-danger">
+        <Expander id="toc-danger-zone" title="Danger zone" className="rio-expander-danger">
           <p className="rio-mark-label">Data</p>
           <label className="rio-check">
             <input type="checkbox" checked={clearMarksOk} onChange={(event) => setClearMarksOk(event.target.checked)} />
@@ -683,6 +721,8 @@ function SettingsBody() {
           </button>
           <p className="rio-settings-note">{clearNote}</p>
         </Expander>
+        </div>
+        </div>
         <PageMeaning page="settings" />
         <Footer />
       </main>

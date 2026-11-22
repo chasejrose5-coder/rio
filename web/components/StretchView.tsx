@@ -16,6 +16,23 @@ import { LoadError } from "./ErrorText";
 
 type Mode = "loading" | "ready" | "error";
 
+function WeekBar({ done, listed }: { done: number; listed: number }) {
+  const max = Math.max(done, listed, 1);
+  const width = Math.min(100, Math.round((done / max) * 100));
+  return (
+    <div
+      className="rio-week-bar"
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuenow={done}
+      aria-valuemax={max}
+      aria-labelledby="stretch-week"
+    >
+      <span style={{ width: `${width}%` }} />
+    </div>
+  );
+}
+
 function whenLine(routine: Routine): string {
   if (routine.slot === "warm-up") {
     if (routine.kind === "race") return "Before the race";
@@ -128,7 +145,7 @@ function StretchBody() {
   const pickedSpot = picked ? spots.find((spot) => spot.region === picked && !spot.cleared) : undefined;
 
   return (
-    <div className={compact ? "page-stretch is-compact" : "page-stretch"}>
+    <div className={compact ? "page-stretch rio-v3 is-compact" : "page-stretch rio-v3"}>
       <Nav active="Stretching" />
       <main>
         <header className="rio-hero">
@@ -147,9 +164,10 @@ function StretchBody() {
             <section className="rio-stretch-today" data-testid="stretch-prescription" aria-labelledby="stretch-today">
               <p className="rio-index">Today · {prescription.kindLabel}</p>
               <h2 id="stretch-today">Today&apos;s prescription</h2>
-              <p className="rio-stretch-week" data-testid="stretch-week">
+              <p className="rio-stretch-week" id="stretch-week" data-testid="stretch-week">
                 {weekLabel(progress)}
               </p>
+              <WeekBar done={progress.routines} listed={prescription.routines.length} />
               {prescription.checkIns.map((region) => (
                 <div key={region.id} className="rio-stretch-check">
                   <p>
@@ -197,6 +215,7 @@ function StretchBody() {
                   ))}
                 </div>
               ) : null}
+              <p className="rio-eyebrow">Your routines</p>
               {prescription.routines.map((item) => (
                 <section key={item.routine.id} className="rio-stretch-routine" aria-labelledby={`routine-${item.routine.id}`}>
                   <div className="rio-stretch-routine-head">

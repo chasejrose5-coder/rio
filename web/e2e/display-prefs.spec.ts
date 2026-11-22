@@ -198,7 +198,7 @@ test("compact mode tightens home, plan, session, and activity", async ({ page })
   await expect(page.locator(".rio-template-id")).toHaveText(template);
   await expect(page.getByText("8 × 150 m @ 23.0 s, 150 s rest")).toBeVisible();
   await expect(page.getByText("Average 23.0 s")).toHaveCount(0);
-  await expect(page.locator(".page-session .rio-card").first()).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(page.locator(".page-session .rio-card").first()).toHaveCSS("background-color", "rgb(255, 252, 247)");
 
   await page.goto("/activity");
   await expect(page.locator(".page-activity")).toHaveClass(/is-compact/);

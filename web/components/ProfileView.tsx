@@ -18,6 +18,7 @@ import {
 } from "@/lib/profile";
 import type { ProfileResponse } from "@/lib/types";
 import { ErrorText, LoadError } from "./ErrorText";
+import { SaveLabel } from "./present/SaveLabel";
 
 type Mode = "loading" | "ready" | "error";
 
@@ -160,7 +161,7 @@ function ProfileBody() {
   }
 
   return (
-    <div className={compact ? "page-profile is-compact" : "page-profile"}>
+    <div className={compact ? "page-profile rio-v3 is-compact" : "page-profile rio-v3"}>
       <Nav />
       <main className={rise ? "rio-stagger" : undefined}>
         <header className="rio-hero">
@@ -191,7 +192,7 @@ function ProfileBody() {
                 />
               </label>
               <p className="rio-easy-hint">Minutes and seconds, like 7:25.</p>
-              <fieldset>
+              <fieldset className="rio-segments rio-unit">
                 <legend>Unit</legend>
                 <label>
                   <input type="radio" name="profile-easy-unit" checked={unit === "mi"} onChange={() => setUnit("mi")} />{" "}
@@ -202,8 +203,10 @@ function ProfileBody() {
                   per kilometer
                 </label>
               </fieldset>
-              <button className="rio-primary" type="submit" disabled={paceBusy}>
-                Save easy pace
+              <button className="rio-primary" type="submit" disabled={paceBusy} aria-busy={paceBusy}>
+                <SaveLabel busy={paceBusy} error={paceError}>
+                  Save easy pace
+                </SaveLabel>
               </button>
             </form>
             {profile?.ready ? (
@@ -236,8 +239,10 @@ function ProfileBody() {
                       />
                     </label>
                     <p className="rio-profile-hint">Minutes, seconds, and tenths, like 1:58.0.</p>
-                    <button className="rio-primary" type="submit" disabled={goalBusy}>
-                      Save
+                    <button className="rio-primary" type="submit" disabled={goalBusy} aria-busy={goalBusy}>
+                      <SaveLabel busy={goalBusy} error={goalError}>
+                        Save
+                      </SaveLabel>
                     </button>
                     <p className="rio-settings-note">
                       Saving keeps this time on your account. It does not rebuild the season.

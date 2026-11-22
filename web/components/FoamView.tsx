@@ -21,7 +21,7 @@ function FoamBody() {
   const { athlete } = useAuth();
   const compact = athlete?.prefs.compact === true;
   return (
-    <div className={compact ? "page-foam is-compact" : "page-foam"}>
+    <div className={compact ? "page-foam rio-v3 is-compact" : "page-foam rio-v3"}>
       <Nav active="Foam rolling" />
       <main>
         <header className="rio-hero">

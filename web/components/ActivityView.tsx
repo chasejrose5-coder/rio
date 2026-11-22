@@ -157,7 +157,7 @@ function ActivityBody() {
 
   const compact = athlete?.prefs.compact === true;
   return (
-    <div className={compact ? "page-activity is-compact" : "page-activity"}>
+    <div className={compact ? "page-activity rio-v3 is-compact" : "page-activity rio-v3"}>
       <Nav active="Activity" />
       <main className={rise ? "rio-stagger" : undefined}>
         {body?.preview?.active || previewing() ? <PreviewBanner banner={body?.preview?.banner} /> : null}
@@ -192,6 +192,11 @@ function ActivityBody() {
                 <p className="rio-strava-settings">
                   <Link href="/settings">Connect Strava in Settings</Link>
                 </p>
+                <div className="rio-activity-preview" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </div>
               </section>
             )}
             {noticeKind === "failed" ? (

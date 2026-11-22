@@ -14,6 +14,16 @@ export function Footer({ onPhoto = false }: { onPhoto?: boolean }) {
   );
 }
 
-export function PhotoCredit({ children, onPhoto = false }: { children: string; onPhoto?: boolean }) {
-  return <p className={onPhoto ? "rio-photo-credit on-photo" : "rio-photo-credit"}>{children}</p>;
+export function PhotoCredit({ children, onPhoto = false, href }: { children: string; onPhoto?: boolean; href?: string }) {
+  const klass = onPhoto ? "rio-photo-credit on-photo" : "rio-photo-credit";
+  const match = href ? /^(Photo by )(.+)( on Pexels)$/.exec(children) : null;
+  if (!match) return <p className={klass}>{children}</p>;
+  return (
+    <p className={klass}>
+      {match[1]}
+      <a href={href}>{match[2]}</a>
+      {" on "}
+      <a href="https://www.pexels.com">Pexels</a>
+    </p>
+  );
 }

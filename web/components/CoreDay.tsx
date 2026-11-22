@@ -120,8 +120,8 @@ export function CoreLibrary() {
   return (
     <>
       {CATEGORIES.map((category) => (
-        <section key={category}>
-          <h2>{CATEGORY_LABEL[category]}</h2>
+        <section key={category} className="rio-core-groups">
+          <h2 className="rio-group-title">{CATEGORY_LABEL[category]}</h2>
           {CORE_EXERCISES.filter((exercise) => exercise.category === category).map((exercise) => (
             <article key={exercise.id} className="rio-stretch-card">
               <h3>{exercise.name}</h3>

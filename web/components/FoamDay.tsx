@@ -104,6 +104,7 @@ export function FoamDay({ date, session }: { date: string; session?: StretchSess
 export function FoamLibrary() {
   return (
     <>
+      <div className="rio-foam-grid">
       {FOAM_AREAS.map((area) => (
         <article key={area.id} className="rio-stretch-card">
           <h3>{area.name}</h3>
@@ -113,6 +114,7 @@ export function FoamLibrary() {
           </Disclosure>
         </article>
       ))}
+      </div>
     </>
   );
 }

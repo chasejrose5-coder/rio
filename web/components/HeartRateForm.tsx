@@ -25,6 +25,7 @@ import { markHeartRateSaved, needsHeartRate } from "@/lib/landing";
 import { PACE_ERROR, canonicalEasyPace } from "@/lib/profile";
 import type { HeartRateProfile } from "@/lib/types";
 import { ErrorText, LoadError } from "./ErrorText";
+import { SaveLabel } from "./present/SaveLabel";
 
 type Mode = "onboarding" | "settings";
 
@@ -352,8 +353,10 @@ export function HeartRateForm({ profile, mode }: { profile: HeartRateProfile; mo
         <p className="rio-hr-safety">{SAFETY_NOTE}</p>
         {error ? <ErrorText>{error}</ErrorText> : null}
         {mode === "onboarding" ? (
-          <button className="rio-primary" type="submit" disabled={busy}>
-            {noMonitor ? "Continue" : "Save heart rate"}
+          <button className="rio-primary" type="submit" disabled={busy} aria-busy={busy}>
+            <SaveLabel busy={busy} error={error}>
+              {noMonitor ? "Continue" : "Save heart rate"}
+            </SaveLabel>
           </button>
         ) : null}
       </form>
@@ -458,7 +461,7 @@ function HeartRateStepBody() {
   }, [profile, athlete, router]);
 
   return (
-    <div className="page-plain">
+    <div className="page-plain page-heart rio-v3">
       <Nav />
       <main>
         <header className="rio-hero">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Footer } from "./Footer";
 import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
@@ -94,9 +94,20 @@ function LibraryBody() {
   const showIds = athlete?.prefs.show_ids === true;
   const compact = athlete?.prefs.compact === true;
   const families = data?.families ?? [];
+  const stickRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    const bar = stickRef.current;
+    const sentinel = bar?.previousElementSibling;
+    if (!bar || !sentinel) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      bar.classList.toggle("is-stuck", !entry.isIntersecting);
+    });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [mode]);
 
   return (
-    <div className={compact ? "page-library is-compact" : "page-library"}>
+    <div className={compact ? "page-library rio-v3 is-compact" : "page-library rio-v3"}>
       <Nav active="Library" pending={status !== "in"} />
       <main className={rise ? "rio-stagger" : undefined}>
         <header className="rio-hero">
@@ -105,7 +116,9 @@ function LibraryBody() {
         </header>
         {mode === "loading" ? <SkeletonBlocks /> : null}
         {mode !== "loading" ? (
-          <form className="rio-library" onSubmit={(event) => event.preventDefault()}>
+          <>
+          <div className="rio-stick-sentinel" aria-hidden="true" />
+          <form className="rio-library" ref={stickRef} onSubmit={(event) => event.preventDefault()}>
             <label className="rio-library-search" htmlFor="library-search">
               Search
               <input
@@ -146,24 +159,31 @@ function LibraryBody() {
               </label>
             </div>
           </form>
+          </>
         ) : null}
         {mode === "error" ? <LoadError message={problem} onRetry={() => setAttempt((value) => value + 1)} /> : null}
         {mode === "ready" && data ? (
           <>
-            <p className="rio-week-meta rio-lib-count">{countLabel(data.count)}</p>
+            <p className="rio-week-meta rio-lib-count" role="status">{countLabel(data.count)}</p>
             {data.count === 0 ? (
               <p className="rio-empty">No workouts.</p>
             ) : (
               <div className="rio-lib">
-                {data.workouts.map((row) => (
-                  <div className="rio-lib-row" key={row.id}>
+                {data.workouts.map((row, index) => {
+                  const previous = index > 0 ? data.workouts[index - 1]?.capacity : "";
+                  return (
+                  <Fragment key={row.id}>
+                  {row.capacity && row.capacity !== previous ? <h2 className="rio-lib-group">{row.capacity}</h2> : null}
+                  <div className="rio-lib-row">
                     <div className="rio-lib-main">
                       <div className="rio-lib-name">{row.description || "—"}</div>
                       {showIds ? <div className="rio-lib-id">{row.id}</div> : null}
                     </div>
                     <div className={capacityClass(row.family)}>{row.capacity || "—"}</div>
                   </div>
-                ))}
+                  </Fragment>
+                  );
+                })}
               </div>
             )}
           </>

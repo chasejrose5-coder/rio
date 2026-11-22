@@ -36,6 +36,7 @@ test("onboarding saves Karvonen zones and settings can edit them", async ({ page
 
   await page.goto("/settings");
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+  await page.locator("#toc-heart-rate summary").click();
   await expect(page.getByText("Zones use the Karvonen (heart rate reserve) method.")).toBeVisible();
   await expect(page.getByText("120–132 bpm")).toBeVisible();
   await page.getByLabel("Max heart rate").fill("190");

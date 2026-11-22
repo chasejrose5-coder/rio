@@ -5,6 +5,7 @@ import { OldHomeNote } from "@/components/OldHomeNote";
 import { AuthProvider } from "@/lib/auth";
 import { LIVE_ORIGIN } from "@/lib/old-host";
 import "./globals.css";
+import "./enhance.css";
 
 const description =
   "RIO is a training plan for any runner, built from the times you enter and the runs you log. Your race, your plan, your result.";

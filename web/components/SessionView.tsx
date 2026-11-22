@@ -30,6 +30,7 @@ import {
 } from "@/lib/session";
 import type { BikeOffer, LoggedActivity, SessionResponse } from "@/lib/types";
 import { ErrorText, LoadError } from "./ErrorText";
+import { SaveFlash } from "./present/SaveLabel";
 
 type Mode = "loading" | "missing" | "nodate" | "bad" | "ready" | "activity" | "error";
 
@@ -132,12 +133,21 @@ function SessionBody() {
 
   const compact = athlete?.prefs.compact === true;
   return (
-    <div className={compact ? "page-session is-compact" : "page-session"}>
+    <div className={compact ? "page-session rio-v3 is-compact" : "page-session rio-v3"}>
       <Nav />
       <main className={rise ? "rio-stagger" : undefined}>
         <header className="rio-hero">
           <h1>{heading}</h1>
           {range ? <p className="rio-range">{range}</p> : null}
+          {mode === "ready" && session ? (
+            <>
+              {session.label ? <h2 className="rio-range">{session.label}</h2> : null}
+              {session.prescription?.line ? <p className="rio-hero-chip">{session.prescription.line}</p> : null}
+              {session.prescription?.tolerance ? (
+                <p className="rio-range">Target range {session.prescription.tolerance}</p>
+              ) : null}
+            </>
+          ) : null}
         </header>
         {mode === "loading" ? <p className="rio-wait">Loading</p> : null}
         {mode === "missing" ? (
@@ -255,13 +265,25 @@ function Workout({
     };
   }, [session.date]);
 
+  const log =
+    !hideRun && session.logging === "done" ? (
+      <Watchless session={session} onSaved={onSaved} />
+    ) : !hideRun && session.boxes > 0 ? (
+      <ResultForm key={`${session.digest}:${session.summary}`} session={session} onSaved={onSaved} />
+    ) : null;
+
   return (
-    <>
+    <div className="rio-session-grid">
+      <div className="rio-session-log">
+        <p className="rio-eyebrow">Log</p>
+        {log}
+      </div>
+      <div>
+      <p className="rio-eyebrow">Before you run</p>
       <section className="rio-card">
         <div className={session.match && !hideRun ? "rio-session-split" : undefined}>
           <div>
             <p className="rio-mark-label">Workout</p>
-            <h2 className="rio-week-title">{session.label}</h2>
             {session.show_id && session.session.template_id ? (
               <p className="rio-template-id">{session.session.template_id}</p>
             ) : null}
@@ -276,11 +298,9 @@ function Workout({
           ) : null}
         </div>
         {lead ? card : null}
-        {!hideRun && prescription?.line ? (
+        {!hideRun && (prescription?.block || prescription?.heart) ? (
           <div className="rio-pace">
-            <p className="rio-pace-line">{prescription.line}</p>
-            {prescription.tolerance ? <p className="rio-pace-range">Target range {prescription.tolerance}</p> : null}
-            {prescription.block ? <p className="rio-pace-block">Block {prescription.block}</p> : null}
+            {prescription?.block ? <p className="rio-pace-block">Block {prescription.block}</p> : null}
             <HeartPace heart={prescription.heart} />
           </div>
         ) : null}
@@ -291,6 +311,7 @@ function Workout({
           </Disclosure>
         ) : null}
         {!hideRun ? <Prep session={session.session} /> : null}
+        <p className="rio-eyebrow">After you run</p>
         <InjuryDay key={session.date} date={session.date} />
         <CoreDay key={`${session.date}-core`} date={session.date} session={session.session} />
         <FoamDay key={`${session.date}-foam`} date={session.date} session={session.session} />
@@ -310,13 +331,9 @@ function Workout({
           )}
         </section>
       </section>
-      {!hideRun && session.logging === "done" ? (
-        <Watchless session={session} onSaved={onSaved} />
-      ) : !hideRun && session.boxes > 0 ? (
-        <ResultForm key={`${session.digest}:${session.summary}`} session={session} onSaved={onSaved} />
-      ) : null}
+      </div>
       {note?.headline && note.body ? <Insight session={session} note={note} onSaved={onSaved} /> : null}
-    </>
+    </div>
   );
 }
 
@@ -471,6 +488,7 @@ function ResultForm({ session, onSaved }: { session: SessionResponse; onSaved: (
         </div>
       ) : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
+      <SaveFlash busy={busy} error={error} />
     </section>
   );
 }
