@@ -1,5 +1,6 @@
 "use client";
 
+import { Disclosure } from "./Disclosure";
 import { FoamLibrary } from "./FoamDay";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
@@ -25,15 +26,17 @@ function FoamBody() {
       <main>
         <header className="rio-hero">
           <h1>Foam rolling</h1>
-          <p className="rio-range">{FOAM_DISCLAIMER}</p>
+          <p className="rio-range">A short roll after a hard day or a long run.</p>
         </header>
-        <section className="rio-foam-intro">
-          <p>
-            After a hard workout or a long run, roll each area for a minute. On an easy day, a rest day, or a race day it
-            stays optional, at 30 seconds an area. The order rotates so the same place is not always first. Skip a spot
-            that feels sharp.
-          </p>
-        </section>
+        <Disclosure title="Details">
+          <section className="rio-foam-intro">
+            <p>
+              After a hard workout or a long run, roll each area for a minute. On an easy day, a rest day, or a race day it
+              stays optional, at 30 seconds an area. The order rotates so the same place is not always first. Skip a spot
+              that feels sharp.
+            </p>
+          </section>
+        </Disclosure>
         <FoamLibrary />
         <p className="rio-medical">{FOAM_DISCLAIMER}</p>
         <PageMeaning page="foam" />

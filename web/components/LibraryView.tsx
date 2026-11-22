@@ -99,6 +99,7 @@ function LibraryBody() {
       <main className={rise ? "rio-stagger" : undefined}>
         <header className="rio-hero">
           <h1>Library</h1>
+          <p className="rio-range">Every workout in the menu, in one list.</p>
         </header>
         {mode === "loading" ? <SkeletonBlocks /> : null}
         {mode !== "loading" ? (

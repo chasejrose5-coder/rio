@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Disclosure } from "./Disclosure";
 import { ApiError, api, previewing } from "@/lib/api";
 import { FOAM_AREAS, FOAM_DISCLAIMER, clock, foamRoutine } from "@/lib/foam-content";
 import type { StretchSession } from "@/lib/stretch-content";
@@ -57,10 +58,16 @@ export function FoamDay({ date, session }: { date: string; session?: StretchSess
                 <strong>
                   {area.name} · {clock(area.seconds)}
                 </strong>
-                <span>{area.howTo}</span>
               </li>
             ))}
           </ul>
+          <Disclosure title="Details">
+            {routine.areas.map((area) => (
+              <p key={`${area.id}-how`}>
+                <strong>{area.name}.</strong> {area.howTo}
+              </p>
+            ))}
+          </Disclosure>
           {canSave ? (
             <button
               type="button"
@@ -99,7 +106,9 @@ export function FoamLibrary() {
         <article key={area.id} className="rio-stretch-card">
           <h3>{area.name}</h3>
           <p className="rio-stretch-meta">60 s after a hard day or a long run · 30 s when it is optional</p>
-          <p>{area.howTo}</p>
+          <Disclosure title="Details">
+            <p>{area.howTo}</p>
+          </Disclosure>
         </article>
       ))}
     </>

@@ -34,7 +34,8 @@ import {
   monthKey,
   monthTitle,
   paceStatusLine,
-  phaseChipLabel,
+  paceStatusTone,
+  phaseSpans,
   plainReasonLines,
   recapView,
   statusLabel,
@@ -285,6 +286,10 @@ function PlanReady({
   const length = plan.weeks.length;
   const current = plan.weeks.find((row) => row.status === "current");
   const phaseNote = current && current.phase && current.phase !== "—" ? `This week is phase ${current.phase}.` : "";
+  const spans = phaseSpans(plan.weeks);
+  const currentSpan = spans.find((span) => span.currentWeek != null) ?? spans[0];
+  const [openPhase, setOpenPhase] = useState(currentSpan?.key ?? "");
+  const openSpan = spans.find((span) => span.key === openPhase) ?? null;
   const emptyWeeks = plan.weeks.every((row) => row.meters === 0);
   const selected = picked && picked >= 1 && picked <= length ? picked : weekContaining(plan.inputs.start_date, length, today);
   const distances = distancesFromRows(activities?.rows || []);
@@ -326,7 +331,7 @@ function PlanReady({
 
   return (
     <>
-      <p className="rio-note rio-after-hero">{paceStatusLine(pace)}</p>
+      <p className={`rio-pace-pill rio-after-hero is-${paceStatusTone(pace)}`}>{paceStatusLine(pace)}</p>
       <StretchLink
         today={today}
         session={plan.sessions.find((item) => item.date === today) ?? null}
@@ -334,14 +339,44 @@ function PlanReady({
       />
       <section className="rio-card rio-card-tight">
         <p className="rio-mark-label">Phases</p>
-        {phaseNote ? <p className="rio-note">{phaseNote}</p> : null}
-        <div className="rio-phases">
-          {plan.weeks.map((row) => (
-            <div key={row.week} className={row.status === "current" ? "rio-phase rio-phase-now" : "rio-phase"}>
-              <div className="rio-phase-label">{phaseChipLabel(row.week, row.phase)}</div>
-            </div>
-          ))}
+        {phaseNote ? <p className="rio-phase-now-line">{phaseNote}</p> : null}
+        <div className="rio-phase-bar" role="group" aria-label="Season phases">
+          {spans.map((span) => {
+            const open = openPhase === span.key;
+            const weeks = span.weeks.length;
+            return (
+              <button
+                key={span.key}
+                type="button"
+                className={span.currentWeek != null ? "rio-phase rio-phase-now" : "rio-phase"}
+                style={{ flexGrow: weeks }}
+                data-phase={span.phase}
+                aria-expanded={open}
+                aria-controls="rio-phase-panel"
+                aria-label={`${span.name}, phase ${span.phase}, ${weeks} ${weeks === 1 ? "week" : "weeks"}${
+                  span.currentWeek != null ? `, week ${span.currentWeek} is this week` : ""
+                }`}
+                onClick={() => setOpenPhase((key) => (key === span.key ? "" : span.key))}
+              >
+                <span className="rio-phase-label">{span.name}</span>
+                {span.currentWeek != null ? <span className="rio-phase-mark">Week {span.currentWeek}</span> : null}
+              </button>
+            );
+          })}
         </div>
+        {openSpan ? (
+          <div id="rio-phase-panel" className="rio-phase-detail">
+            <p className="rio-phase-heading">{openSpan.name}</p>
+            <ul className="rio-phase-week-list">
+              {openSpan.weeks.map((week) => (
+                <li key={week} className={week === openSpan.currentWeek ? "is-current" : undefined}>
+                  <span>{weekOption(plan.inputs.start_date, week, format)}</span>
+                  {week === openSpan.currentWeek ? <span className="rio-phase-this">Now</span> : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </section>
       <fieldset className="rio-segments">
         <legend className="rio-sr">Plan view</legend>

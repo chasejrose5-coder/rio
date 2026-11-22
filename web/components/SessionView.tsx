@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { BikeCard } from "./BikeSwap";
 import { CoreDay } from "./CoreDay";
+import { Disclosure } from "./Disclosure";
 import { Expander } from "./Expander";
 import { FoamDay } from "./FoamDay";
 import { InjuryDay } from "./InjuryDay";
@@ -17,13 +18,14 @@ import { ApiError, api, isSignedOut, previewing } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { weekdayName } from "@/lib/plan";
 import {
-  PREP,
   acceptTimeKey,
   confirmCopy,
   filledTimes,
   needsOutcome,
+  prepFor,
   slotsFrom,
   watchlessSummary,
+  type PrepBlock,
 } from "@/lib/session";
 import type { BikeOffer, LoggedActivity, SessionResponse } from "@/lib/types";
 
@@ -279,9 +281,13 @@ function Workout({
             <HeartPace heart={prescription.heart} />
           </div>
         ) : null}
-        {!hideRun ? <Field label="Structure" value={session.structure || "—"} /> : null}
-        {!hideRun ? <Field label="Target outcome" value={session.target || "—"} /> : null}
-        {!hideRun ? <Prep /> : null}
+        {!hideRun ? (
+          <Disclosure title="Details">
+            <Field label="Structure" value={session.structure || "—"} />
+            <Field label="Target outcome" value={session.target || "—"} />
+          </Disclosure>
+        ) : null}
+        {!hideRun ? <Prep session={session.session} /> : null}
         <InjuryDay key={session.date} date={session.date} />
         <CoreDay key={`${session.date}-core`} date={session.date} session={session.session} />
         <FoamDay key={`${session.date}-foam`} date={session.date} session={session.session} />
@@ -320,32 +326,48 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Prep() {
+function PrepBody({ block }: { block: PrepBlock }) {
+  return (
+    <>
+      {(block.lines || []).map((line) => (
+        <p className="rio-prep-line" key={line}>
+          {line}
+        </p>
+      ))}
+      {(block.lead || []).map((lead, index) => (
+        <div key={lead}>
+          <p className="rio-prep-lead">{lead}</p>
+          {(block.groups?.[index] || []).length ? (
+            <ul className="rio-prep-list">
+              {(block.groups?.[index] || []).map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ))}
+    </>
+  );
+}
+
+function Prep({ session }: { session: SessionResponse["session"] }) {
   return (
     <div className="rio-prep">
-      {PREP.map((block) => (
-        <section className="rio-prep-block" key={block.title}>
-          <p className="rio-mark-label">{block.title}</p>
-          {"lines" in block ? (
-            block.lines.map((line) => (
-              <p className="rio-prep-line" key={line}>
-                {line}
-              </p>
-            ))
-          ) : (
-            block.lead.map((lead, index) => (
-              <div key={lead}>
-                <p className="rio-prep-lead">{lead}</p>
-                <ul className="rio-prep-list">
-                  {block.groups[index].map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-            ))
-          )}
-        </section>
-      ))}
+      {prepFor(session).map((block) => {
+        const tucked = block.title === "Cool-down" || block.title === "Core";
+        return (
+          <section className="rio-prep-block" key={block.title}>
+            <p className="rio-mark-label">{block.title}</p>
+            {tucked ? (
+              <Disclosure title="Details">
+                <PrepBody block={block} />
+              </Disclosure>
+            ) : (
+              <PrepBody block={block} />
+            )}
+          </section>
+        );
+      })}
     </div>
   );
 }

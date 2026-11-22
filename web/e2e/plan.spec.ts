@@ -253,9 +253,26 @@ test("a season shows the hero, phases, weeks, and all three views", async ({ pag
   await expect(page.getByText("Pace status No runs yet.")).toBeVisible();
   await expect(page.getByText("Photo by Jan van der Wolf on Pexels")).toBeVisible();
   await expect(page.getByText("This week is phase 4.")).toBeVisible();
-  await expect(page.locator(".rio-phase-now")).toContainText("Week 1 · Phase 4");
-  await expect(page.locator(".rio-phase").nth(1)).toContainText("Week 2 · Phase 4");
-  await expect(page.locator(".rio-phase")).toHaveCount(2);
+  const currentPhase = page.locator(".rio-phase-now");
+  await expect(currentPhase).toContainText("Speed endurance arrives");
+  await expect(currentPhase).toContainText("Week 1");
+  await expect(currentPhase).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator(".rio-phase")).toHaveCount(1);
+  await expect(page.getByText("Week 1 · 2026-11-08 — 2026-11-14")).toBeVisible();
+  await expect(page.getByText("Week 2 · 2026-11-15 — 2026-11-21")).toBeVisible();
+  await expect(page.locator(".rio-phase-this")).toHaveText("Now");
+  await currentPhase.click();
+  await expect(currentPhase).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByText("Week 2 · 2026-11-15 — 2026-11-21")).toHaveCount(0);
+  await currentPhase.click();
+  await expect(page.getByText("Week 2 · 2026-11-15 — 2026-11-21")).toBeVisible();
+  if (process.env.RIO_SHOTS) {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.screenshot({ path: "/opt/cursor/artifacts/plan-phases-desktop.png" });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.screenshot({ path: "/opt/cursor/artifacts/plan-phases-phone.png" });
+    await page.setViewportSize({ width: 1280, height: 720 });
+  }
   const weeks = page.locator("details.rio-weeks");
   await expect(weeks).not.toHaveAttribute("open", "");
   await weeks.locator("summary").click();
@@ -438,7 +455,9 @@ test("a brand-new account reaches Plan from Start and can mark a week", async ({
   await expect(todayCell).toHaveAttribute("data-date", zone.today);
   await expect(page.locator(".rio-cal-out a")).toHaveCount(0);
   const phases = await page.locator(".rio-phase").count();
+  const weeks = await page.locator(".rio-progress").count();
   expect(phases).toBeGreaterThan(1);
+  expect(weeks).toBeGreaterThan(phases);
 
   await page.getByRole("radio", { name: "This week" }).click();
   await expect(
@@ -467,7 +486,7 @@ test("a brand-new account reaches Plan from Start and can mark a week", async ({
 
   await page.getByRole("radio", { name: "Full season" }).click();
   await expect(page.getByRole("heading", { name: "Full season" })).toBeVisible();
-  await expect(page.locator(".rio-week")).toHaveCount(phases);
+  await expect(page.locator(".rio-week")).toHaveCount(weeks);
   await page.locator(".rio-cal-session, .rio-week .rio-hit").first().click();
   await expect(page).toHaveURL(/\/session\?date=\d{4}-\d{2}-\d{2}/);
 
@@ -483,7 +502,7 @@ test("a brand-new account reaches Plan from Start and can mark a week", async ({
   });
   expect(formatted).toBeTruthy();
   await page.reload();
-  await expect(page.getByText(/[A-Z][a-z]{2} \d{1,2}, \d{4} — [A-Z][a-z]{2} \d{1,2}, \d{4}/)).toBeVisible();
+  await expect(page.getByText(/[A-Z][a-z]{2} \d{1,2}, \d{4} — [A-Z][a-z]{2} \d{1,2}, \d{4}/).first()).toBeVisible();
   await page.reload();
   await expect(page.getByRole("button", { name: "On track" }).first()).toHaveAttribute("aria-pressed", "true");
 });

@@ -107,18 +107,55 @@ test("recovery lists every exercise, saves a rebuilding area, and the day shows 
   await install(page);
   await page.goto("/recovery");
   await expect(page.getByRole("heading", { name: "Recovery", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What's bothering you?" })).toBeVisible();
   await expect(page.getByText(INJURY_DISCLAIMER).first()).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Training" }).getByRole("link", { name: "Recovery" })).toHaveAttribute(
     "aria-current",
     "page",
   );
+  await expect(page.getByRole("heading", { name: "Towel scrunches" })).toHaveCount(0);
+  const held = { release: () => {} };
+  let postStarted = false;
+  await page.route("**/injury/areas", async (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    postStarted = true;
+    await new Promise<void>((resolve) => {
+      held.release = resolve;
+    });
+    return route.fallback();
+  });
+  await page.getByRole("button", { name: "Feet & ankles" }).click();
+  const plantar = page.getByRole("button", { name: /Plantar fascia/ });
+  const opened = Date.now();
+  await plantar.click();
   await expect(page.getByRole("heading", { name: "Towel scrunches" })).toBeVisible();
   await expect(page.getByText("1×10").first()).toBeVisible();
-  await page.getByRole("button", { name: "Achilles tendon" }).click();
+  expect(Date.now() - opened).toBeLessThan(800);
+  expect(postStarted).toBe(false);
+
+  await page.getByRole("button", { name: "Achilles & soleus" }).click();
+  await page.getByRole("button", { name: /Achilles tendon/ }).click();
+  await expect(page.getByRole("heading", { name: "Isometric calf-raise holds" })).toBeVisible();
+  const rebuildAt = Date.now();
+  await page.getByRole("button", { name: "Rebuild this" }).click();
   await expect(page.getByText("Achilles tendon is Easy.")).toBeVisible();
   await expect(page.getByText("Already at easy.")).toBeVisible();
-  await page.getByRole("button", { name: "Bone stress" }).click();
+  expect(Date.now() - rebuildAt).toBeLessThan(800);
+  await expect.poll(() => postStarted).toBe(true);
+  held.release();
+
+  await page.getByRole("button", { name: "Shins" }).click();
+  await page.getByRole("button", { name: /Bone stress/ }).click();
   await expect(page.getByText("Walk-run return only. See a doctor first.")).toBeVisible();
+
+  if (process.env.RIO_SHOTS) {
+    await page.getByRole("button", { name: "Feet & ankles" }).click();
+    await page.getByRole("button", { name: /Plantar fascia/ }).click();
+    await page.setViewportSize({ width: 1280, height: 1100 });
+    await page.screenshot({ path: "/opt/cursor/artifacts/recovery-desktop.png" });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.screenshot({ path: "/opt/cursor/artifacts/recovery-phone.png" });
+  }
 
   if (process.env.RIO_SHOTS) {
     await page.setViewportSize({ width: 1280, height: 1400 });

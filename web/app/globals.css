@@ -1095,6 +1095,34 @@ button.rio-text-link:disabled {
   flex: none;
 }
 .rio-expander[open] > summary .rio-chevron { transform: rotate(45deg); }
+.rio-disclosure { margin: 0.35rem 0 0.6rem; max-width: 42rem; }
+.rio-disclosure > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0.15rem 0.1rem;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.rio-disclosure .rio-chevron {
+  box-sizing: border-box;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 2px solid #6e6a64;
+  border-bottom: 2px solid #6e6a64;
+  transform: rotate(-45deg);
+  flex: none;
+}
+.rio-disclosure .rio-chevron.is-open { transform: rotate(45deg); }
+.rio-disclosure p { margin: 0.35rem 0; line-height: 1.45; }
+.rio-train-copy { max-width: 42rem; }
 .rio-watchless input { display: block; margin-top: 0.4rem; min-height: 2.6rem; border: 1px solid var(--line); border-radius: 12px; padding: 0.4rem 0.7rem; }
 .rio-extras { margin-top: 0.4rem; }
 .rio-extras .rio-mark-label { color: var(--paper); }
@@ -1212,34 +1240,103 @@ button.rio-text-link:disabled {
 .page-plan .rio-error { color: #b42318; }
 .rio-after-hero { margin: 1.1rem 0 0; }
 .page-plan .rio-card { border-top: 1px solid var(--line); padding: 1.3rem 0 0.4rem; margin: 0.4rem 0 0; }
-.rio-phases {
+.rio-pace-pill {
+  display: inline-flex;
+  align-items: center;
+  margin: 1rem 0 0.15rem;
+  padding: 0.28rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+.rio-pace-pill.is-behind { background: #fdf3ef; border-color: #e7b2a4; color: var(--button); }
+.rio-pace-pill.is-ahead { background: #f3f7f2; border-color: #b7c9b4; }
+.rio-pace-pill.is-on { background: #f7f4ef; }
+.rio-phase-now-line { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.92rem; }
+.rio-phase-bar {
   display: flex;
-  gap: 0.45rem;
-  overflow-x: auto;
-  padding: 0.45rem 0 0.2rem;
-  scroll-snap-type: x proximity;
-  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 2rem), transparent);
-  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 2rem), transparent);
+  gap: 0.3rem;
+  width: 100%;
+  margin: 0.7rem 0 0;
 }
 .rio-phase {
-  flex: 0 0 auto;
-  scroll-snap-align: start;
-  min-width: max-content;
-  padding: 0.6rem 0.15rem 0.5rem;
-  text-align: left;
-  background: transparent;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  padding: 0.45rem 0.4rem 0.4rem;
   border: 0;
-  border-bottom: 2px solid var(--line);
-}
-.rio-phase-label {
+  border-radius: 12px;
+  background: #efe6da;
   color: var(--ink);
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
+  text-align: left;
+  cursor: pointer;
 }
-.rio-phase-now { border-bottom-color: var(--accent); }
-.rio-phase-now .rio-phase-label { color: var(--ink); }
+.rio-phase[data-phase="1"] { background: #f6ead8; }
+.rio-phase[data-phase="2"] { background: #f3e0c8; }
+.rio-phase[data-phase="3"] { background: #f8d9c6; }
+.rio-phase[data-phase="4"] { background: #f6cbb6; }
+.rio-phase[data-phase="5"] { background: #f0d4c4; }
+.rio-phase[data-phase="6"] { background: #e7d3c2; }
+.rio-phase[data-phase="7"] { background: #f3ddd0; }
+.rio-phase[data-phase="8"] { background: #efe6da; }
+.rio-phase-now { box-shadow: inset 0 0 0 2px var(--accent); }
+.rio-phase[aria-expanded="true"] { box-shadow: inset 0 0 0 2px var(--ink); }
+.rio-phase-now[aria-expanded="true"] { box-shadow: inset 0 0 0 2px var(--accent); }
+.rio-phase-label {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: clamp(0.68rem, 1.5vw, 0.84rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.rio-phase-mark {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--button);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.rio-phase-detail { margin-top: 0.85rem; max-width: 36rem; }
+.rio-phase-heading {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.25rem;
+  letter-spacing: -0.03em;
+}
+.rio-phase-week-list { list-style: none; margin: 0.45rem 0 0; padding: 0; }
+.rio-phase-week-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: baseline;
+  padding: 0.4rem 0;
+  border-top: 1px solid var(--line);
+  font-size: 0.95rem;
+}
+.rio-phase-week-list li.is-current { font-weight: 700; }
+.rio-phase-this {
+  color: var(--button);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+@media (max-width: 720px) {
+  .rio-phase-bar { flex-wrap: wrap; }
+  .rio-phase { flex: 1 1 calc(50% - 0.3rem); min-width: calc(50% - 0.3rem); }
+}
 .rio-sr {
   position: absolute;
   width: 1px;
@@ -1864,6 +1961,7 @@ button.rio-text-link:disabled {
   margin: 0 -5vw;
   padding: 2.78rem 5vw 2.2rem;
 }
+.page-library .rio-range { margin: 0.7rem 0 0; color: rgba(244, 241, 236, 0.86); font-size: 1.05rem; max-width: 36rem; }
 .page-library .rio-hero h1 {
   margin: 0.1rem 0 0;
   color: #f4f1ec;
@@ -1922,8 +2020,11 @@ button.rio-text-link:disabled {
   justify-content: space-between;
   align-items: flex-start;
   gap: 0.85rem;
-  border-bottom: 1px solid #dcd6cc;
-  padding: 1.25rem 0;
+  margin-top: 0.55rem;
+  padding: 0.95rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
   cursor: default;
 }
 .page-library.is-compact .rio-lib-row { padding: 0.55rem 0; }
@@ -3091,6 +3192,32 @@ button.rio-text-link:disabled {
 .rio-core-intro p,
 .rio-foam-intro p { margin: 0.35rem 0 1rem; line-height: 1.45; }
 .rio-recover-intro p { margin: 0.35rem 0; line-height: 1.45; }
+.rio-recover-ask { max-width: 46rem; }
+.rio-recover-ask h2 { margin-top: 0.2rem; }
+.rio-issue-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.85rem; }
+.rio-issue {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.75rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.rio-issue.is-open { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.rio-issue-label { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; }
+.rio-issue-blurb { display: block; margin-top: 0.15rem; color: var(--muted); font-weight: 500; font-size: 0.92rem; line-height: 1.35; }
+.rio-issue-tag {
+  color: var(--button);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.rio-issue-panel { margin: 0.15rem 0 0.15rem 0.15rem; }
 .rio-recover-group { margin-top: 0.4rem; }
 .rio-area-picks { display: flex; flex-wrap: wrap; gap: 0.45rem; max-width: 46rem; }
 .rio-area-picks button {

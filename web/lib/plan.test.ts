@@ -10,6 +10,8 @@ import {
   lengthText,
   linkError,
   phaseChipLabel,
+  phaseSpans,
+  paceStatusTone,
   monthTitle,
   paceStatusLine,
   plainReason,
@@ -28,6 +30,28 @@ import {
 test("a phase chip reads as a week and a phase", () => {
   assert.equal(phaseChipLabel(12, "4"), "Week 12 · Phase 4");
   assert.equal(phaseChipLabel(1, "1"), "Week 1 · Phase 1");
+});
+
+test("phases group into proportional blocks and mark the current week", () => {
+  const spans = phaseSpans([
+    { week: 1, phase: "1", status: "past" },
+    { week: 2, phase: "1", status: "past" },
+    { week: 3, phase: "4", status: "current" },
+    { week: 4, phase: "4", status: "open" },
+    { week: 5, phase: "8", status: "open" },
+  ]);
+  assert.deepEqual(
+    spans.map((span) => [span.name, span.weeks.length, span.currentWeek]),
+    [
+      ["Base + spark", 2, null],
+      ["Speed endurance arrives", 2, 3],
+      ["Taper", 1, null],
+    ],
+  );
+  assert.equal(paceStatusTone("Behind"), "behind");
+  assert.equal(paceStatusTone("On track"), "on");
+  assert.equal(paceStatusTone("Ahead"), "ahead");
+  assert.equal(paceStatusTone("No runs yet"), "open");
 });
 
 test("season length says weeks, and one week stays singular", () => {

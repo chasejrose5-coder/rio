@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { BodyMap } from "./BodyMap";
+import { Disclosure } from "./Disclosure";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
 import { PageMeaning } from "./PageMeaning";
@@ -38,7 +39,9 @@ function ExerciseBlock({ exercise }: { exercise: Exercise }) {
       <p className="rio-stretch-meta">
         {exercise.area} · {typeLabel(exercise.type)} · {exercise.dose}
       </p>
-      <p>{exercise.howTo}</p>
+      <Disclosure title="Details">
+        <p>{exercise.howTo}</p>
+      </Disclosure>
     </article>
   );
 }
@@ -128,10 +131,11 @@ function StretchBody() {
       <main>
         <header className="rio-hero">
           <h1>Stretching</h1>
-          <p className="rio-range">
-            A short routine for today, taken from the plan. The date changes which version you get, so the next day of the same kind is a different sequence.
-          </p>
+          <p className="rio-range">A short routine for today, taken from the plan.</p>
         </header>
+        <Disclosure title="Details">
+          <p className="rio-train-copy">The date changes which version you get, so the next day of the same kind is a different sequence.</p>
+        </Disclosure>
         {mode === "loading" ? <p className="rio-wait">Loading</p> : null}
         {problem ? (
           <p className="rio-error" data-testid="stretch-error">

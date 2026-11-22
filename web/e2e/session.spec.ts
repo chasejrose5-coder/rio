@@ -152,6 +152,8 @@ test("a quality day states the rep time, the average, and asks before it saves",
   await expect(page.getByText("Pre-warm-up")).toBeVisible();
   await expect(page.getByText("1 × 800 m easy")).toBeVisible();
   await expect(page.getByText("Warm-up", { exact: true })).toBeVisible();
+  await expect(page.getByText("4 × 100 m strides with walk-back")).toBeVisible();
+  await expect(page.getByText("A-skips")).toBeVisible();
   await expect(page.getByText("Cool-down", { exact: true })).toBeVisible();
   await expect(page.getByText("Core", { exact: true })).toBeVisible();
   await expect(page.getByText("Logged run")).toBeVisible();
@@ -177,7 +179,21 @@ test("an easy run uses the saved pace and does not ask for a rep time", async ({
   await signIn(page);
   await page.goto("/session?date=2026-11-12");
   await expect(page.getByText("Run at 7:45 per mile")).toBeVisible();
+  await expect(page.getByText("3–5 min easy jog")).toBeVisible();
+  await expect(page.getByText("Then leg swings and a few light stretches:")).toBeVisible();
+  await expect(page.getByText("Lateral leg swings")).toBeVisible();
+  await expect(page.getByText("Easy calf stretch each side")).toBeVisible();
+  await expect(page.getByText("A-skips")).toHaveCount(0);
+  await expect(page.getByText("4 × 100 m strides with walk-back")).toHaveCount(0);
+  await expect(page.getByText("Active drills")).toHaveCount(0);
+  await expect(page.getByText("Pre-warm-up")).toHaveCount(0);
   await expect(page.getByText("1.55")).toHaveCount(0);
+  if (process.env.RIO_SHOTS) {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await page.screenshot({ path: "/opt/cursor/artifacts/easy-warmup-desktop.png" });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.screenshot({ path: "/opt/cursor/artifacts/easy-warmup-phone.png" });
+  }
   await expect(page.getByRole("button", { name: "Behind" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Done" })).toHaveCount(0);
   await expect(page.getByText("Times save as you type.")).toHaveCount(0);

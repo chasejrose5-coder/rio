@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Disclosure } from "./Disclosure";
 import { ApiError, api, previewing } from "@/lib/api";
 import {
   INJURY_DISCLAIMER,
@@ -129,16 +130,24 @@ function Block({
       </h3>
       {block.boneMessage ? <p className="rio-medical">{block.boneMessage}</p> : null}
       {block.exercises.length ? (
-        <ul className="rio-prep-list">
-          {block.exercises.map((item) => (
-            <li key={item.exercise.id}>
-              <strong>
-                {item.exercise.name} · {item.dose}
-              </strong>
-              <span>{item.exercise.howTo}</span>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="rio-prep-list">
+            {block.exercises.map((item) => (
+              <li key={item.exercise.id}>
+                <strong>
+                  {item.exercise.name} · {item.dose}
+                </strong>
+              </li>
+            ))}
+          </ul>
+          <Disclosure title="Details">
+            {block.exercises.map((item) => (
+              <p key={`${item.exercise.id}-how`}>
+                <strong>{item.exercise.name}.</strong> {item.exercise.howTo}
+              </p>
+            ))}
+          </Disclosure>
+        </>
       ) : null}
       {canSave && !block.boneMessage ? (
         <div className="rio-done-row">
