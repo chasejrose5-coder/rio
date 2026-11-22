@@ -68,6 +68,9 @@ test("the guide explains the season in plain words and stays free of photos", as
   await expect(contents.getByRole("link", { name: "Classification" })).toHaveAttribute("href", "#classification");
   await expect(contents.getByRole("link", { name: "Hard days" })).toHaveAttribute("href", "#hard-days");
   await expect(page.getByRole("heading", { name: "Getting started" })).toBeVisible();
+  await expect(page.getByText("Times use minutes:seconds.tenths, like 2:05.0.")).toBeVisible();
+  await expect(page.getByText("A timed effort is a run you logged.")).toBeVisible();
+  await expect(page.getByText("A training block is one phase of the season.")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Today's workout" })).toBeVisible();
   await page.getByText("Long-run ladder").click();
   await expect(page.getByText("8 km is outside the ladder.")).toBeVisible();

@@ -296,8 +296,7 @@ function PlanReady({
   const current = plan.weeks.find((row) => row.status === "current");
   const phaseNote = current && current.phase && current.phase !== "—" ? `This week is phase ${current.phase}.` : "";
   const spans = phaseSpans(plan.weeks);
-  const currentSpan = spans.find((span) => span.currentWeek != null) ?? spans[0];
-  const [openPhase, setOpenPhase] = useState(currentSpan?.key ?? "");
+  const [openPhase, setOpenPhase] = useState("");
   const openSpan = spans.find((span) => span.key === openPhase) ?? null;
   const emptyWeeks = plan.weeks.every((row) => row.meters === 0);
   const selected = picked && picked >= 1 && picked <= length ? picked : weekContaining(plan.inputs.start_date, length, today);
@@ -361,7 +360,7 @@ function PlanReady({
                 data-phase={span.phase}
                 aria-expanded={open}
                 aria-controls="rio-phase-panel"
-                aria-label={`${span.name}, phase ${span.phase}, ${weeks} ${weeks === 1 ? "week" : "weeks"}${
+                aria-label={`${span.name}${span.currentWeek != null ? ` Week ${span.currentWeek}` : ""}, phase ${span.phase}, ${weeks} ${weeks === 1 ? "week" : "weeks"}${
                   span.currentWeek != null ? `, week ${span.currentWeek} is this week` : ""
                 }`}
                 onClick={() => setOpenPhase((key) => (key === span.key ? "" : span.key))}
@@ -381,7 +380,16 @@ function PlanReady({
             <ul className="rio-phase-week-list">
               {openSpan.weeks.map((week) => (
                 <li key={week} className={week === openSpan.currentWeek ? "is-current" : undefined}>
-                  <button type="button" onClick={() => { onWeek(week); onView("This week"); }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onWeek(week);
+                      onView("This week");
+                      requestAnimationFrame(() => {
+                        document.querySelector(".rio-plan-view")?.scrollIntoView({ block: "start" });
+                      });
+                    }}
+                  >
                     <span>{weekOption(plan.inputs.start_date, week, format)}</span>
                     {week === openSpan.currentWeek ? <span className="rio-phase-this">Now</span> : null}
                   </button>
@@ -536,7 +544,7 @@ function CalCell({ cell }: { cell: PlanDay }) {
     <Link
       className={classes.join(" ")}
       href={`/session?date=${cell.date}`}
-      aria-label={`${cell.date}. ${cell.label || "Session"}`}
+      aria-label={`${cell.day}${label ? ` ${label}` : ""}, ${cell.date}`}
       data-date={cell.date}
       data-today={cell.today ? "true" : "false"}
     >

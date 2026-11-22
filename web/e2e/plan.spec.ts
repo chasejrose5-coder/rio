@@ -252,12 +252,18 @@ test("a season shows the hero, phases, weeks, and all three views", async ({ pag
   await expect(page.getByText("2026-11-08 — 2026-11-21")).toBeVisible();
   await expect(page.getByText("Progress: No runs yet")).toBeVisible();
   await expect(page.getByText("Photo by Jan van der Wolf on Pexels")).toBeVisible();
+  const stretches = await page.getByRole("link", { name: "Today's stretches" }).boundingBox();
+  expect(Math.round(stretches?.height || 0)).toBeGreaterThanOrEqual(44);
   await expect(page.getByText("This week is phase 4.")).toBeVisible();
   const currentPhase = page.locator(".rio-phase-now");
   await expect(currentPhase).toContainText("Speed endurance arrives");
   await expect(currentPhase).toContainText("Week 1");
-  await expect(currentPhase).toHaveAttribute("aria-expanded", "true");
+  await expect(currentPhase).toHaveAttribute("aria-expanded", "false");
   await expect(page.locator(".rio-phase")).toHaveCount(1);
+  await expect(page.locator(".rio-phase-detail")).toHaveCount(0);
+  await expect(page.getByText("Week 2 · 2026-11-15 — 2026-11-21")).toHaveCount(0);
+  await currentPhase.click();
+  await expect(currentPhase).toHaveAttribute("aria-expanded", "true");
   await expect(page.getByText("Week 1 · 2026-11-08 — 2026-11-14")).toBeVisible();
   await expect(page.getByText("Week 2 · 2026-11-15 — 2026-11-21")).toBeVisible();
   await expect(page.locator(".rio-phase-this")).toHaveText("Now");
@@ -269,6 +275,7 @@ test("a season shows the hero, phases, weeks, and all three views", async ({ pag
   await page.getByRole("button", { name: /Week 1 · 2026-11-08/ }).click();
   await expect(page.getByRole("radio", { name: "This week" })).toBeChecked();
   await expect(page.getByRole("heading", { name: "Week 1" })).toBeVisible();
+  await expect.poll(async () => (await page.locator(".rio-plan-view").boundingBox())?.y ?? 9999).toBeLessThan(160);
   await page.getByRole("radio", { name: "Calendar" }).click();
   if (process.env.RIO_SHOTS) {
     await page.setViewportSize({ width: 1280, height: 900 });

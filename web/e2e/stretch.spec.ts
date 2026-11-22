@@ -147,6 +147,12 @@ test("tapping a region adds its stretches, sharp pain does not, and Done sticks"
   await expect(prescription.locator("svg")).toHaveCount(0);
   await expect(page.getByTestId("stretch-library").locator("svg")).toHaveCount(0);
   await expect(page.getByTestId("body-front")).toBeAttached();
+  await expect.poll(async () => page.evaluate(() => {
+    return [...document.querySelectorAll(".rio-region")].filter((node) => {
+      const box = node.getBoundingClientRect();
+      return box.width >= 1 && (Math.round(box.width) < 44 || Math.round(box.height) < 44);
+    }).length;
+  })).toBe(0);
 
   const neck = page.getByRole("button", { name: "Neck, front view" });
   await neck.focus();

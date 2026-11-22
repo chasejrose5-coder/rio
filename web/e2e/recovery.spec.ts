@@ -154,16 +154,16 @@ test("recovery lists every exercise, saves a rebuilding area, and the day shows 
     await page.getByRole("button", { name: "Feet & ankles" }).click();
     await page.getByRole("button", { name: /Plantar fascia/ }).click();
     await page.setViewportSize({ width: 1280, height: 1100 });
-    await page.screenshot({ path: "/opt/cursor/artifacts/recovery-desktop.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/recovery-desktop.png` });
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.screenshot({ path: "/opt/cursor/artifacts/recovery-phone.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/recovery-phone.png` });
   }
 
   if (process.env.RIO_SHOTS) {
     await page.setViewportSize({ width: 1280, height: 1400 });
-    await page.screenshot({ path: "/opt/cursor/artifacts/pr-a-recovery-desktop.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/pr-a-recovery-desktop.png` });
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.screenshot({ path: "/opt/cursor/artifacts/pr-a-recovery-phone.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/pr-a-recovery-phone.png` });
   }
 
   const monday = dayBlocks(today, [], []);
@@ -181,9 +181,9 @@ test("recovery lists every exercise, saves a rebuilding area, and the day shows 
     const block = page.getByRole("region", { name: "Injury prevention" });
     await page.setViewportSize({ width: 1280, height: 1000 });
     await block.evaluate((element) => element.scrollIntoView({ block: "center" }));
-    await page.screenshot({ path: "/opt/cursor/artifacts/pr-a-session-desktop.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/pr-a-session-desktop.png` });
     await page.setViewportSize({ width: 390, height: 844 });
     await block.evaluate((element) => element.scrollIntoView({ block: "center" }));
-    await page.screenshot({ path: "/opt/cursor/artifacts/pr-a-session-phone.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/pr-a-session-phone.png` });
   }
 });

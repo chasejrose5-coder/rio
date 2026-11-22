@@ -102,9 +102,9 @@ test("foam rolling follows a hard day and lists every area", async ({ page }) =>
 
   if (process.env.RIO_SHOTS) {
     await page.setViewportSize({ width: 1280, height: 1100 });
-    await page.screenshot({ path: "/opt/cursor/artifacts/pr-c-foam-desktop.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/pr-c-foam-desktop.png` });
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.screenshot({ path: "/opt/cursor/artifacts/pr-c-foam-phone.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/pr-c-foam-phone.png` });
   }
 
   const routine = foamRoutine(today, [quality]);
@@ -120,9 +120,9 @@ test("foam rolling follows a hard day and lists every area", async ({ page }) =>
   if (process.env.RIO_SHOTS) {
     await page.setViewportSize({ width: 1280, height: 1000 });
     await block.evaluate((element) => element.scrollIntoView({ block: "center" }));
-    await page.screenshot({ path: "/opt/cursor/artifacts/pr-c-session-desktop.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/pr-c-session-desktop.png` });
     await page.setViewportSize({ width: 390, height: 844 });
     await block.evaluate((element) => element.scrollIntoView({ block: "center" }));
-    await page.screenshot({ path: "/opt/cursor/artifacts/pr-c-session-phone.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/pr-c-session-phone.png` });
   }
 });
