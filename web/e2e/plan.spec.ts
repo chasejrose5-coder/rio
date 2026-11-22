@@ -266,6 +266,10 @@ test("a season shows the hero, phases, weeks, and all three views", async ({ pag
   await expect(page.getByText("Week 2 · 2026-11-15 — 2026-11-21")).toHaveCount(0);
   await currentPhase.click();
   await expect(page.getByText("Week 2 · 2026-11-15 — 2026-11-21")).toBeVisible();
+  await page.getByRole("button", { name: /Week 1 · 2026-11-08/ }).click();
+  await expect(page.getByRole("radio", { name: "This week" })).toBeChecked();
+  await expect(page.getByRole("heading", { name: "Week 1" })).toBeVisible();
+  await page.getByRole("radio", { name: "Calendar" }).click();
   if (process.env.RIO_SHOTS) {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.screenshot({ path: "/opt/cursor/artifacts/plan-phases-desktop.png" });

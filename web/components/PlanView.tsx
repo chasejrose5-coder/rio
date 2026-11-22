@@ -381,7 +381,7 @@ function PlanReady({
             <ul className="rio-phase-week-list">
               {openSpan.weeks.map((week) => (
                 <li key={week} className={week === openSpan.currentWeek ? "is-current" : undefined}>
-                  <button type="button" onClick={() => onWeek(week)}>
+                  <button type="button" onClick={() => { onWeek(week); onView("This week"); }}>
                     <span>{weekOption(plan.inputs.start_date, week, format)}</span>
                     {week === openSpan.currentWeek ? <span className="rio-phase-this">Now</span> : null}
                   </button>

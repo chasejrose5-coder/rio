@@ -1006,6 +1006,8 @@
 .rio-v3 .rio-phase-week-list button {
   display: flex;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 44px;
   align-items: center;
   justify-content: space-between;
@@ -1019,6 +1021,7 @@
   text-align: left;
   cursor: pointer;
 }
+.rio-v3 .rio-phase-week-list button > span:first-child { min-width: 0; overflow-wrap: anywhere; }
 
 /* Session is one column. Each block is its own card. */
 .rio-v3 .rio-session-stack { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
@@ -1033,3 +1036,23 @@
   padding: 8px 16px 16px;
 }
 .rio-v3 .rio-session-stack .rio-disclosure > button { width: 100%; min-height: 44px; justify-content: flex-start; }
+
+/* F1: the footer page note is a link, not the old full-width card. */
+.rio-contact .rio-page-meaning.rio-meaning { display: inline-block; width: auto; max-width: none; margin: 0; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; grid-template-columns: none; }
+.rio-contact .rio-page-meaning.rio-meaning > button { grid-column: auto; margin: 0; text-transform: none; letter-spacing: 0; font: inherit; }
+.rio-contact .rio-page-meaning.rio-meaning > div { grid-column: auto; margin: 0; }
+/* F2: the About link on Log in and Create account is a 44px target. */
+.auth-screen .rio-auth-about a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; text-decoration: underline; text-underline-offset: 3px; }
+/* F3: Recovery uses the full row once the page note lives in the footer. */
+@media (min-width: 1280px) { .rio-v3.page-recovery main > :is(.rio-recover-ask, .rio-disclosure, .rio-medical) { grid-column: 1 / -1; } }
+/* F4: area pills are not held to the legacy 46rem cap. */
+.rio-v3 .rio-area-picks { max-width: none; }
+/* F6: session toggles match the width of the workout card. */
+.rio-v3 .rio-session-group > .rio-disclosure { max-width: none; margin: 0; }
+/* F7: Foam rolling matches the other after-workout cards, including the gap above it. */
+.rio-v3 .rio-session-group > .rio-foam-block { margin-top: 0; border-top: 0; padding: 8px 16px 16px; }
+.rio-v3 .rio-session-group > .rio-foam-block > .rio-disclosure { max-width: none; margin: 0; border-bottom: 0; }
+/* P2: the week list uses the phase card. The name and description keep the 36rem measure. */
+.rio-v3 .rio-phase-detail { max-width: none; }
+.rio-v3 .rio-phase-detail :is(.rio-phase-heading, .rio-phase-plain) { max-width: 36rem; }
+.rio-v3 .rio-phase-detail .rio-phase-week-list { max-width: none; }

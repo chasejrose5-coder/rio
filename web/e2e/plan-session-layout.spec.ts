@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 const WIDTHS = [375, 768, 1024, 1280, 1440];
 
-test("the plan calendar fills the page, and a session log appears only inside a workout that has one", async ({ page }) => {
+test("the plan calendar fills the page, and a session log appears only inside a workout that has one", async ({ page, browser }) => {
   test.setTimeout(180_000);
   const email = `layout-${Date.now()}@example.com`;
   const created = await page.request.post("http://localhost:8000/auth/sign-up", {
@@ -126,5 +126,77 @@ test("the plan calendar fills the page, and a session log appears only inside a 
     expect(qualityStack.scroll, `${width} quality overflow`).toBeLessThanOrEqual(qualityStack.client + 1);
     expect(qualityStack.spread, `${width} quality column`).toBeLessThan(2);
     expect(qualityStack.cards.length, `${width} workout card`).toBeGreaterThanOrEqual(1);
+    const blocks = await page.evaluate(() => {
+      const group = document.querySelector('[aria-label="After workout"]');
+      const cards = group
+        ? [...group.children].filter((node) => node.classList.contains("rio-session-box") || node.classList.contains("rio-foam-block"))
+        : [];
+      const boxes = cards.map((node) => {
+        const box = node.getBoundingClientRect();
+        return { top: box.top, width: Math.round(box.width) };
+      });
+      const meaning = document.querySelector(".rio-contact .rio-page-meaning");
+      const privacy = document.querySelector(".rio-legal-links a");
+      const meaningBox = meaning?.getBoundingClientRect();
+      const privacyBox = privacy?.getBoundingClientRect();
+      return {
+        widths: boxes.map((box) => box.width),
+        gaps: boxes.slice(1).map((box, index) => Math.round(box.top - boxes[index].top - cards[index].getBoundingClientRect().height)),
+        meaningWidth: meaningBox ? Math.round(meaningBox.width) : 0,
+        sameRow: meaningBox && privacyBox ? Math.abs(meaningBox.top - privacyBox.top) < 8 : false,
+        note: document.querySelector('[aria-label="After workout"] .rio-medical')?.textContent || "",
+      };
+    });
+    const uniqueWidths = [...new Set(blocks.widths)];
+    expect(uniqueWidths, `${width} session cards`).toHaveLength(1);
+    expect(Math.max(...blocks.gaps) - Math.min(...blocks.gaps), `${width} foam gap`).toBeLessThan(4);
+    expect(blocks.sameRow, `${width} page note`).toBe(true);
+    expect(blocks.meaningWidth, `${width} page note width`).toBeLessThan(280);
+    expect(blocks.note).toContain("Not medical advice");
   }
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/more");
+  await expect(page.locator(".rio-more-row")).toHaveCount(6);
+  const more = await page.evaluate(() => {
+    const tiles = [...document.querySelectorAll(".rio-more-row")].map((node) => node.getBoundingClientRect());
+    const edge = Math.max(...tiles.map((box) => box.right));
+    const rows = new Map<number, number>();
+    for (const box of tiles) {
+      const key = Math.round(box.top);
+      rows.set(key, Math.max(rows.get(key) || 0, box.right));
+    }
+    return {
+      count: tiles.length,
+      short: [...rows.values()].filter((right) => edge - right > 2).length,
+    };
+  });
+  expect(more.count).toBe(6);
+  expect(more.short).toBe(0);
+
+  await page.goto("/recovery");
+  await expect(page.locator(".rio-recover-ask")).toBeVisible();
+  const recovery = await page.evaluate(() => {
+    const main = document.querySelector("main");
+    const ask = document.querySelector(".rio-recover-ask");
+    if (!main || !ask) return null;
+    const style = getComputedStyle(main);
+    const content = main.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    return { content, ask: ask.getBoundingClientRect().width };
+  });
+  expect(recovery).not.toBeNull();
+  expect(Math.abs(recovery!.ask - recovery!.content)).toBeLessThan(8);
+
+  const signedOut = await browser.newContext();
+  const fresh = await signedOut.newPage();
+  await fresh.setViewportSize({ width: 375, height: 812 });
+  await fresh.goto("/sign-in?skip=1");
+  await expect(fresh.locator(".rio-auth-about a")).toBeVisible();
+  const about = await fresh.locator(".rio-auth-about a").boundingBox();
+  expect(about && Math.round(about.height)).toBeGreaterThanOrEqual(44);
+  await fresh.goto("/create-account");
+  await expect(fresh.locator(".rio-auth-about a")).toBeVisible();
+  const create = await fresh.locator(".rio-auth-about a").boundingBox();
+  expect(create && Math.round(create.height)).toBeGreaterThanOrEqual(44);
+  await signedOut.close();
 });

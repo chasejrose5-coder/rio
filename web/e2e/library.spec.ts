@@ -187,7 +187,7 @@ test("More still lists its pages under the nav", async ({ page }) => {
   await expect(sub.getByRole("link", { name: "Profile" })).toHaveAttribute("href", "/profile");
   await expect(sub.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
   await expect(sub.getByRole("link", { name: "Guide" })).toHaveAttribute("href", "/guide");
-  await expect(sub.getByRole("link", { name: "About" })).toHaveCount(0);
+  await expect(sub.getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
   await expect(sub.getByRole("link", { name: "Creators" })).toHaveAttribute("href", "/creators");
   await page.goto("/library");
   await expect(page.getByRole("navigation", { name: "More" })).toHaveCount(0);

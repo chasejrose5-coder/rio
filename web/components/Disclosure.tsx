@@ -16,7 +16,7 @@ export function Disclosure({ title, children, className, defaultOpen = false }: 
   const classes = className ? `rio-disclosure ${className}` : "rio-disclosure";
   return (
     <div className={classes}>
-      <button type="button" aria-expanded={open} aria-controls={panelId} onClick={() => setOpen((value) => !value)}>
+      <button type="button" aria-expanded={open} aria-controls={open ? panelId : undefined} onClick={() => setOpen((value) => !value)}>
         <span className={open ? "rio-chevron is-open" : "rio-chevron"} aria-hidden="true" />
         {title}
       </button>

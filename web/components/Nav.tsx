@@ -31,6 +31,7 @@ const MORE = [
   { href: "/profile", label: "Profile" },
   { href: "/settings", label: "Settings" },
   { href: "/guide", label: "Guide" },
+  { href: "/about", label: "About" },
   { href: "/creators", label: "Creators" },
 ];
 

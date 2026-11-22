@@ -55,7 +55,7 @@ function MoreBody() {
               key={item.href}
               href={item.href}
               className="rio-card rio-card-tight rio-more-row"
-              onPointerDown={item.href === "/creators" ? undefined : shareHero}
+              onPointerDown={item.href === "/creators" || item.href === "/about" ? undefined : shareHero}
             >
               <span className="rio-more-copy">
                 <span className="rio-mark-label">{item.label}</span>

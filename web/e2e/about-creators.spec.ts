@@ -75,8 +75,9 @@ test("about shows the stadium photo, the credit, and a short intro", async ({ pa
   await expect(page.locator(".page-about .rio-photo-credit")).toHaveCSS("color", "rgb(244, 241, 236)");
   await expect(page.locator(".page-about .rio-mark-label").first()).toHaveCSS("color", "rgb(60, 58, 54)");
   await expect(page.locator(".page-about .rio-note").first()).toHaveCSS("color", "rgb(18, 17, 16)");
-  await expect(page.getByRole("navigation", { name: "More" }).getByRole("link", { name: "About" })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "More" }).getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
   await expect(page.locator(".rio-quick").getByRole("link", { name: "Sign in" })).toHaveCount(0);
+  await expect(page.locator(".rio-quick").getByRole("link", { name: "Create account" })).toHaveCount(0);
 
   const visible = await page.locator(".page-about").evaluate((root) => {
     const nodes = root.querySelectorAll(".rio-index, h1, .rio-photo-credit, .rio-mark-label, .rio-note, .rio-prose, .rio-k, .rio-v");
@@ -133,7 +134,8 @@ test("sign-in links to About, and More keeps Creators", async ({ page }) => {
   await expect(page.locator(".rio-auth-about").getByRole("link", { name: "About", exact: true })).toHaveAttribute("href", "/about");
   await install(page);
   await page.goto("/more");
-  await expect(page.locator(".rio-more-list").getByRole("link", { name: /About/ })).toHaveCount(0);
+  await expect(page.locator(".rio-more-list").getByRole("link", { name: /About/ })).toHaveAttribute("href", "/about");
+  await expect(page.locator(".rio-more-list").getByText("What RIO is, in short.")).toBeVisible();
   await page.getByRole("navigation", { name: "More" }).getByRole("link", { name: "Creators" }).click();
   await expect(page).toHaveURL(/\/creators$/);
   await expect(page.getByRole("heading", { name: "Built by a runner, for runners." })).toBeVisible();

@@ -17,6 +17,7 @@ import { RequireUser } from "./RequireUser";
 import { ApiError, api, isSignedOut, previewing } from "@/lib/api";
 import { createSaveQueue } from "@/lib/save-queue";
 import { useAuth } from "@/lib/auth";
+import { CORE_DISCLAIMER } from "@/lib/core-content";
 import { weekdayName } from "@/lib/plan";
 import {
   acceptTimeKey,
@@ -334,6 +335,7 @@ function Workout({
       </section>
       <section className="rio-session-group" aria-label="After workout">
         <p className="rio-eyebrow">After workout</p>
+        <p className="rio-medical">{CORE_DISCLAIMER}</p>
         {!hideRun && cooldown ? (
           <Disclosure className="rio-session-box" title={cooldown.title}>
             <PrepBody block={cooldown} />
