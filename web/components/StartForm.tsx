@@ -19,7 +19,7 @@ import {
   startShouldGoHome,
   type SeasonInputs,
 } from "@/lib/start-form";
-import { commitRaceTime, maskRaceTime } from "@/lib/time-mask";
+import { commitRaceTime, maskRaceTime, raceTimeError } from "@/lib/time-mask";
 import type { CurrentSeason } from "@/lib/types";
 import { ErrorText } from "./ErrorText";
 
@@ -138,6 +138,11 @@ function StartFields({ today, behavior }: { today: string; behavior: string }) {
     const goal = commitRaceTime(goalTime.trim());
     setCurrentTime(current);
     setGoalTime(goal);
+    const timeProblem = raceTimeError(current) || raceTimeError(goal);
+    if (timeProblem) {
+      setError(timeProblem);
+      return;
+    }
     const submitted: SeasonInputs = {
       current_time: current,
       start_date: startDate.trim(),
@@ -195,6 +200,8 @@ function StartFields({ today, behavior }: { today: string; behavior: string }) {
               autoComplete="off"
               aria-describedby="start-date-help"
               onChange={(event) => setStartDate(event.target.value)}
+              onClick={openDatePicker}
+              onFocus={openDatePicker}
             />
           </Field>
           <Field
@@ -221,6 +228,8 @@ function StartFields({ today, behavior }: { today: string; behavior: string }) {
               autoComplete="off"
               aria-describedby="goal-date-help"
               onChange={(event) => setGoalDate(event.target.value)}
+              onClick={openDatePicker}
+              onFocus={openDatePicker}
             />
           </Field>
         </div>
@@ -230,6 +239,16 @@ function StartFields({ today, behavior }: { today: string; behavior: string }) {
       </form>
     </section>
   );
+}
+
+function openDatePicker(event: { currentTarget: HTMLInputElement }) {
+  const input = event.currentTarget;
+  if (typeof input.showPicker !== "function") return;
+  try {
+    input.showPicker();
+  } catch {
+    /* Unsupported, already open, or not allowed from this focus. */
+  }
 }
 
 function Field({ id, label, help, children }: { id: string; label: string; help: string; children: React.ReactNode }) {

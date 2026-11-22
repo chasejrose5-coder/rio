@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth";
 import { destinationAfterSignIn } from "@/lib/enter";
 import {
   METHOD_SENTENCE,
+  SAFETY_NOTE,
   anchorError,
   boundsError,
   formatRange,
@@ -348,6 +349,7 @@ export function HeartRateForm({ profile, mode }: { profile: HeartRateProfile; mo
             ) : null}
           </>
         )}
+        <p className="rio-hr-safety">{SAFETY_NOTE}</p>
         {error ? <ErrorText>{error}</ErrorText> : null}
         {mode === "onboarding" ? (
           <button className="rio-primary" type="submit" disabled={busy}>
@@ -418,14 +420,19 @@ function HeartRateStepBody() {
   const { athlete } = useAuth();
   const [profile, setProfile] = useState<HeartRateProfile | null>(null);
   const [problem, setProblem] = useState("");
-  const [kicker, setKicker] = useState("Start here");
+  const [kicker, setKicker] = useState("");
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let live = true;
-    void api.currentSeason().then((season) => {
-      if (live && season) setKicker("Your heart rate");
-    }).catch(() => undefined);
+    void api
+      .currentSeason()
+      .then((season) => {
+        if (live) setKicker(season ? "Your heart rate" : "Start here");
+      })
+      .catch(() => {
+        if (live) setKicker("Start here");
+      });
     api
       .heartRate()
       .then((body) => {

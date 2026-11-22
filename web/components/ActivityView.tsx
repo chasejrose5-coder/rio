@@ -194,7 +194,7 @@ function ActivityBody() {
                 </p>
               </section>
             )}
-            {noticeKind === "missing" && connected ? <StravaCard /> : null}
+            {noticeKind === "missing" && !connected ? <StravaCard /> : null}
             {noticeKind === "failed" ? (
               <div className="rio-card rio-card-tight">
                 <p className="rio-note">Runs could not be loaded. Try Refresh in a moment.</p>

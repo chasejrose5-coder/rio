@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { foamRoutine } from "../lib/foam-content";
+import { FOAM_DISCLAIMER, foamRoutine } from "../lib/foam-content";
 import { MEDICAL_NOTE } from "../lib/glossary";
 
 const today = "2026-11-10";
@@ -88,6 +88,7 @@ test("foam rolling follows a hard day and lists every area", async ({ page }) =>
   await page.goto("/foam");
   await expect(page.getByRole("heading", { name: "Foam rolling", exact: true })).toBeVisible();
   await expect(page.getByText(MEDICAL_NOTE).first()).toBeVisible();
+  await expect(page.getByText(FOAM_DISCLAIMER).first()).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Training" }).getByRole("link", { name: "Foam rolling" })).toHaveAttribute(
     "aria-current",
     "page",
@@ -106,6 +107,7 @@ test("foam rolling follows a hard day and lists every area", async ({ page }) =>
   const routine = foamRoutine(today, [quality]);
   await page.goto(`/session?date=${today}`);
   const block = page.getByRole("region", { name: "Foam rolling" });
+  await expect(block.getByText(FOAM_DISCLAIMER)).toBeVisible();
   await expect(block.getByText("After this workout · 7 min")).toBeVisible();
   await expect(block.getByText(`${routine.areas[0]?.name} · 1 min`)).toBeVisible();
   await block.getByRole("button", { name: "Mark done" }).click();

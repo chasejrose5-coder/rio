@@ -25,13 +25,18 @@ function EasyPaceForm() {
   const [unit, setUnit] = useState<"mi" | "km">("mi");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [kicker, setKicker] = useState("Start here");
+  const [kicker, setKicker] = useState("");
 
   useEffect(() => {
     let live = true;
-    void api.currentSeason().then((season) => {
-      if (live && season) setKicker("Your paces");
-    }).catch(() => undefined);
+    void api
+      .currentSeason()
+      .then((season) => {
+        if (live) setKicker(season ? "Your paces" : "Start here");
+      })
+      .catch(() => {
+        if (live) setKicker("Start here");
+      });
     return () => {
       live = false;
     };

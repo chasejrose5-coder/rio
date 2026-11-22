@@ -13,11 +13,17 @@ test("typing 202 becomes 2:02 and completes to 2:02.00", () => {
   assert.equal(raceTimeError("202"), "Enter a time like 2:02.00.");
 });
 
-test("a time that is already m:ss.c stays, and letters stay for the server check", () => {
-  assert.equal(commitRaceTime("2:05.0"), "2:05.0");
-  assert.equal(commitRaceTime("1:58.0"), "1:58.0");
+test("a tenth pads to hundredths, and letters stay for the format check", () => {
+  assert.equal(commitRaceTime("2:02.5"), "2:02.50");
+  assert.equal(commitRaceTime("2:05.0"), "2:05.00");
+  assert.equal(commitRaceTime("1:58.0"), "1:58.00");
+  assert.equal(commitRaceTime("2020"), "2:02.00");
+  assert.equal(raceTimeError(commitRaceTime("2:02.5")), "");
+  assert.equal(raceTimeError("2:02.5"), "Enter a time like 2:02.00.");
+  assert.equal(raceTimeError("2:60.00"), "Enter a time like 2:02.00.");
   assert.equal(maskRaceTime("nope"), "nope");
   assert.equal(commitRaceTime("nope"), "nope");
+  assert.equal(raceTimeError("nope"), "Enter a time like 2:02.00.");
 });
 
 test("a 400 m rep uses seconds.hundredths", () => {
