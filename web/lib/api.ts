@@ -74,6 +74,11 @@ function dropGetCache(): void {
   homeHandoff = null;
 }
 
+/** Keep a value the next GET would otherwise miss, such as a heart rate just saved. */
+export function rememberRead(path: string, value: unknown): void {
+  settledGets.set(path, { at: Date.now(), value });
+}
+
 const BROWSER_KEYS = ["rio_test_preview", "rio_landing", "rio_hr_prompt_dismissed", "rio_mark_intro", "rio-nav-path"];
 
 /** Drop cached reads and this tab's runner flags. Used on log out and on a 401. */

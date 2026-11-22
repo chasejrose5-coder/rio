@@ -19,6 +19,7 @@ import {
   startShouldGoHome,
   type SeasonInputs,
 } from "@/lib/start-form";
+import { commitRaceTime, maskRaceTime } from "@/lib/time-mask";
 import type { CurrentSeason } from "@/lib/types";
 import { ErrorText } from "./ErrorText";
 
@@ -133,10 +134,14 @@ function StartFields({ today, behavior }: { today: string; behavior: string }) {
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
+    const current = commitRaceTime(currentTime.trim());
+    const goal = commitRaceTime(goalTime.trim());
+    setCurrentTime(current);
+    setGoalTime(goal);
     const submitted: SeasonInputs = {
-      current_time: currentTime.trim(),
+      current_time: current,
       start_date: startDate.trim(),
-      goal_time: goalTime.trim(),
+      goal_time: goal,
       goal_date: goalDate.trim(),
     };
     setBusy(true);
@@ -169,20 +174,23 @@ function StartFields({ today, behavior }: { today: string; behavior: string }) {
           <Field
             id="current-time"
             label="Your 800 m time today"
-            help="Your best recent 800 metres, as minutes:seconds.tenths. A rough guess is fine."
+            help="Your best recent 800 m, as m:ss.cc, like 2:02.00. A rough guess is fine."
           >
             <input
               id="current-time"
-              placeholder="2:05.0"
+              placeholder="2:02.00"
+              inputMode="decimal"
               value={currentTime}
               autoComplete="off"
               aria-describedby="current-time-help"
-              onChange={(event) => setCurrentTime(event.target.value)}
+              onChange={(event) => setCurrentTime(maskRaceTime(event.target.value))}
+              onBlur={() => setCurrentTime((value) => commitRaceTime(value))}
             />
           </Field>
           <Field id="start-date" label="Start date" help="The day this season starts.">
             <input
               id="start-date"
+              type="date"
               value={startDate}
               autoComplete="off"
               aria-describedby="start-date-help"
@@ -192,20 +200,23 @@ function StartFields({ today, behavior }: { today: string; behavior: string }) {
           <Field
             id="goal-time"
             label="800 m time you're aiming for"
-            help="The race time you want on your goal date. Same minutes:seconds.tenths format."
+            help="The race time you want on your goal date. Same m:ss.cc format, like 1:58.00."
           >
             <input
               id="goal-time"
-              placeholder="1:58.0"
+              placeholder="1:58.00"
+              inputMode="decimal"
               value={goalTime}
               autoComplete="off"
               aria-describedby="goal-time-help"
-              onChange={(event) => setGoalTime(event.target.value)}
+              onChange={(event) => setGoalTime(maskRaceTime(event.target.value))}
+              onBlur={() => setGoalTime((value) => commitRaceTime(value))}
             />
           </Field>
           <Field id="goal-date" label="Goal date" help="The day of the race.">
             <input
               id="goal-date"
+              type="date"
               value={goalDate}
               autoComplete="off"
               aria-describedby="goal-date-help"

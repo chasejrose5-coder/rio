@@ -32,9 +32,29 @@ export function pathAfterSeason(athlete: Athlete, season: CurrentSeason | null):
 export const HR_PROMPT_KEY = "rio_hr_prompt_dismissed";
 
 /** Home shows the heart-rate card until this runner dismisses it or saves a reading. */
-export function heartPromptOpen(profile: HeartGate, dismissed: boolean): boolean {
-  if (dismissed) return false;
+export function heartPromptOpen(profile: HeartGate, dismissed: boolean, satisfied = false): boolean {
+  if (dismissed || satisfied) return false;
   return needsHeartRate(profile);
+}
+
+let heartSatisfied = false;
+const heartListeners = new Set<() => void>();
+
+/** A successful save. Home closes the card even if an older read is still cached. */
+export function markHeartRateSaved(profile: HeartGate): void {
+  heartSatisfied = !needsHeartRate(profile);
+  heartListeners.forEach((listen) => listen());
+}
+
+export function heartRateSatisfied(): boolean {
+  return heartSatisfied;
+}
+
+export function subscribeHeartRate(listen: () => void): () => void {
+  heartListeners.add(listen);
+  return () => {
+    heartListeners.delete(listen);
+  };
 }
 
 export const LANDING_KEY = "rio_landing";
