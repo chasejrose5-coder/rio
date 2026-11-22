@@ -207,7 +207,7 @@ input:focus-visible, select:focus-visible { outline-offset: 1px; }
 }
 
 @media (max-width: 720px) {
-  .rio-nav { min-height: 52px; padding: 0.45rem 4vw; }
+  .rio-nav { position: relative; min-height: 44px; padding: 0.2rem 4vw; }
   .rio-nav-row { flex-wrap: nowrap; min-width: 0; }
   .rio-links {
     position: fixed;
@@ -223,7 +223,7 @@ input:focus-visible, select:focus-visible { outline-offset: 1px; }
     gap: 0;
     width: auto;
     margin: 0;
-    padding: 0 0.2rem calc(0.15rem + env(safe-area-inset-bottom));
+    padding: 0 0.2rem env(safe-area-inset-bottom);
     background: #121110;
     border-top: 1px solid rgba(244, 241, 236, 0.16);
     overflow: visible;
@@ -279,17 +279,17 @@ input:focus-visible, select:focus-visible { outline-offset: 1px; }
     z-index: 44;
     left: 0;
     right: 0;
-    bottom: calc(52px + env(safe-area-inset-bottom));
+    bottom: calc(45px + env(safe-area-inset-bottom));
     display: flex;
     flex-wrap: nowrap;
     overflow-x: auto;
     scroll-snap-type: x proximity;
-    scroll-padding-inline: 0.55rem;
+    scroll-padding-inline: 0.55rem 1.75rem;
     -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 1.75rem), transparent);
     mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 1.75rem), transparent);
     gap: 0.15rem 0.4rem;
     margin: 0;
-    padding: 0.1rem 0.55rem 0.2rem;
+    padding: 0 1.75rem 0 0.55rem;
     background: #121110;
     border-top: 1px solid rgba(244, 241, 236, 0.14);
   }
@@ -306,7 +306,7 @@ input:focus-visible, select:focus-visible { outline-offset: 1px; }
     white-space: nowrap;
   }
   .rio-nav + main { padding-bottom: calc(4.6rem + env(safe-area-inset-bottom)); }
-  .rio-nav:has(.rio-subnav) + main { padding-bottom: calc(8.2rem + env(safe-area-inset-bottom)); }
+  .rio-nav:has(.rio-subnav) + main { padding-bottom: calc(6.4rem + env(safe-area-inset-bottom)); }
   .rio-nav.rio-nav-signed-out + main { padding-bottom: 2.5rem; }
 }
 .rio-signed-out-login {
@@ -810,12 +810,12 @@ button.rio-text-link:disabled {
 .rio-photo-credit.on-photo {
   position: relative;
   z-index: 6;
-  background: #121110;
+  background: rgba(18, 17, 16, 0.72);
   color: var(--paper);
   border: 1px solid rgba(244, 241, 236, 0.45);
-  font-size: 1rem;
-  font-weight: 600;
-  padding: 0.45rem 0.95rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 0.28rem 0.75rem;
 }
 .rio-contact {
   margin: 0.35rem auto 1.75rem;
@@ -858,8 +858,19 @@ button.rio-text-link:disabled {
   }
 }
 @media (max-width: 800px) {
-  .rio-home-grid, .rio-stat-row, .rio-track-facts, .rio-next3 { grid-template-columns: 1fr; }
-  .rio-stat-tile { border-right: 0; border-bottom: 1px solid rgba(244, 241, 236, 0.22); padding-left: 0; padding-right: 0; }
+  .rio-next3 { grid-template-columns: 1fr; }
+  .rio-home-grid { grid-template-columns: minmax(0, 1fr) auto; align-items: start; }
+  .rio-hero-art { width: 4.75rem; padding-top: 0.35rem; }
+  .rio-hero-art .rio-track-svg { width: 100%; height: auto; max-height: none; }
+  .rio-stat-row { grid-template-columns: 1fr 1fr; }
+  .rio-stat-tile { padding: 0.9rem 0.75rem 0.95rem 0; border-right: 0; border-bottom: 1px solid rgba(244, 241, 236, 0.22); }
+  .rio-stat-tile:nth-child(odd) { border-right: 1px solid rgba(244, 241, 236, 0.22); }
+  .rio-stat-tile:nth-child(even) { padding-left: 0.9rem; }
+  .rio-stat-tile:nth-last-child(-n + 2) { border-bottom: 0; }
+  .rio-track-facts { grid-template-columns: 1fr 1fr; gap: 0.9rem 1rem; }
+  .rio-quick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .rio-glossary { padding: 0.1rem 1.1rem; }
+  .rio-glossary .rio-disclosure { margin: 0; }
   .rio-hero h1, .rio-display { font-size: clamp(2.275rem, 10.5vw, 3.325rem); }
   .rio-week-strip { flex-wrap: nowrap; }
   .rio-week-chip { flex: 1 1 0; min-width: 0; padding: 0.32rem 0.08rem; }
@@ -867,6 +878,9 @@ button.rio-text-link:disabled {
 @media (max-width: 480px) {
   .page-plan main { padding-left: 0.35rem; padding-right: 0.35rem; }
   .page-plan .rio-cal { gap: 2px; }
+  .rio-cal-label { overflow-wrap: normal; font-size: var(--fs-xs); letter-spacing: -0.01em; }
+  .rio-cal-day { padding-left: 0.25rem; padding-right: 0.2rem; }
+  .rio-cal-day:not(.rio-cal-session):not(.rio-cal-today) { min-height: 3.4rem; }
 }
 @media (max-width: 600px) {
   .page-home {
@@ -884,6 +898,8 @@ button.rio-text-link:disabled {
 .rio-setup-card .rio-mark-label { color: var(--muted); }
 .rio-splash {
   min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
   color: var(--paper);
   background-color: #121110;
   background-image: var(--shade), image-set(url("/photos/startup-track-1200.webp") type("image/webp"), url("/photos/startup-track.jpg") type("image/jpeg"));
@@ -891,13 +907,17 @@ button.rio-text-link:disabled {
   background-position: center;
 }
 .rio-splash-copy {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   max-width: 40rem;
-  padding: 14vh 6vw 9rem;
+  padding: 14vh 6vw 1.5rem;
   animation: rio-fade 220ms var(--ease) 120ms both;
 }
 @keyframes rio-fade {
   from { opacity: 0; transform: translate3d(0, 8px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
+  to { opacity: 1; transform: none; }
 }
 .rio-brand-mark {
   margin: 0 0 0.2rem;
@@ -922,23 +942,18 @@ button.rio-text-link:disabled {
 .rio-splash blockquote p { margin: 0; color: rgba(244, 241, 236, 0.9); line-height: 1.5; }
 .rio-founder-by { margin-top: 0.45rem !important; color: rgba(244, 241, 236, 0.92) !important; font-size: 0.84rem; }
 .rio-splash .rio-photo-credit.on-photo {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 1rem;
+  position: static;
   z-index: 6;
-  margin: 0 auto;
-  background: rgba(18, 17, 16, 0.78);
+  margin: auto 0 0;
+  background: rgba(18, 17, 16, 0.72);
   color: #f4f1ec;
   border: 1px solid rgba(244, 241, 236, 0.45);
 }
 .rio-splash .rio-contact.on-photo {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 4.15rem;
+  position: static;
   z-index: 6;
   margin: 0;
+  padding: 0.75rem 6vw calc(1rem + env(safe-area-inset-bottom));
   text-align: center;
   color: #f4f1ec;
 }
@@ -1311,15 +1326,15 @@ button.rio-text-link:disabled {
 .rio-pace-pill.is-on { background: #f7f4ef; }
 .rio-phase-now-line { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.92rem; }
 .rio-phase-bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 0.3rem;
   width: 100%;
   margin: 0.7rem 0 0;
 }
 .rio-phase {
-  flex: 1 1 0;
   min-width: 0;
-  min-height: 44px;
+  min-height: max(44px, 3.25rem);
   margin: 0;
   padding: 0.55rem 0.6rem;
   border: 0;
@@ -1387,8 +1402,7 @@ button.rio-text-link:disabled {
   text-transform: uppercase;
 }
 @media (max-width: 720px) {
-  .rio-phase-bar { flex-wrap: wrap; }
-  .rio-phase { flex: 1 1 calc(50% - 0.3rem); min-width: calc(50% - 0.3rem); }
+  .rio-phase-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .rio-sr {
   position: absolute;
@@ -2484,7 +2498,7 @@ button.rio-text-link:disabled {
   position: relative;
   display: flex;
   align-items: flex-end;
-  height: 78vh;
+  height: min(62vh, 36rem);
   min-height: 24rem;
   margin: 0 calc(-1 * var(--gutter)) 0;
   overflow: hidden;
@@ -3045,6 +3059,8 @@ button.rio-text-link:disabled {
   align-items: center;
   margin-bottom: 0.4rem;
 }
+.rio-stretch-routine-head > :first-child { min-width: 0; }
+.rio-stretch-routine-head button { flex: none; white-space: nowrap; min-height: 44px; }
 .rio-stretch-routine-head h3 span { color: var(--muted); font-weight: 600; font-size: 0.92rem; }
 .rio-stretch-check, .rio-stretch-sharp, .rio-severity {
   margin: 0.8rem 0;
@@ -3368,5 +3384,55 @@ button.rio-text-link:disabled {
     padding-right: 0;
     font-size: 0.62rem;
     letter-spacing: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  :is(
+    .page-plain,
+    .page-session,
+    .page-activity,
+    .page-last,
+    .page-settings,
+    .page-library,
+    .page-profile,
+    .page-more,
+    .page-past,
+    .page-creators,
+    .page-guide,
+    .page-stretch,
+    .page-core,
+    .page-recovery,
+    .page-foam
+  ) .rio-hero,
+  .rio-plan-hero {
+    padding-top: 1.35rem;
+    padding-bottom: 1.1rem;
+    min-height: 0;
+  }
+  :is(
+    .page-plain,
+    .page-session,
+    .page-activity,
+    .page-last,
+    .page-settings,
+    .page-library,
+    .page-profile,
+    .page-more,
+    .page-past,
+    .page-creators,
+    .page-guide,
+    .page-stretch,
+    .page-core,
+    .page-recovery,
+    .page-foam
+  ) .rio-hero h1,
+  .rio-plan-hero h1 {
+    font-size: var(--fs-hero-phone);
+  }
+  .rio-hero .rio-range,
+  .rio-plan-hero .rio-range {
+    font-size: 0.95rem;
+    margin-top: 0.4rem;
   }
 }
