@@ -34,6 +34,8 @@ test("every exercise has three doses and a one-line how-to, and every area is re
     const count = EXERCISES.filter((exercise) => exercise.areaId === area.id).length;
     if (area.bone) assert.equal(count, 0, area.id);
     else assert.ok(count >= 2, area.id);
+    assert.ok(area.blurb.length > 12, area.id);
+    assert.equal(area.blurb.includes("\n"), false, area.id);
   }
 });
 

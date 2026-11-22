@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Disclosure } from "./Disclosure";
 import { Expander } from "./Expander";
 import { HeartPace } from "./HeartPace";
 import { Footer, PhotoCredit } from "./Footer";
@@ -293,9 +294,11 @@ function HomeMain({
         <Stat label="Progress status" value={season.pace_status || "No runs yet"} />
       </div>
       <div className="rio-glossary rio-soft-card">
-        <p>A training block is one phase of the season.</p>
-        <p>A timed effort is a run you logged.</p>
-        <p>Times use minutes:seconds.tenths, like 2:05.0.</p>
+        <Disclosure title="Details">
+          <p>A training block is one phase of the season.</p>
+          <p>A timed effort is a run you logged.</p>
+          <p>Times use minutes:seconds.tenths, like 2:05.0.</p>
+        </Disclosure>
       </div>
       {showedPhase && season.phase ? (
         <section>

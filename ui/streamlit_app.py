@@ -4871,72 +4871,27 @@ def _prep_block(title: str, body: str) -> str:
 
 
 def _prep_lines(session: dict) -> str:
-    """Fixed notes after the workout. The same copy on every session.
+    """Notes after the workout. Easy days differ. The copy lives in engines/warmup.py.
 
     Nothing here is written onto the session, the template, or the plan,
     so adapt() never reads it. The result boxes stay as they are. No score.
     """
-    blocks = (
-        _prep_block("Pre-warm-up", '<p class="rio-prep-line">1 × 800 m easy</p>'),
-        _prep_block(
-            "Warm-up",
-            _prep_lead("Active drills (20–30 m each):")
-            + _prep_list(
-                (
-                    "Arm swings forward and reverse",
-                    "Walking quad stretch",
-                    "Hamstring sweeps",
-                    "Lateral leg swings",
-                    "Alternating knee drops",
-                    "Rocking adductor stretch",
-                )
-            )
-            + _prep_lead("Dynamic drills (20–30 m each):")
-            + _prep_list(
-                (
-                    "A-skips",
-                    "B-skips",
-                    "Knee buffs",
-                    "Straight-leg bounds",
-                    "Lateral skips",
-                )
-            )
-            + _prep_lead("Then:")
-            + _prep_list(("4 × 100 m strides with walk-back",)),
-        ),
-        _prep_block(
-            "Cool-down",
-            _prep_lead("1 easy lap, then seated stretches for the full lower body:")
-            + _prep_list(
-                (
-                    "Seated forward fold",
-                    "Seated figure-four each side",
-                    "Seated straddle",
-                    "Seated hip-flexor each side",
-                    "Seated calf stretch each side",
-                    "Seated hamstring each side",
-                    "Lying spinal twist each side",
-                )
-            ),
-        ),
-        _prep_block(
-            "Core",
-            _prep_lead("3 rounds of:")
-            + _prep_list(
-                (
-                    "Plank",
-                    "Side plank each side",
-                    "Dead bug each side",
-                    "Bird-dog each side",
-                    "Glute bridge",
-                    "Bicycle crunch each side",
-                    "Reverse crunch",
-                    "Split-lunge jumps (low volume)",
-                )
-            ),
-        ),
-    )
-    return f'<div class="rio-prep">{"".join(blocks)}</div>'
+    from engines.warmup import prep_blocks
+
+    sections: list[str] = []
+    for block in prep_blocks(session if isinstance(session, dict) else {}):
+        body = ""
+        for line in block.get("lines") or []:
+            body += f'<p class="rio-prep-line">{_esc(line)}</p>'
+        leads = block.get("lead") or []
+        groups = block.get("groups") or []
+        for index, lead in enumerate(leads):
+            body += _prep_lead(str(lead))
+            items = groups[index] if index < len(groups) else []
+            if items:
+                body += _prep_list(tuple(str(item) for item in items))
+        sections.append(_prep_block(str(block.get("title") or ""), body))
+    return f'<div class="rio-prep">{"".join(sections)}</div>'
 
 
 def _supplied_html(match: object) -> str:

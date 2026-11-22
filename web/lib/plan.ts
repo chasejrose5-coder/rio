@@ -5,6 +5,63 @@ export function phaseChipLabel(week: number, phase: string): string {
   return `Week ${week} · Phase ${phase}`;
 }
 
+/** Names match ui/insights.py PHASES. Display only. */
+export const PHASE_NAMES: Record<string, string> = {
+  "1": "Base + spark",
+  "2": "Base steps up",
+  "3": "Threshold meets power",
+  "4": "Speed endurance arrives",
+  "5": "Longer specific reps",
+  "6": "Anaerobic capacity",
+  "7": "Race readiness",
+  "8": "Taper",
+};
+
+export type PhaseSpan = {
+  key: string;
+  phase: string;
+  name: string;
+  weeks: number[];
+  currentWeek: number | null;
+};
+
+export function phaseName(phase: string): string {
+  if (PHASE_NAMES[phase]) return PHASE_NAMES[phase];
+  if (!phase || phase === "—") return "Phase";
+  return `Phase ${phase}`;
+}
+
+/** One block per run of the same phase. Width follows how many weeks it holds. */
+export function phaseSpans(weeks: readonly { week: number; phase: string; status?: string | null }[]): PhaseSpan[] {
+  const spans: PhaseSpan[] = [];
+  for (const row of weeks) {
+    const phase = row.phase || "—";
+    const current = row.status === "current" ? row.week : null;
+    const last = spans[spans.length - 1];
+    if (last && last.phase === phase) {
+      last.weeks.push(row.week);
+      if (current != null) last.currentWeek = current;
+      continue;
+    }
+    spans.push({
+      key: `${phase}-${row.week}`,
+      phase,
+      name: phaseName(phase),
+      weeks: [row.week],
+      currentWeek: current,
+    });
+  }
+  return spans;
+}
+
+export function paceStatusTone(status: string | undefined): "behind" | "ahead" | "on" | "open" {
+  const text = (status || "").trim().toLowerCase();
+  if (text.startsWith("behind")) return "behind";
+  if (text.startsWith("ahead")) return "ahead";
+  if (text === "on track") return "on";
+  return "open";
+}
+
 export const PLAN_VIEWS = ["Calendar", "This week", "Full season"] as const;
 export type PlanViewName = (typeof PLAN_VIEWS)[number];
 

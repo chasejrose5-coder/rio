@@ -29,6 +29,8 @@ export type InjuryArea = {
   id: string;
   group: string;
   label: string;
+  /** One plain line. The exercise text stays in EXERCISES. */
+  blurb: string;
   bone?: boolean;
 };
 
@@ -143,22 +145,22 @@ export function exerciseById(id: string): InjuryExercise | undefined {
 }
 
 export const AREAS: readonly InjuryArea[] = [
-  { id: "plantar-fascia", group: "Feet & ankles", label: "Plantar fascia" },
-  { id: "ankle-sprain", group: "Feet & ankles", label: "Ankle sprain" },
-  { id: "peroneal", group: "Feet & ankles", label: "Peroneal tendons" },
-  { id: "achilles", group: "Achilles & soleus", label: "Achilles tendon" },
-  { id: "soleus", group: "Achilles & soleus", label: "Soleus" },
-  { id: "shins", group: "Shins", label: "Shins / tibial stress" },
-  { id: "bone-stress", group: "Shins", label: "Bone stress", bone: true },
-  { id: "patellar", group: "Knees", label: "Patellar tendon" },
-  { id: "pfps", group: "Knees", label: "Patellofemoral pain" },
-  { id: "it-band", group: "Knees", label: "IT band" },
-  { id: "glute-med", group: "Hips & glutes", label: "Glute med" },
-  { id: "hip-flexors", group: "Hips & glutes", label: "Hip flexors" },
-  { id: "adductors", group: "Hips & glutes", label: "Adductors / groin" },
-  { id: "high-hamstring", group: "Hamstrings", label: "High hamstring tendon" },
-  { id: "hamstring-strain", group: "Hamstrings", label: "Hamstring strain" },
-  { id: "low-back", group: "Low back", label: "Low back" },
+  { id: "plantar-fascia", group: "Feet & ankles", label: "Plantar fascia", blurb: "The band under the arch, often sore with the first steps." },
+  { id: "ankle-sprain", group: "Feet & ankles", label: "Ankle sprain", blurb: "A rolled ankle that still feels loose or unsure." },
+  { id: "peroneal", group: "Feet & ankles", label: "Peroneal tendons", blurb: "The tendons on the outer ankle, sore when you push off." },
+  { id: "achilles", group: "Achilles & soleus", label: "Achilles tendon", blurb: "The tendon at the back of the heel, stiff when you rise onto your toes." },
+  { id: "soleus", group: "Achilles & soleus", label: "Soleus", blurb: "The deeper calf, a dull ache lower in the leg on easy runs." },
+  { id: "shins", group: "Shins", label: "Shins / tibial stress", blurb: "A tender line along the shin that shows up as the run goes on." },
+  { id: "bone-stress", group: "Shins", label: "Bone stress", blurb: "A pinpoint sore spot on the bone. This is not a strength set.", bone: true },
+  { id: "patellar", group: "Knees", label: "Patellar tendon", blurb: "The tendon under the kneecap, sore on stairs or when you slow down." },
+  { id: "pfps", group: "Knees", label: "Patellofemoral pain", blurb: "Ache around the kneecap, often after sitting or on downhills." },
+  { id: "it-band", group: "Knees", label: "IT band", blurb: "A sharp spot on the outer knee that builds as the run gets longer." },
+  { id: "glute-med", group: "Hips & glutes", label: "Glute med", blurb: "The side of the hip, tired when you stand on one leg." },
+  { id: "hip-flexors", group: "Hips & glutes", label: "Hip flexors", blurb: "The front of the hip, tight when you lift the knee." },
+  { id: "adductors", group: "Hips & glutes", label: "Adductors / groin", blurb: "The inner thigh, a grab when you stride out or change direction." },
+  { id: "high-hamstring", group: "Hamstrings", label: "High hamstring tendon", blurb: "Where the hamstring meets the sit bone, sore when you hinge." },
+  { id: "hamstring-strain", group: "Hamstrings", label: "Hamstring strain", blurb: "A pull in the belly of the hamstring, tight when the leg reaches." },
+  { id: "low-back", group: "Low back", label: "Low back", blurb: "Stiffness across the low back after running or sitting." },
 ];
 
 const areaMap = new Map(AREAS.map((area) => [area.id, area]));

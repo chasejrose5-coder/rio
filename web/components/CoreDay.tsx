@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Disclosure } from "./Disclosure";
 import { Expander } from "./Expander";
 import { ApiError, api, previewing } from "@/lib/api";
 import {
@@ -10,7 +11,6 @@ import {
   CORE_DISCLAIMER,
   CORE_EXERCISES,
   circuitFor,
-  type CoreExercise,
 } from "@/lib/core-content";
 import type { StretchSession } from "@/lib/stretch-content";
 import type { CoreState } from "@/lib/types";
@@ -66,9 +66,23 @@ export function CoreDay({ date, session }: { date: string; session?: StretchSess
           </h3>
           <ul className="rio-prep-list">
             {circuit.exercises.map((exercise, index) => (
-              <ExerciseLine key={`${exercise.id}-${index}`} exercise={exercise} />
+              <li key={`${exercise.id}-${index}`}>
+                <strong>
+                  {exercise.name} · {exercise.dose}
+                </strong>
+              </li>
             ))}
           </ul>
+          <Disclosure title="Details">
+            {circuit.exercises.map((exercise, index) => (
+              <p key={`${exercise.id}-how-${index}`}>
+                <strong>
+                  {exercise.name}. {CATEGORY_LABEL[exercise.category]}.
+                </strong>{" "}
+                {exercise.howTo}
+              </p>
+            ))}
+          </Disclosure>
           {canSave ? (
             <button
               type="button"
@@ -100,19 +114,6 @@ export function CoreDay({ date, session }: { date: string; session?: StretchSess
   );
 }
 
-function ExerciseLine({ exercise }: { exercise: CoreExercise }) {
-  return (
-    <li>
-      <strong>
-        {exercise.name} · {exercise.dose}
-      </strong>
-      <span>
-        {CATEGORY_LABEL[exercise.category]}. {exercise.howTo}
-      </span>
-    </li>
-  );
-}
-
 export function CoreLibrary() {
   return (
     <>
@@ -123,7 +124,9 @@ export function CoreLibrary() {
             <article key={exercise.id} className="rio-stretch-card">
               <h3>{exercise.name}</h3>
               <p className="rio-stretch-meta">{exercise.dose}</p>
-              <p>{exercise.howTo}</p>
+              <Disclosure title="Details">
+                <p>{exercise.howTo}</p>
+              </Disclosure>
             </article>
           ))}
         </section>
