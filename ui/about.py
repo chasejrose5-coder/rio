@@ -127,7 +127,7 @@ _SHOWN = {
     ),
     "Classification": (
         "RIO labels each session with rules. It reads how far the rep is, "
-        "how long you rest, and how that pace compares with your goal 800. "
+        "how long you rest, and how that pace compares with your goal 800 m time. "
         "You see one kind of work and a short reason.",
     ),
     "Hard days": (
