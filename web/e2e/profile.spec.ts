@@ -228,8 +228,8 @@ test("the More menu lists its pages", async ({ page }) => {
   await expect(cards.getByText("Seasons you have already saved.")).toBeVisible();
   await expect(cards.getByText("Your current 800, goal, and dates.")).toBeVisible();
   await expect(cards.getByText("Name, pace, and this account.")).toBeVisible();
-  await expect(cards.getByText("How to read the plan, the paces, and the week.")).toBeVisible();
-  await expect(cards.getByText("Phases, the 10% rule, and what a mark changes.")).toBeVisible();
+  await expect(cards.getByText("How to read the plan, the phases, the 10% rule, and the week.")).toBeVisible();
+  await expect(cards.getByText("What RIO is, in short.")).toBeVisible();
   await expect(cards.getByText("Built for any runner.")).toBeVisible();
   await expect(cards.getByRole("link", { name: /Past seasons/ })).toHaveAttribute("href", "/past-seasons");
   await expect(cards.getByRole("link", { name: /Profile/ })).toHaveAttribute("href", "/profile");

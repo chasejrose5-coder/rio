@@ -13,8 +13,8 @@ export const MORE_LINKS = [
   { href: "/past-seasons", label: "Past seasons", blurb: "Seasons you have already saved." },
   { href: "/profile", label: "Profile", blurb: "Your current 800, goal, and dates." },
   { href: "/settings", label: "Settings", blurb: "Name, pace, and this account." },
-  { href: "/guide", label: "Guide", blurb: "How to read the plan, the paces, and the week." },
-  { href: "/about", label: "About", blurb: "Phases, the 10% rule, and what a mark changes." },
+  { href: "/guide", label: "Guide", blurb: "How to read the plan, the phases, the 10% rule, and the week." },
+  { href: "/about", label: "About", blurb: "What RIO is, in short." },
   { href: "/creators", label: "Creators", blurb: "Built for any runner." },
 ] as const;
 

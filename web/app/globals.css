@@ -592,6 +592,9 @@ a .rio-mini:hover, a.rio-daycard:hover, .rio-hit:hover .rio-mini {
   text-transform: none;
   font-size: var(--fs-sm);
 }
+.rio-quick .rio-secondary {
+  white-space: nowrap;
+}
 .rio-auth-card .rio-secondary {
   min-height: 2.8rem;
   font-size: 1rem;
@@ -914,6 +917,7 @@ button.rio-text-link:disabled {
   .rio-stat-tile:nth-last-child(-n + 2) { border-bottom: 0; }
   .rio-track-facts { grid-template-columns: 1fr 1fr; gap: 0.9rem 1rem; }
   .rio-quick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .page-about .rio-quick { display: flex; flex-wrap: wrap; }
   .rio-glossary { padding: 0.1rem 1.1rem; }
   .rio-glossary .rio-disclosure { margin: 0; }
   .rio-hero h1, .rio-display { font-size: clamp(2.275rem, 10.5vw, 3.325rem); }
