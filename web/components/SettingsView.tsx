@@ -23,6 +23,7 @@ import {
   zoneOptions,
 } from "@/lib/settings";
 import type { Athlete } from "@/lib/types";
+import { ErrorText } from "./ErrorText";
 
 type Pace = "mi" | "km";
 type StartOn = "today" | "sunday";
@@ -398,6 +399,7 @@ function SettingsBody() {
       );
       await signOut();
       router.replace("/sign-in");
+      router.refresh();
     } catch (caught) {
       setProblem(caught instanceof ApiError ? caught.message : "This account could not be saved.");
       setBusy(false);
@@ -419,6 +421,7 @@ function SettingsBody() {
     }
     await signOut();
     router.replace("/");
+    router.refresh();
   }
 
   return (
@@ -428,7 +431,7 @@ function SettingsBody() {
         <header className="rio-hero">
           <h1>Settings</h1>
         </header>
-        {problem ? <p className="rio-error">{problem}</p> : null}
+        {problem ? <ErrorText>{problem}</ErrorText> : null}
         {note ? <p className="rio-settings-note rio-settings-flash">{note}</p> : null}
 
         <Expander title="Profile" defaultOpen>

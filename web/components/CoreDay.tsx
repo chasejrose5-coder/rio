@@ -14,12 +14,14 @@ import {
 } from "@/lib/core-content";
 import type { StretchSession } from "@/lib/stretch-content";
 import type { CoreState } from "@/lib/types";
+import { LoadError } from "./ErrorText";
 
 export function CoreDay({ date, session }: { date: string; session?: StretchSession }) {
   const [state, setState] = useState<CoreState | null>(null);
   const [sessions, setSessions] = useState<StretchSession[]>([]);
   const [offline, setOffline] = useState(false);
   const [problem, setProblem] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export function CoreDay({ date, session }: { date: string; session?: StretchSess
     return () => {
       live = false;
     };
-  }, [date]);
+  }, [date, attempt]);
 
   const known = session?.date === date ? [session, ...sessions.filter((item) => item.date !== date)] : sessions;
   const circuit = date ? circuitFor(date, known) : null;
@@ -106,7 +108,7 @@ export function CoreDay({ date, session }: { date: string; session?: StretchSess
         </>
       )}
       {offline ? <p className="rio-note">Saving is unavailable until the core table is in place.</p> : null}
-      {problem ? <p className="rio-error">{problem}</p> : null}
+      {problem ? <LoadError message={problem} onRetry={() => setAttempt((value) => value + 1)} /> : null}
       <p className="rio-stretch-link">
         <Link href="/core">Browse the core library</Link>
       </p>

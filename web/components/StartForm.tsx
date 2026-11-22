@@ -21,6 +21,7 @@ import {
 } from "@/lib/start-form";
 import { commitRaceTime, maskRaceTime } from "@/lib/time-mask";
 import type { CurrentSeason } from "@/lib/types";
+import { ErrorText } from "./ErrorText";
 
 const SCORE = "season plan has a score";
 
@@ -112,7 +113,7 @@ function DifferentSeason({ link }: { link: SeasonInputs }) {
   return (
     <section className="rio-link-note">
       <p>This link names a different season. Your saved season was left as it is.</p>
-      {error ? <p className="rio-error">{error}</p> : null}
+      {error ? <ErrorText>{error}</ErrorText> : null}
       <button type="button" className="rio-secondary" onClick={() => void adopt()} disabled={busy}>
         Use this season
       </button>
@@ -167,7 +168,7 @@ function StartFields({ today, behavior }: { today: string; behavior: string }) {
         <h1>Start</h1>
         <p className="rio-range">Your 800 m time today, the day you start, the time you want, and the race date.</p>
       </header>
-      {error ? <p className="rio-error">{error}</p> : null}
+      {error ? <ErrorText>{error}</ErrorText> : null}
       <form onSubmit={onSubmit} noValidate>
         <div className="rio-start-grid">
           <Field

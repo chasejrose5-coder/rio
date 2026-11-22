@@ -15,6 +15,7 @@ import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api, isSignedOut, previewing } from "@/lib/api";
+import { createSaveQueue } from "@/lib/save-queue";
 import { useAuth } from "@/lib/auth";
 import { weekdayName } from "@/lib/plan";
 import {
@@ -28,6 +29,7 @@ import {
   type PrepBlock,
 } from "@/lib/session";
 import type { BikeOffer, LoggedActivity, SessionResponse } from "@/lib/types";
+import { ErrorText, LoadError } from "./ErrorText";
 
 type Mode = "loading" | "missing" | "nodate" | "bad" | "ready" | "activity" | "error";
 
@@ -52,6 +54,7 @@ function SessionBody() {
   const [session, setSession] = useState<SessionResponse | null>(null);
   const [extra, setExtra] = useState<LoggedActivity | null>(null);
   const [problem, setProblem] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const [rise, setRise] = useState(false);
 
   async function load() {
@@ -115,9 +118,9 @@ function SessionBody() {
     }
     window.sessionStorage.setItem(key, "session");
     void load();
-    // The date and the activity id are the page.
+    // The date and the activity id are the page. attempt re-runs a failed load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, activity]);
+  }, [date, activity, attempt]);
 
   const heading =
     mode === "activity" && extra
@@ -147,7 +150,7 @@ function SessionBody() {
         ) : null}
         {mode === "nodate" ? <p className="rio-empty">Open a workout from Home or Plan.</p> : null}
         {mode === "bad" ? <p className="rio-empty">That session is not in this plan.</p> : null}
-        {mode === "error" ? <p className="rio-error">{problem}</p> : null}
+        {mode === "error" ? <LoadError message={problem} onRetry={() => setAttempt((value) => value + 1)} /> : null}
         {mode === "activity" && extra ? <ActivityCard row={extra} /> : null}
         {mode === "ready" && session ? (
           <Workout
@@ -379,8 +382,11 @@ function ResultForm({ session, onSaved }: { session: SessionResponse; onSaved: (
   const [values, setValues] = useState(seeded.slice(0, count));
   const [pending, setPending] = useState<{ text: string; slots: (number | null)[] } | null>(null);
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
   const handled = useRef(filledTimes(seeded.slice(0, count)));
   const timer = useRef<number | null>(null);
+  const digestRef = useRef(session.digest);
+  const queue = useRef(createSaveQueue<{ text: string; slots: (number | null)[] }>());
 
   function schedule(nextValues: string[]) {
     if (timer.current) window.clearTimeout(timer.current);
@@ -397,24 +403,30 @@ function ResultForm({ session, onSaved }: { session: SessionResponse; onSaved: (
         setPending({ text, slots });
         return;
       }
-      void commit(text, slots);
+      requestSave(text, slots, "queue");
     }, 350);
   }
 
-  async function commit(text: string, slots: (number | null)[]) {
+  function requestSave(text: string, slots: (number | null)[], mode: "once" | "queue") {
     if (previewing()) return;
-    setError("");
-    try {
-      const saved = await api.postResult({ date: session.date, text, slots }, session.digest);
-      setPending(null);
-      onSaved();
-      if (saved.insight?.status === "pending") {
-        window.setTimeout(onSaved, 700);
-        window.setTimeout(onSaved, 1600);
+    const flight = queue.current.push({ text, slots }, mode, async (next) => {
+      setError("");
+      try {
+        const saved = await api.postResult({ date: session.date, text: next.text, slots: next.slots }, digestRef.current);
+        if (saved.digest) digestRef.current = saved.digest;
+        setPending(null);
+        onSaved();
+        if (saved.insight?.status === "pending") {
+          window.setTimeout(onSaved, 700);
+          window.setTimeout(onSaved, 1600);
+        }
+      } catch (caught) {
+        setError(caught instanceof ApiError ? caught.message : "That result could not be saved.");
       }
-    } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : "That result could not be saved.");
-    }
+    });
+    if (!flight) return;
+    setBusy(true);
+    void flight.then(() => setBusy(false));
   }
 
   return (
@@ -444,7 +456,13 @@ function ResultForm({ session, onSaved }: { session: SessionResponse; onSaved: (
       {pending ? (
         <div className="rio-confirm">
           <p className="rio-week-meta">{confirmCopy("result")}</p>
-          <button type="button" className="rio-primary" onClick={() => void commit(pending.text, pending.slots)}>
+          <button
+            type="button"
+            className="rio-primary"
+            disabled={busy}
+            aria-busy={busy}
+            onClick={() => requestSave(pending.text, pending.slots, "once")}
+          >
             Confirm
           </button>
           <button type="button" className="rio-secondary" onClick={() => setPending(null)}>
@@ -452,7 +470,7 @@ function ResultForm({ session, onSaved }: { session: SessionResponse; onSaved: (
           </button>
         </div>
       ) : null}
-      {error ? <p className="rio-error">{error}</p> : null}
+      {error ? <ErrorText>{error}</ErrorText> : null}
     </section>
   );
 }
@@ -465,25 +483,32 @@ function Watchless({ session, onSaved }: { session: SessionResponse; onSaved: ()
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const queue = useRef(createSaveQueue<boolean>());
   if (same?.completed) {
     return <p className="rio-week-meta">{watchlessSummary(same)}</p>;
   }
 
-  async function send(missed: boolean) {
+  function send(missed: boolean) {
     if (previewing()) return;
     const outcomeError = missed ? "" : needsOutcome(session.quality, choice);
     if (outcomeError) {
       setError(outcomeError);
       return;
     }
-    setError("");
-    try {
-      await api.watchless({ date: session.date, outcome: choice, time, missed });
-      setPending(false);
-      onSaved();
-    } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : "That workout could not be saved.");
-    }
+    const flight = queue.current.push(missed, "once", async (flag) => {
+      setError("");
+      try {
+        await api.watchless({ date: session.date, outcome: choice, time, missed: flag });
+        setPending(false);
+        onSaved();
+      } catch (caught) {
+        setError(caught instanceof ApiError ? caught.message : "That workout could not be saved.");
+      }
+    });
+    if (!flight) return;
+    setBusy(true);
+    void flight.then(() => setBusy(false));
   }
 
   function done() {
@@ -506,7 +531,7 @@ function Watchless({ session, onSaved }: { session: SessionResponse; onSaved: ()
       {session.quality ? (
         <div className="rio-done-choices">
           {["Behind", "On target", "Ahead"].map((label) => (
-            <button key={label} type="button" className={choice === label ? "rio-primary" : "rio-secondary"} onClick={() => setChoice(label)}>
+            <button key={label} type="button" className={choice === label ? "rio-primary" : "rio-secondary"} aria-pressed={choice === label} onClick={() => setChoice(label)}>
               {label}
             </button>
           ))}
@@ -525,10 +550,10 @@ function Watchless({ session, onSaved }: { session: SessionResponse; onSaved: ()
         </>
       ) : null}
       <div className="rio-done-row">
-        <button type="button" className="rio-primary" onClick={done}>
+        <button type="button" className="rio-primary" onClick={done} disabled={busy} aria-busy={busy}>
           Done
         </button>
-        <button type="button" className="rio-secondary" onClick={() => void send(true)}>
+        <button type="button" className="rio-secondary" onClick={() => send(true)} disabled={busy} aria-busy={busy}>
           Couldn&apos;t finish
         </button>
         <button type="button" className="rio-text-link" onClick={() => setOpen((value) => !value)}>
@@ -538,7 +563,7 @@ function Watchless({ session, onSaved }: { session: SessionResponse; onSaved: ()
       {pending ? (
         <div className="rio-confirm">
           <p className="rio-week-meta">{confirmCopy("workout")}</p>
-          <button type="button" className="rio-primary" onClick={() => void send(false)}>
+          <button type="button" className="rio-primary" onClick={() => send(false)} disabled={busy} aria-busy={busy}>
             Confirm
           </button>
           <button type="button" className="rio-secondary" onClick={() => setPending(false)}>
@@ -546,7 +571,7 @@ function Watchless({ session, onSaved }: { session: SessionResponse; onSaved: ()
           </button>
         </div>
       ) : null}
-      {error ? <p className="rio-error">{error}</p> : null}
+      {error ? <ErrorText>{error}</ErrorText> : null}
     </section>
   );
 }
@@ -582,7 +607,7 @@ function Insight({
       >
         Got it
       </button>
-      {error ? <p className="rio-error">{error}</p> : null}
+      {error ? <ErrorText>{error}</ErrorText> : null}
     </section>
   );
 }

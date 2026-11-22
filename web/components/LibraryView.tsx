@@ -10,6 +10,7 @@ import { ApiError, api, isSignedOut } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { capacityClass, countLabel } from "@/lib/library";
 import type { LibraryResponse } from "@/lib/types";
+import { LoadError } from "./ErrorText";
 
 const FAMILY_HELP = "The quality that workout builds, such as speed or endurance.";
 const PHASE_HELP = "A phase is a training block. The season moves through eight of them.";
@@ -34,6 +35,7 @@ function LibraryBody() {
   const [mode, setMode] = useState<Mode>("loading");
   const [data, setData] = useState<LibraryResponse | null>(null);
   const [problem, setProblem] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [family, setFamily] = useState("All");
@@ -87,7 +89,7 @@ function LibraryBody() {
     return () => {
       live = false;
     };
-  }, [debounced, family, phase]);
+  }, [debounced, family, phase, attempt]);
 
   const showIds = athlete?.prefs.show_ids === true;
   const compact = athlete?.prefs.compact === true;
@@ -117,7 +119,7 @@ function LibraryBody() {
               <label htmlFor="library-capacity">
                 <span className="rio-filter-label">
                   What it trains
-                  <HelpTip text={FAMILY_HELP} />
+                  <HelpTip text={FAMILY_HELP} label="What it trains: help" />
                 </span>
                 <select id="library-capacity" value={family} onChange={(event) => setFamily(event.target.value)}>
                   <option value="All">All</option>
@@ -131,7 +133,7 @@ function LibraryBody() {
               <label htmlFor="library-phase">
                 <span className="rio-filter-label">
                   Phase
-                  <HelpTip text={PHASE_HELP} />
+                  <HelpTip text={PHASE_HELP} label="Phase: help" />
                 </span>
                 <select id="library-phase" value={phase} onChange={(event) => setPhase(event.target.value)}>
                   <option value="All">All</option>
@@ -145,7 +147,7 @@ function LibraryBody() {
             </div>
           </form>
         ) : null}
-        {mode === "error" ? <p className="rio-error">{problem}</p> : null}
+        {mode === "error" ? <LoadError message={problem} onRetry={() => setAttempt((value) => value + 1)} /> : null}
         {mode === "ready" && data ? (
           <>
             <p className="rio-week-meta rio-lib-count">{countLabel(data.count)}</p>
@@ -173,13 +175,25 @@ function LibraryBody() {
   );
 }
 
-function HelpTip({ text }: { text: string }) {
+function HelpTip({ text, label }: { text: string; label: string }) {
+  const [open, setOpen] = useState(false);
+  const tipId = `help-${label.replace(/\s+/g, "-").toLowerCase()}`;
   return (
-    <span className="rio-help">
-      <button type="button" className="rio-help-btn" aria-label="Help">
+    <span className={open ? "rio-help is-open" : "rio-help"}>
+      <button
+        type="button"
+        className="rio-help-btn"
+        aria-label={label}
+        aria-expanded={open}
+        aria-describedby={open ? tipId : undefined}
+        onClick={() => setOpen((value) => !value)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") setOpen(false);
+        }}
+      >
         ?
       </button>
-      <span className="rio-help-tip" role="tooltip">
+      <span className="rio-help-tip" id={tipId} role="tooltip">
         {text}
       </span>
     </span>

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { PRIVATE_PREFIXES, PUBLIC_PATHS } from "./public-routes.ts";
+import { PRIVATE_PREFIXES, PUBLIC_PATHS, isPublicPath } from "./public-routes.ts";
+import { PRIVATE_CACHE, privateNoStoreRoutes } from "./private-cache.ts";
 
 test("the sitemap list is only the public pages", () => {
   assert.ok(PUBLIC_PATHS.includes("/"));
@@ -16,4 +17,11 @@ test("the sitemap list is only the public pages", () => {
     assert.ok(PRIVATE_PREFIXES.includes(blocked as (typeof PRIVATE_PREFIXES)[number]));
   }
   assert.equal(PRIVATE_PREFIXES.includes("/about" as (typeof PRIVATE_PREFIXES)[number]), false);
+  assert.equal(isPublicPath("/sign-in"), true);
+  assert.equal(isPublicPath("/home"), false);
+  assert.equal(isPublicPath("/privacy/"), true);
+  const stored = privateNoStoreRoutes();
+  assert.ok(stored.some((item) => item.source === "/home"));
+  assert.equal(stored.every((item) => item.headers[0]?.value === PRIVATE_CACHE), true);
+  assert.equal(stored.some((item) => item.source.startsWith("/api")), false);
 });

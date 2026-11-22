@@ -15,6 +15,7 @@ import { RequireUser } from "./RequireUser";
 import { StretchLink } from "./StretchLink";
 import { TrackArt } from "./TrackArt";
 import { ApiError, api, isSignedOut, previewing, stopPreview } from "@/lib/api";
+import { createSaveQueue } from "@/lib/save-queue";
 import { useAuth } from "@/lib/auth";
 import { takeIntroMark } from "@/lib/enter";
 import { HR_PROMPT_KEY, heartPromptOpen, heartRateSatisfied, subscribeHeartRate } from "@/lib/landing";
@@ -22,6 +23,7 @@ import { pageShouldRise } from "@/lib/motion";
 import { linkError } from "@/lib/plan";
 import { shownName } from "@/lib/settings";
 import type { HomeResponse, WorkoutCard } from "@/lib/types";
+import { ErrorText, LoadError } from "./ErrorText";
 
 const MARKS: Record<string, string> = {
   on_track: "On track",
@@ -110,6 +112,7 @@ function HomeBody() {
   }, [status]);
   const [home, setHome] = useState<HomeResponse | null>(null);
   const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const [linkProblem, setLinkProblem] = useState("");
   const [offer, setOffer] = useState(false);
   const [rise, setRise] = useState(false);
@@ -152,7 +155,7 @@ function HomeBody() {
       }
       setError(caught instanceof ApiError ? caught.message : "Home could not be loaded.");
     });
-  }, [router]);
+  }, [router, attempt]);
 
   const compact = home?.athlete.prefs.compact === true;
   return (
@@ -163,10 +166,10 @@ function HomeBody() {
         {linkProblem ? (
           <header className="rio-hero rio-home-hero">
             <h1>Home</h1>
-            <p className="rio-error">{linkProblem}</p>
+            <ErrorText>{linkProblem}</ErrorText>
           </header>
         ) : null}
-        {error ? <p className="rio-error">{error}</p> : null}
+        {error ? <LoadError message={error} onRetry={() => setAttempt((value) => value + 1)} /> : null}
         {!home && !linkProblem && !error ? <SkeletonBlocks variant="home" /> : null}
         {home && !linkProblem ? (
           <>
@@ -464,7 +467,7 @@ function Insight({
       >
         Got it
       </button>
-      {error ? <p className="rio-error">{error}</p> : null}
+      {error ? <ErrorText>{error}</ErrorText> : null}
     </section>
   );
 }
@@ -531,6 +534,8 @@ function Watchless({
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const queue = useRef(createSaveQueue<boolean>());
   const hard = isHard(card);
   const day = card.date || "";
   const saved = card.actual && card.actual.template_id === card.template_id ? card.actual : null;
@@ -543,20 +548,25 @@ function Watchless({
     return <p className="rio-week-meta">{parts.join(" · ")}</p>;
   }
 
-  async function send(missed: boolean) {
+  function send(missed: boolean) {
     if (readOnly || previewing()) return;
     if (!missed && hard && choice !== "Behind" && choice !== "On target" && choice !== "Ahead") {
       setError("Choose behind, on target, or ahead.");
       return;
     }
-    setError("");
-    try {
-      await api.watchless({ date: day, outcome: choice, time, missed });
-      setPending(false);
-      onSaved();
-    } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : "That workout could not be saved.");
-    }
+    const flight = queue.current.push(missed, "once", async (flag) => {
+      setError("");
+      try {
+        await api.watchless({ date: day, outcome: choice, time, missed: flag });
+        setPending(false);
+        onSaved();
+      } catch (caught) {
+        setError(caught instanceof ApiError ? caught.message : "That workout could not be saved.");
+      }
+    });
+    if (!flight) return;
+    setBusy(true);
+    void flight.then(() => setBusy(false));
   }
 
   function done() {
@@ -582,7 +592,7 @@ function Watchless({
             ["On target", "On target"],
             ["Ahead", "Ahead"],
           ].map(([label, value]) => (
-            <button key={value} type="button" className={choice === value ? "rio-primary" : "rio-secondary"} onClick={() => setChoice(value)}>
+            <button key={value} type="button" className={choice === value ? "rio-primary" : "rio-secondary"} aria-pressed={choice === value} onClick={() => setChoice(value)}>
               {label}
             </button>
           ))}
@@ -596,10 +606,10 @@ function Watchless({
         </>
       ) : null}
       <div className="rio-done-row">
-        <button type="button" className="rio-primary" onClick={done}>
+        <button type="button" className="rio-primary" onClick={done} disabled={busy} aria-busy={busy}>
           Done
         </button>
-        <button type="button" className="rio-secondary" onClick={() => void send(true)}>
+        <button type="button" className="rio-secondary" onClick={() => send(true)} disabled={busy} aria-busy={busy}>
           Couldn&apos;t finish
         </button>
         <button type="button" className="rio-text-link" onClick={() => setOpen((value) => !value)}>
@@ -609,7 +619,7 @@ function Watchless({
       {pending ? (
         <div className="rio-confirm">
           <p className="rio-week-meta">Confirm this workout before the plan changes.</p>
-          <button type="button" className="rio-primary" onClick={() => void send(false)}>
+          <button type="button" className="rio-primary" onClick={() => send(false)} disabled={busy} aria-busy={busy}>
             Confirm
           </button>
           <button type="button" className="rio-secondary" onClick={() => setPending(false)}>
@@ -617,7 +627,7 @@ function Watchless({
           </button>
         </div>
       ) : null}
-      {error ? <p className="rio-error">{error}</p> : null}
+      {error ? <ErrorText>{error}</ErrorText> : null}
     </div>
   );
 }
@@ -659,7 +669,7 @@ function StravaOffer({ onDismiss }: { onDismiss: () => void }) {
       >
         Not now
       </button>
-      {error ? <p className="rio-error">{error}</p> : null}
+      {error ? <ErrorText>{error}</ErrorText> : null}
     </section>
   );
 }

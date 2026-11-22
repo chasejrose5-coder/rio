@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 import { apiProxyRewrites } from "./lib/deploy-proxy";
+import { privateNoStoreRoutes } from "./lib/private-cache";
 import { documentSecurityRoutes } from "./lib/security-headers";
 import { staticAssetHeaders } from "./lib/static-cache";
 
@@ -18,7 +19,8 @@ const nextConfig: NextConfig = {
         headers: [{ key: "Cache-Control", value: "private, no-store" }],
       },
       ...staticAssetHeaders(),
-      ...documentSecurityRoutes(),
+      ...privateNoStoreRoutes(),
+      ...documentSecurityRoutes(process.env.NODE_ENV !== "production"),
     ];
   },
 };

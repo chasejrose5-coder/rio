@@ -1,4 +1,5 @@
 import type { ConfirmLink } from "./confirm-link";
+import { isPublicPath } from "./public-routes.ts";
 import type {
   ActivitiesResponse,
   Athlete,
@@ -78,6 +79,46 @@ export function rememberRead(path: string, value: unknown): void {
   settledGets.set(path, { at: Date.now(), value });
 }
 
+const BROWSER_KEYS = ["rio_test_preview", "rio_landing", "rio_hr_prompt_dismissed", "rio_mark_intro", "rio-nav-path"];
+
+/** Drop cached reads and this tab's runner flags. Used on log out and on a 401. */
+export function clearClientSession(): void {
+  dropGetCache();
+  if (typeof window === "undefined") return;
+  try {
+    for (const key of BROWSER_KEYS) window.sessionStorage.removeItem(key);
+  } catch {
+    /* A private window still drops the memory cache. */
+  }
+}
+
+/** Drop cached reads without clearing UI flags. A restored page re-reads the session. */
+export function forgetReads(): void {
+  dropGetCache();
+}
+
+let leaving = false;
+let checking = false;
+
+function noteUnauthorized(path: string): void {
+  if (path.startsWith("/auth/") || path.startsWith("/health")) return;
+  if (typeof window === "undefined" || leaving || checking) return;
+  if (isPublicPath(window.location.pathname)) return;
+  // A 401 on one read can be a page error while the session is still valid.
+  // Redirect only when the session itself is gone.
+  checking = true;
+  void refreshSession()
+    .then((next) => {
+      if (next.status === "in") return;
+      clearClientSession();
+      leaving = true;
+      window.location.replace("/sign-in");
+    })
+    .finally(() => {
+      checking = false;
+    });
+}
+
 /** Home reads this exact path. Kept aside so the next `api.home(false)` reuses it. */
 export function prefetchHome(): Promise<HomeResponse> {
   if (homeHandoff) return homeHandoff;
@@ -133,6 +174,7 @@ async function requestOnce<T>(path: string, init?: RequestInit): Promise<T> {
     }
   }
   if (!response.ok) {
+    if (response.status === 401) noteUnauthorized(path);
     const detail =
       data && typeof data === "object" && "detail" in data && typeof data.detail === "string"
         ? data.detail

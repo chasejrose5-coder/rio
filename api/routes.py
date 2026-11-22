@@ -36,7 +36,7 @@ from api.season_service import (
     viewer,
 )
 from ui.accounts import AccountError
-from ui.cloud_store import SIGNIN_UNAVAILABLE, CloudAuthError, auth_health
+from ui.cloud_store import SIGNIN_UNAVAILABLE, CloudAuthError
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
 season_router = APIRouter(prefix="/seasons", tags=["seasons"])
@@ -174,9 +174,9 @@ def health() -> dict:
 
 
 @health_router.get("/health/auth")
-def health_auth(request: Request) -> dict:
-    """Whether this process's anon key is accepted. The key is not returned."""
-    return auth_health(request.app.state.directory)
+def health_auth() -> dict:
+    """Uptime only. The auth diagnostic is not public and does not call Supabase."""
+    return {"ok": True}
 
 
 @auth_router.post("/sign-in")

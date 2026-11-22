@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Footer, PhotoCredit } from "./Footer";
-import { ApiError, afterSignIn, api, confirmOnce } from "@/lib/api";
+import { ApiError, SESSION_STUCK, afterSignIn, api, confirmOnce } from "@/lib/api";
 import { UNCONFIRMED } from "@/lib/auth-copy";
 import { confirmFromLocation, confirmRead } from "@/lib/confirm-link";
 import { destinationAfterSignIn, warmDestinationReads } from "@/lib/enter";
@@ -13,8 +13,14 @@ import { GOOGLE_START_FAILED, googleAuthEnabled, googleAuthorizeUrl, googleClien
 import { passwordResetEnabled, showForgotPassword } from "@/lib/password-reset";
 import { recoveryReady, type RecoveryLink } from "@/lib/reset-link";
 import { useAuth } from "@/lib/auth";
+import { ErrorText } from "./ErrorText";
 
 const SIGNUP_FAILED = "The account could not be created.";
+const SIGN_IN_NOTES: Record<string, string> = {
+  "password-updated": "Password updated. Log in with the new one.",
+  "google-failed": "Google sign-in could not be finished. Try again.",
+  "session-stuck": SESSION_STUCK,
+};
 const RESET_INVALID = "That reset link is no longer valid.";
 
 function PasswordField({
@@ -98,7 +104,7 @@ function ResendConfirmation({ email }: { email: string }) {
   return (
     <>
       {note ? <p className="rio-settings-note">{note}</p> : null}
-      {problem ? <p className="rio-error">{problem}</p> : null}
+      {problem ? <ErrorText>{problem}</ErrorText> : null}
       <button type="button" className="rio-text-link" onClick={() => void send()} disabled={busy}>
         Resend confirmation email
       </button>
@@ -216,7 +222,7 @@ function AuthFrame({
           {subtitle ? <p className="rio-range">{subtitle}</p> : null}
         </header>
         {notice ? <p className="rio-settings-note">{notice}</p> : null}
-        {error ? <p className="rio-error">{error}</p> : null}
+        {error ? <ErrorText>{error}</ErrorText> : null}
         {children}
       </div>
       <PhotoCredit>Photo by Steve Pancrate on Pexels</PhotoCredit>
@@ -240,7 +246,7 @@ export function SignInScreen() {
   useEffect(() => {
     const note = new URLSearchParams(window.location.search).get("note");
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (note) setNotice(note);
+    if (note && note in SIGN_IN_NOTES) setNotice(SIGN_IN_NOTES[note]);
   }, []);
 
   useEffect(() => {
@@ -251,7 +257,7 @@ export function SignInScreen() {
         if (live) router.replace(path);
       })
       .catch(() => {
-        if (live) setError("The season could not be loaded.");
+        if (live) router.replace("/home");
       });
     return () => {
       live = false;
@@ -297,7 +303,7 @@ export function SignInScreen() {
       router.replace(await destinationAfterSignIn(signedIn!));
     } catch (caught) {
       handoff.current = false;
-      setError(caught instanceof ApiError ? caught.message : "Email or password does not match.");
+      setError(caught instanceof ApiError ? caught.message : "Something went wrong. Try again.");
     } finally {
       setBusy(false);
     }
@@ -323,8 +329,8 @@ export function SignInScreen() {
           value={password}
           onChange={setPassword}
         />
-        <button className="rio-primary" type="submit" disabled={busy}>
-          Log in
+        <button className="rio-primary" type="submit" disabled={busy} aria-busy={busy}>
+          {busy ? "Logging in…" : "Log in"}
         </button>
       </form>
       {forgot ? (
@@ -528,7 +534,7 @@ export function ResetScreen({ link }: { link: RecoveryLink }) {
         refresh_token: link.token ? "" : link.refreshToken,
         type: link.type,
       });
-      router.replace(`/sign-in?note=${encodeURIComponent(saved.message || "Password updated. Log in with the new one.")}`);
+      router.replace("/sign-in?note=password-updated");
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : RESET_INVALID);
     } finally {
