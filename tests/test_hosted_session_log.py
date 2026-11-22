@@ -421,10 +421,10 @@ def test_health_auth_probes_app_sessions_without_returning_values() -> None:
     # The failure probe replaced _client. A route read must still hide the key.
     with patch("ui.cloud_store.fetch_auth_settings", lambda *_args, **_kwargs: 200):
         response = TestClient(app, base_url="https://testserver").get("/health/auth")
-    if response.status_code != 200:
+    if response.status_code != 200 or response.json() != {"ok": True}:
         raise AssertionError(response.text)
     _secrets_absent(response.text)
-    if response.json()["service_key_format"] != "sb_secret":
+    if "sb_secret" in response.text or "supabase" in response.text:
         raise AssertionError(response.text)
 
 

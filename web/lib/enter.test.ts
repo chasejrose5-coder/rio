@@ -98,6 +98,20 @@ describe("where sign-in lands", () => {
     assert.equal(GET_CACHE_MS >= 30_000, true);
   });
 
+  it("opens Home when the season read fails after sign-in", async () => {
+    await withFetch(async (url) => {
+      const path = String(url);
+      if (path.includes("/seasons/current")) {
+        return new Response(JSON.stringify({ detail: "down" }), { status: 500 });
+      }
+      return new Response(JSON.stringify({ detail: "no" }), { status: 404 });
+    }, async () => {
+      const { destinationAfterSignIn } = await import("./enter.ts");
+      const path = await destinationAfterSignIn(athlete);
+      assert.equal(path, "/home");
+    });
+  });
+
   it("reuses the Home prefetch until a write drops it", async () => {
     let homeCalls = 0;
     await withFetch(async (url, init) => {

@@ -251,7 +251,7 @@ export function SignInScreen() {
         if (live) router.replace(path);
       })
       .catch(() => {
-        if (live) setError("The season could not be loaded.");
+        if (live) router.replace("/home");
       });
     return () => {
       live = false;
@@ -297,7 +297,7 @@ export function SignInScreen() {
       router.replace(await destinationAfterSignIn(signedIn!));
     } catch (caught) {
       handoff.current = false;
-      setError(caught instanceof ApiError ? caught.message : "Email or password does not match.");
+      setError(caught instanceof ApiError ? caught.message : "Something went wrong. Try again.");
     } finally {
       setBusy(false);
     }
