@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Footer, PhotoCredit } from "./Footer";
+import { Footer } from "./Footer";
 import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { CREATORS } from "@/lib/creators";
 import { useAuth } from "@/lib/auth";
 
-const PHOTO = "/photos/startup-track.jpg";
+const PHOTO = "/photos/chase-blocks.jpg";
 
 export function CreatorsView() {
   return (
@@ -54,12 +54,12 @@ function CreatorsBody() {
           <figure className="rio-creator-photo">
             <picture>
               <source
-                srcSet="/photos/startup-track-800.webp 800w, /photos/startup-track-1200.webp 1200w"
+                srcSet="/photos/chase-blocks-800.webp 800w, /photos/chase-blocks-1200.webp 1200w"
                 sizes="(max-width: 1200px) 100vw, 1200px"
                 type="image/webp"
               />
               <source
-                srcSet={`/photos/startup-track-800.jpg 800w, ${PHOTO} 1600w`}
+                srcSet={`/photos/chase-blocks-800.jpg 800w, ${PHOTO} 1600w`}
                 sizes="(max-width: 1200px) 100vw, 1200px"
               />
               <img src={PHOTO} width={1600} height={900} alt={CREATORS.alt} />
@@ -75,7 +75,7 @@ function CreatorsBody() {
             <p className="rio-creator-close">{CREATORS.close}</p>
           </article>
         </div>
-        <PhotoCredit>Photo by Giant Asparagus on Pexels</PhotoCredit>
+        <div hidden dangerouslySetInnerHTML={{ __html: CREATORS.comment }} />
         <PageMeaning page="creators" />
         <Footer />
       </main>
