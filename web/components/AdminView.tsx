@@ -9,6 +9,7 @@ import { RequireUser } from "./RequireUser";
 import { useAdminOnly } from "./useAdminOnly";
 import { ApiError, api, startPreview } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { ErrorText } from "./ErrorText";
 
 type Account = { email: string; display_name: string; role: string };
 type Photo = { id: string; file: string; credit: string; source: string; enabled: boolean };
@@ -175,7 +176,7 @@ function AdminBody() {
         <section className="rio-card">
           <p className="rio-mark-label">Test season</p>
           <p className="rio-note">A separate TEST athlete with an 800 m season and eight weeks of runs. This login is not changed.</p>
-          {error ? <p className="rio-error">{error}</p> : null}
+          {error ? <ErrorText>{error}</ErrorText> : null}
           {note ? <p className="rio-note">{note}</p> : null}
           <button type="button" className="rio-primary" disabled={busy} onClick={() => void loadSeason()}>
             Load test season
@@ -203,7 +204,7 @@ function AdminBody() {
           <p className="rio-mark-label">Startup photos</p>
           <p className="rio-settings-note">Show, reorder, or edit the credit line.</p>
           {heroNote ? <p className="rio-settings-note">{heroNote}</p> : null}
-          {heroError ? <p className="rio-error">{heroError}</p> : null}
+          {heroError ? <ErrorText>{heroError}</ErrorText> : null}
           {photos.map((photo, index) => (
             <div className="rio-hero-frame" key={photo.id}>
               <p className="rio-photo-credit">{photo.credit}</p>

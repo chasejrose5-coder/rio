@@ -12,6 +12,7 @@ import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { planQuery, rowLabel, rowValues, seasonKey, seasonRows, unreadableMessage } from "@/lib/past";
 import type { StoredSeason } from "@/lib/types";
+import { ErrorText, LoadError } from "./ErrorText";
 
 const DELETE_NOTE = "This permanently deletes this season and the workouts stored with it. It can't be undone.";
 const CURRENT_NOTE = "This is the season you're training on now. Deleting it takes you to Start to set up a new one.";
@@ -29,6 +30,7 @@ function PastSeasonsBody() {
   const router = useRouter();
   const [rows, setRows] = useState<StoredSeason[] | null>(null);
   const [problem, setProblem] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const [notice, setNotice] = useState("");
   const [pending, setPending] = useState("");
   const [confirmError, setConfirmError] = useState("");
@@ -75,7 +77,7 @@ function PastSeasonsBody() {
     return () => {
       live = false;
     };
-  }, []);
+  }, [attempt]);
 
   async function remove(row: StoredSeason) {
     setBusy(true);
@@ -104,7 +106,7 @@ function PastSeasonsBody() {
           <h1>Past seasons</h1>
         </header>
         {notice ? <p className="rio-past-deleted">{notice}</p> : null}
-        {problem ? <p className="rio-error">{problem}</p> : null}
+        {problem ? <LoadError message={problem} onRetry={() => setAttempt((value) => value + 1)} /> : null}
         {rows === null && !problem ? <SkeletonBlocks /> : null}
         {rows && rows.length === 0 ? <p className="rio-empty">No seasons on this account.</p> : null}
         {rows && rows.length > 0 ? (
@@ -155,7 +157,7 @@ function PastSeasonsBody() {
                         </div>
                       ))}
                       <p className="rio-past-confirm-note">{DELETE_NOTE}</p>
-                      {confirmError ? <p className="rio-error">{confirmError}</p> : null}
+                      {confirmError ? <ErrorText>{confirmError}</ErrorText> : null}
                       <div className="rio-done-row rio-past-actions">
                         <button type="button" className="rio-primary" disabled={busy} onClick={() => void remove(row)}>
                           Delete permanently

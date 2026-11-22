@@ -29,6 +29,7 @@ import {
   type PrepBlock,
 } from "@/lib/session";
 import type { BikeOffer, LoggedActivity, SessionResponse } from "@/lib/types";
+import { ErrorText, LoadError } from "./ErrorText";
 
 type Mode = "loading" | "missing" | "nodate" | "bad" | "ready" | "activity" | "error";
 
@@ -53,6 +54,7 @@ function SessionBody() {
   const [session, setSession] = useState<SessionResponse | null>(null);
   const [extra, setExtra] = useState<LoggedActivity | null>(null);
   const [problem, setProblem] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const [rise, setRise] = useState(false);
 
   async function load() {
@@ -116,9 +118,9 @@ function SessionBody() {
     }
     window.sessionStorage.setItem(key, "session");
     void load();
-    // The date and the activity id are the page.
+    // The date and the activity id are the page. attempt re-runs a failed load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, activity]);
+  }, [date, activity, attempt]);
 
   const heading =
     mode === "activity" && extra
@@ -148,7 +150,7 @@ function SessionBody() {
         ) : null}
         {mode === "nodate" ? <p className="rio-empty">Open a workout from Home or Plan.</p> : null}
         {mode === "bad" ? <p className="rio-empty">That session is not in this plan.</p> : null}
-        {mode === "error" ? <p className="rio-error">{problem}</p> : null}
+        {mode === "error" ? <LoadError message={problem} onRetry={() => setAttempt((value) => value + 1)} /> : null}
         {mode === "activity" && extra ? <ActivityCard row={extra} /> : null}
         {mode === "ready" && session ? (
           <Workout
@@ -468,7 +470,7 @@ function ResultForm({ session, onSaved }: { session: SessionResponse; onSaved: (
           </button>
         </div>
       ) : null}
-      {error ? <p className="rio-error">{error}</p> : null}
+      {error ? <ErrorText>{error}</ErrorText> : null}
     </section>
   );
 }
@@ -569,7 +571,7 @@ function Watchless({ session, onSaved }: { session: SessionResponse; onSaved: ()
           </button>
         </div>
       ) : null}
-      {error ? <p className="rio-error">{error}</p> : null}
+      {error ? <ErrorText>{error}</ErrorText> : null}
     </section>
   );
 }
@@ -605,7 +607,7 @@ function Insight({
       >
         Got it
       </button>
-      {error ? <p className="rio-error">{error}</p> : null}
+      {error ? <ErrorText>{error}</ErrorText> : null}
     </section>
   );
 }

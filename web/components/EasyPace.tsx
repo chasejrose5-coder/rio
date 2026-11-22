@@ -8,6 +8,7 @@ import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { ErrorText } from "./ErrorText";
 
 export function EasyPace() {
   return (
@@ -56,7 +57,7 @@ function EasyPaceForm() {
             kilometer. Quality workouts stay on your 800.
           </p>
         </section>
-        {error ? <p className="rio-error">{error}</p> : null}
+        {error ? <ErrorText>{error}</ErrorText> : null}
         <form className="rio-easy-form" onSubmit={onSubmit} noValidate>
           <label htmlFor="easy-pace">Easy pace</label>
           <input id="easy-pace" placeholder="7:25" value={pace} onChange={(event) => setPace(event.target.value)} />

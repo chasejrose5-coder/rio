@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { ApiError, api, previewing } from "@/lib/api";
 import type { BikeOffer } from "@/lib/types";
+import { ErrorText } from "./ErrorText";
 
 const METERS = { miles: 1609.344, km: 1000 } as const;
 
@@ -133,11 +134,7 @@ export function BikeCard({
           Bike instead
         </button>
       )}
-      {problem ? (
-        <p className="rio-error" role="alert">
-          {problem}
-        </p>
-      ) : null}
+      {problem ? <ErrorText>{problem}</ErrorText> : null}
     </section>
   );
 }

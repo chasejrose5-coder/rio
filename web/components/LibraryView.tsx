@@ -10,6 +10,7 @@ import { ApiError, api, isSignedOut } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { capacityClass, countLabel } from "@/lib/library";
 import type { LibraryResponse } from "@/lib/types";
+import { LoadError } from "./ErrorText";
 
 const FAMILY_HELP = "The quality that workout builds, such as speed or endurance.";
 const PHASE_HELP = "A phase is a training block. The season moves through eight of them.";
@@ -34,6 +35,7 @@ function LibraryBody() {
   const [mode, setMode] = useState<Mode>("loading");
   const [data, setData] = useState<LibraryResponse | null>(null);
   const [problem, setProblem] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [family, setFamily] = useState("All");
@@ -87,7 +89,7 @@ function LibraryBody() {
     return () => {
       live = false;
     };
-  }, [debounced, family, phase]);
+  }, [debounced, family, phase, attempt]);
 
   const showIds = athlete?.prefs.show_ids === true;
   const compact = athlete?.prefs.compact === true;
@@ -145,7 +147,7 @@ function LibraryBody() {
             </div>
           </form>
         ) : null}
-        {mode === "error" ? <p className="rio-error">{problem}</p> : null}
+        {mode === "error" ? <LoadError message={problem} onRetry={() => setAttempt((value) => value + 1)} /> : null}
         {mode === "ready" && data ? (
           <>
             <p className="rio-week-meta rio-lib-count">{countLabel(data.count)}</p>
