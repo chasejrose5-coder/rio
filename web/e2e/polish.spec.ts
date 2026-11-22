@@ -53,8 +53,14 @@ test("html and font responses set security headers without a wildcard origin", a
   expect(headers["x-content-type-options"]).toBe("nosniff");
   expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
   expect(headers["x-frame-options"]).toBe("DENY");
-  expect(headers["content-security-policy"]).toBe("frame-ancestors 'none'");
-  expect(headers["content-security-policy-report-only"]).toContain("default-src 'self'");
+  const policy = headers["content-security-policy"] || "";
+  expect(headers["content-security-policy-report-only"]).toBeUndefined();
+  expect(policy).toContain("default-src 'self'");
+  expect(policy).toContain("frame-ancestors 'none'");
+  expect(policy).toContain("https://accounts.google.com");
+  expect(policy).toContain("https://fonts.gstatic.com");
+  expect(policy).toContain("report-uri /csp-report");
+  expect(headers["reporting-endpoints"]).toContain("/csp-report");
   expect(headers["permissions-policy"]).toContain("camera=()");
   expect(headers["permissions-policy"]).not.toContain("browsing-topics");
   expect(headers["permissions-policy"]).toContain("microphone=()");

@@ -537,6 +537,7 @@ export type SeasonWrite = {
   committed?: boolean;
   strava_offer?: boolean;
   plan?: unknown;
+  digest?: string;
 };
 
 export type LibraryWorkout = {

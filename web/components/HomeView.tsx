@@ -15,6 +15,7 @@ import { RequireUser } from "./RequireUser";
 import { StretchLink } from "./StretchLink";
 import { TrackArt } from "./TrackArt";
 import { ApiError, api, isSignedOut, previewing, stopPreview } from "@/lib/api";
+import { createSaveQueue } from "@/lib/save-queue";
 import { useAuth } from "@/lib/auth";
 import { takeIntroMark } from "@/lib/enter";
 import { HR_PROMPT_KEY, heartPromptOpen } from "@/lib/landing";
@@ -517,6 +518,8 @@ function Watchless({
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const queue = useRef(createSaveQueue<boolean>());
   const hard = isHard(card);
   const day = card.date || "";
   const saved = card.actual && card.actual.template_id === card.template_id ? card.actual : null;
@@ -529,20 +532,25 @@ function Watchless({
     return <p className="rio-week-meta">{parts.join(" · ")}</p>;
   }
 
-  async function send(missed: boolean) {
+  function send(missed: boolean) {
     if (readOnly || previewing()) return;
     if (!missed && hard && choice !== "Behind" && choice !== "On target" && choice !== "Ahead") {
       setError("Choose behind, on target, or ahead.");
       return;
     }
-    setError("");
-    try {
-      await api.watchless({ date: day, outcome: choice, time, missed });
-      setPending(false);
-      onSaved();
-    } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : "That workout could not be saved.");
-    }
+    const flight = queue.current.push(missed, "once", async (flag) => {
+      setError("");
+      try {
+        await api.watchless({ date: day, outcome: choice, time, missed: flag });
+        setPending(false);
+        onSaved();
+      } catch (caught) {
+        setError(caught instanceof ApiError ? caught.message : "That workout could not be saved.");
+      }
+    });
+    if (!flight) return;
+    setBusy(true);
+    void flight.then(() => setBusy(false));
   }
 
   function done() {
@@ -582,10 +590,10 @@ function Watchless({
         </>
       ) : null}
       <div className="rio-done-row">
-        <button type="button" className="rio-primary" onClick={done}>
+        <button type="button" className="rio-primary" onClick={done} disabled={busy} aria-busy={busy}>
           Done
         </button>
-        <button type="button" className="rio-secondary" onClick={() => void send(true)}>
+        <button type="button" className="rio-secondary" onClick={() => send(true)} disabled={busy} aria-busy={busy}>
           Couldn&apos;t finish
         </button>
         <button type="button" className="rio-text-link" onClick={() => setOpen((value) => !value)}>
@@ -595,7 +603,7 @@ function Watchless({
       {pending ? (
         <div className="rio-confirm">
           <p className="rio-week-meta">Confirm this workout before the plan changes.</p>
-          <button type="button" className="rio-primary" onClick={() => void send(false)}>
+          <button type="button" className="rio-primary" onClick={() => send(false)} disabled={busy} aria-busy={busy}>
             Confirm
           </button>
           <button type="button" className="rio-secondary" onClick={() => setPending(false)}>

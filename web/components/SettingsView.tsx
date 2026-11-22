@@ -398,6 +398,7 @@ function SettingsBody() {
       );
       await signOut();
       router.replace("/sign-in");
+      router.refresh();
     } catch (caught) {
       setProblem(caught instanceof ApiError ? caught.message : "This account could not be saved.");
       setBusy(false);
@@ -419,6 +420,7 @@ function SettingsBody() {
     }
     await signOut();
     router.replace("/");
+    router.refresh();
   }
 
   return (

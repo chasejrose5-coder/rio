@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { LoadingScreen } from "./LoadingScreen";
 import { PageSkeleton } from "./PageSkeleton";
 import { useAuth } from "@/lib/auth";
@@ -21,14 +21,6 @@ export function RequireUser({
 }) {
   const { status, refresh } = useAuth();
   const router = useRouter();
-  const [shown, setShown] = useState(false);
-
-  useEffect(() => {
-    // The server render stays the skeleton. After mount, the page read starts
-    // beside /auth/me, and useSearchParams is not prerendered.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setShown(true);
-  }, []);
 
   useEffect(() => {
     if (status === "out") router.replace("/sign-in");
@@ -37,8 +29,9 @@ export function RequireUser({
   if (status === "unreachable") {
     return <LoadingScreen label="Starting the server" onRetry={() => void refresh()} />;
   }
-  if (status === "in") return children;
-  if (!shown || status === "out") {
+  // Wait until the session is known. A signed-out visit, or Back after Log out,
+  // must not paint the previous runner or fire their data reads.
+  if (status !== "in") {
     return <PageSkeleton title={title} variant={variant} pageClass={pageClass} pending={pendingNav} />;
   }
   return children;

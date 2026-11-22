@@ -173,7 +173,10 @@ export function Nav({ active, pending = false }: { active?: string; pending?: bo
                 onClick={() => {
                   stopPreview();
                   forgetLanding();
-                  void signOut().then(() => router.replace("/sign-in"));
+                  void signOut().then(() => {
+                    router.replace("/sign-in");
+                    router.refresh();
+                  });
                 }}
               >
                 Log out

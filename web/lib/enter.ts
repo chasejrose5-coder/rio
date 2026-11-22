@@ -1,6 +1,6 @@
-import { api, prefetchHome } from "./api";
-import { needsEasyPace, pathAfterSeason, rememberLanding } from "./landing";
-import type { Athlete } from "./types";
+import { api, prefetchHome } from "./api.ts";
+import { needsEasyPace, pathAfterSeason, rememberLanding } from "./landing.ts";
+import type { Athlete } from "./types.ts";
 
 export const MARK_INTRO_KEY = "rio_mark_intro";
 
@@ -45,15 +45,24 @@ async function resolveDestination(athlete: Athlete): Promise<AppPath> {
   // change where sign-in, Google, or the splash sends this runner.
   // The season read starts immediately so it overlaps the session probe.
   const seasonPromise = api.currentSeason();
-  if (needsEasyPace(athlete)) return "/easy-pace";
-  void prefetchHome().catch(() => undefined);
-  const season = await seasonPromise;
-  const path = pathAfterSeason(athlete, season);
-  if (path === "/easy-pace" || path === "/intro") return path;
-  rememberLanding(path);
-  if (season && athlete.prefs?.intro_seen !== true) {
-    if (path === "/home") markIntroLater();
-    else void api.patchSettings({ intro_seen: true }).catch(() => undefined);
+  if (needsEasyPace(athlete)) {
+    void seasonPromise.catch(() => undefined);
+    return "/easy-pace";
   }
-  return path;
+  void prefetchHome().catch(() => undefined);
+  try {
+    const season = await seasonPromise;
+    const path = pathAfterSeason(athlete, season);
+    if (path === "/easy-pace" || path === "/intro") return path;
+    rememberLanding(path);
+    if (season && athlete.prefs?.intro_seen !== true) {
+      if (path === "/home") markIntroLater();
+      else void api.patchSettings({ intro_seen: true }).catch(() => undefined);
+    }
+    return path;
+  } catch {
+    // A failed season read must not leave a signed-in runner on Log in.
+    rememberLanding("/home");
+    return "/home";
+  }
 }
