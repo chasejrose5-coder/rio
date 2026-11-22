@@ -31,8 +31,8 @@
   min-height: 44px;
   font-family: Manrope, "Manrope Fallback", Inter, "Inter Fallback", sans-serif;
   font-weight: 800;
-  letter-spacing: 0.14em;
-  font-size: 0.95rem;
+  letter-spacing: -0.04em;
+  font-size: 1.05rem;
 }
 .page-legal main {
   padding: 1.4rem var(--gutter) 3.5rem;
@@ -70,7 +70,7 @@
 .rio-legal-contents {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem 1rem;
+  gap: 0.45rem;
   margin: 1.25rem 0 0.4rem;
 }
 .rio-legal-contents a,
@@ -78,11 +78,14 @@
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  padding: 0 0.45rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
   color: var(--ink);
   font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 0.14em;
+  font-size: 0.92rem;
+  text-decoration: none;
 }
 .page-legal section {
   margin: 1.45rem 0 0;
