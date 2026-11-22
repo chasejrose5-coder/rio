@@ -5803,10 +5803,10 @@ def page_profile() -> None:
 
 
 def page_about() -> None:
-    """The eight phases, the 10% rule, rules-based labels, and hard-day marks.
+    """A short intro. The phases and the rules are in the guide.
 
     Static copy. This page does not build a plan, label a workout, adapt a
-    week, or call a model. Recorded prose spend stays at $25.
+    week, or call a model. The banner photo and its credit stay.
     """
     hero, _controls = _open("About")
     with hero:
@@ -5839,6 +5839,13 @@ def page_about() -> None:
                     '<div hidden>' + "".join(_prose(paragraph) for paragraph in hidden) + "</div>"
                 )
         _card(*parts)
+    st.markdown(
+        '<p class="rio-quick">'
+        '<a class="rio-secondary" href="/create-account">Create account</a> '
+        '<a class="rio-secondary" href="/sign-in">Sign in</a>'
+        "</p>",
+        unsafe_allow_html=True,
+    )
 
 
 def page_settings() -> None:

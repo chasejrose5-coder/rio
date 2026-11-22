@@ -142,8 +142,8 @@ _SHOWN = {
 }
 
 
-def about_sections() -> list[dict]:
-    """Four blocks for the About page. Copy only."""
+def rule_sections() -> list[dict]:
+    """The phase list and the rules. The guide shows these. Copy only."""
     return [
         {
             "title": "Eight phases",
@@ -172,4 +172,21 @@ def about_sections() -> list[dict]:
             "rows": [],
             "closing": [],
         },
+    ]
+
+
+def about_sections() -> list[dict]:
+    """Short public intro. The phase list and the rules live in the guide."""
+    return [
+        {
+            "title": "What RIO is",
+            "paragraphs": [
+                "RIO plans an 800 m season from rules.",
+                "You enter the 800 you can run now, the day this season starts, the time you want, and the day of the race.",
+                "The plan is built from those four values and from the runs you log. Strava can bring the runs in. A result you save can change the weeks after it.",
+                "The full details are in the Guide after you sign in.",
+            ],
+            "rows": [],
+            "closing": [],
+        }
     ]

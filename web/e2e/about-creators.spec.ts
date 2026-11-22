@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { ABOUT } from "../lib/about-copy";
+import { ABOUT } from "../lib/about";
 import { CREATORS } from "../lib/creators-copy";
 
 const athlete = {
@@ -57,7 +57,7 @@ function aboutVisible(): string[] {
   return lines;
 }
 
-test("about shows the stadium photo, the credit, and the eight phases", async ({ page }) => {
+test("about shows the stadium photo, the credit, and a short intro", async ({ page }) => {
   await install(page);
   await page.goto("/about");
   await expect(page.getByRole("heading", { name: "About", exact: true })).toBeVisible();
@@ -74,7 +74,6 @@ test("about shows the stadium photo, the credit, and the eight phases", async ({
   await expect(page.locator(".page-about .rio-about-title h1")).toHaveCSS("color", "rgb(244, 241, 236)");
   await expect(page.locator(".page-about .rio-photo-credit")).toHaveCSS("color", "rgb(244, 241, 236)");
   await expect(page.locator(".page-about .rio-mark-label").first()).toHaveCSS("color", "rgb(60, 58, 54)");
-  await expect(page.locator(".page-about .rio-k").first()).toHaveCSS("color", "rgb(60, 58, 54)");
   await expect(page.locator(".page-about .rio-note").first()).toHaveCSS("color", "rgb(18, 17, 16)");
   await expect(page.getByRole("navigation", { name: "More" }).getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
 
@@ -87,15 +86,15 @@ test("about shows the stadium photo, the credit, and the eight phases", async ({
   expect(visible).toEqual(aboutVisible());
   const hidden = await page.locator(".page-about [hidden] .rio-prose").allTextContents();
   expect(hidden.map((line) => line.trim())).toEqual(ABOUT.sections.flatMap((section) => [...section.hidden]));
-  const hiddenBlocks = page.locator(".page-about [hidden]");
-  await expect(hiddenBlocks).toHaveCount(3);
-  for (const block of await hiddenBlocks.all()) {
-    await expect(block).toBeHidden();
-  }
-  await expect(page.getByText("Those calls stop once recorded spend reaches $25.")).toBeHidden();
-  await expect(page.getByText("The short fast reps step up from phase 1.")).toBeVisible();
-  await expect(page.getByText("The taper stays fresh. No hard speed endurance or anaerobic work.")).toBeVisible();
-  await expect(page.locator(".page-about .rio-field")).toHaveCount(8);
+  await expect(page.locator(".page-about [hidden]")).toHaveCount(0);
+  await expect(page.getByText("Those calls stop once recorded spend reaches $25.")).toHaveCount(0);
+  await expect(page.getByText("RIO plans an 800 m season from rules.")).toBeVisible();
+  await expect(page.getByText("The full details are in the Guide after you sign in.")).toBeVisible();
+  await expect(page.locator(".rio-quick").getByRole("link", { name: "Create account" })).toHaveAttribute(
+    "href",
+    "/create-account",
+  );
+  await expect(page.locator(".rio-quick").getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/sign-in");
   await expect(page.getByText("chasejrose5@gmail.com")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Privacy" })).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.sessionStorage.getItem("rio-motion-page"))).toBe("about");
@@ -139,7 +138,7 @@ test("More opens About and Creators", async ({ page }) => {
   await page.locator(".rio-more-list").getByRole("link", { name: /About/ }).click();
   await expect(page).toHaveURL(/\/about$/);
   await expect(page.getByRole("heading", { name: "About", exact: true })).toBeVisible();
-  await expect(page.getByText("Eight phases", { exact: true })).toBeVisible();
+  await expect(page.getByText("What RIO is", { exact: true })).toBeVisible();
   await page.getByRole("navigation", { name: "More" }).getByRole("link", { name: "Creators" }).click();
   await expect(page).toHaveURL(/\/creators$/);
   await expect(page.getByRole("heading", { name: "Built by a runner, for runners." })).toBeVisible();
@@ -165,8 +164,10 @@ test("about stays open when nobody is signed in", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Log out" })).toHaveCount(0);
   await expect(page.getByRole("navigation", { name: "Pages" })).toHaveCount(0);
   await expect(page.getByText(ABOUT.credit)).toBeVisible();
-  await expect(page.getByText("Eight phases", { exact: true })).toBeVisible();
-  await expect(page.getByText("Friday is off")).toBeVisible();
+  await expect(page.getByText("What RIO is", { exact: true })).toBeVisible();
+  await expect(page.getByText("The full details are in the Guide after you sign in.")).toBeVisible();
+  await expect(page.locator(".rio-quick").getByRole("link", { name: "Create account" })).toBeVisible();
+  await expect(page.locator(".rio-quick").getByRole("link", { name: "Sign in" })).toBeVisible();
 });
 
 test("compact mode keeps the creators hero smaller", async ({ page }) => {

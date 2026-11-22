@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Footer } from "./Footer";
 import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
@@ -89,6 +90,14 @@ function AboutBody() {
             ) : null}
           </section>
         ))}
+        <div className="rio-quick">
+          <Link className="rio-secondary" href="/create-account">
+            Create account
+          </Link>
+          <Link className="rio-secondary" href="/sign-in">
+            Sign in
+          </Link>
+        </div>
         <PageMeaning page="about" />
         <Footer />
       </main>

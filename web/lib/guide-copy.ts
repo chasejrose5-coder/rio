@@ -210,6 +210,16 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
     id: "phases",
     title: "Phases",
     paragraphs: ["The season moves through eight phases. Home calls the current one the training block."],
+    bullets: [
+      "Phase 1. Aerobic, with max velocity and speed beside it.",
+      "Phase 2. Aerobic, with max velocity and speed beside it. The short fast reps step up from phase 1.",
+      "Phase 3. Threshold and aerobic power, with aerobic and speed beside them.",
+      "Phase 4. Speed endurance and aerobic power, with aerobic and speed beside them.",
+      "Phase 5. Speed endurance and aerobic power, with speed beside them. The reps are longer than in phase 4.",
+      "Phase 6. Anaerobic capacity, with speed endurance and speed beside it.",
+      "Phase 7. Race readiness, with speed endurance and speed beside it.",
+      "Phase 8. Race readiness and max velocity. The taper stays fresh. No hard speed endurance or anaerobic work.",
+    ],
     details: [
       {
         summary: "The eight phases",
@@ -218,6 +228,63 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
           "Phase 1 is aerobic, with max velocity and speed beside it. Phase 2 steps the short fast reps up. Phase 3 adds threshold and aerobic power. Phase 4 brings speed endurance.",
           "Phase 5 keeps that work with longer reps. Phase 6 is anaerobic capacity. Phase 7 is race readiness. Phase 8 stays fresh: race readiness and max velocity, with no hard speed endurance or anaerobic work.",
           "From eight weeks up, phases 1–7 each get a week and phase 8 is the last two, or one week when the season is one or eight weeks. Extra weeks fill phases 1–4 up to a cap, then 5–7, then rotate through 1–4. A shorter season fills the taper, then phases 7, 6, and 5.",
+        ],
+      },
+      {
+        summary: "How the weeks are filled",
+        paragraphs: [
+          "Phases 1–7 are a six-day week. Sunday, Monday, and Wednesday are easy. Tuesday and Thursday are hard. Saturday is the long run. Friday is off.",
+          "Phase 8 is a shorter taper. The 800 m race can sit on the last Saturday.",
+          "From eight weeks up, phases 1–7 each get a week. Phase 8 is the last two weeks, or one week when the season is one week or eight weeks. Weeks still left fill phases 1–4 up to a cap, then phases 5–7. Anything past those caps rotates through phases 1–4. A shorter season fills the taper, then phases 7, 6, and 5, and compresses phases 1–4.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "ten-percent",
+    title: "10% rule",
+    paragraphs: [
+      "From one week to the next, distance and the number of hard sessions can rise by at most 10%. Hard sessions are the ones that are not easy runs. If a week would climb faster, the plan holds or picks an easier session. The taper may drop.",
+    ],
+    details: [
+      {
+        summary: "Counting the rise",
+        paragraphs: [
+          "From one week to the next, planned distance and the number of hard sessions may rise by at most 10%. Hard sessions are the ones that are not easy runs. A rise fits when the new week times 10 is still no more than the previous week times 11.",
+          "If the week as written would climb faster, the plan holds or uses an easier session. The taper may drop. The same cap still applies after a mark changes later weeks.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "classification",
+    title: "Classification",
+    paragraphs: [
+      "RIO labels each session with rules. It reads how far the rep is, how long you rest, and how that pace compares with your goal 800 m time. You see one kind of work and a short reason.",
+      "Classification is rules, not AI. The rules read each rep's distance, the rest, and the pace against the goal 800. The result is one family, the reason codes, and the ontology version.",
+    ],
+    details: [
+      {
+        summary: "What a model may rephrase",
+        paragraphs: [
+          "A model does not pick the family. On Last Session, Next, and Decisions, a model may only rephrase a paragraph the rules already wrote. A rephrase that changes the family, the template, or the reasons is dropped. Those calls stop once recorded spend reaches $25.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "hard-days",
+    title: "Hard days",
+    paragraphs: [
+      "Tuesday and Thursday are hard days, unless that day is an easy run. A result within 3% of the target is on track. Slower or shorter means the week fell short. Faster or longer means it went better. On track leaves later weeks as they are. Falling short moves later weeks back one phase. Doing better moves them forward one phase and stops at phase 7. Phase 8 stays the taper. When more than one mark applies, falling short wins. Later weeks are what change.",
+    ],
+    details: [
+      {
+        summary: "How a mark is stored",
+        paragraphs: [
+          "A hard day is a Tuesday or Thursday that is not an easy run. A result within 3% of the target is on_track. Slower or shorter is not_hitting. Faster or longer is smashing. Season and Weekly can mark a week with those same three words.",
+          "The marked week stays as written. On track leaves the later weeks. Not hitting moves them back one phase, or makes the next week easy when the phase cannot move back. Smashing moves them forward one phase and stops at phase 7, or uses a harder session from the menu when the phase cannot advance. Phase 8 stays the taper.",
+          "Not hitting wins when more than one mark applies, then smashing. A matched activity on a hard day is judged when that day has no mark yet. Later weeks are what change.",
         ],
       },
     ],
@@ -253,7 +320,7 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
       "Past seasons lists each saved season by start date, goal date, and goal time. Open plan loads it. Delete shows what will be removed, including workouts logged, and asks you to confirm.",
       "Settings holds your name, time zone, pace units, and Strava. The danger zone clears marks, the plan, or the account.",
       "Profile keeps the easy pace and the season from Start. Saving a new goal 800 m time does not rebuild the season.",
-      "About is the short version of the phases and the 10% rise. More links to Past seasons, Profile, Settings, Guide, and About.",
+      "About is a short public note on what RIO is. This guide holds the phases, the 10% rule, classification, and hard days. More links to Past seasons, Profile, Settings, Guide, and About.",
     ],
   },
   {

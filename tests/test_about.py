@@ -20,15 +20,16 @@ from engines.season import (
     _SECONDARY,
     phase_lengths,
 )
-from ui.about import _EXTRA, _FAMILY, about_sections, phase_rows
+from ui.about import _EXTRA, _FAMILY, about_sections, phase_rows, rule_sections
 from ui.result import _BAND
 
 
 def _copy() -> str:
     parts: list[str] = []
-    for section in about_sections():
+    for section in rule_sections():
         parts.append(section["title"])
         parts.extend(section["paragraphs"])
+        parts.extend(section.get("shown") or [])
         parts.extend(section["closing"])
         for label, line in section["rows"]:
             parts.append(label)
@@ -167,6 +168,34 @@ def test_classification_is_rules_and_spend_stays_at_25() -> None:
             raise AssertionError(f"{path.name} was changed for About")
 
 
+def test_the_guide_keeps_every_rule_sentence() -> None:
+    """The long About lines moved to the guide. The public page is the short intro."""
+    guide = (ROOT / "web" / "lib" / "guide-copy.ts").read_text(encoding="utf-8")
+    for section in rule_sections():
+        lines = list(section["paragraphs"])
+        lines.extend(section.get("shown") or [])
+        lines.extend(section["closing"])
+        lines.extend(line for _label, line in section["rows"])
+        for line in lines:
+            if line not in guide:
+                raise AssertionError(line)
+    public = "\n".join(paragraph for section in about_sections() for paragraph in section["paragraphs"])
+    if "The full details are in the Guide after you sign in." not in public:
+        raise AssertionError(public)
+    for banned in ("$25", "on_track", "Eight phases", "ontology"):
+        if banned in public:
+            raise AssertionError(banned)
+    app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
+    start = app.index("def page_about(")
+    page = app[start : app.index("\ndef page_settings(", start)]
+    view = (ROOT / "web" / "components" / "AboutView.tsx").read_text(encoding="utf-8")
+    if "rule_sections(" in page:
+        raise AssertionError("About still draws the long sections")
+    for token in ('href="/create-account"', 'href="/sign-in"', "Create account", "Sign in"):
+        if token not in page or token not in view:
+            raise AssertionError(token)
+
+
 def test_about_is_in_the_nav_and_does_not_spend() -> None:
     """About is a top-nav page. Opening it does not label, adapt, or spend."""
     app = (ROOT / "ui" / "streamlit_app.py").read_text(encoding="utf-8")
@@ -201,6 +230,7 @@ def main() -> None:
     test_eight_phases_follow_the_season()
     test_the_ten_percent_rule_and_hard_days_match_the_code()
     test_classification_is_rules_and_spend_stays_at_25()
+    test_the_guide_keeps_every_rule_sentence()
     test_about_is_in_the_nav_and_does_not_spend()
     print("about ok")
 
