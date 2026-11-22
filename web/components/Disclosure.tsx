@@ -20,9 +20,7 @@ export function Disclosure({ title, children, className, defaultOpen = false }: 
         <span className={open ? "rio-chevron is-open" : "rio-chevron"} aria-hidden="true" />
         {title}
       </button>
-      <div id={panelId} hidden={!open}>
-        {open ? children : null}
-      </div>
+      {open ? <div id={panelId}>{children}</div> : null}
     </div>
   );
 }

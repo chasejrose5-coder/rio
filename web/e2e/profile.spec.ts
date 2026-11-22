@@ -229,13 +229,13 @@ test("the More menu lists its pages", async ({ page }) => {
   await expect(cards.getByText("Your current 800, goal, and dates.")).toBeVisible();
   await expect(cards.getByText("Name, pace, and this account.")).toBeVisible();
   await expect(cards.getByText("How to read the plan, the phases, the 10% rule, and the week.")).toBeVisible();
-  await expect(cards.getByText("What RIO is, in short.")).toBeVisible();
+  await expect(cards.getByText("What RIO is, in short.")).toHaveCount(0);
   await expect(cards.getByText("Built for any runner.")).toBeVisible();
   await expect(cards.getByRole("link", { name: /Past seasons/ })).toHaveAttribute("href", "/past-seasons");
   await expect(cards.getByRole("link", { name: /Profile/ })).toHaveAttribute("href", "/profile");
   await expect(cards.getByRole("link", { name: /Settings/ })).toHaveAttribute("href", "/settings");
   await expect(cards.getByRole("link", { name: /Guide/ })).toHaveAttribute("href", "/guide");
-  await expect(cards.getByRole("link", { name: /About/ })).toHaveAttribute("href", "/about");
+  await expect(cards.getByRole("link", { name: /^About/ })).toHaveCount(0);
   await expect(cards.getByRole("link", { name: /Creators/ })).toHaveAttribute("href", "/creators");
   const sub = page.getByRole("navigation", { name: "More" });
   await expect(sub.getByRole("link", { name: "Profile" })).toHaveAttribute("href", "/profile");

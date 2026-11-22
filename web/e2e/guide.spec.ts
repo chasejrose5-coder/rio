@@ -95,7 +95,8 @@ test("the guide explains the season in plain words and stays free of photos", as
   await expect(article.getByText("Chase")).toHaveCount(0);
   await expect(page.getByText("Coming in the next step.")).toHaveCount(0);
   const meaning = page.locator(".rio-meaning");
-  await expect(meaning.getByText("What this means")).toBeVisible();
+  await expect(meaning.getByText("What this page means")).toBeVisible();
+  await meaning.getByRole("button", { name: "What this page means" }).click();
   await expect(meaning.getByRole("link", { name: GUIDE_LINK })).toHaveAttribute("href", "/guide#getting-started");
 });
 
@@ -105,21 +106,24 @@ test("library, plan, and about link their notes to the matching guide section", 
   await expect(page.getByRole("heading", { name: "Library", exact: true })).toBeVisible();
   await expect(page.locator("img")).toHaveCount(0);
   const library = page.locator(".rio-meaning");
+  await library.getByRole("button", { name: "What this page means" }).click();
   await expect(library.getByText(PAGE_MEANINGS.library.sentences[0])).toBeVisible();
   await library.getByRole("link", { name: GUIDE_LINK }).click();
   await expect(page).toHaveURL(/\/guide#pages$/);
   await expect(page.locator("#pages")).toBeVisible();
 
   await page.goto("/plan");
+  await page.locator(".rio-meaning").getByRole("button", { name: "What this page means" }).click();
   await expect(page.locator(".rio-meaning").getByRole("link", { name: GUIDE_LINK })).toHaveAttribute("href", "/guide#pages");
   await expect(page.locator(".rio-meaning").getByText(PAGE_MEANINGS.plan.sentences[0])).toBeVisible();
 
   await page.goto("/about");
   const about = page.locator(".rio-meaning");
-  await expect(about.getByText("What this means")).toBeVisible();
+  await about.getByRole("button", { name: "What this page means" }).click();
+  await expect(about.getByText("What this page means")).toBeVisible();
   await expect(about.getByRole("link", { name: GUIDE_LINK })).toHaveAttribute("href", "/guide#phases");
   await expect(page.getByText("RIO plans an 800 m season from rules.")).toBeVisible();
   await expect(page.getByText("The full details are in the Guide after you sign in.")).toBeVisible();
-  await expect(page.locator(".rio-quick").getByRole("link", { name: "Create account" })).toHaveAttribute("href", "/create-account");
-  await expect(page.locator(".rio-quick").getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/sign-in");
+  await expect(page.locator(".rio-quick").getByRole("link", { name: "Create account" })).toHaveCount(0);
+  await expect(page.locator(".rio-quick").getByRole("link", { name: "Sign in" })).toHaveCount(0);
 });

@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { Disclosure } from "./Disclosure";
 import { Expander } from "./Expander";
 import { HeartPace } from "./HeartPace";
 import { Footer, PhotoCredit } from "./Footer";
-import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { PreviewBanner } from "./PreviewBanner";
 import { RecapMore } from "./RecapMore";
@@ -252,8 +252,7 @@ function PlanBody() {
             onCancel={() => setPending(null)}
           />
         ) : null}
-        <PageMeaning page="plan" />
-        <Footer />
+        <Footer page="plan" />
       </main>
     </div>
   );
@@ -384,13 +383,24 @@ function PlanReady({
               <p className="rio-phase-plain">{PHASE_PLAIN[Number(openSpan.phase)]}</p>
             ) : null}
             <ul className="rio-phase-week-list">
-              {openSpan.weeks.map((week) => (
+              {nearWeeks(openSpan.weeks, openSpan.currentWeek).map((week) => (
                 <li key={week} className={week === openSpan.currentWeek ? "is-current" : undefined}>
                   <span>{weekOption(plan.inputs.start_date, week, format)}</span>
                   {week === openSpan.currentWeek ? <span className="rio-phase-this">Now</span> : null}
                 </li>
               ))}
             </ul>
+            {otherWeeks(openSpan.weeks, openSpan.currentWeek).length ? (
+              <Disclosure title="Other weeks">
+                <ul className="rio-phase-week-list">
+                  {otherWeeks(openSpan.weeks, openSpan.currentWeek).map((week) => (
+                    <li key={week}>
+                      <span>{weekOption(plan.inputs.start_date, week, format)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </Disclosure>
+            ) : null}
           </div>
         ) : null}
         </div>
@@ -469,6 +479,17 @@ function PlanReady({
       </div>
     </>
   );
+}
+
+function nearWeeks(weeks: number[], current: number | null | undefined): number[] {
+  if (current == null) return weeks.slice(0, 3);
+  const near = weeks.filter((week) => Math.abs(week - current) <= 1);
+  return near.length ? near : weeks.slice(0, 3);
+}
+
+function otherWeeks(weeks: number[], current: number | null | undefined): number[] {
+  const shown = new Set(nearWeeks(weeks, current));
+  return weeks.filter((week) => !shown.has(week));
 }
 
 function Calendar({ plan, onMonth }: { plan: PlanResponse; onMonth: (month: string) => void }) {

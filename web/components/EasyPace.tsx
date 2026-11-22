@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Footer } from "./Footer";
-import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api } from "@/lib/api";
@@ -91,8 +90,7 @@ function EasyPaceForm() {
             Save easy pace
           </button>
         </form>
-        <PageMeaning page="easy-pace" />
-        <Footer />
+        <Footer page="easy-pace" />
       </main>
     </div>
   );

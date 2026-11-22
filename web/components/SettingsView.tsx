@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import { Expander } from "./Expander";
 import { SecretField } from "./SecretField";
 import { Footer } from "./Footer";
-import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { HeartRateSettings } from "./HeartRateForm";
@@ -723,8 +722,7 @@ function SettingsBody() {
         </Expander>
         </div>
         </div>
-        <PageMeaning page="settings" />
-        <Footer />
+        <Footer page="settings" />
       </main>
     </div>
   );

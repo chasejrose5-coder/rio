@@ -93,8 +93,11 @@ test("foam rolling follows a hard day and lists every area", async ({ page }) =>
     "aria-current",
     "page",
   );
+  await page.getByRole("button", { name: "Calves", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Calves", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "IT band", exact: true }).click();
   await expect(page.getByRole("heading", { name: "IT band", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Feet", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Feet", exact: true })).toBeVisible();
 
   if (process.env.RIO_SHOTS) {
@@ -106,6 +109,7 @@ test("foam rolling follows a hard day and lists every area", async ({ page }) =>
 
   const routine = foamRoutine(today, [quality]);
   await page.goto(`/session?date=${today}`);
+  await page.getByRole("button", { name: "Foam rolling", exact: true }).click();
   const block = page.getByRole("region", { name: "Foam rolling" });
   await expect(block.getByText(FOAM_DISCLAIMER)).toBeVisible();
   await expect(block.getByText("After this workout · 7 min")).toBeVisible();

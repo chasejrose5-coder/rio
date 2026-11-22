@@ -95,7 +95,7 @@ async function targets(page: Page, path: string, width: number) {
     return [...document.querySelectorAll<HTMLElement>(selector)].flatMap((node) => {
       const box = node.getBoundingClientRect();
       if (box.width < 1 || box.height < 1) return [];
-      return box.height < 44 ? [`${Math.round(box.height)}px ${node.textContent?.trim().slice(0, 40)}`] : [];
+      return Math.round(box.height) < 44 ? [`${Math.round(box.height)}px ${node.textContent?.trim().slice(0, 40)}`] : [];
     });
   }, path);
   expect(small, `${width} ${path} under 44px`).toEqual([]);

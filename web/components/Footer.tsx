@@ -1,15 +1,19 @@
 import Link from "next/link";
 import { MEDICAL_NOTE } from "@/lib/glossary";
+import type { PageMeaningId } from "@/lib/guide-copy";
+import { PageMeaning } from "./PageMeaning";
 
-export function Footer({ onPhoto = false }: { onPhoto?: boolean }) {
+export function Footer({ onPhoto = false, page }: { onPhoto?: boolean; page?: PageMeaningId }) {
   return (
     <footer className={onPhoto ? "rio-contact on-photo" : "rio-contact"}>
       <p className="rio-medical-note">{MEDICAL_NOTE}</p>
-      <p className="rio-legal-links">
+      <div className="rio-legal-links">
+        {page ? <PageMeaning page={page} /> : null}
+        {page ? <span aria-hidden="true"> · </span> : null}
         <Link href="/privacy">Privacy</Link>
         <span aria-hidden="true"> · </span>
         <Link href="/terms">Terms</Link>
-      </p>
+      </div>
     </footer>
   );
 }

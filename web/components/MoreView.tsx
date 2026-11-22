@@ -4,7 +4,6 @@ import Link from "next/link";
 import { shareHero } from "./present/motion";
 import { useEffect, useState } from "react";
 import { Footer } from "./Footer";
-import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { useAuth } from "@/lib/auth";
@@ -56,7 +55,7 @@ function MoreBody() {
               key={item.href}
               href={item.href}
               className="rio-card rio-card-tight rio-more-row"
-              onPointerDown={item.href === "/about" || item.href === "/creators" ? undefined : shareHero}
+              onPointerDown={item.href === "/creators" ? undefined : shareHero}
             >
               <span className="rio-more-copy">
                 <span className="rio-mark-label">{item.label}</span>
@@ -68,8 +67,7 @@ function MoreBody() {
             </Link>
           ))}
         </div>
-        <PageMeaning page="more" />
-        <Footer />
+        <Footer page="more" />
       </main>
     </div>
   );

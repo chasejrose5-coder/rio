@@ -4,7 +4,6 @@ import { Disclosure } from "./Disclosure";
 import { Footer } from "./Footer";
 import { CoreLibrary } from "./CoreDay";
 import { Nav } from "./Nav";
-import { PageMeaning } from "./PageMeaning";
 import { RequireUser } from "./RequireUser";
 import { useAuth } from "@/lib/auth";
 import { CORE_DISCLAIMER } from "@/lib/core-content";
@@ -38,8 +37,7 @@ function CoreBody() {
         </Disclosure>
         <CoreLibrary />
         <p className="rio-medical">{CORE_DISCLAIMER}</p>
-        <PageMeaning page="core" />
-        <Footer />
+        <Footer page="core" />
       </main>
     </div>
   );

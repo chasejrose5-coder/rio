@@ -11,7 +11,6 @@ import { FoamDay } from "./FoamDay";
 import { InjuryDay } from "./InjuryDay";
 import { HeartPace } from "./HeartPace";
 import { Footer } from "./Footer";
-import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api, isSignedOut, previewing } from "@/lib/api";
@@ -169,8 +168,7 @@ function SessionBody() {
             onSaved={() => void load()}
           />
         ) : null}
-        <PageMeaning page="session" />
-        <Footer />
+        <Footer page="session" />
       </main>
     </div>
   );
@@ -246,7 +244,6 @@ function Workout({
   const note = session.note && session.viewed !== true ? session.note : null;
   const active = offer != null && (offer.offer || offer.swapped);
   const hideRun = offer?.swapped === true;
-  const lead = Boolean(offer && active && (hideRun || offer.suggest_first));
   const card = active && offer ? <BikeCard offer={offer} units={units} onOffer={setOffer} /> : null;
 
   useEffect(() => {
@@ -297,7 +294,7 @@ function Workout({
             </div>
           ) : null}
         </div>
-        {lead ? card : null}
+        {active && offer ? card : null}
         {!hideRun && (prescription?.block || prescription?.heart) ? (
           <div className="rio-pace">
             {prescription?.block ? <p className="rio-pace-block">Block {prescription.block}</p> : null}
@@ -313,9 +310,15 @@ function Workout({
         {!hideRun ? <Prep session={session.session} /> : null}
         <p className="rio-eyebrow">After you run</p>
         <InjuryDay key={session.date} date={session.date} />
-        <CoreDay key={`${session.date}-core`} date={session.date} session={session.session} />
+        {!hideRun ? (
+          <Disclosure className="rio-prep-block" title="Core">
+            <PrepBody block={prepFor(session.session).find((block) => block.title === "Core") || { title: "Core" }} />
+            <CoreDay key={`${session.date}-core`} date={session.date} session={session.session} bare />
+          </Disclosure>
+        ) : (
+          <CoreDay key={`${session.date}-core`} date={session.date} session={session.session} bare />
+        )}
         <FoamDay key={`${session.date}-foam`} date={session.date} session={session.session} />
-        {active && !lead ? card : null}
         {session.heart_rate ? <Field label="Avg HR" value={session.heart_rate} /> : null}
         <ZoneTime zones={session.zones} />
         <section className="rio-session-section">
@@ -373,21 +376,20 @@ function PrepBody({ block }: { block: PrepBlock }) {
 function Prep({ session }: { session: SessionResponse["session"] }) {
   return (
     <div className="rio-prep">
-      {prepFor(session).map((block) => {
-        const tucked = block.title === "Cool-down" || block.title === "Core";
-        return (
-          <section className="rio-prep-block" key={block.title}>
-            <p className="rio-mark-label">{block.title}</p>
-            {tucked ? (
-              <Disclosure title="Details">
-                <PrepBody block={block} />
-              </Disclosure>
-            ) : (
+      {prepFor(session)
+        .filter((block) => block.title !== "Core")
+        .map((block) =>
+          block.title === "Cool-down" ? (
+            <Disclosure className="rio-prep-block" title={block.title} key={block.title}>
               <PrepBody block={block} />
-            )}
-          </section>
-        );
-      })}
+            </Disclosure>
+          ) : (
+            <section className="rio-prep-block" key={block.title}>
+              <p className="rio-mark-label">{block.title}</p>
+              <PrepBody block={block} />
+            </section>
+          ),
+        )}
     </div>
   );
 }

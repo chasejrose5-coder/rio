@@ -75,7 +75,8 @@ test("about shows the stadium photo, the credit, and a short intro", async ({ pa
   await expect(page.locator(".page-about .rio-photo-credit")).toHaveCSS("color", "rgb(244, 241, 236)");
   await expect(page.locator(".page-about .rio-mark-label").first()).toHaveCSS("color", "rgb(60, 58, 54)");
   await expect(page.locator(".page-about .rio-note").first()).toHaveCSS("color", "rgb(18, 17, 16)");
-  await expect(page.getByRole("navigation", { name: "More" }).getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
+  await expect(page.getByRole("navigation", { name: "More" }).getByRole("link", { name: "About" })).toHaveCount(0);
+  await expect(page.locator(".rio-quick").getByRole("link", { name: "Sign in" })).toHaveCount(0);
 
   const visible = await page.locator(".page-about").evaluate((root) => {
     const nodes = root.querySelectorAll(".rio-index, h1, .rio-photo-credit, .rio-mark-label, .rio-note, .rio-prose, .rio-k, .rio-v");
@@ -90,11 +91,6 @@ test("about shows the stadium photo, the credit, and a short intro", async ({ pa
   await expect(page.getByText("Those calls stop once recorded spend reaches $25.")).toHaveCount(0);
   await expect(page.getByText("RIO plans an 800 m season from rules.")).toBeVisible();
   await expect(page.getByText("The full details are in the Guide after you sign in.")).toBeVisible();
-  await expect(page.locator(".rio-quick").getByRole("link", { name: "Create account" })).toHaveAttribute(
-    "href",
-    "/create-account",
-  );
-  await expect(page.locator(".rio-quick").getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/sign-in");
   await expect(page.getByText("chasejrose5@gmail.com")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Privacy" })).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.sessionStorage.getItem("rio-motion-page"))).toBe("about");
@@ -132,13 +128,12 @@ test("creators shows Chase and keeps the Jay Rose placeholder in a comment", asy
   await expect(page.getByRole("link", { name: "Privacy" })).toBeVisible();
 });
 
-test("More opens About and Creators", async ({ page }) => {
+test("sign-in links to About, and More keeps Creators", async ({ page }) => {
+  await page.goto("/sign-in?skip=1");
+  await expect(page.locator(".rio-auth-about").getByRole("link", { name: "About", exact: true })).toHaveAttribute("href", "/about");
   await install(page);
   await page.goto("/more");
-  await page.locator(".rio-more-list").getByRole("link", { name: /About/ }).click();
-  await expect(page).toHaveURL(/\/about$/);
-  await expect(page.getByRole("heading", { name: "About", exact: true })).toBeVisible();
-  await expect(page.getByText("What RIO is", { exact: true })).toBeVisible();
+  await expect(page.locator(".rio-more-list").getByRole("link", { name: /About/ })).toHaveCount(0);
   await page.getByRole("navigation", { name: "More" }).getByRole("link", { name: "Creators" }).click();
   await expect(page).toHaveURL(/\/creators$/);
   await expect(page.getByRole("heading", { name: "Built by a runner, for runners." })).toBeVisible();

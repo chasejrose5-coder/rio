@@ -419,25 +419,12 @@
 @keyframes rio-bar-out { to { block-size: 0; opacity: 0; padding: 0; margin: 0; } }
 .rio-v3.page-home .rio-home-pair { display: grid; gap: 24px; align-items: start; }
 .rio-v3.page-home .rio-home-today { padding: 16px; }
-@media (max-width: 1279px) {
-  .rio-v3.page-home .rio-home-phase-col { display: contents; }
-  .rio-v3.page-home .rio-home-phase { order: 1; }
-  .rio-v3.page-home .rio-home-today { order: 2; }
-  .rio-v3.page-home .rio-home-upcoming { order: 3; }
-}
-@media (min-width: 1280px) {
-  .rio-v3.page-home .rio-home-pair { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
-  .rio-v3.page-home .rio-home-today { grid-column: 1; grid-row: 1; }
-  .rio-v3.page-home .rio-home-phase-col {
-    grid-column: 2;
-    grid-row: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    align-self: start;
-    min-width: 0;
-  }
-  .rio-v3.page-home .rio-home-phase-col .rio-next3 { grid-template-columns: 1fr; }
+@media (min-width: 1024px) {
+  .rio-v3.page-home .rio-home-pair { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); grid-template-rows: auto 1fr; }
+  .rio-v3.page-home .rio-home-pair > .rio-home-today { grid-column: 1; grid-row: 1 / span 2; }
+  .rio-v3.page-home .rio-home-pair > .rio-home-phase { grid-column: 2; grid-row: 1; position: static; }
+  .rio-v3.page-home .rio-home-pair > .rio-home-upcoming { grid-column: 2; grid-row: 2; align-self: start; min-width: 0; }
+  .rio-v3.page-home .rio-home-pair > .rio-home-upcoming .rio-next3 { grid-template-columns: 1fr; }
   .rio-v3.page-home .rio-home-pair > :only-child { grid-column: 1 / -1; }
 }
 .rio-v3.page-home .rio-next3 { display: grid; grid-template-columns: 1fr; gap: 16px; }
@@ -843,7 +830,6 @@
 .rio-v3 .rio-home-today .rio-track-day,
 .rio-v3 .rio-home-today .rio-track-fact-value { font-size: 24px; line-height: 28px; }
 .rio-v3.page-home .rio-home-today { padding: var(--space-5); }
-@media (min-width: 1280px) { .rio-v3.page-home .rio-home-phase { position: sticky; top: calc(var(--nav-h) + 16px); } }
 .rio-v3.page-home :where(main, .rio-home-stack) > * { order: 3; }
 .rio-v3.page-home :where(main, .rio-home-stack) > :is(.rio-secondary, .rio-primary) { justify-self: start; width: auto; padding: 0 var(--space-5); }
 .rio-v3 .rio-stretch-card { margin: 0; }
@@ -914,7 +900,7 @@
   .rio-v3 .rio-guide-contents a { flex: none; white-space: nowrap; }
 }
 
-/* Batch 2 — type and color. Hover lift on every card stays as specified. */
+/* Batch 2 — type and color. Clickable cards still lift. Cards that do nothing on click do not. */
 .rio-v3 .rio-index { color: var(--ink); }
 .rio-v3.page-home .rio-contact { color: var(--ink-2); }
 .rio-v3.page-home .rio-contact a { color: var(--ink); }
@@ -945,6 +931,70 @@
 /* N1–N4. The stretching card grid stays as committed; the body map is not put in a 7/5 split. */
 @media (max-width: 767px) {
   .rio-v3.page-home .rio-display { font-size: clamp(44px, 6vw, 88px); }
+  .rio-v3.page-home .rio-home-grid { grid-template-columns: minmax(0, 1fr); position: relative; }
+  .rio-v3.page-home .rio-home-grid > .rio-hero-art { position: absolute; top: 0; right: 0; width: 32px; height: auto; }
 }
+.auth-screen .rio-auth-about { margin: 0.75rem 0 0; text-align: center; }
+.auth-screen .rio-auth-about a { color: #f4f1ec; }
 .rio-v3 :is(.rio-stretch-card, .rio-lib-row, .rio-past-item):hover { transform: none; box-shadow: var(--shadow-1); }
 .rio-v3 div.rio-cal-day:hover { translate: none; }
+
+/* The week view header is a text title, not the photo hero. */
+.rio-v3 .rio-hero.rio-hero-week {
+  width: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0.2rem 0 0.4rem;
+  background: transparent;
+  color: var(--ink);
+  view-transition-name: none;
+  justify-content: flex-start;
+  overflow: visible;
+}
+.rio-v3 .rio-hero.rio-hero-week h2,
+.rio-v3 .rio-hero.rio-hero-week .rio-range { color: var(--ink); max-width: none; }
+
+/* More tiles are separate cards, not rows inside one box. */
+.page-more.rio-v3 .rio-more-list {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  overflow: visible;
+  max-width: none;
+}
+.page-more.rio-v3 .rio-more-row {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+
+/* Guide uses the row: the article takes the space beside a narrow rail. */
+.rio-v3 .rio-guide-read { max-width: none; }
+@media (min-width: 1024px) {
+  .rio-v3 .rio-guide-layout { grid-template-columns: minmax(0, 1fr) 220px; }
+  .rio-v3 .rio-on-page { display: block; position: sticky; top: calc(var(--nav-h) + 16px); }
+  .rio-v3 .rio-session-grid { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+  .rio-v3 .rio-session-log { position: sticky; top: calc(var(--nav-h) + 16px); grid-column: 1; grid-row: 1; align-self: start; min-width: 0; }
+  .rio-v3 .rio-session-grid > div:nth-child(2),
+  .rio-v3 .rio-session-grid > :nth-child(n + 3) { grid-column: 2; min-width: 0; }
+  .rio-v3 .rio-plan-split { grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); }
+  .rio-v3 .rio-settings-layout { grid-template-columns: minmax(0, 3fr) minmax(0, 9fr); }
+  .rio-v3 .rio-settings-index { position: sticky; top: calc(var(--nav-h) + 16px); flex-direction: column; overflow: visible; }
+}
+
+/* Core and foam libraries are quiet lists inside a category dropdown. */
+.rio-v3 .rio-calm-group { margin: 0; border-bottom: 1px solid var(--line); }
+.rio-v3 .rio-calm-group > button { width: 100%; min-height: 56px; }
+.rio-v3 .rio-calm-row { padding: 8px 0; }
+.rio-v3 .rio-calm-row h3 { margin: 0; font-size: 16px; line-height: 24px; font-weight: 600; }
+.rio-v3 .rio-calm-row p { margin: 2px 0 0; color: var(--ink-2); font-size: 14px; line-height: 20px; }
+
+.rio-page-meaning { display: inline-block; position: relative; }
+.rio-page-meaning > button { min-height: 44px; padding: 0 4px; color: inherit; background: transparent; border: 0; text-decoration: underline; text-underline-offset: 3px; }
+.rio-page-meaning > div { position: absolute; z-index: 6; left: 0; bottom: 48px; width: min(420px, calc(100vw - 32px)); padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: var(--shadow-2); text-align: left; }
+.rio-contact { position: relative; }
+.rio-legal-links { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; justify-content: center; }
+
+.rio-v3 .rio-prep-block { border-bottom: 1px solid var(--line); }
+.rio-v3 .rio-prep-block > button { width: 100%; min-height: 44px; justify-content: flex-start; }

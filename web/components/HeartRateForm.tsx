@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Footer } from "./Footer";
-import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api, rememberRead } from "@/lib/api";
@@ -477,8 +476,7 @@ function HeartRateStepBody() {
         {problem ? <LoadError message={problem} onRetry={() => setAttempt((value) => value + 1)} /> : null}
         {!profile && !problem ? <p className="rio-wait">Loading</p> : null}
         {profile && needsHeartRate(profile) ? <HeartRateForm profile={profile} mode="onboarding" /> : null}
-        <PageMeaning page="heart-rate" />
-        <Footer />
+        <Footer page="heart-rate" />
       </main>
     </div>
   );

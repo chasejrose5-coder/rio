@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
-import { PageMeaning } from "./PageMeaning";
 import { RequireUser } from "./RequireUser";
 import { GUIDE_LEDE, GUIDE_SECTIONS, GUIDE_TITLE } from "@/lib/guide-copy";
 import { Glossary } from "./Glossary";
@@ -12,7 +11,7 @@ import { Glossary } from "./Glossary";
 function OnThisPage() {
   const [wide, setWide] = useState(false);
   useEffect(() => {
-    const query = window.matchMedia("(min-width: 1280px)");
+    const query = window.matchMedia("(min-width: 1024px)");
     const apply = () => setWide(query.matches);
     apply();
     query.addEventListener("change", apply);
@@ -91,8 +90,7 @@ export function GuideView() {
           </div>
           <OnThisPage />
           </div>
-          <PageMeaning page="guide" />
-          <Footer />
+          <Footer page="guide" />
         </main>
       </div>
     </RequireUser>

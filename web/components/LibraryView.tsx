@@ -2,7 +2,6 @@
 
 import { Fragment, useEffect, useRef, useState } from "react";
 import { Footer } from "./Footer";
-import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { SkeletonBlocks } from "./PageSkeleton";
 import { RequireUser } from "./RequireUser";
@@ -188,8 +187,7 @@ function LibraryBody() {
             )}
           </>
         ) : null}
-        <PageMeaning page="library" />
-        <Footer />
+        <Footer page="library" />
       </main>
     </div>
   );

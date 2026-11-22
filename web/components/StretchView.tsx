@@ -5,7 +5,6 @@ import { BodyMap } from "./BodyMap";
 import { Disclosure } from "./Disclosure";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
-import { PageMeaning } from "./PageMeaning";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api, isSignedOut } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -304,8 +303,7 @@ function StretchBody() {
             </section>
           </>
         ) : null}
-        <PageMeaning page="stretching" />
-        <Footer />
+        <Footer page="stretching" />
       </main>
     </div>
   );

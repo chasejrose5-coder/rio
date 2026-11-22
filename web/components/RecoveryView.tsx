@@ -4,7 +4,6 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Disclosure } from "./Disclosure";
 import { Footer } from "./Footer";
 import { Nav } from "./Nav";
-import { PageMeaning } from "./PageMeaning";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api, isSignedOut, previewing } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -211,8 +210,7 @@ function RecoveryBody() {
         {mode === "error" ? <LoadError message={problem} onRetry={() => setAttempt((value) => value + 1)} /> : null}
         {problem && mode !== "error" ? <ErrorText>{problem}</ErrorText> : null}
         <p className="rio-medical">{INJURY_DISCLAIMER}</p>
-        <PageMeaning page="recovery" />
-        <Footer />
+        <Footer page="recovery" />
       </main>
     </div>
   );

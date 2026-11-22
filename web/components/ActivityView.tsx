@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Expander } from "./Expander";
 import { Footer } from "./Footer";
-import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { PreviewBanner } from "./PreviewBanner";
 import { SkeletonBlocks } from "./PageSkeleton";
@@ -246,14 +245,24 @@ function ActivityBody() {
                 <p className="rio-note">Refresh from Strava. This week&apos;s runs, distance, and heart rate will show up here.</p>
               </div>
             ) : null}
-            {(body.groups || []).map((group) => (
-              <Week key={group.title} title={group.title} open={group.open} cards={group.cards} />
-            ))}
+            {(body.groups || [])
+              .filter((group) => group.open)
+              .map((group) => (
+                <Week key={group.title} title={group.title} open={group.open} cards={group.cards} />
+              ))}
+            {(body.groups || []).some((group) => !group.open) ? (
+              <Expander className="rio-past-weeks" title="Past weeks">
+                {(body.groups || [])
+                  .filter((group) => !group.open)
+                  .map((group) => (
+                    <Week key={group.title} title={group.title} open={false} cards={group.cards} />
+                  ))}
+              </Expander>
+            ) : null}
             <Legacy body={body} units={unitsOf(athlete?.prefs.units)} showIds={athlete?.prefs.show_ids === true} />
           </>
         ) : null}
-        <PageMeaning page="activity" />
-        <Footer />
+        <Footer page="activity" />
       </main>
     </div>
   );

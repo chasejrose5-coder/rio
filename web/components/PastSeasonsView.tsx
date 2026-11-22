@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
 import { shareHero } from "./present/motion";
 import { Footer } from "./Footer";
-import { PageMeaning } from "./PageMeaning";
 import { Nav } from "./Nav";
 import { SkeletonBlocks } from "./PageSkeleton";
 import { RequireUser } from "./RequireUser";
@@ -187,8 +186,7 @@ function PastSeasonsBody() {
             })}
           </div>
         ) : null}
-        <PageMeaning page="past-seasons" />
-        <Footer />
+        <Footer page="past-seasons" />
       </main>
     </div>
   );
