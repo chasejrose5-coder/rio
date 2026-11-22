@@ -144,6 +144,9 @@ test("signed-in routes stay quiet", async ({ page }) => {
   expect(season.ok()).toBeTruthy();
 
   const log = watch(page);
+  await page.goto("/home", { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(300);
+  log.take("warmup");
   for (const width of [1280, 375]) {
     await page.setViewportSize({ width, height: width === 375 ? 812 : 900 });
     for (const path of SIGNED_IN) {
