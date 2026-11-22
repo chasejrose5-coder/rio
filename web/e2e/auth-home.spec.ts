@@ -362,6 +362,10 @@ test("home shows rest-day copy, extras, the open index, and no-watch controls", 
   await expect(page.getByRole("button", { name: "Done" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Couldn't finish" })).toBeVisible();
   await expect(page.getByRole("button", { name: "On track" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Details" })).toHaveCount(0);
+  await expect(page.getByText("A training block is one phase of the season.")).toHaveCount(0);
+  await expect(page.getByText("A timed effort is a run you logged.")).toHaveCount(0);
+  await expect(page.getByText("Times use minutes:seconds.tenths, like 2:05.0.")).toHaveCount(0);
 });
 
 test("a current season skips the intro, and intro_seen false shows it again", async ({ page }) => {

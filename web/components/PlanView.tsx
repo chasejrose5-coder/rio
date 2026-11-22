@@ -296,8 +296,7 @@ function PlanReady({
   const current = plan.weeks.find((row) => row.status === "current");
   const phaseNote = current && current.phase && current.phase !== "—" ? `This week is phase ${current.phase}.` : "";
   const spans = phaseSpans(plan.weeks);
-  const currentSpan = spans.find((span) => span.currentWeek != null) ?? spans[0];
-  const [openPhase, setOpenPhase] = useState(currentSpan?.key ?? "");
+  const [openPhase, setOpenPhase] = useState("");
   const openSpan = spans.find((span) => span.key === openPhase) ?? null;
   const emptyWeeks = plan.weeks.every((row) => row.meters === 0);
   const selected = picked && picked >= 1 && picked <= length ? picked : weekContaining(plan.inputs.start_date, length, today);

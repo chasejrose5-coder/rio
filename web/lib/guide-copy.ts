@@ -164,7 +164,7 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
     bullets: [
       "Name, email, and a password of at least 8 characters. On riorunning.com, RIO emails you a link to confirm your account.",
       "Easy pace is minutes and seconds, like 7:25, per mile or per kilometer.",
-      "On Start, enter today's 800, the start date, the goal 800 m time, and the race date. Times look like 2:05.0. Generate season plan opens Home.",
+      "On Start, enter today's 800, the start date, the goal 800 m time, and the race date. Times use minutes:seconds.tenths, like 2:05.0. Generate season plan opens Home.",
       "Connect Strava on Home or in Settings. Strava is the only place runs are imported from, and those runs are only visible to you.",
     ],
   },
@@ -175,6 +175,7 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
       "Home shows the days left until your goal 800 m time, the current phase, and today's workout or the next one. Start session opens that day.",
     ],
     bullets: [
+      "A timed effort is a run you logged.",
       "A quality line reads like 6 × 400 m @ 71.2 s, 90 s rest: the reps, the time for each rep, and the rest.",
       "When the reps share that time, it is their average. Tolerance is the window around it. Block adds the reps and the rests between them.",
       "Type a time for each rep, or finish with Done when you don't use a watch. Got it clears a season note.",
@@ -209,7 +210,9 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
   {
     id: "phases",
     title: "Phases",
-    paragraphs: ["The season moves through eight phases. Home calls the current one the training block."],
+    paragraphs: [
+      "The season moves through eight phases. A training block is one phase of the season. Home calls the current one the training block.",
+    ],
     bullets: [
       "Phase 1. Aerobic, with max velocity and speed beside it.",
       "Phase 2. Aerobic, with max velocity and speed beside it. The short fast reps step up from phase 1.",

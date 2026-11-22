@@ -52,6 +52,9 @@ test("the guide states the week, the paces, and the lines from the season rules"
   assert.match(text, /times 10/);
   assert.match(text, /times 11/);
   assert.match(text, /The short fast reps step up from phase 1/);
+  assert.match(text, /A training block is one phase of the season/);
+  assert.match(text, /A timed effort is a run you logged/);
+  assert.match(text, /Times use minutes:seconds\.tenths, like 2:05\.0/);
   assert.match(text, /on_track/);
   assert.match(text, /Those calls stop once recorded spend reaches \$25/);
   for (const word of BANNED) assert.equal(text.includes(word), false, word);

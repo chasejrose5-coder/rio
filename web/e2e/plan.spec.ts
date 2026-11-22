@@ -256,8 +256,12 @@ test("a season shows the hero, phases, weeks, and all three views", async ({ pag
   const currentPhase = page.locator(".rio-phase-now");
   await expect(currentPhase).toContainText("Speed endurance arrives");
   await expect(currentPhase).toContainText("Week 1");
-  await expect(currentPhase).toHaveAttribute("aria-expanded", "true");
+  await expect(currentPhase).toHaveAttribute("aria-expanded", "false");
   await expect(page.locator(".rio-phase")).toHaveCount(1);
+  await expect(page.locator(".rio-phase-detail")).toHaveCount(0);
+  await expect(page.getByText("Week 2 · 2026-11-15 — 2026-11-21")).toHaveCount(0);
+  await currentPhase.click();
+  await expect(currentPhase).toHaveAttribute("aria-expanded", "true");
   await expect(page.getByText("Week 1 · 2026-11-08 — 2026-11-14")).toBeVisible();
   await expect(page.getByText("Week 2 · 2026-11-15 — 2026-11-21")).toBeVisible();
   await expect(page.locator(".rio-phase-this")).toHaveText("Now");

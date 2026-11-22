@@ -49,6 +49,9 @@ test("the plan calendar fills the page, and a session log appears only inside a 
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/plan");
     await expect(page.getByRole("group", { name: "Season phases" })).toBeVisible();
+    await expect(page.locator(".rio-cal")).toBeVisible();
+    await expect(page.locator(".rio-phase-detail")).toHaveCount(0);
+    await page.locator(".rio-phase-now").click();
     const planBox = await page.evaluate(() => {
       const main = document.querySelector("main");
       const column = document.querySelector(".rio-plan-main");
