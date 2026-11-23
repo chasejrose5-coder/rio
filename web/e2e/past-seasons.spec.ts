@@ -155,8 +155,9 @@ test("a slow list shows the nav and a skeleton", async ({ page }) => {
   await expect(page.getByRole("navigation", { name: "Pages" }).getByRole("link", { name: "Home" })).toBeVisible();
   await expect(page.getByText("Loading", { exact: true })).toHaveCount(0);
   await expect(page.locator(".rio-skel").first()).toBeVisible();
-  mkdirSync("/opt/cursor/artifacts", { recursive: true });
-  await page.screenshot({ path: "/opt/cursor/artifacts/past-seasons-skeleton-phone.png", fullPage: true });
+  const shots = process.env.RIO_ARTIFACTS || "test-results";
+  mkdirSync(shots, { recursive: true });
+  await page.screenshot({ path: `${shots}/past-seasons-skeleton-phone.png`, fullPage: true });
   release();
   await expect(page.getByText("Aug 2, 2026", { exact: false }).first()).toBeVisible();
   await expect(page.locator(".rio-skel")).toHaveCount(0);

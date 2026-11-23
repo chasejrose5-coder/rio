@@ -99,7 +99,8 @@ async function install(page: Page) {
 }
 
 test("a run shows time in zone and tells the runner to slow down", async ({ page }) => {
-  mkdirSync("/opt/cursor/artifacts", { recursive: true });
+  const shots = process.env.RIO_ARTIFACTS || "test-results";
+  mkdirSync(shots, { recursive: true });
   await install(page);
   await page.goto("/sign-in?skip=1");
   await page.getByLabel("Email").fill(athlete.email);
@@ -112,7 +113,7 @@ test("a run shows time in zone and tells the runner to slow down", async ({ page
   await expect(page.getByText("15:00")).toBeVisible();
   await expect(page.getByText(/slow down or stop/)).toBeVisible();
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.screenshot({ path: "/opt/cursor/artifacts/zone-time-desktop.png", fullPage: true });
+  await page.screenshot({ path: `${shots}/zone-time-desktop.png`, fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: "/opt/cursor/artifacts/zone-time-phone.png", fullPage: true });
+  await page.screenshot({ path: `${shots}/zone-time-phone.png`, fullPage: true });
 });

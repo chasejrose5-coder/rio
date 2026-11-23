@@ -102,9 +102,9 @@ test("the core library and a hard-day circuit stay near eight minutes", async ({
 
   if (process.env.RIO_SHOTS) {
     await page.setViewportSize({ width: 1280, height: 1200 });
-    await page.screenshot({ path: "/opt/cursor/artifacts/pr-b-core-desktop.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/pr-b-core-desktop.png` });
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.screenshot({ path: "/opt/cursor/artifacts/pr-b-core-phone.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/pr-b-core-phone.png` });
   }
 
   const circuit = circuitFor(today, [quality]);
@@ -123,9 +123,9 @@ test("the core library and a hard-day circuit stay near eight minutes", async ({
   if (process.env.RIO_SHOTS) {
     await page.setViewportSize({ width: 1280, height: 1000 });
     await block.evaluate((element) => element.scrollIntoView({ block: "center" }));
-    await page.screenshot({ path: "/opt/cursor/artifacts/pr-b-session-desktop.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/pr-b-session-desktop.png` });
     await page.setViewportSize({ width: 390, height: 844 });
     await block.evaluate((element) => element.scrollIntoView({ block: "center" }));
-    await page.screenshot({ path: "/opt/cursor/artifacts/pr-b-session-phone.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/pr-b-session-phone.png` });
   }
 });

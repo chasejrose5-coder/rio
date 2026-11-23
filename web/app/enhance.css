@@ -954,6 +954,10 @@
   .rio-v3 .rio-body-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .rio-v3 .rio-body-legend button { min-height: 44px; width: 100%; padding: 0 8px; }
 }
+@media (min-width: 861px) {
+  .rio-v3 .rio-body-legend { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 8px; }
+  .rio-v3 .rio-body-legend button { min-height: 44px; width: 100%; padding: 0 8px; }
+}
 
 /* N1–N4. The stretching card grid stays as committed; the body map is not put in a 7/5 split. */
 @media (max-width: 767px) {
@@ -980,6 +984,10 @@
 }
 .rio-v3 .rio-hero.rio-hero-week h2,
 .rio-v3 .rio-hero.rio-hero-week .rio-range { color: var(--ink); max-width: none; }
+.rio-v3 #rio-week-heading:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
 
 /* More tiles are separate cards, not rows inside one box. */
 .page-more.rio-v3 .rio-more-list {

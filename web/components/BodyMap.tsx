@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type RefObject } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import { REGIONS, regionById } from "@/lib/stretch-content";
 import { BACK_EXTRAS, FRONT_EXTRAS, REGION_OF } from "@/lib/body-regions";
 import { expandDrawn, midlineOf, type Drawn } from "@/lib/body-symmetry";
@@ -198,43 +198,6 @@ function MirroredPaths({
   );
 }
 
-/** A transparent pad so a thin muscle is still a 44px target. It does not paint. */
-function HitPad({ size }: { size: number }) {
-  const ref = useRef<SVGRectElement>(null);
-  useLayoutEffect(() => {
-    const rect = ref.current;
-    const group = rect?.parentElement;
-    if (!rect || !(group instanceof SVGGElement) || size < 1) return;
-    const paths = [...group.querySelectorAll("path")];
-    if (!paths.length) return;
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    for (const path of paths) {
-      let box: DOMRect;
-      try {
-        box = path.getBBox();
-      } catch {
-        return;
-      }
-      minX = Math.min(minX, box.x);
-      minY = Math.min(minY, box.y);
-      maxX = Math.max(maxX, box.x + box.width);
-      maxY = Math.max(maxY, box.y + box.height);
-    }
-    const width = Math.max(maxX - minX, size);
-    const height = Math.max(maxY - minY, size);
-    const centerX = (minX + maxX) / 2;
-    const centerY = (minY + maxY) / 2;
-    rect.setAttribute("x", String(centerX - width / 2));
-    rect.setAttribute("y", String(centerY - height / 2));
-    rect.setAttribute("width", String(width));
-    rect.setAttribute("height", String(height));
-  }, [size]);
-  return <rect ref={ref} className="rio-region-hit" fill="transparent" />;
-}
-
 function regionAt(svg: SVGSVGElement, clientX: number, clientY: number): string | null {
   const point = svg.createSVGPoint();
   point.x = clientX;
@@ -242,7 +205,7 @@ function regionAt(svg: SVGSVGElement, clientX: number, clientY: number): string 
   const matrix = svg.getScreenCTM();
   if (!matrix) return null;
   const local = point.matrixTransform(matrix.inverse());
-  const paths = svg.querySelectorAll<SVGPathElement>("path[data-region]");
+  const paths = [...svg.querySelectorAll<SVGPathElement>("path[data-region]")].reverse();
   for (const path of paths) {
     const region = path.dataset.region;
     if (!region) continue;
@@ -335,7 +298,6 @@ function Figure({
             onClick={() => onPick(regionId)}
             onKeyDown={(event) => onKey(event, () => onPick(regionId))}
           >
-            <HitPad size={fontSize * 2.2} />
             {[...bySlug.entries()].map(([slug, paths]) => (
               <MirroredPaths
                 key={slug}

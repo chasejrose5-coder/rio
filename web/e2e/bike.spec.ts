@@ -137,7 +137,7 @@ test("an easy day offers a bike swap, and the week recap keeps bike distance off
 
   if (process.env.RIO_SHOTS) {
     await swap.evaluate((element) => element.scrollIntoView({ block: "center" }));
-    await page.screenshot({ path: "/opt/cursor/artifacts/pr-bike-session-phone.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/pr-bike-session-phone.png` });
   }
 
   await page.goto("/plan");
@@ -152,6 +152,6 @@ test("an easy day offers a bike swap, and the week recap keeps bike distance off
 
   if (process.env.RIO_SHOTS) {
     await recap.evaluate((element) => element.scrollIntoView({ block: "start" }));
-    await page.screenshot({ path: "/opt/cursor/artifacts/pr-bike-recap-phone.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/pr-bike-recap-phone.png` });
   }
 });

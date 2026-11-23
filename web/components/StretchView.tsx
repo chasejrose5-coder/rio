@@ -229,7 +229,7 @@ function StretchBody() {
                       type="button"
                       className={item.done ? "rio-primary" : "rio-secondary"}
                       aria-pressed={item.done}
-                      aria-label={item.done ? `${item.routine.name} done` : `Mark ${item.routine.name} done`}
+                      aria-label={item.done ? `Done today: ${item.routine.name}` : `Mark done: ${item.routine.name}`}
                       disabled={busy !== ""}
                       onClick={() => void run(item.routine.id, () => api.stretchComplete(item.routine.id, !item.done))}
                     >
