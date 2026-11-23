@@ -58,7 +58,8 @@ async function json(route: Route, body: unknown, status = 200) {
 }
 
 test("a learned easy pace range is shown on the workout", async ({ page }) => {
-  mkdirSync("/opt/cursor/artifacts", { recursive: true });
+  const shots = process.env.RIO_ARTIFACTS || "test-results";
+  mkdirSync(shots, { recursive: true });
   let signed = false;
   await page.route("**/*", async (route) => {
     const url = new URL(route.request().url());
@@ -90,7 +91,7 @@ test("a learned easy pace range is shown on the workout", async ({ page }) => {
   await expect(page.getByText("Learned from 6 Zone 2 runs.")).toBeVisible();
   await expect(page.getByText("7:10–7:50 per mile")).toBeVisible();
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.screenshot({ path: "/opt/cursor/artifacts/pace-learn-desktop.png", fullPage: true });
+  await page.screenshot({ path: `${shots}/pace-learn-desktop.png`, fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: "/opt/cursor/artifacts/pace-learn-phone.png", fullPage: true });
+  await page.screenshot({ path: `${shots}/pace-learn-phone.png`, fullPage: true });
 });

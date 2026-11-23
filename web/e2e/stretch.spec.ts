@@ -121,6 +121,23 @@ async function clickMuscle(page: Page, name: string) {
   await page.mouse.click(point!.x, point!.y);
 }
 
+test("the muscle legend stays at least 44px tall on a laptop", async ({ page }) => {
+  await install(page);
+  for (const width of [1024, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/stretch");
+    const buttons = page.locator(".rio-body-legend button");
+    await expect(buttons.first()).toBeVisible();
+    const short = await buttons.evaluateAll((nodes) =>
+      nodes.flatMap((node) => {
+        const box = node.getBoundingClientRect();
+        return Math.round(box.height) < 44 ? [`${Math.round(box.height)}px ${node.textContent?.trim()}`] : [];
+      }),
+    );
+    expect(short, `${width}`).toEqual([]);
+  }
+});
+
 test("tapping a region adds its stretches, sharp pain does not, and Done sticks", async ({ page }) => {
   await install(page);
   await page.goto("/stretch");
@@ -155,6 +172,13 @@ test("tapping a region adds its stretches, sharp pain does not, and Done sticks"
   await page.getByRole("button", { name: "Sharp pain / getting worse" }).click();
   await expect(prescription.getByText("Stop stretching that area")).toBeVisible();
   await expect(prescription.getByRole("heading", { name: "Extra for sore spots" })).toHaveCount(0);
+
+  await clickMuscle(page, "Hip flexors, front view");
+  await expect(page.getByRole("heading", { name: "Hip flexors", exact: true })).toBeVisible();
+  await clickMuscle(page, "IT band / outer hip, front view");
+  await expect(page.getByRole("heading", { name: "IT band / outer hip", exact: true })).toBeVisible();
+  await clickMuscle(page, "IT band / outer hip, back view");
+  await expect(page.getByRole("heading", { name: "IT band / outer hip", exact: true })).toBeVisible();
 
   await clickMuscle(page, "Calves / Achilles, front view");
   await page.getByRole("button", { name: "Moderate", exact: true }).click();

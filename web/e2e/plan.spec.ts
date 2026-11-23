@@ -279,12 +279,13 @@ test("a season shows the hero, phases, weeks, and all three views", async ({ pag
   await expect(page.getByRole("heading", { name: "Week 1" })).toBeVisible();
   await expect.poll(async () => (await page.locator(".rio-plan-view").boundingBox())?.y ?? 9999).toBeLessThan(160);
   await expect.poll(async () => page.evaluate(() => document.activeElement?.id || "")).toBe("rio-week-heading");
+  await expect.poll(async () => page.locator("#rio-week-heading").evaluate((node) => getComputedStyle(node).outlineStyle)).toBe("solid");
   await page.getByRole("radio", { name: "Calendar" }).click();
   if (process.env.RIO_SHOTS) {
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.screenshot({ path: "/opt/cursor/artifacts/plan-phases-desktop.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/plan-phases-desktop.png` });
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.screenshot({ path: "/opt/cursor/artifacts/plan-phases-phone.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/plan-phases-phone.png` });
     await page.setViewportSize({ width: 1280, height: 720 });
   }
   const weeks = page.locator("details.rio-weeks");
@@ -453,11 +454,12 @@ test("a brand-new account reaches Plan from Start and can mark a week", async ({
   await expect(page.getByLabel("Goal date")).toHaveValue(goal);
   await page.getByRole("button", { name: "Generate season plan" }).click();
   await expect(page).toHaveURL(/\/home\?/);
-  mkdirSync("/opt/cursor/artifacts", { recursive: true });
+  const shots = process.env.RIO_ARTIFACTS || "test-results";
+  mkdirSync(shots, { recursive: true });
   await expect(page.getByText(/Zone 2|Run at/).first()).toBeVisible();
-  await page.screenshot({ path: "/opt/cursor/artifacts/hr-workout-home-desktop.png", fullPage: true });
+  await page.screenshot({ path: `${shots}/hr-workout-home-desktop.png`, fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: "/opt/cursor/artifacts/hr-workout-home-phone.png", fullPage: true });
+  await page.screenshot({ path: `${shots}/hr-workout-home-phone.png`, fullPage: true });
   await page.setViewportSize({ width: 1280, height: 720 });
 
   await page.goto("/plan");
@@ -478,9 +480,9 @@ test("a brand-new account reaches Plan from Start and can mark a week", async ({
     page.getByText(/Run at 7:45 per mile|Set your easy pace before this run\.|Zone 2/).first(),
   ).toBeVisible();
   await expect(page.getByText("still creating your estimate").first()).toBeVisible();
-  await page.screenshot({ path: "/opt/cursor/artifacts/hr-workout-plan-desktop.png", fullPage: true });
+  await page.screenshot({ path: `${shots}/hr-workout-plan-desktop.png`, fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: "/opt/cursor/artifacts/hr-workout-plan-phone.png", fullPage: true });
+  await page.screenshot({ path: `${shots}/hr-workout-plan-phone.png`, fullPage: true });
   await page.setViewportSize({ width: 1280, height: 720 });
   let paceLine = page.locator(".rio-pace-line", { hasText: /@/ }).first();
   if ((await paceLine.count()) === 0) {

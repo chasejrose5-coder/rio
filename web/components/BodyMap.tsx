@@ -205,7 +205,7 @@ function regionAt(svg: SVGSVGElement, clientX: number, clientY: number): string 
   const matrix = svg.getScreenCTM();
   if (!matrix) return null;
   const local = point.matrixTransform(matrix.inverse());
-  const paths = svg.querySelectorAll<SVGPathElement>("path[data-region]");
+  const paths = [...svg.querySelectorAll<SVGPathElement>("path[data-region]")].reverse();
   for (const path of paths) {
     const region = path.dataset.region;
     if (!region) continue;
