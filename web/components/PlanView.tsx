@@ -359,13 +359,14 @@ function PlanReady({
                 }
                 data-phase={span.phase}
                 aria-expanded={open}
-                aria-controls="rio-phase-panel"
+                aria-controls={openPhase ? "rio-phase-panel" : undefined}
                 aria-label={`${span.name}${span.currentWeek != null ? ` Week ${span.currentWeek}` : ""}, phase ${span.phase}, ${weeks} ${weeks === 1 ? "week" : "weeks"}${
                   span.currentWeek != null ? `, week ${span.currentWeek} is this week` : ""
                 }`}
                 onClick={() => setOpenPhase((key) => (key === span.key ? "" : span.key))}
               >
                 <span className="rio-phase-label">{span.name}</span>
+                {span.currentWeek != null ? " " : null}
                 {span.currentWeek != null ? <span className="rio-phase-mark">Week {span.currentWeek}</span> : null}
               </button>
             );
@@ -386,7 +387,10 @@ function PlanReady({
                       onWeek(week);
                       onView("This week");
                       requestAnimationFrame(() => {
-                        document.querySelector(".rio-plan-view")?.scrollIntoView({ block: "start" });
+                        const view = document.querySelector(".rio-plan-view");
+                        view?.scrollIntoView({ block: "start" });
+                        const heading = view?.querySelector("#rio-week-heading");
+                        if (heading instanceof HTMLElement) heading.focus({ preventScroll: true });
                       });
                     }}
                   >
@@ -529,6 +533,7 @@ function CalCell({ cell }: { cell: PlanDay }) {
   const body = (
     <>
       <div className="rio-cal-num">{cell.in_month ? cell.day : ""}</div>
+      {cell.in_month ? " " : null}
       <div className="rio-cal-label">{cell.in_month ? label : ""}</div>
       {cell.in_month && !cell.template_id ? <div className="rio-rest">Rest</div> : null}
     </>
@@ -598,7 +603,9 @@ function ThisWeek({
   return (
     <section className="rio-this-week">
       <header className="rio-hero rio-hero-week">
-        <h2>Week {week}</h2>
+        <h2 id="rio-week-heading" tabIndex={-1}>
+          Week {week}
+        </h2>
         <p className="rio-range">{weekSpan(plan.inputs.start_date, week, phase, format)}</p>
       </header>
       <div className="rio-pick">

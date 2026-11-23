@@ -102,7 +102,7 @@ async function install(page: Page, options: { showIds?: boolean; fail?: string; 
 }
 
 test("a slow menu shows the nav and a skeleton", async ({ page }) => {
-  const shots = "/opt/cursor/artifacts";
+  const shots = process.env.RIO_ARTIFACTS || "test-results";
   mkdirSync(shots, { recursive: true });
   let release: () => void = () => undefined;
   const hold = new Promise<void>((resolve) => {

@@ -208,9 +208,9 @@ test("an easy run uses the saved pace and does not ask for a rep time", async ({
   await expect(page.getByText("1.55")).toHaveCount(0);
   if (process.env.RIO_SHOTS) {
     await page.setViewportSize({ width: 1280, height: 1000 });
-    await page.screenshot({ path: "/opt/cursor/artifacts/easy-warmup-desktop.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/easy-warmup-desktop.png` });
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.screenshot({ path: "/opt/cursor/artifacts/easy-warmup-phone.png" });
+    await page.screenshot({ path: `${process.env.RIO_ARTIFACTS || "test-results"}/easy-warmup-phone.png` });
   }
   await expect(page.locator(".rio-session-log")).toHaveCount(0);
   await expect(page.getByText("Log", { exact: true })).toHaveCount(0);

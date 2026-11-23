@@ -259,11 +259,13 @@ test("a season shows the hero, phases, weeks, and all three views", async ({ pag
   await expect(currentPhase).toContainText("Speed endurance arrives");
   await expect(currentPhase).toContainText("Week 1");
   await expect(currentPhase).toHaveAttribute("aria-expanded", "false");
+  await expect(currentPhase).not.toHaveAttribute("aria-controls");
   await expect(page.locator(".rio-phase")).toHaveCount(1);
   await expect(page.locator(".rio-phase-detail")).toHaveCount(0);
   await expect(page.getByText("Week 2 · 2026-11-15 — 2026-11-21")).toHaveCount(0);
   await currentPhase.click();
   await expect(currentPhase).toHaveAttribute("aria-expanded", "true");
+  await expect(currentPhase).toHaveAttribute("aria-controls", "rio-phase-panel");
   await expect(page.getByText("Week 1 · 2026-11-08 — 2026-11-14")).toBeVisible();
   await expect(page.getByText("Week 2 · 2026-11-15 — 2026-11-21")).toBeVisible();
   await expect(page.locator(".rio-phase-this")).toHaveText("Now");
@@ -276,6 +278,7 @@ test("a season shows the hero, phases, weeks, and all three views", async ({ pag
   await expect(page.getByRole("radio", { name: "This week" })).toBeChecked();
   await expect(page.getByRole("heading", { name: "Week 1" })).toBeVisible();
   await expect.poll(async () => (await page.locator(".rio-plan-view").boundingBox())?.y ?? 9999).toBeLessThan(160);
+  await expect.poll(async () => page.evaluate(() => document.activeElement?.id || "")).toBe("rio-week-heading");
   await page.getByRole("radio", { name: "Calendar" }).click();
   if (process.env.RIO_SHOTS) {
     await page.setViewportSize({ width: 1280, height: 900 });

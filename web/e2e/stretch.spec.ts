@@ -147,12 +147,7 @@ test("tapping a region adds its stretches, sharp pain does not, and Done sticks"
   await expect(prescription.locator("svg")).toHaveCount(0);
   await expect(page.getByTestId("stretch-library").locator("svg")).toHaveCount(0);
   await expect(page.getByTestId("body-front")).toBeAttached();
-  await expect.poll(async () => page.evaluate(() => {
-    return [...document.querySelectorAll(".rio-region")].filter((node) => {
-      const box = node.getBoundingClientRect();
-      return box.width >= 1 && (Math.round(box.width) < 44 || Math.round(box.height) < 44);
-    }).length;
-  })).toBe(0);
+  await expect(page.locator(".rio-region-hit")).toHaveCount(0);
 
   const neck = page.getByRole("button", { name: "Neck, front view" });
   await neck.focus();
@@ -174,12 +169,12 @@ test("tapping a region adds its stretches, sharp pain does not, and Done sticks"
   await expect(page.getByTestId("stretch-library").getByRole("heading", { name: "Lying strap hamstring stretch" })).toBeVisible();
   await expect(page.getByTestId("stretch-library").getByRole("heading", { name: "Leg swings front-back" })).toHaveCount(0);
 
-  await page.getByRole("button", { name: `Mark ${warmup} done` }).click();
-  await expect(page.getByRole("button", { name: `${warmup} done` })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: `Mark done: ${warmup}` }).click();
+  await expect(page.getByRole("button", { name: `Done today: ${warmup}` })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("stretch-week")).toHaveText("1 routine done this week · 1-day streak");
   await expect(page.getByText("What this page means")).toBeVisible();
-  await page.getByRole("button", { name: `${warmup} done` }).click();
-  await expect(page.getByRole("button", { name: `Mark ${warmup} done` })).toHaveAttribute("aria-pressed", "false");
+  await page.getByRole("button", { name: `Done today: ${warmup}` }).click();
+  await expect(page.getByRole("button", { name: `Mark done: ${warmup}` })).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByTestId("stretch-week")).toHaveText("0 routines done this week · No streak yet");
 });
 
@@ -193,12 +188,12 @@ test("a rest day with no season posts Done, and a second click clears it", async
   });
   await page.goto("/stretch");
   await expect(page.getByText("Today · Rest day")).toBeVisible();
-  await page.getByRole("button", { name: "Mark Spine opener done" }).click();
-  await expect(page.getByRole("button", { name: "Spine opener done" })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Mark done: Spine opener" }).click();
+  await expect(page.getByRole("button", { name: "Done today: Spine opener" })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("stretch-week")).toHaveText("1 routine done this week · 1-day streak");
   expect(posts).toEqual([{ routine_id: "rest-warm-spine", done: true }]);
-  await page.getByRole("button", { name: "Spine opener done" }).click();
-  await expect(page.getByRole("button", { name: "Mark Spine opener done" })).toHaveAttribute("aria-pressed", "false");
+  await page.getByRole("button", { name: "Done today: Spine opener" }).click();
+  await expect(page.getByRole("button", { name: "Mark done: Spine opener" })).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByTestId("stretch-week")).toHaveText("0 routines done this week · No streak yet");
   expect(posts[1]).toEqual({ routine_id: "rest-warm-spine", done: false });
 });
