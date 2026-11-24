@@ -7,14 +7,16 @@ export function Footer({
   onPhoto = false,
   page,
   showAbout = false,
+  showMedical = true,
 }: {
   onPhoto?: boolean;
   page?: PageMeaningId;
   showAbout?: boolean;
+  showMedical?: boolean;
 }) {
   return (
     <footer className={onPhoto ? "rio-contact on-photo" : "rio-contact"}>
-      <p className="rio-medical-note">{MEDICAL_NOTE}</p>
+      {showMedical ? <p className="rio-medical-note">{MEDICAL_NOTE}</p> : null}
       <div className="rio-legal-links">
         {page ? <PageMeaning page={page} /> : null}
         {page ? <span aria-hidden="true"> · </span> : null}

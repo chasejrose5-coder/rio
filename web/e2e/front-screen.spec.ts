@@ -1,3 +1,4 @@
+import { mkdirSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 
 function channel(value: number): number {
@@ -65,7 +66,21 @@ test("the landing fits a 1280x800 screen and links to About and Log in", async (
   await expect(page.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/sign-in?skip=1");
   await expect(page.getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
   await expect(page.getByText("Photo by Giant Asparagus on Pexels")).toBeVisible();
-  await expect(page.getByText(/Not medical advice/)).toBeVisible();
+  await expect(page.locator(".rio-splash").getByText(/Not medical advice/)).toHaveCount(0);
+  const strip = page.locator(".rio-splash-strip");
+  const wide = await strip.evaluate((node) => node.getBoundingClientRect().width / window.innerWidth);
+  expect(wide).toBeGreaterThanOrEqual(0.9);
+  const wraps = await strip.evaluate((node) => {
+    const tops = (selector: string) => {
+      const nodes = [...node.querySelectorAll(selector)];
+      return new Set(nodes.map((el) => Math.round(el.getBoundingClientRect().top))).size;
+    };
+    const credit = node.querySelector(".rio-photo-credit");
+    const creditLines = credit ? Math.round(credit.getBoundingClientRect().height / 18) : -1;
+    return { credit: creditLines, links: tops(".rio-legal-links a") };
+  });
+  expect(wraps.credit).toBe(1);
+  expect(wraps.links).toBe(1);
   const overflow = await page.evaluate(
     () => document.documentElement.scrollHeight - document.documentElement.clientHeight,
   );
@@ -76,8 +91,39 @@ test("the landing fits a 1280x800 screen and links to About and Log in", async (
   await page.setViewportSize({ width: 375, height: 812 });
   const position = await page.locator(".rio-splash").evaluate((node) => getComputedStyle(node).backgroundPosition);
   expect(position.startsWith("92%")).toBe(true);
-  const stacked = await page.locator(".rio-splash-strip").evaluate((node) => getComputedStyle(node).flexDirection);
-  expect(stacked).toBe("column");
+  const stacked = await page.locator(".rio-splash-strip").evaluate((node) => {
+    const style = getComputedStyle(node);
+    const links = node.querySelector(".rio-legal-links")?.getBoundingClientRect().top ?? 0;
+    const credit = node.querySelector(".rio-photo-credit")?.getBoundingClientRect().top ?? 0;
+    return { flow: style.flexDirection, linksBeforeCredit: links < credit };
+  });
+  expect(stacked.flow).toBe("column");
+  expect(stacked.linksBeforeCredit).toBe(true);
+
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/sign-in?skip=1");
+  await expect(page.locator(".auth-screen").getByText(/Not medical advice/)).toBeVisible();
+});
+
+test("landing footer shots", async ({ browser }) => {
+  const dir = process.env.RIO_ARTIFACTS;
+  test.skip(!dir, "screenshots are saved only when RIO_ARTIFACTS is set");
+  mkdirSync(dir!, { recursive: true });
+  for (const theme of ["light", "dark"] as const) {
+    for (const width of [1280, 768, 375]) {
+      const page = await browser.newPage({ viewport: { width, height: width === 375 ? 812 : 800 } });
+      await page.addInitScript((value) => localStorage.setItem("rio-theme", value), theme);
+      await page.goto("/");
+      await page.getByRole("heading", { name: "Your Race, Your Plan, Your Result" }).waitFor();
+      await page.evaluate(() => document.fonts.ready);
+      await page.screenshot({ path: `${dir}/landing-${width}-${theme}.png` });
+      if (width === 1280 && theme === "light") {
+        await page.goto("/sign-in?skip=1");
+        await page.screenshot({ path: `${dir}/signin-1280-light.png` });
+      }
+      await page.close();
+    }
+  }
 });
 
 test("auth credit and input borders meet contrast in light and dark", async ({ page }) => {

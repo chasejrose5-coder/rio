@@ -53,13 +53,13 @@ export function Splash({ onContinue }: { onContinue: () => void }) {
             Log in
           </Link>
         </div>
-        <div className="rio-splash-strip">
-          <PhotoCredit onPhoto href={GIANT}>
-            Photo by Giant Asparagus on Pexels
-          </PhotoCredit>
-          <Footer onPhoto showAbout />
-        </div>
       </main>
+      <div className="rio-splash-strip">
+        <PhotoCredit onPhoto href={GIANT}>
+          Photo by Giant Asparagus on Pexels
+        </PhotoCredit>
+        <Footer onPhoto showAbout showMedical={false} />
+      </div>
     </div>
   );
 }

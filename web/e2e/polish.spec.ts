@@ -79,8 +79,8 @@ test("the splash and sign-in put their copy in a main landmark", async ({ page }
   await expect(splash.getByRole("main")).toBeVisible();
   await expect(splash.getByRole("button", { name: "Get started" })).toBeVisible();
   await expect(splash.getByText("Photo by Giant Asparagus on Pexels")).toBeVisible();
-  const creditInMain = await splash.locator("main .rio-photo-credit").count();
-  expect(creditInMain).toBe(1);
+  await expect(splash.locator(".rio-splash-strip .rio-photo-credit")).toHaveCount(1);
+  await expect(splash.getByText(/Not medical advice/)).toHaveCount(0);
 
   await page.goto("/sign-in");
   await expect(page.getByRole("main")).toBeVisible();

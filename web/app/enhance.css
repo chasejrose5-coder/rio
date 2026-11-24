@@ -772,33 +772,64 @@
   right: 0;
   bottom: 0;
   z-index: 2;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
   margin: 0;
-  padding: 10px var(--gutter) calc(10px + env(safe-area-inset-bottom));
-  background: rgba(18, 17, 16, 0.86);
+  padding: 8px var(--gutter) calc(8px + env(safe-area-inset-bottom));
+  background: rgba(18, 17, 16, 0.42);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   text-align: center;
+  color: rgba(255, 255, 255, 0.92);
 }
-.rio-splash-strip .rio-photo-credit,
-.rio-splash-strip .rio-contact { position: static; background: transparent; border: 0; padding: 0; margin: 0; color: rgba(255, 255, 255, 0.9); text-align: center; }
-.rio-splash-strip .rio-contact { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.rio-splash-strip .rio-medical-note,
-.rio-splash-strip .rio-legal-links { font-size: 13px; line-height: 18px; font-weight: 500; }
-.rio-splash-strip .rio-legal-links { display: flex; flex-wrap: wrap; justify-content: center; }
-@media (min-width: 768px) {
+.rio-splash-strip .rio-contact { display: contents; }
+.rio-splash-strip .rio-legal-links { order: 1; }
+.rio-splash-strip .rio-photo-credit { order: 2; }
+.rio-splash .rio-splash-strip .rio-photo-credit,
+.rio-splash .rio-splash-strip .rio-photo-credit.on-photo {
+  position: static;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  text-align: center;
+  white-space: nowrap;
+}
+.rio-splash-strip .rio-legal-links {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+}
+.rio-splash-strip .rio-legal-links a { min-height: 44px; }
+@media (min-width: 1024px) {
   .rio-splash-strip {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr);
+    flex-direction: row;
     align-items: center;
-    column-gap: 16px;
+    justify-content: space-between;
+    gap: 24px;
     text-align: left;
   }
-  .rio-splash-strip .rio-contact { display: contents; }
-  .rio-splash-strip .rio-photo-credit { justify-self: start; text-align: left; }
-  .rio-splash-strip .rio-medical-note { justify-self: center; text-align: center; }
-  .rio-splash-strip .rio-legal-links { justify-self: end; text-align: right; }
+  .rio-splash-strip .rio-photo-credit { order: 1; text-align: left; }
+  .rio-splash-strip .rio-legal-links { order: 2; justify-content: flex-end; }
 }
 .rio-old-home {
   display: block;
