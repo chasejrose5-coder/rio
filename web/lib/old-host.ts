@@ -59,3 +59,22 @@ export function isLegacyHost(hostname: string | null | undefined): boolean {
   if (!name) return false;
   return !CURRENT_HOSTS.has(name);
 }
+
+/** Vercel preview aliases look like rio-git-branch-project.vercel.app. */
+export function isPreviewHost(hostname: string | null | undefined): boolean {
+  const name = hostnameOf(hostname);
+  return name.endsWith(".vercel.app") && name.includes("-git-");
+}
+
+/**
+ * The old-host note. Hidden on the live site, on a laptop, and on a Vercel
+ * preview (VERCEL_ENV=preview, or a preview alias). Production vercel.app hosts stay.
+ */
+export function showOldHomeNote(
+  hostname: string | null | undefined,
+  env: string | null | undefined = process.env.VERCEL_ENV,
+): boolean {
+  if ((env ?? "").trim().toLowerCase() === "preview") return false;
+  if (isPreviewHost(hostname)) return false;
+  return isLegacyHost(hostname);
+}

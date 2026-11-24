@@ -709,8 +709,9 @@
 .rio-v3 .rio-on-page { display: none; }
 @media (min-width: 1280px) { .rio-v3 .rio-on-page { display: block; position: sticky; top: calc(var(--nav-h) + 16px); } }
 
-/* Landing */
+/* Landing. The copy uses the same gutter as the signed-in pages. */
 .rio-splash {
+  --gutter: 16px;
   position: relative;
   min-height: 100dvh;
   display: flex;
@@ -719,42 +720,103 @@
   background-color: var(--nav);
   background-image: linear-gradient(180deg, rgba(18, 17, 16, 0.72), rgba(18, 17, 16, 0.86)), image-set(url("/photos/startup-track-1200.webp") type("image/webp"), url("/photos/startup-track.jpg") type("image/jpeg"));
   background-size: cover;
-  background-position: 70% 50%;
+  background-position: 92% 62%;
 }
 @media (min-width: 768px) {
   .rio-splash {
+    --gutter: 24px;
+    background-position: 70% 50%;
     background-image: linear-gradient(90deg, rgba(18, 17, 16, 0.86) 0%, rgba(18, 17, 16, 0.74) 60%, rgba(18, 17, 16, 0.2) 75%, rgba(18, 17, 16, 0) 100%), image-set(url("/photos/startup-track-1200.webp") type("image/webp"), url("/photos/startup-track.jpg") type("image/jpeg"));
   }
 }
 @media (min-width: 1280px) {
   .rio-splash {
+    --gutter: max(24px, calc((100vw - 1200px) / 2));
     background-image: linear-gradient(90deg, rgba(18, 17, 16, 0.86) 0%, rgba(18, 17, 16, 0.74) 45%, rgba(18, 17, 16, 0.2) 75%, rgba(18, 17, 16, 0) 100%), image-set(url("/photos/startup-track-1200.webp") type("image/webp"), url("/photos/startup-track.jpg") type("image/jpeg"));
   }
 }
-.rio-splash-copy { position: relative; z-index: 1; max-width: 46ch; padding: 8vh 16px 120px; }
-.rio-splash .rio-brand-mark { margin: 0; font-size: clamp(44px, 5.5vw, 80px); line-height: 1; letter-spacing: -0.03em; }
-.rio-splash .rio-brand-owned { margin: 8px 0 16px; font-size: 13px; font-weight: 600; letter-spacing: 0.18em; line-height: 18px; }
-.rio-splash h1 { max-width: 12ch; font-size: clamp(44px, 5.5vw, 80px); line-height: 1; font-weight: 800; }
-.rio-splash .rio-reason-line { font-size: 18px; line-height: 26px; }
-.rio-splash-copy p,
-.rio-splash blockquote p { font-size: 17px; line-height: 28px; max-width: 46ch; }
-.rio-splash-strip {
+.rio-splash-copy {
   position: relative;
-  z-index: 2;
-  margin-top: auto;
+  z-index: 1;
+  flex: 1 1 auto;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 16px;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  max-width: calc(46ch + (2 * var(--gutter)));
+  min-height: 0;
+  padding: 16px var(--gutter) 72px;
+}
+.rio-splash .rio-brand-mark { margin: 0; font-size: clamp(36px, 4vw, 56px); line-height: 1; letter-spacing: -0.03em; }
+.rio-splash .rio-brand-owned { margin: 4px 0 8px; font-size: 13px; font-weight: 600; letter-spacing: 0.18em; line-height: 18px; }
+.rio-splash h1 { max-width: 16ch; margin: 0 0 6px; font-size: clamp(32px, 3.4vw, 48px); line-height: 1.02; font-weight: 800; }
+.rio-splash .rio-reason-line { margin: 0 0 4px; font-size: 18px; line-height: 24px; }
+.rio-splash-copy p,
+.rio-splash blockquote p { font-size: 16px; line-height: 22px; max-width: 46ch; }
+.rio-splash blockquote { margin: 4px 0 0; }
+.rio-splash-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 12px; }
+.rio-splash-go { width: auto; min-width: 10rem; margin: 0; }
+.rio-splash-login {
+  display: inline-flex;
   align-items: center;
-  padding: 12px 24px;
+  min-height: 44px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.rio-splash-strip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 10px var(--gutter) calc(10px + env(safe-area-inset-bottom));
   background: rgba(18, 17, 16, 0.86);
+  text-align: center;
 }
 .rio-splash-strip .rio-photo-credit,
-.rio-splash-strip .rio-contact { position: static; background: transparent; border: 0; padding: 0; color: rgba(255, 255, 255, 0.86); }
+.rio-splash-strip .rio-contact { position: static; background: transparent; border: 0; padding: 0; margin: 0; color: rgba(255, 255, 255, 0.9); text-align: center; }
+.rio-splash-strip .rio-contact { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .rio-splash-strip .rio-medical-note,
-.rio-splash-strip .rio-legal-links { font-size: 13px; line-height: 18px; }
-.rio-old-home { min-height: 44px; display: flex; align-items: center; justify-content: center; padding: 8px 16px; }
-.rio-old-home a { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 2px; }
+.rio-splash-strip .rio-legal-links { font-size: 13px; line-height: 18px; font-weight: 500; }
+.rio-splash-strip .rio-legal-links { display: flex; flex-wrap: wrap; justify-content: center; }
+@media (min-width: 768px) {
+  .rio-splash-strip {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr);
+    align-items: center;
+    column-gap: 16px;
+    text-align: left;
+  }
+  .rio-splash-strip .rio-contact { display: contents; }
+  .rio-splash-strip .rio-photo-credit { justify-self: start; text-align: left; }
+  .rio-splash-strip .rio-medical-note { justify-self: center; text-align: center; }
+  .rio-splash-strip .rio-legal-links { justify-self: end; text-align: right; }
+}
+.rio-old-home {
+  display: block;
+  min-height: 44px;
+  margin: 0;
+  padding: 12px 16px;
+  background: #121110;
+  color: #f4f1ec;
+  border-bottom: 1px solid rgba(244, 241, 236, 0.18);
+  text-align: center;
+}
+.rio-old-home a {
+  color: #fff;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
+}
 .rio-splash.is-entering .rio-brand-mark { animation: rio-mask 600ms var(--rio-ease-out) 300ms both; }
 .rio-splash.is-entering .rio-brand-owned { animation: rio-tag 500ms var(--rio-ease-out) 300ms both; }
 .rio-splash.is-entering h1 { animation: rio-mask 560ms var(--rio-ease-out) 650ms both; }
@@ -888,11 +950,7 @@
 .rio-v3 .rio-lib-group:first-child { margin-top: 0; }
 .rio-v3 .rio-cal-day.rio-cal-out { background: transparent; border-color: transparent; box-shadow: none; }
 @media (min-width: 1280px) { .rio-v3 .rio-plan-side { position: sticky; top: calc(var(--nav-h) + 16px); align-self: start; } }
-.rio-splash-copy { position: static; }
 .rio-splash-copy > :not(.rio-splash-strip) { position: relative; z-index: 1; }
-.rio-splash { padding-bottom: 96px; }
-.rio-splash-strip { position: absolute; left: 0; right: 0; bottom: 0; justify-content: space-between; padding: 12px var(--gutter, 24px); }
-.rio-splash-strip .rio-contact { text-align: left; display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; }
 .rio-splash-strip .rio-contact p { margin: 0; }
 @media (max-width: 767px) {
   .rio-v3 .rio-guide-contents { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter); }

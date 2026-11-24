@@ -783,9 +783,9 @@ a .rio-mini:hover, a.rio-daycard:hover, .rio-hit:hover .rio-mini {
 .rio-auth-card form { display: flex; flex-direction: column; }
 .rio-auth-card label { margin: 1.15rem 0 0.4rem; color: var(--muted); font-size: 0.75rem; }
 .rio-auth-card input {
-  background: var(--surface);
+  background: var(--raised);
   color: var(--ink);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-input);
   border-radius: 12px;
   min-height: 2.8rem;
   padding: 0.45rem 0.75rem;
@@ -940,14 +940,17 @@ button.rio-text-link:disabled {
 .rio-photo-credit {
   width: fit-content;
   margin: 0.9rem auto 0.4rem;
-  padding: 0.22rem 0.75rem;
+  padding: 0.28rem 0.75rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 0.78rem;
+  background: #121110;
+  border: 1px solid rgba(244, 241, 236, 0.55);
+  color: #f4f1ec;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
   text-align: center;
 }
+.rio-photo-credit a { color: #fff; }
 .rio-photo-credit.on-photo {
   position: relative;
   z-index: 6;
