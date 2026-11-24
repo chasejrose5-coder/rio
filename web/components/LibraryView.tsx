@@ -157,13 +157,15 @@ function LibraryBody() {
                 </select>
               </label>
             </div>
+            {mode === "ready" && data ? (
+              <p className="rio-week-meta rio-lib-count" role="status">{countLabel(data.count)}</p>
+            ) : null}
           </form>
           </>
         ) : null}
         {mode === "error" ? <LoadError message={problem} onRetry={() => setAttempt((value) => value + 1)} /> : null}
         {mode === "ready" && data ? (
           <>
-            <p className="rio-week-meta rio-lib-count" role="status">{countLabel(data.count)}</p>
             {data.count === 0 ? (
               <p className="rio-empty">No workouts.</p>
             ) : (

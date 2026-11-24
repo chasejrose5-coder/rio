@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { Disclosure } from "./Disclosure";
 import { Footer } from "./Footer";
@@ -7,6 +8,7 @@ import { Nav } from "./Nav";
 import { RequireUser } from "./RequireUser";
 import { ApiError, api, isSignedOut, previewing } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { GUIDE_LINK, PAGE_MEANINGS, meaningHref } from "@/lib/guide-copy";
 import { ErrorText, LoadError } from "./ErrorText";
 import {
   AREAS,
@@ -210,6 +212,15 @@ function RecoveryBody() {
         {mode === "error" ? <LoadError message={problem} onRetry={() => setAttempt((value) => value + 1)} /> : null}
         {problem && mode !== "error" ? <ErrorText>{problem}</ErrorText> : null}
         <p className="rio-medical">{INJURY_DISCLAIMER}</p>
+        <aside className="rio-meaning-card" aria-labelledby="recovery-meaning">
+          <p className="rio-eyebrow" id="recovery-meaning">What this means</p>
+          {PAGE_MEANINGS.recovery.sentences.map((sentence) => (
+            <p key={sentence}>{sentence}</p>
+          ))}
+          <p>
+            <Link href={meaningHref(PAGE_MEANINGS.recovery.section)}>{GUIDE_LINK}</Link>
+          </p>
+        </aside>
         <Footer page="recovery" />
       </main>
     </div>

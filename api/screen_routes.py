@@ -10,11 +10,12 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import date
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Response
 from pydantic import BaseModel
 
 from api.errors import ApiError
 from api.prefs import athlete_payload, distance_units, prefs_payload
+from api.identity import set_theme_cookie
 from api.routes import _principal, _resolved
 from api.goals import read_override, write_override
 from api.screens import (
@@ -423,10 +424,12 @@ def one_session(day: str, request: Request) -> dict:
 
 
 @router.patch("/settings")
-def patch_settings(body: SettingsBody, request: Request) -> dict:
+def patch_settings(body: SettingsBody, request: Request, response: Response) -> dict:
     who, _resolved_view = _resolved(request)
     # Fields the client left out stay None and are not written.
     sent = body.model_dump(exclude_unset=True)
     apply_settings(who, request.app.state.directory, sent)
     resolved = _resolved(request)[1]
-    return athlete_payload(who, resolved)
+    payload = athlete_payload(who, resolved)
+    set_theme_cookie(response, payload)
+    return payload

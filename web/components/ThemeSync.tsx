@@ -20,7 +20,13 @@ export function ThemeSync() {
   useEffect(() => {
     const account = athlete?.prefs.theme;
     if (!isThemePref(account)) return;
-    if (readPref() === account && document.documentElement.dataset.themePref === account) return;
+    let stored: string | null = null;
+    try {
+      stored = localStorage.getItem("rio-theme");
+    } catch {
+      stored = null;
+    }
+    if (readPref() === account && stored === account && document.documentElement.dataset.themePref === account) return;
     applyTheme(account, false);
   }, [athlete]);
 

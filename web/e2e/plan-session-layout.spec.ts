@@ -188,7 +188,10 @@ test("the plan calendar fills the page, and a session log appears only inside a 
     return { content, ask: ask.getBoundingClientRect().width };
   });
   expect(recovery).not.toBeNull();
-  expect(Math.abs(recovery!.ask - recovery!.content)).toBeLessThan(8);
+  expect(recovery!.ask).toBeGreaterThan(recovery!.content * 0.6);
+  expect(recovery!.ask).toBeLessThan(recovery!.content * 0.75);
+  const meaning = await page.locator(".rio-meaning-card").boundingBox();
+  expect(meaning && meaning.width).toBeGreaterThan(200);
 
   const signedOut = await browser.newContext();
   const fresh = await signedOut.newPage();

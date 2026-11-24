@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Disclosure } from "./Disclosure";
-import { Expander } from "./Expander";
 import { ApiError, api, previewing } from "@/lib/api";
 import {
   CATEGORIES,
@@ -129,12 +128,12 @@ export function CoreLibrary() {
           ))}
         </Disclosure>
       ))}
-      <Expander title="How the day is chosen">
+      <Disclosure className="rio-calm-group" title="How the day is chosen">
         <p>
           A hard day or a long run is about 8 minutes. An easy or rest day is 12 to 15 minutes. Race day and the day before
           are left clear. The five categories rotate so the week uses each of them, and the exercises change the next week.
         </p>
-      </Expander>
+      </Disclosure>
     </>
   );
 }

@@ -66,6 +66,27 @@ def set_session_cookie(response: Response, settings: ApiSettings, sid: str, issu
     )
 
 
+def set_theme_cookie(response: Response, payload: dict) -> None:
+    """A readable mirror of the saved theme so the next paint matches the account.
+
+    Scripts read it before paint. It is not the session id, and sign-out leaves
+    it so signed-out pages keep the chosen appearance.
+    """
+    prefs = payload.get("prefs") if isinstance(payload, dict) else None
+    theme = prefs.get("theme") if isinstance(prefs, dict) else None
+    if theme not in ("light", "dark", "system"):
+        return
+    response.set_cookie(
+        key="rio_theme",
+        value=theme,
+        max_age=400 * 24 * 60 * 60,
+        path="/",
+        secure=True,
+        httponly=False,
+        samesite="lax",
+    )
+
+
 def clear_session_cookie(response: Response, settings: ApiSettings) -> None:
     response.delete_cookie(
         settings.cookie_name,

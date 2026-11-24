@@ -17,6 +17,7 @@ from api.identity import (
     clear_session_cookie,
     principal_from_cookie,
     set_session_cookie,
+    set_theme_cookie,
     sign_in_hosted,
     sign_in_local,
     sign_out,
@@ -226,7 +227,7 @@ def me(request: Request) -> dict:
 
 
 @auth_router.get("/session")
-def session(request: Request) -> dict:
+def session(request: Request, response: Response) -> dict:
     """The page probe. A missing session is 200, so a public page does not log a 401."""
     try:
         who, resolved = _resolved(request)
@@ -237,6 +238,7 @@ def session(request: Request) -> dict:
     payload = athlete_payload(who, resolved)
     payload["next_session"] = None
     payload["signed_in"] = True
+    set_theme_cookie(response, payload)
     return payload
 
 

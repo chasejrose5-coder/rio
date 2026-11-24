@@ -35,6 +35,24 @@ function OnThisPage() {
 }
 
 export function GuideView() {
+  const [current, setCurrent] = useState(GUIDE_SECTIONS[0]?.id ?? "");
+  useEffect(() => {
+    const nodes = GUIDE_SECTIONS.map((section) => document.getElementById(section.id)).filter(
+      (node): node is HTMLElement => node instanceof HTMLElement,
+    );
+    if (nodes.length === 0) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible?.target.id) setCurrent(visible.target.id);
+      },
+      { rootMargin: "-20% 0px -60% 0px", threshold: [0.15, 0.4, 0.75] },
+    );
+    nodes.forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+  }, []);
   return (
     <RequireUser title="Guide" pageClass="page-guide">
       <div className="page-guide rio-v3">
@@ -46,7 +64,7 @@ export function GuideView() {
           </header>
           <nav className="rio-guide-contents" aria-label="Guide sections">
             {GUIDE_SECTIONS.map((section) => (
-              <Link key={section.id} href={`#${section.id}`}>
+              <Link key={section.id} href={`#${section.id}`} aria-current={current === section.id ? "true" : undefined}>
                 {section.title}
               </Link>
             ))}

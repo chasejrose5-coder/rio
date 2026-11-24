@@ -259,8 +259,8 @@ export function HeartRateForm({ profile, mode }: { profile: HeartRateProfile; mo
                 onChange={(event) => showAnchors(event.target.value, max)}
                 onBlur={() => void commitAnchors()}
               />
+              <span className="rio-easy-hint">Measured lying in bed when you wake up.</span>
             </label>
-            <p className="rio-easy-hint">Measured lying in bed when you wake up.</p>
             <label className="rio-stack" htmlFor="max-hr">
               Max heart rate
               <input
@@ -271,8 +271,8 @@ export function HeartRateForm({ profile, mode }: { profile: HeartRateProfile; mo
                 onChange={(event) => showAnchors(resting, event.target.value)}
                 onBlur={() => void commitAnchors()}
               />
+              <span className="rio-easy-hint">The highest heart rate you can reach in a hard effort.</span>
             </label>
-            <p className="rio-easy-hint">The highest heart rate you can reach in a hard effort.</p>
             {prefilled ? <p className="rio-settings-note">Filled from Strava. Check it before you save.</p> : null}
             {zones ? (
               <>

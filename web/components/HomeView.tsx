@@ -350,7 +350,7 @@ function HomeMain({
       {showedPhase && season.phase ? (
         <section className="rio-home-phase">
           <p className="rio-index rio-index-pad">01  /  Current phase</p>
-          <Expander className="rio-phase-details" title={season.phase.collapsed}>
+          <Expander className="rio-phase-details" title={season.phase.collapsed} defaultOpen>
             <div className="rio-phase-panel">
               {panel?.headline ? <p className="rio-phase-headline">{panel.headline}</p> : null}
               {panel?.focus ? <p className="rio-phase-focus">{panel.focus}</p> : null}

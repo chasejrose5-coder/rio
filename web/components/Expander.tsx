@@ -1,4 +1,4 @@
-import type { ReactNode, SyntheticEvent } from "react";
+import { useState, type ReactNode, type SyntheticEvent } from "react";
 
 type Props = {
   title: ReactNode;
@@ -15,8 +15,18 @@ type Props = {
 /** The Streamlit expander: a thin gray chevron and a regular-weight title. */
 export function Expander({ title, children, className, id, open, defaultOpen, onToggle }: Props) {
   const classes = className ? `rio-expander ${className}` : "rio-expander";
+  const [startedOpen, setStartedOpen] = useState(Boolean(defaultOpen));
+  const controlled = open !== undefined;
   return (
-    <details id={id} className={classes} open={open ?? (defaultOpen ? true : undefined)} onToggle={onToggle}>
+    <details
+      id={id}
+      className={classes}
+      open={controlled ? open : startedOpen}
+      onToggle={(event) => {
+        if (!controlled) setStartedOpen(event.currentTarget.open);
+        onToggle?.(event);
+      }}
+    >
       <summary>
         <span className="rio-chevron" aria-hidden="true" />
         {title}
