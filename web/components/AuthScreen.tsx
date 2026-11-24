@@ -310,7 +310,12 @@ export function SignInScreen() {
   }
 
   return (
-    <AuthFrame title="Log in" subtitle="Use Google, or your email and password." error={error} notice={notice}>
+    <AuthFrame
+      title="Log in"
+      subtitle={googleAuthEnabled() ? "Use Google, or your email and password." : "Use your email and password."}
+      error={error}
+      notice={notice}
+    >
       {unconfigured ? (
         <div className="rio-setup-card">
           <p className="rio-mark-label">Accounts aren&apos;t set up yet</p>

@@ -45,6 +45,7 @@ export type Athlete = {
     show_ids?: boolean;
     compact?: boolean;
     preferred?: string;
+    theme?: "light" | "dark" | "system";
     [key: string]: unknown;
   };
 };

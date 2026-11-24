@@ -45,7 +45,7 @@ def account_prefs(principal: Principal, directory) -> dict:
             raw["pace_units"] = pace
         if "no_watch" in profile:
             raw["no_watch"] = profile.get("no_watch") is True
-        for key in ("date_format", "start_date", "confirm_adapt", "show_ids", "compact"):
+        for key in ("date_format", "start_date", "confirm_adapt", "show_ids", "compact", "theme"):
             if key in profile:
                 raw[key] = profile[key]
         easy = _easy_from(profile.get("easy_pace"), profile.get("easy_pace_unit"))
@@ -135,6 +135,7 @@ def prefs_payload(resolved: dict) -> dict:
         "preferred": resolved.get("preferred") or "",
         "show_ids": prefs.get("show_ids") is True,
         "compact": prefs.get("compact") is True,
+        "theme": prefs.get("theme") if prefs.get("theme") in ("light", "dark", "system") else "system",
     }
 
 

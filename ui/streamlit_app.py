@@ -6136,21 +6136,28 @@ def page_settings() -> None:
                 unsafe_allow_html=True,
             )
 
-    stored = normalize_prefs(
-        {
-            "units": "miles" if pace_units == "mi" else "km",
-            "pace_units": pace_units,
-            "show_ids": show_ids,
-            "compact": compact,
-            "date_format": date_format,
-            "confirm_adapt": confirm,
-            "start_date": start_date,
-            "reminders": reminders,
-            "recap": recap,
-            "no_watch": no_watch,
-            "notifications": bool(reminders or recap),
-        }
-    )
+    held = st.session_state.get("rio_settings")
+    held_theme = held.get("theme") if isinstance(held, dict) else None
+    if held_theme not in ("light", "dark", "system"):
+        local = st.session_state.get("rio_local")
+        local_settings = local.get("settings") if isinstance(local, dict) else None
+        held_theme = local_settings.get("theme") if isinstance(local_settings, dict) else None
+    draft_prefs = {
+        "units": "miles" if pace_units == "mi" else "km",
+        "pace_units": pace_units,
+        "show_ids": show_ids,
+        "compact": compact,
+        "date_format": date_format,
+        "confirm_adapt": confirm,
+        "start_date": start_date,
+        "reminders": reminders,
+        "recap": recap,
+        "no_watch": no_watch,
+        "notifications": bool(reminders or recap),
+    }
+    if held_theme in ("light", "dark", "system"):
+        draft_prefs["theme"] = held_theme
+    stored = normalize_prefs(draft_prefs)
     if not stored["confirm_adapt"]:
         _clear_adapt()
     st.session_state["rio_settings"] = stored

@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Suspense, type ReactNode } from "react";
 import { OldHomeNote } from "@/components/OldHomeNote";
+import { ThemeSync } from "@/components/ThemeSync";
 import { AuthProvider } from "@/lib/auth";
 import { LIVE_ORIGIN } from "@/lib/old-host";
+import { THEME_BOOT } from "@/lib/theme";
 import "./globals.css";
 import "./enhance.css";
 
@@ -48,8 +50,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   const wake = wakeTarget();
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
         <link rel="preload" href="/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/inter-latin-500-normal.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/inter-latin-600-normal.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
@@ -65,7 +68,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <Suspense fallback={null}>
           <OldHomeNote />
         </Suspense>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <ThemeSync />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

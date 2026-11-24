@@ -11,6 +11,7 @@ import { HeartRateSettings } from "./HeartRateForm";
 import { StravaPanel } from "./StravaSettings";
 import { ApiError, api, isSignedOut } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { applyTheme, type ThemePref } from "@/lib/theme";
 import {
   APP_VERSION,
   browserClearNote,
@@ -94,6 +95,7 @@ function SettingsBody() {
   const [showIds, setShowIds] = useState(false);
   const [compact, setCompact] = useState(false);
   const [dates, setDates] = useState<Dates>("short");
+  const [theme, setTheme] = useState<ThemePref>("system");
   const [confirmAdapt, setConfirmAdapt] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -156,6 +158,7 @@ function SettingsBody() {
     setShowIds(athlete.prefs.show_ids === true);
     setCompact(athlete.prefs.compact === true);
     setDates(athlete.prefs.date_format === "iso" ? "iso" : "short");
+    setTheme(athlete.prefs.theme === "light" || athlete.prefs.theme === "dark" ? athlete.prefs.theme : "system");
     setConfirmAdapt(athlete.prefs.confirm_adapt === true);
     setSeeded(true);
   }, [athlete, seeded]);
@@ -250,6 +253,20 @@ function SettingsBody() {
     const saved = await save({ timezone: next });
     if (!saved) setZone(previous);
     else setZone(String(saved.prefs.timezone || next));
+  }
+
+  async function commitTheme(next: ThemePref) {
+    const previous = theme;
+    setTheme(next);
+    applyTheme(next, true);
+    const saved = await save({ theme: next });
+    if (!saved) {
+      setTheme(previous);
+      applyTheme(previous, true);
+      return;
+    }
+    const stored = saved.prefs.theme;
+    setTheme(stored === "light" || stored === "dark" || stored === "system" ? stored : next);
   }
 
   async function commitPace(next: Pace) {
@@ -543,6 +560,23 @@ function SettingsBody() {
         </Expander>
 
         <Expander id="toc-preferences" title="Preferences">
+          <fieldset className="rio-choice-set">
+            <legend>Appearance</legend>
+            <div className="rio-appearance" role="presentation">
+              {(["light", "dark", "system"] as const).map((value) => (
+                <label key={value}>
+                  <input
+                    type="radio"
+                    name="settings-theme"
+                    value={value}
+                    checked={theme === value}
+                    onChange={() => void commitTheme(value)}
+                  />
+                  {value === "light" ? "Light" : value === "dark" ? "Dark" : "System"}
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <fieldset className="rio-choice-set">
             <legend>Pace units</legend>
             <div className="rio-choice">

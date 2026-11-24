@@ -47,8 +47,14 @@
   padding: 0.9rem 1rem;
   background: #121110;
   color: #f4f1ec;
+  border: 2px solid #121110;
   border-radius: 14px;
   line-height: 1.45;
+}
+:root[data-theme="dark"] .rio-draft-banner {
+  background: #3a3028;
+  color: #f4f1ec;
+  border-color: #ff9a72;
 }
 .rio-draft-banner strong {
   letter-spacing: 0.16em;

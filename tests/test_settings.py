@@ -59,15 +59,17 @@ def test_defaults_and_rejected_values() -> None:
         raise AssertionError("a non-boolean became on")
     if not mixed["notifications"]:
         raise AssertionError("notifications did not stay on")
-    if mixed["start_date"] != "today" or mixed["theme"] != "dark":
+    if mixed["start_date"] != "today" or mixed["theme"] != "system":
         raise AssertionError("a blank preference grew a value")
     if mixed["reminders"] or mixed["recap"]:
         raise AssertionError("a blank toggle was on")
     if "probability" in mixed:
         raise AssertionError("a score was stored")
     forced = normalize({"theme": "light", "start_date": "yesterday", "reminders": True, "units": "miles"})
-    if forced["theme"] != "dark" or forced["start_date"] != "today" or forced["units"] != "miles":
+    if forced["theme"] != "light" or forced["start_date"] != "today" or forced["units"] != "miles":
         raise AssertionError(forced)
+    if normalize({"theme": "neon"})["theme"] != "system" or normalize({"theme": "dark"})["theme"] != "dark":
+        raise AssertionError("theme did not stay on the three allowed values")
     if not forced["reminders"] or not forced["notifications"]:
         raise AssertionError("a reminder did not stay on")
     source = Path(ROOT / "ui" / "settings.py").read_text(encoding="utf-8")

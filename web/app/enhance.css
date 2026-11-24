@@ -58,7 +58,7 @@
   padding: 16px var(--gutter) 64px;
   overflow: hidden;
   color: #fff;
-  background-color: var(--ink);
+  background-color: var(--nav);
   background-image: var(--hero-scrim-mobile), var(--rio-photo, none);
   background-size: cover;
   background-position: var(--rio-focus, center);
@@ -143,7 +143,7 @@
 .rio-v3.page-recovery .rio-hero,
 .rio-v3.page-settings .rio-hero,
 .rio-v3.page-heart .rio-hero { --rio-photo: image-set(url("/photos/plan-curve.webp") type("image/webp"), url("/photos/plan-curve.jpg") type("image/jpeg")); --rio-focus: 60% 50%; }
-.rio-v3.page-more .rio-hero,
+.rio-v3.page-more .rio-hero { --rio-photo: image-set(url("/photos/about-1200.webp") type("image/webp"), url("/photos/about.jpg") type("image/jpeg")); --rio-focus: 55% 85%; }
 .rio-v3.page-past .rio-hero,
 .rio-v3.page-foam .rio-hero { --rio-photo: image-set(url("/photos/about-1200.webp") type("image/webp"), url("/photos/about.jpg") type("image/jpeg")); --rio-focus: 55% 40%; }
 .rio-v3.page-library { background-image: none; }
@@ -420,11 +420,10 @@
 .rio-v3.page-home .rio-home-pair { display: grid; gap: 24px; align-items: start; }
 .rio-v3.page-home .rio-home-today { padding: 16px; }
 @media (min-width: 1024px) {
-  .rio-v3.page-home .rio-home-pair { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); grid-template-rows: auto 1fr; }
-  .rio-v3.page-home .rio-home-pair > .rio-home-today { grid-column: 1; grid-row: 1 / span 2; }
-  .rio-v3.page-home .rio-home-pair > .rio-home-phase { grid-column: 2; grid-row: 1; position: static; }
-  .rio-v3.page-home .rio-home-pair > .rio-home-upcoming { grid-column: 2; grid-row: 2; align-self: start; min-width: 0; }
-  .rio-v3.page-home .rio-home-pair > .rio-home-upcoming .rio-next3 { grid-template-columns: 1fr; }
+  .rio-v3.page-home .rio-home-pair { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-rows: auto auto; }
+  .rio-v3.page-home .rio-home-pair > .rio-home-phase { grid-column: 1; grid-row: 1; position: static; }
+  .rio-v3.page-home .rio-home-pair > .rio-home-today { grid-column: 2; grid-row: 1; }
+  .rio-v3.page-home .rio-home-pair > .rio-home-upcoming { grid-column: 1 / -1; grid-row: 2; align-self: start; min-width: 0; }
   .rio-v3.page-home .rio-home-pair > :only-child { grid-column: 1 / -1; }
 }
 .rio-v3.page-home .rio-next3 { display: grid; grid-template-columns: 1fr; gap: 16px; }
@@ -481,7 +480,7 @@
   border: 1px solid var(--line);
   color: var(--ink);
 }
-.rio-v3 .rio-phase.is-past { background: #e2ddd5; color: var(--ink-2); border-color: transparent; }
+.rio-v3 .rio-phase.is-past { background: var(--phase-past); color: var(--ink-2); border-color: transparent; }
 .rio-v3 .rio-phase.rio-phase-now,
 .rio-v3 .rio-phase.is-now { background: var(--button); color: #fff; border-color: var(--button); }
 .rio-v3 .rio-phase:hover { outline: 1px solid var(--ink); }
@@ -490,7 +489,7 @@
   .rio-v3 .rio-plan-split { grid-template-columns: 4fr 8fr; }
 }
 .rio-v3 .rio-phase-week-list li { min-height: 44px; display: flex; align-items: center; justify-content: space-between; }
-.rio-v3 .rio-phase-this { border-radius: var(--radius-pill); padding: 2px 8px; background: #f6e7e1; }
+.rio-v3 .rio-phase-this { border-radius: var(--radius-pill); padding: 2px 8px; background: var(--wash); }
 .rio-v3 .rio-segments {
   display: inline-flex;
   min-height: 44px;
@@ -500,7 +499,7 @@
   border: 1px solid var(--line);
 }
 .rio-v3 .rio-segments label { min-height: 36px; border-radius: var(--radius-pill); padding: 0 14px; }
-.rio-v3 .rio-segments label.is-selected { background: var(--ink); color: #fff; }
+.rio-v3 .rio-segments label.is-selected { background: var(--chip-on-bg); color: var(--chip-on-ink); }
 .rio-v3 .rio-cal { gap: 8px; }
 .rio-v3 .rio-cal-day {
   min-height: 56px;
@@ -561,7 +560,7 @@
 .rio-v3 .rio-lib { display: grid; grid-template-columns: 1fr; gap: 16px; }
 .rio-v3 .rio-lib-group { grid-column: 1 / -1; margin: 24px 0 8px; padding-top: 8px; border-top: 1px solid var(--line); font-family: var(--display); font-size: 18px; font-weight: 700; line-height: 24px; }
 .rio-v3 .rio-lib-row { display: block; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); }
-.rio-v3 .rio-lib-cap { display: inline-flex; margin-top: 8px; padding: 2px 8px; border-radius: var(--radius-pill); background: #efe9df; color: var(--ink); font-size: 12px; font-weight: 600; line-height: 16px; }
+.rio-v3 .rio-lib-cap { display: inline-flex; margin-top: 8px; padding: 2px 8px; border-radius: var(--radius-pill); background: var(--tag); color: var(--ink); font-size: 12px; font-weight: 600; line-height: 16px; }
 .rio-v3 .rio-lib-id { font-family: ui-monospace, monospace; font-size: 12px; }
 .page-library.is-compact .rio-lib-row { padding: 12px; }
 @media (min-width: 768px) { .rio-v3 .rio-lib { grid-template-columns: 1fr 1fr; } }
@@ -577,7 +576,7 @@
    The unused .rio-stretch-split / .rio-recover-split / .rio-heart-split wrappers had no markup.
    Recovery and heart rate place their existing children on the 12-column grid below.
    The stretching map stays full width (the 7/5 split shrinks the body-map hits). */
-.rio-v3 .rio-week-bar { height: 6px; border-radius: var(--radius-pill); background: #e6dfd3; overflow: hidden; }
+.rio-v3 .rio-week-bar { height: 6px; border-radius: var(--radius-pill); background: var(--track); overflow: hidden; }
 .rio-v3 .rio-week-bar > span { display: block; height: 100%; background: var(--button); transform-origin: left center; animation: rio-fill 400ms var(--rio-ease-out); }
 @keyframes rio-fill { from { scale: 0 1; } }
 .rio-v3 .rio-stretch-routine { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); padding: 16px; }
@@ -703,59 +702,152 @@
 .rio-v3 .rio-quality { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); padding: 12px 16px; }
 .rio-v3 .rio-guide-contents { position: sticky; top: var(--nav-h); z-index: 4; background: var(--paper); padding: 8px 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .rio-v3 .rio-guide-contents a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: var(--radius-pill); border: 1px solid var(--line); }
-.rio-v3 .rio-guide-contents a[aria-current="true"] { background: var(--ink); color: #fff; }
+.rio-v3 .rio-guide-contents a[aria-current="true"] { background: var(--chip-on-bg); color: var(--chip-on-ink); }
 @media (min-width: 1280px) {
   .rio-v3 .rio-guide-layout { grid-template-columns: minmax(0, 680px) 1fr; }
 }
 .rio-v3 .rio-on-page { display: none; }
 @media (min-width: 1280px) { .rio-v3 .rio-on-page { display: block; position: sticky; top: calc(var(--nav-h) + 16px); } }
 
-/* Landing */
+/* Landing. The copy uses the same gutter as the signed-in pages. */
 .rio-splash {
+  --gutter: 16px;
   position: relative;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
   color: #fff;
-  background-color: var(--ink);
+  background-color: var(--nav);
   background-image: linear-gradient(180deg, rgba(18, 17, 16, 0.72), rgba(18, 17, 16, 0.86)), image-set(url("/photos/startup-track-1200.webp") type("image/webp"), url("/photos/startup-track.jpg") type("image/jpeg"));
   background-size: cover;
-  background-position: 70% 50%;
+  background-position: 92% 62%;
 }
 @media (min-width: 768px) {
   .rio-splash {
+    --gutter: 24px;
+    background-position: 70% 50%;
     background-image: linear-gradient(90deg, rgba(18, 17, 16, 0.86) 0%, rgba(18, 17, 16, 0.74) 60%, rgba(18, 17, 16, 0.2) 75%, rgba(18, 17, 16, 0) 100%), image-set(url("/photos/startup-track-1200.webp") type("image/webp"), url("/photos/startup-track.jpg") type("image/jpeg"));
   }
 }
 @media (min-width: 1280px) {
   .rio-splash {
+    --gutter: max(24px, calc((100vw - 1200px) / 2));
     background-image: linear-gradient(90deg, rgba(18, 17, 16, 0.86) 0%, rgba(18, 17, 16, 0.74) 45%, rgba(18, 17, 16, 0.2) 75%, rgba(18, 17, 16, 0) 100%), image-set(url("/photos/startup-track-1200.webp") type("image/webp"), url("/photos/startup-track.jpg") type("image/jpeg"));
   }
 }
-.rio-splash-copy { position: relative; z-index: 1; max-width: 46ch; padding: 8vh 16px 120px; }
-.rio-splash .rio-brand-mark { margin: 0; font-size: clamp(44px, 5.5vw, 80px); line-height: 1; letter-spacing: -0.03em; }
-.rio-splash .rio-brand-owned { margin: 8px 0 16px; font-size: 13px; font-weight: 600; letter-spacing: 0.18em; line-height: 18px; }
-.rio-splash h1 { max-width: 12ch; font-size: clamp(44px, 5.5vw, 80px); line-height: 1; font-weight: 800; }
-.rio-splash .rio-reason-line { font-size: 18px; line-height: 26px; }
-.rio-splash-copy p,
-.rio-splash blockquote p { font-size: 17px; line-height: 28px; max-width: 46ch; }
-.rio-splash-strip {
+.rio-splash-copy {
   position: relative;
-  z-index: 2;
-  margin-top: auto;
+  z-index: 1;
+  flex: 1 1 auto;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-  align-items: center;
-  padding: 12px 24px;
-  background: rgba(18, 17, 16, 0.86);
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  max-width: calc(46ch + (2 * var(--gutter)));
+  min-height: 0;
+  padding: 16px var(--gutter) 72px;
 }
-.rio-splash-strip .rio-photo-credit,
-.rio-splash-strip .rio-contact { position: static; background: transparent; border: 0; padding: 0; color: rgba(255, 255, 255, 0.86); }
-.rio-splash-strip .rio-medical-note,
-.rio-splash-strip .rio-legal-links { font-size: 13px; line-height: 18px; }
-.rio-old-home { min-height: 44px; display: flex; align-items: center; justify-content: center; padding: 8px 16px; }
-.rio-old-home a { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 2px; }
+.rio-splash .rio-brand-mark { margin: 0; font-size: clamp(36px, 4vw, 56px); line-height: 1; letter-spacing: -0.03em; }
+.rio-splash .rio-brand-owned { margin: 4px 0 8px; font-size: 13px; font-weight: 600; letter-spacing: 0.18em; line-height: 18px; }
+.rio-splash h1 { max-width: 16ch; margin: 0 0 6px; font-size: clamp(32px, 3.4vw, 48px); line-height: 1.02; font-weight: 800; }
+.rio-splash .rio-reason-line { margin: 0 0 4px; font-size: 18px; line-height: 24px; }
+.rio-splash-copy p,
+.rio-splash blockquote p { font-size: 16px; line-height: 22px; max-width: 46ch; }
+.rio-splash blockquote { margin: 4px 0 0; }
+.rio-splash-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 12px; }
+.rio-splash-go { width: auto; min-width: 10rem; margin: 0; }
+.rio-splash-login {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.rio-splash-strip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  margin: 0;
+  padding: 8px var(--gutter) calc(8px + env(safe-area-inset-bottom));
+  background: rgba(18, 17, 16, 0.42);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.92);
+}
+.rio-splash-strip .rio-contact { display: contents; }
+.rio-splash-strip .rio-legal-links { order: 1; }
+.rio-splash-strip .rio-photo-credit { order: 2; }
+.rio-splash .rio-splash-strip .rio-photo-credit,
+.rio-splash .rio-splash-strip .rio-photo-credit.on-photo {
+  position: static;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  text-align: center;
+  white-space: nowrap;
+}
+.rio-splash-strip .rio-legal-links {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+}
+.rio-splash-strip .rio-legal-links a { min-height: 44px; }
+@media (min-width: 1024px) {
+  .rio-splash-strip {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    text-align: left;
+  }
+  .rio-splash-strip .rio-photo-credit { order: 1; text-align: left; }
+  .rio-splash-strip .rio-legal-links { order: 2; justify-content: flex-end; }
+}
+.rio-old-home {
+  display: block;
+  min-height: 44px;
+  margin: 0;
+  padding: 12px 16px;
+  background: #121110;
+  color: #f4f1ec;
+  border-bottom: 1px solid rgba(244, 241, 236, 0.18);
+  text-align: center;
+}
+.rio-old-home a {
+  color: #fff;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
+}
 .rio-splash.is-entering .rio-brand-mark { animation: rio-mask 600ms var(--rio-ease-out) 300ms both; }
 .rio-splash.is-entering .rio-brand-owned { animation: rio-tag 500ms var(--rio-ease-out) 300ms both; }
 .rio-splash.is-entering h1 { animation: rio-mask 560ms var(--rio-ease-out) 650ms both; }
@@ -889,11 +981,7 @@
 .rio-v3 .rio-lib-group:first-child { margin-top: 0; }
 .rio-v3 .rio-cal-day.rio-cal-out { background: transparent; border-color: transparent; box-shadow: none; }
 @media (min-width: 1280px) { .rio-v3 .rio-plan-side { position: sticky; top: calc(var(--nav-h) + 16px); align-self: start; } }
-.rio-splash-copy { position: static; }
 .rio-splash-copy > :not(.rio-splash-strip) { position: relative; z-index: 1; }
-.rio-splash { padding-bottom: 96px; }
-.rio-splash-strip { position: absolute; left: 0; right: 0; bottom: 0; justify-content: space-between; padding: 12px var(--gutter, 24px); }
-.rio-splash-strip .rio-contact { text-align: left; display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; }
 .rio-splash-strip .rio-contact p { margin: 0; }
 @media (max-width: 767px) {
   .rio-v3 .rio-guide-contents { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter); }
@@ -1091,3 +1179,77 @@
 .rio-v3 .rio-phase-detail { max-width: none; }
 .rio-v3 .rio-phase-detail :is(.rio-phase-heading, .rio-phase-plain) { max-width: 36rem; }
 .rio-v3 .rio-phase-detail .rio-phase-week-list { max-width: none; }
+
+/* v4: input borders, phone hero type, Appearance segments, dark body-map plate. */
+.rio-v3 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.rio-v3 select,
+.rio-v3 textarea {
+  border-color: var(--line-input);
+  background-color: var(--raised);
+}
+.rio-v3 input[readonly],
+.rio-v3 textarea[readonly] {
+  background: var(--paper);
+  border-style: dashed;
+  color: var(--ink-2);
+}
+.rio-appearance {
+  display: flex;
+  width: 100%;
+  max-width: 28rem;
+  min-height: 44px;
+  margin: 0;
+  padding: 3px;
+  border: 1px solid var(--line-input);
+  border-radius: 999px;
+  background: var(--paper);
+}
+.rio-appearance label {
+  position: relative;
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 96px;
+  min-height: 44px;
+  border-radius: 999px;
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  cursor: pointer;
+}
+.rio-appearance input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.rio-appearance label:has(input:checked) {
+  background: var(--chip-on-bg);
+  color: var(--chip-on-ink);
+}
+.rio-appearance label:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+@media (max-width: 767px) {
+  .rio-appearance label { min-width: 0; }
+  .rio-v3 .rio-hero .rio-hello,
+  .rio-v3 .rio-plan-hero .rio-range {
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+  }
+  .rio-subnav { scrollbar-width: none; }
+  .rio-subnav::-webkit-scrollbar { display: none; }
+  .rio-v3.page-home .rio-stat-row { grid-auto-rows: 1fr; }
+  .rio-v3.page-home .rio-stat-value { font-size: 18px; line-height: 24px; }
+}
+@media (max-width: 720px) {
+  .rio-links > a.is-active { box-shadow: inset 0 2px 0 var(--accent); }
+}
+:root[data-theme="dark"] .rio-bodies {
+  background: var(--raised);
+  border-radius: 16px;
+  padding: 8px;
+}
