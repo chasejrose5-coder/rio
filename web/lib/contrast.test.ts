@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 /** WCAG relative luminance, 0 to 1. */
@@ -90,6 +91,33 @@ const pairs: Array<[string, string, string, number]> = [
   ["speed on surface", "speed", "surface", 3],
   ["long on surface", "long", "surface", 3],
 ];
+
+function hardcodedInk(css: string): string[] {
+  const hits: string[] = [];
+  let skipping = false;
+  let depth = 0;
+  css.split("\n").forEach((line, index) => {
+    if (!skipping && /:root\b/.test(line) && line.includes("{")) skipping = true;
+    if (skipping) {
+      depth += (line.match(/\{/g) || []).length;
+      depth -= (line.match(/\}/g) || []).length;
+      if (depth <= 0) {
+        skipping = false;
+        depth = 0;
+      }
+      return;
+    }
+    if (/color:\s*#121110/i.test(line)) hits.push(`${index + 1}: ${line.trim()}`);
+  });
+  return hits;
+}
+
+test("signed-in text does not hard-code the light ink", () => {
+  for (const name of ["globals.css", "enhance.css", "legal.css"]) {
+    const css = readFileSync(new URL(`../app/${name}`, import.meta.url), "utf8");
+    assert.deepEqual(hardcodedInk(css), [], name);
+  }
+});
 
 test("light and dark token pairs meet WCAG AA", () => {
   const misses: string[] = [];

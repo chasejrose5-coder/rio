@@ -43,14 +43,34 @@ const SETTINGS_SECTIONS = [
 ] as const;
 
 function SettingsIndex() {
+  const [current, setCurrent] = useState<string>(SETTINGS_SECTIONS[0][0]);
+  useEffect(() => {
+    const nodes = SETTINGS_SECTIONS.map(([id]) => document.getElementById(id)).filter(
+      (node): node is HTMLElement => node instanceof HTMLElement,
+    );
+    if (nodes.length === 0) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible?.target.id) setCurrent(visible.target.id);
+      },
+      { rootMargin: "-15% 0px -70% 0px", threshold: [0.1, 0.3, 0.6] },
+    );
+    nodes.forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+  }, []);
   return (
     <nav className="rio-settings-index" aria-label="Settings sections">
       {SETTINGS_SECTIONS.map(([id, title]) => (
         <a
           key={id}
           href={`#${id}`}
+          aria-current={current === id ? "true" : undefined}
           onClick={(event) => {
             event.preventDefault();
+            setCurrent(id);
             const section = document.getElementById(id);
             if (section instanceof HTMLDetailsElement) section.open = true;
             const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

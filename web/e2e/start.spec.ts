@@ -174,7 +174,7 @@ test("sunday start, generate errors, a scored plan, and a failed link stay on St
   await page.getByLabel("Start date").fill("2026-11-15");
   await page.getByLabel("Goal date").fill("2027-04-10");
   const color = await page.locator(".rio-goal-card .rio-error").evaluate((el) => getComputedStyle(el).color);
-  expect(color).toBe("rgb(180, 35, 24)");
+  expect(color).toBe("rgb(179, 38, 30)");
 
   await page.getByLabel("Your 800 m time today").fill("9:00.00");
   await page.getByLabel("Goal date").fill("2027-04-10");

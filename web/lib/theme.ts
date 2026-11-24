@@ -1,19 +1,32 @@
 export type ThemePref = "light" | "dark" | "system";
 
-/** Runs before the first paint. Keep this string in sync with applyTheme. */
-export const THEME_BOOT = `(function(){try{var p=localStorage.getItem("rio-theme");if(p!=="light"&&p!=="dark")p="system";var dark=window.matchMedia("(prefers-color-scheme: dark)").matches;var d=p==="dark"||(p==="system"&&dark);var r=document.documentElement;r.dataset.theme=d?"dark":"light";r.dataset.themePref=p;}catch(e){document.documentElement.dataset.theme="light";}})();`;
+/** Runs before the first paint. The account cookie wins over a stale device mirror. */
+export const THEME_BOOT = `(function(){try{var c=(document.cookie.match(/(?:^|; )rio_theme=(light|dark|system)/)||[])[1];var p=c||localStorage.getItem("rio-theme");if(p!=="light"&&p!=="dark")p="system";var dark=window.matchMedia("(prefers-color-scheme: dark)").matches;var d=p==="dark"||(p==="system"&&dark);var r=document.documentElement;r.dataset.theme=d?"dark":"light";r.dataset.themePref=p;}catch(e){document.documentElement.dataset.theme="light";}})();`;
 
 export function isThemePref(value: unknown): value is ThemePref {
   return value === "light" || value === "dark" || value === "system";
 }
 
+function prefFromCookie(): ThemePref | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(/(?:^|; )rio_theme=(light|dark|system)/);
+  return match && isThemePref(match[1]) ? match[1] : null;
+}
+
 export function readPref(): ThemePref {
   try {
+    const cookie = prefFromCookie();
+    if (cookie) return cookie;
     const stored = localStorage.getItem("rio-theme");
     return isThemePref(stored) ? stored : "system";
   } catch {
     return "system";
   }
+}
+
+function writeThemeCookie(pref: ThemePref) {
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `rio_theme=${pref}; Path=/; Max-Age=34560000; SameSite=Lax${secure}`;
 }
 
 export function resolvedTheme(pref: ThemePref): "light" | "dark" {
@@ -37,5 +50,10 @@ export function applyTheme(pref: ThemePref, fade: boolean) {
     localStorage.setItem("rio-theme", pref);
   } catch {
     /* A private window still shows the chosen theme for this visit. */
+  }
+  try {
+    writeThemeCookie(pref);
+  } catch {
+    /* The paint already used the account value for this visit. */
   }
 }

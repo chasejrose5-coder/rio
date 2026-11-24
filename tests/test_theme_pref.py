@@ -97,3 +97,40 @@ def test_hosted_settings_save_theme_on_the_same_user(monkeypatch) -> None:
         raise AssertionError(kept.text)
     if kept.json()["prefs"]["compact"] is not True:
         raise AssertionError(kept.json()["prefs"])
+
+
+def _theme_cookies(response) -> list[str]:
+    return [item for item in response.headers.get_list("set-cookie") if item.lower().startswith("rio_theme=")]
+
+
+def test_the_session_read_sets_a_readable_theme_cookie(tmp_path: Path) -> None:
+    path = tmp_path / "accounts.json"
+    email, _seal = create_account(path, "ada@example.com", "correct-horse", "Ada")
+    client = TestClient(
+        create_app(directory=None, accounts=path, frontend_origin="http://localhost:3000", load_env=False),
+        base_url="https://testserver",
+    )
+    signed = client.post("/auth/sign-in", json={"email": email, "password": "correct-horse"})
+    if signed.status_code != 200:
+        raise AssertionError(signed.text)
+    probe = client.get("/auth/session")
+    theme = _theme_cookies(probe)
+    if len(theme) != 1 or "rio_theme=system" not in theme[0]:
+        raise AssertionError(theme)
+    lowered = theme[0].lower()
+    if "httponly" in lowered or "samesite=lax" not in lowered:
+        raise AssertionError(theme[0])
+    me = client.get("/auth/me")
+    if _theme_cookies(me):
+        raise AssertionError("reloading minted a cookie on /auth/me")
+    saved = client.patch("/settings", json={"theme": "dark"})
+    dark = _theme_cookies(saved)
+    if len(dark) != 1 or not dark[0].startswith("rio_theme=dark"):
+        raise AssertionError(dark)
+    anonymous = TestClient(
+        create_app(directory=None, accounts=path, frontend_origin="http://localhost:3000", load_env=False),
+        base_url="https://testserver",
+    )
+    signed_out = anonymous.get("/auth/session")
+    if signed_out.json().get("signed_in") is not False or _theme_cookies(signed_out):
+        raise AssertionError(signed_out.headers)

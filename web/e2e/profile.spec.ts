@@ -191,7 +191,7 @@ test("the four values, a saved goal, a bad time, and a new easy pace", async ({ 
 
   const label = page.locator(".rio-mark-label").first();
   const color = await label.evaluate((el) => getComputedStyle(el).color);
-  expect(color).toBe("rgb(95, 91, 85)");
+  expect(color).toBe("rgb(166, 60, 26)");
 });
 
 test("no season shows easy pace and the way to Start", async ({ page }) => {
