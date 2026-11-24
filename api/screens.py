@@ -31,7 +31,7 @@ from ui.profile import profile_fields, profile_key, shown_goal
 from ui.progress import progress_weeks
 from ui.settings import TIME_ZONES
 
-_SCREEN = ("date_format", "start_date", "confirm_adapt", "show_ids", "compact", "preferred")
+_SCREEN = ("date_format", "start_date", "confirm_adapt", "show_ids", "compact", "preferred", "theme")
 
 
 def json_ready(value):
@@ -1154,6 +1154,7 @@ def apply_settings(principal: Principal, directory, patch: dict) -> dict:
         "confirm_adapt",
         "show_ids",
         "compact",
+        "theme",
     )
     sent = {key: patch[key] for key in known if key in patch and patch[key] is not None}
     if not sent:
@@ -1182,6 +1183,8 @@ def apply_settings(principal: Principal, directory, patch: dict) -> dict:
         raise ApiError(400, "That setting could not be saved.")
     if "start_date" in sent and sent["start_date"] not in ("today", "sunday"):
         raise ApiError(400, "That setting could not be saved.")
+    if "theme" in sent and sent["theme"] not in ("light", "dark", "system"):
+        raise ApiError(400, "That setting could not be saved.")
     easy = None
     if "easy_pace" in sent or "easy_pace_unit" in sent:
         if "easy_pace" not in sent or "easy_pace_unit" not in sent:
@@ -1203,7 +1206,7 @@ def _write_local(principal: Principal, sent: dict, easy) -> None:
     path = principal.accounts_path
     local = read_local(path, principal.email) or {}
     settings = dict(local.get("settings") or {})
-    for key in ("pace_units", "no_watch", "date_format", "start_date", "confirm_adapt", "show_ids", "compact", "intro_seen", "strava_prompt_seen"):
+    for key in ("pace_units", "no_watch", "date_format", "start_date", "confirm_adapt", "show_ids", "compact", "intro_seen", "strava_prompt_seen", "theme"):
         if key in sent:
             settings[key] = sent[key]
     name = sent.get("display_name", local.get("name") or "")

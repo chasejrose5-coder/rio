@@ -1336,7 +1336,7 @@ class SupabaseDirectory:
         if isinstance(profile, dict):
             meta = _metadata_dict(record) or {}
             profile = dict(profile)
-            for key in ("date_format", "start_date", "confirm_adapt", "show_ids", "compact", "preferred"):
+            for key in ("date_format", "start_date", "confirm_adapt", "show_ids", "compact", "preferred", "theme"):
                 if key in meta:
                     profile[key] = meta[key]
         return {
@@ -2026,7 +2026,7 @@ def _public_user(user: dict) -> dict:
         row["strava_prompt_seen"] = user["strava_prompt_seen"]
     if isinstance(user.get("no_watch"), bool):
         row["no_watch"] = user["no_watch"]
-    for key in ("date_format", "start_date", "confirm_adapt", "show_ids", "compact", "preferred"):
+    for key in ("date_format", "start_date", "confirm_adapt", "show_ids", "compact", "preferred", "theme"):
         if key in user:
             row[key] = user[key]
     return row

@@ -42,7 +42,7 @@ _LADDER_SPLIT = re.compile(r"\s*[-–—]\s*|,\s+")
 _REP = re.compile(r"(?:×|(?<![A-Za-z])x)\s*$", re.IGNORECASE)
 _ISO = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
 
-# Display only. The season stays in meters. Theme does not switch.
+# Display only. The season stays in meters. Theme is light, dark, or system.
 APP_VERSION = "0.1"
 TIME_ZONES = (
     "UTC",
@@ -77,7 +77,7 @@ DEFAULTS = {
     "reminders": False,
     "recap": False,
     "no_watch": False,
-    "theme": "dark",
+    "theme": "system",
 }
 
 
@@ -90,6 +90,8 @@ def normalize(raw: object) -> dict:
     start_date = found.get("start_date")
     reminders = found.get("reminders") is True
     recap = found.get("recap") is True
+    theme = found.get("theme")
+    chosen_theme = theme if theme in ("light", "dark", "system") else DEFAULTS["theme"]
     # A blank choice is the default. A rejected choice stays on the older
     # fallback so a bad value does not become the new default.
     if units in ("km", "miles"):
@@ -114,7 +116,7 @@ def normalize(raw: object) -> dict:
         "reminders": reminders,
         "recap": recap,
         "no_watch": found.get("no_watch") is True,
-        "theme": "dark",
+        "theme": chosen_theme,
     }
 
 

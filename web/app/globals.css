@@ -49,8 +49,23 @@
   --display: Manrope, Inter, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --shade: linear-gradient(180deg, rgba(18, 17, 16, 0.62) 0%, rgba(18, 17, 16, 0.78) 100%);
   --ink-2: #3c3a36;
+  --ink-3: #6e6a64;
   --on-dark-muted: #d7d2cb;
   --accent-text: #b43c18;
+  --raised: #ffffff;
+  --line-input: #8f887e;
+  --success: #2f6b3a;
+  --nav: #121110;
+  --on-nav: #f4f1ec;
+  --nav-line: rgba(244, 241, 236, 0.14);
+  --tag: #efe9df;
+  --track: #e6dfd3;
+  --wash: #f6e7e1;
+  --phase-past: #e2ddd5;
+  --chip-on-bg: var(--ink);
+  --chip-on-ink: #ffffff;
+  --skel-a: #ece6dc;
+  --skel-b: #f6f2ec;
   --accent-deep: #9a3412;
   --radius-sm: 10px;
   --radius: 12px;
@@ -92,10 +107,64 @@
   --rio-dur-xl: 600ms;
   --rio-stagger: 50ms;
   --nav-h: 64px;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --paper: #141211;
+  --surface: #1e1b19;
+  --raised: #282421;
+  --line: #3a3430;
+  --line-input: #7a7168;
+  --ink: #f4f1ec;
+  --ink-2: #c4bdb3;
+  --ink-3: #a39b91;
+  --muted: #a39b91;
+  --accent: #f2794f;
+  --accent-text: #ff9a72;
+  --accent-deep: #ff9a72;
+  --button: #c2461f;
+  --button-hover: #a63c1a;
+  --button-active: #8c3216;
+  --success: #7cc48a;
+  --danger: #ff8f86;
+  --nav: #0b0a09;
+  --on-nav: #f4f1ec;
+  --nav-line: #2a2623;
+  --tag: #2e2a27;
+  --track: #2e2a27;
+  --wash: #3a2a24;
+  --phase-past: #2a2623;
+  --chip-on-bg: #f4f1ec;
+  --chip-on-ink: #121110;
+  --type-easy: #5fa86b;
+  --type-speed: #e9683f;
+  --type-long: #7e9fdb;
+  --hatch: repeating-linear-gradient(135deg, #1e1b19 0 6px, #2e2a27 6px 7px);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-2: 0 6px 16px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.35);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --skel-a: #24201d;
+  --skel-b: #2e2a27;
+  --hero-scrim: linear-gradient(90deg, rgba(18, 17, 16, 0.9) 0%, rgba(18, 17, 16, 0.82) 40%, rgba(18, 17, 16, 0.76) 55%, rgba(18, 17, 16, 0.36) 80%, rgba(18, 17, 16, 0.18) 100%);
+  --hero-scrim-mobile: linear-gradient(180deg, rgba(18, 17, 16, 0.76) 0%, rgba(18, 17, 16, 0.9) 100%);
+  --shade: linear-gradient(180deg, rgba(18, 17, 16, 0.72) 0%, rgba(18, 17, 16, 0.86) 100%);
+  color-scheme: dark;
+}
+:root[data-theme="dark"] .rio-v3 {
+  --ink-2: #c4bdb3;
+  --accent-text: #ff9a72;
 }
 
 * { box-sizing: border-box; }
 html { color-scheme: light; }
+html[data-theme="dark"] { color-scheme: dark; }
+html.theme-fade, html.theme-fade * {
+  transition: background-color 200ms cubic-bezier(0.2, 0, 0, 1), color 200ms cubic-bezier(0.2, 0, 0, 1), border-color 200ms cubic-bezier(0.2, 0, 0, 1), fill 200ms, stroke 200ms !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.theme-fade, html.theme-fade * { transition: none !important; }
+}
 html, body {
   margin: 0;
   min-height: 100%;
@@ -104,7 +173,7 @@ html, body {
   font-family: var(--font);
 }
 body { min-height: 100dvh; }
-::selection { background: #f6e7e1; color: var(--ink); }
+::selection { background: var(--wash); color: var(--ink); }
 a { color: inherit; text-decoration: none; }
 button, input { font-family: inherit; }
 button, a, input { transition: background-color 200ms var(--ease), color 200ms var(--ease), border-color 200ms var(--ease), transform 200ms var(--ease); }
@@ -117,7 +186,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   outline-offset: 3px;
 }
 :is(.rio-phase-details, .rio-expander) > summary:focus-visible { outline: none; }
-.rio-nav :focus-visible, .rio-start-session:focus-visible { outline-color: var(--paper); }
+.rio-nav :focus-visible, .rio-start-session:focus-visible { outline-color: var(--on-nav); }
 input:focus-visible, select:focus-visible { outline-offset: 1px; }
 
 @keyframes rio-rise {
@@ -141,9 +210,9 @@ input:focus-visible, select:focus-visible { outline-offset: 1px; }
   position: sticky;
   top: 0;
   z-index: 40;
-  background: var(--ink);
-  color: var(--paper);
-  border-bottom: 1px solid rgba(244, 241, 236, 0.14);
+  background: var(--nav);
+  color: var(--on-nav);
+  border-bottom: 1px solid var(--nav-line);
   min-height: 64px;
   padding: 0.72rem var(--gutter) 0.65rem;
 }
@@ -165,11 +234,11 @@ input:focus-visible, select:focus-visible { outline-offset: 1px; }
   font-weight: 800;
   font-size: 1.25rem;
   letter-spacing: -0.04em;
-  color: var(--paper);
+  color: var(--on-nav);
 }
 .rio-links a, .rio-logout, .rio-subnav a {
   position: relative;
-  color: var(--paper);
+  color: var(--on-nav);
   background: transparent;
   border: 0;
   padding: 0.15rem 0 0.28rem;
@@ -237,7 +306,7 @@ a .rio-mini:hover, a.rio-daycard:hover, .rio-hit:hover .rio-mini {
 .rio-overflow, .rio-overflow-panel { display: contents; }
 .rio-overflow-toggle {
   display: none;
-  color: var(--paper);
+  color: var(--on-nav);
   background: transparent;
   border: 0;
   cursor: pointer;
@@ -263,8 +332,8 @@ a .rio-mini:hover, a.rio-daycard:hover, .rio-hit:hover .rio-mini {
     width: auto;
     margin: 0;
     padding: 0 calc(0.5rem + env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom) 0.2rem;
-    background: #121110;
-    border-top: 1px solid rgba(244, 241, 236, 0.16);
+    background: var(--nav);
+    border-top: 1px solid var(--nav-line);
     overflow: visible;
   }
   .rio-links > a,
@@ -298,8 +367,8 @@ a .rio-mini:hover, a.rio-daycard:hover, .rio-hit:hover .rio-mini {
     gap: 0.35rem;
     min-width: 11.5rem;
     padding: 0.45rem;
-    background: #121110;
-    border: 1px solid rgba(244, 241, 236, 0.22);
+    background: var(--nav);
+    border: 1px solid var(--nav-line);
     border-radius: var(--radius-card);
   }
   .rio-overflow.is-open .rio-overflow-panel { display: flex; }
@@ -355,7 +424,7 @@ a .rio-mini:hover, a.rio-daycard:hover, .rio-hit:hover .rio-mini {
   min-width: 44px;
   min-height: 44px;
   padding: 0 0.85rem;
-  color: var(--paper);
+  color: var(--on-nav);
   font-weight: 600;
 }
 
@@ -368,8 +437,8 @@ a .rio-mini:hover, a.rio-daycard:hover, .rio-hit:hover .rio-mini {
   line-height: 0.92;
 }
 .page-plain .rio-hero {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--nav);
+  color: var(--on-nav);
   margin: 0 calc(-1 * var(--gutter));
   padding: 2.78rem var(--gutter) 2.2rem;
 }
@@ -423,8 +492,8 @@ a .rio-mini:hover, a.rio-daycard:hover, .rio-hit:hover .rio-mini {
 .rio-loading main { padding: 2.4rem var(--gutter) 3.5rem; }
 .rio-loading .rio-primary { width: auto; min-width: 10rem; padding: 0 1.4rem; }
 .page-skeleton .rio-hero {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--nav);
+  color: var(--on-nav);
   margin: 0 calc(-1 * var(--gutter));
   padding: 2.4rem var(--gutter) 1.8rem;
 }
@@ -467,12 +536,12 @@ a .rio-mini:hover, a.rio-daycard:hover, .rio-hit:hover .rio-mini {
   /* Fixed on desktop so the aerial is framed to the viewport, the same crop
      Streamlit uses. Phones scroll, or a fixed photo paints as a blank field. */
   background-attachment: fixed, fixed;
-  color: var(--paper);
+  color: var(--on-nav);
 }
 .page-home .rio-hero { background: transparent; padding: 2.4rem 0 1.2rem; }
-.rio-display { font-size: clamp(2.675rem, 5.9vw, 5.35rem); max-width: 16ch; color: var(--paper); }
+.rio-display { font-size: clamp(2.675rem, 5.9vw, 5.35rem); max-width: 16ch; color: var(--on-nav); }
 .rio-display-num { color: var(--accent); }
-.rio-display-rest { color: var(--paper); }
+.rio-display-rest { color: var(--on-nav); }
 .rio-home-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(16rem, 0.8fr);
@@ -504,7 +573,7 @@ a .rio-mini:hover, a.rio-daycard:hover, .rio-hit:hover .rio-mini {
 }
 .rio-stat-value {
   margin: 0.35rem 0 0;
-  color: var(--paper);
+  color: var(--on-nav);
   font-family: var(--display);
   font-weight: 800;
   font-size: clamp(1.15rem, 2vw, 1.65rem);
@@ -522,7 +591,7 @@ a .rio-mini:hover, a.rio-daycard:hover, .rio-hit:hover .rio-mini {
 .rio-glossary p, .rio-soft-card p { margin: 0.18rem 0; color: var(--muted); font-size: 0.92rem; line-height: 1.35; }
 .rio-index {
   margin: 0 0 0.85rem;
-  color: var(--paper);
+  color: var(--on-nav);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -883,7 +952,7 @@ button.rio-text-link:disabled {
   position: relative;
   z-index: 6;
   background: rgba(18, 17, 16, 0.72);
-  color: var(--paper);
+  color: var(--on-nav);
   border: 1px solid rgba(244, 241, 236, 0.45);
   font-size: 0.78rem;
   font-weight: 500;
@@ -914,7 +983,7 @@ button.rio-text-link:disabled {
   text-underline-offset: 0.12em;
 }
 .rio-contact.on-photo, .page-home .rio-contact { color: rgba(244, 241, 236, 0.82); }
-.page-home .rio-contact a, .rio-contact.on-photo a { color: var(--paper); }
+.page-home .rio-contact a, .rio-contact.on-photo a { color: var(--on-nav); }
 
 @media (max-width: 1200px), (hover: none) and (pointer: coarse) {
   .page-home {
@@ -971,7 +1040,7 @@ button.rio-text-link:disabled {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  color: var(--paper);
+  color: var(--on-nav);
   background-color: #121110;
   background-image: var(--shade), image-set(url("/photos/startup-track-1200.webp") type("image/webp"), url("/photos/startup-track.jpg") type("image/jpeg"));
   background-size: cover;
@@ -1260,7 +1329,7 @@ button.rio-text-link:disabled {
 .rio-train-copy { max-width: 42rem; }
 .rio-watchless input { display: block; margin-top: 0.4rem; min-height: 2.6rem; border: 1px solid var(--line); border-radius: 12px; padding: 0.4rem 0.7rem; }
 .rio-extras { margin-top: 0.4rem; }
-.rio-extras .rio-mark-label { color: var(--paper); }
+.rio-extras .rio-mark-label { color: var(--on-nav); }
 .rio-daycard {
   margin-top: 0.55rem;
   padding: 0.9rem 1rem;
@@ -1276,7 +1345,7 @@ button.rio-text-link:disabled {
   background-size: cover, cover;
   background-position: center, center;
   background-attachment: fixed, fixed;
-  color: var(--paper);
+  color: var(--on-nav);
 }
 .page-start main { padding: 0 var(--gutter) 3.5rem; }
 .rio-goal-card {
@@ -1358,7 +1427,7 @@ button.rio-text-link:disabled {
   background-image: var(--shade), image-set(url("/photos/plan-curve.webp") type("image/webp"), url("/photos/plan-curve.jpg") type("image/jpeg"));
   background-size: cover;
   background-position: center;
-  color: var(--paper);
+  color: var(--on-nav);
 }
 .rio-plan-hero h1 {
   position: relative;
@@ -1660,12 +1729,12 @@ button.rio-text-link:disabled {
 .page-session { background: var(--paper); color: var(--ink); min-height: 100dvh; }
 .page-session main { padding: 0 var(--gutter) 3.5rem; }
 .page-session .rio-hero {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--nav);
+  color: var(--on-nav);
   margin: 0 calc(-1 * var(--gutter));
   padding: 2.4rem var(--gutter) 1.8rem;
 }
-.page-session .rio-hero h1 { font-size: var(--fs-hero); color: var(--paper); max-width: 16ch; }
+.page-session .rio-hero h1 { font-size: var(--fs-hero); color: var(--on-nav); max-width: 16ch; }
 .page-session .rio-range { color: var(--on-dark-muted); }
 .page-session .rio-card {
   margin: 0;
@@ -1790,14 +1859,14 @@ button.rio-text-link:disabled {
 .page-activity main, .page-last main, .page-settings main { padding: 0 var(--gutter) 3.5rem; }
 .page-activity main > *:not(.rio-hero) { max-width: 60rem; }
 .page-activity .rio-hero, .page-last .rio-hero, .page-settings .rio-hero {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--nav);
+  color: var(--on-nav);
   max-width: none;
   margin: 0 calc(-1 * var(--gutter));
   padding: 2.4rem var(--gutter) 1.8rem;
 }
 .page-activity .rio-hero h1, .page-last .rio-hero h1, .page-settings .rio-hero h1 {
-  color: var(--paper);
+  color: var(--on-nav);
   font-size: var(--fs-hero);
   max-width: 16ch;
 }
@@ -2111,15 +2180,15 @@ button.rio-text-link:disabled {
 }
 .page-library main { padding: 0 var(--gutter) 3.5rem; min-width: 0; }
 .page-library .rio-hero {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--nav);
+  color: var(--on-nav);
   margin: 0 calc(-1 * var(--gutter));
   padding: 2.78rem var(--gutter) 2.2rem;
 }
 .page-library .rio-range { margin: 0.7rem 0 0; color: rgba(244, 241, 236, 0.86); font-size: 1.05rem; max-width: 36rem; }
 .page-library .rio-hero h1 {
   margin: 0.1rem 0 0;
-  color: var(--paper);
+  color: var(--on-nav);
   font-family: var(--display);
   font-weight: 800;
   font-size: var(--fs-hero);
@@ -2251,14 +2320,14 @@ button.rio-text-link:disabled {
 }
 .page-profile main, .page-more main { padding: 0 var(--gutter) 3.5rem; }
 .page-profile .rio-hero, .page-more .rio-hero {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--nav);
+  color: var(--on-nav);
   margin: 0 calc(-1 * var(--gutter));
   padding: 2.78rem var(--gutter) 2.2rem;
 }
 .page-profile .rio-hero h1, .page-more .rio-hero h1 {
   margin: 0.1rem 0 0;
-  color: var(--paper);
+  color: var(--on-nav);
   font-family: var(--display);
   font-weight: 800;
   font-size: var(--fs-hero);
@@ -2417,14 +2486,14 @@ button.rio-text-link:disabled {
 }
 .page-past main { padding: 0 var(--gutter) 3.5rem; }
 .page-past .rio-hero {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--nav);
+  color: var(--on-nav);
   margin: 0 calc(-1 * var(--gutter));
   padding: 2.78rem var(--gutter) 2.2rem;
 }
 .page-past .rio-hero h1 {
   margin: 0.1rem 0 0;
-  color: var(--paper);
+  color: var(--on-nav);
   font-family: var(--display);
   font-weight: 800;
   font-size: var(--fs-hero);
@@ -2709,8 +2778,8 @@ button.rio-text-link:disabled {
 .page-about.is-compact .rio-card { padding: 1.15rem 0 0.8rem; }
 
 .page-creators .rio-hero {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--nav);
+  color: var(--on-nav);
   margin: 0 calc(-1 * var(--gutter));
   padding: 2.78rem var(--gutter) 2.2rem;
 }
@@ -2724,7 +2793,7 @@ button.rio-text-link:disabled {
 }
 .page-creators .rio-hero h1 {
   margin: 0.1rem 0 0;
-  color: var(--paper);
+  color: var(--on-nav);
   font-family: var(--display);
   font-weight: 800;
   font-size: var(--fs-hero);
@@ -2826,14 +2895,14 @@ button.rio-text-link:disabled {
 }
 .page-admin main, .page-fixture main { padding: 0 var(--gutter) 3.5rem; }
 .page-admin .rio-hero, .page-fixture .rio-hero {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--nav);
+  color: var(--on-nav);
   margin: 0 calc(-1 * var(--gutter));
   padding: 2.4rem var(--gutter) 1.8rem;
 }
 .page-admin .rio-hero h1, .page-fixture .rio-hero h1 {
   margin: 0.1rem 0 0;
-  color: var(--paper);
+  color: var(--on-nav);
   font-family: var(--display);
   font-weight: 800;
   font-size: var(--fs-hero);
@@ -3004,14 +3073,14 @@ button.rio-text-link:disabled {
 }
 .page-guide main { padding: 0 var(--gutter) 3.5rem; }
 .page-guide .rio-hero {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--nav);
+  color: var(--on-nav);
   margin: 0 calc(-1 * var(--gutter)) 1.5rem;
   padding: 2.78rem var(--gutter) 2.2rem;
 }
 .page-guide .rio-hero h1 {
   margin: 0.1rem 0 0;
-  color: var(--paper);
+  color: var(--on-nav);
   font-family: var(--display);
   font-weight: 800;
   font-size: var(--fs-hero);
@@ -3124,14 +3193,14 @@ button.rio-text-link:disabled {
 }
 .page-stretch main { padding: 0 var(--gutter) 3.5rem; }
 .page-stretch .rio-hero {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--nav);
+  color: var(--on-nav);
   margin: 0 calc(-1 * var(--gutter)) 1.5rem;
   padding: 2.78rem var(--gutter) 2.2rem;
 }
 .page-stretch .rio-hero h1 {
   margin: 0.1rem 0 0;
-  color: var(--paper);
+  color: var(--on-nav);
   font-family: var(--display);
   font-weight: 800;
   font-size: var(--fs-hero);
@@ -3209,7 +3278,7 @@ button.rio-text-link:disabled {
   color: #f4f1ec;
   border-color: #121110;
 }
-.rio-disclaimer { max-width: 42rem; color: var(--ink-2); }
+.rio-disclaimer { max-width: 42rem; color: var(--ink-2); font-size: 13px; font-weight: 500; line-height: 18px; }
 .rio-bodies {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3348,8 +3417,8 @@ button.rio-text-link:disabled {
 .page-core .rio-hero,
 .page-recovery .rio-hero,
 .page-foam .rio-hero {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--nav);
+  color: var(--on-nav);
   margin: 0 calc(-1 * var(--gutter)) 1.5rem;
   padding: 2.78rem var(--gutter) 2.2rem;
 }
@@ -3357,7 +3426,7 @@ button.rio-text-link:disabled {
 .page-recovery .rio-hero h1,
 .page-foam .rio-hero h1 {
   margin: 0.1rem 0 0;
-  color: var(--paper);
+  color: var(--on-nav);
   font-family: var(--display);
   font-weight: 800;
   font-size: var(--fs-hero);
