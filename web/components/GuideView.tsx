@@ -35,6 +35,14 @@ function OnThisPage() {
 }
 
 export function GuideView() {
+  return (
+    <RequireUser title="Guide" pageClass="page-guide">
+      <GuideBody />
+    </RequireUser>
+  );
+}
+
+function GuideBody() {
   const [current, setCurrent] = useState(GUIDE_SECTIONS[0]?.id ?? "");
   useEffect(() => {
     const nodes = GUIDE_SECTIONS.map((section) => document.getElementById(section.id)).filter(
@@ -54,7 +62,6 @@ export function GuideView() {
     return () => observer.disconnect();
   }, []);
   return (
-    <RequireUser title="Guide" pageClass="page-guide">
       <div className="page-guide rio-v3">
         <Nav />
         <main>
@@ -64,7 +71,12 @@ export function GuideView() {
           </header>
           <nav className="rio-guide-contents" aria-label="Guide sections">
             {GUIDE_SECTIONS.map((section) => (
-              <Link key={section.id} href={`#${section.id}`} aria-current={current === section.id ? "true" : undefined}>
+              <Link
+                key={section.id}
+                href={`#${section.id}`}
+                aria-current={current === section.id ? "true" : undefined}
+                onClick={() => setCurrent(section.id)}
+              >
                 {section.title}
               </Link>
             ))}
@@ -111,6 +123,5 @@ export function GuideView() {
           <Footer page="guide" />
         </main>
       </div>
-    </RequireUser>
   );
 }

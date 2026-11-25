@@ -530,7 +530,7 @@ a .rio-mini:hover, a.rio-daycard:hover, .rio-hit:hover .rio-mini {
 
 .page-home {
   min-height: 100dvh;
-  background-color: var(--ink);
+  background-color: var(--nav);
   background-image: var(--shade), image-set(url("/photos/home-aerial.webp") type("image/webp"), url("/photos/home-aerial.jpg") type("image/jpeg"));
   background-size: cover, cover;
   background-position: center center, center center;
@@ -745,7 +745,7 @@ a .rio-mini:hover, a.rio-daycard:hover, .rio-hit:hover .rio-mini {
 .auth-screen {
   min-height: 100dvh;
   padding: 1.5rem var(--gutter) 2.5rem;
-  background-color: var(--ink);
+  background-color: var(--nav);
   /* The floodlight photo is a black sky. The shared page shade hides the lamps. */
   --auth-shade: linear-gradient(180deg, rgba(18, 17, 16, 0.22) 0%, rgba(18, 17, 16, 0.42) 100%);
   background-image: var(--auth-shade), image-set(url("/photos/login.avif") type("image/avif"), url("/photos/login.webp") type("image/webp"), url("/photos/login.jpg") type("image/jpeg"));
@@ -1047,7 +1047,7 @@ button.rio-text-link:disabled {
   display: flex;
   flex-direction: column;
   color: var(--on-nav);
-  background-color: var(--ink);
+  background-color: var(--nav);
   background-image: var(--shade), image-set(url("/photos/startup-track-1200.webp") type("image/webp"), url("/photos/startup-track.jpg") type("image/jpeg"));
   background-size: cover;
   background-position: center;
@@ -1346,7 +1346,7 @@ button.rio-text-link:disabled {
 }
 .page-start {
   min-height: 100dvh;
-  background-color: var(--ink);
+  background-color: var(--nav);
   background-image: var(--shade), image-set(url("/photos/start-1200.webp") type("image/webp"), url("/photos/start.jpg") type("image/jpeg"));
   background-size: cover, cover;
   background-position: center, center;
@@ -1429,7 +1429,7 @@ button.rio-text-link:disabled {
   margin: 0 calc(-1 * var(--gutter));
   padding: 2.6rem var(--gutter) 1.7rem;
   min-height: 11rem;
-  background-color: var(--ink);
+  background-color: var(--nav);
   background-image: var(--shade), image-set(url("/photos/plan-curve.webp") type("image/webp"), url("/photos/plan-curve.jpg") type("image/jpeg"));
   background-size: cover;
   background-position: center;
@@ -2521,8 +2521,8 @@ button.rio-text-link:disabled {
   margin: 0 0 0.45rem;
   padding: 0.1rem 0.5rem;
   border-radius: 99px;
-  background: #f6e7e1;
-  color: #9a3412;
+  background: var(--wash);
+  color: var(--accent-text);
   font-size: 0.75rem;
   font-weight: 700;
 }
@@ -2682,7 +2682,7 @@ button.rio-text-link:disabled {
   min-height: 24rem;
   margin: 0 calc(-1 * var(--gutter)) 0;
   overflow: hidden;
-  background-color: var(--ink);
+  background-color: var(--nav);
   background-image: image-set(url("/photos/about-1200.webp") type("image/webp"), url("/photos/about.jpg") type("image/jpeg"));
   background-size: cover;
   background-position: center center;
@@ -3280,9 +3280,9 @@ button.rio-text-link:disabled {
 }
 .rio-stretch-filters button[aria-pressed="true"],
 .rio-stretch-actions button[aria-pressed="true"] {
-  background: #121110;
-  color: #f4f1ec;
-  border-color: var(--ink);
+  background: var(--chip-on-bg);
+  color: var(--chip-on-ink);
+  border-color: var(--chip-on-bg);
 }
 .rio-disclaimer { max-width: 42rem; color: var(--ink-2); font-size: 13px; font-weight: 500; line-height: 18px; }
 .rio-bodies {
@@ -3504,9 +3504,9 @@ button.rio-text-link:disabled {
   font-weight: 600;
 }
 .rio-area-picks button.is-on {
-  background: #121110;
-  color: #f4f1ec;
-  border-color: var(--ink);
+  background: var(--chip-on-bg);
+  color: var(--chip-on-ink);
+  border-color: var(--chip-on-bg);
 }
 .rio-recover-level {
   display: flex;
