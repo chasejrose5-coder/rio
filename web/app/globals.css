@@ -1084,8 +1084,6 @@ button.rio-text-link:disabled {
   line-height: 0.92;
 }
 .rio-reason-line { margin: 0.35rem 0 0.7rem; font-family: var(--display); font-weight: 700; font-size: clamp(1.2rem, 2.1vw, 1.55rem); }
-.rio-splash blockquote { margin: 0; max-width: 38rem; }
-.rio-splash blockquote p { margin: 0; color: rgba(244, 241, 236, 0.9); line-height: 1.5; }
 .rio-founder-by { margin-top: 0.45rem !important; color: rgba(244, 241, 236, 0.92) !important; font-size: 0.84rem; }
 .rio-splash .rio-photo-credit.on-photo {
   position: static;
