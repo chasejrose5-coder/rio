@@ -37,7 +37,7 @@ async function install(page: Page) {
     if (path === "/settings" && method === "PATCH") {
       const body = route.request().postDataJSON() as { usual_long_m?: number; pace_units?: string };
       sent.push(body);
-      if (body.usual_long_m === 1000) return json(route, { detail: "Enter a distance between 2 and 26 mi." }, 400);
+      if (body.usual_long_m === 1000) return json(route, { detail: "Enter a distance between 3.2 and 26 mi." }, 400);
       athlete.prefs.usual_long_m = body.usual_long_m ?? null;
       athlete.prefs.usual_long_note = "";
       return json(route, athlete);
@@ -104,7 +104,7 @@ test("easy pace, Start, and Profile ask for the usual long run", async ({ page }
   await page.getByLabel("Easy pace").fill("7:45");
   await page.getByLabel("Usual long run (mi)").fill("1");
   await page.getByRole("button", { name: "Save easy pace" }).click();
-  await expect(page.getByText("Enter a distance between 2 and 26 mi.")).toBeVisible();
+  await expect(page.getByText("Enter a distance between 3.2 and 26 mi.")).toBeVisible();
 });
 
 test("an open season keeps the usual long run read-only", async ({ page }) => {

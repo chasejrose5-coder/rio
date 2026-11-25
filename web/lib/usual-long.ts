@@ -2,15 +2,14 @@
 
 export const SIX_MILES_M = 9656;
 export const MILE_M = 1609;
-export const LONG_MIN_M = 9500;
+export const LONG_MIN_M = 5000;
 export const LONG_MAX_M = 20000;
 
 export const USUAL_LONG_LABEL = "Usual long run";
 export const USUAL_LONG_HELP =
-  "About how far your normal long run is right now. At 6 miles (9.7 km) or more, Saturday starts a mile shorter, then builds 500 m a week up to 20 km. Under that, it starts at your usual.";
+  "About how far your normal long run is right now. At 6 miles (9.7 km) or more, Saturday starts a mile shorter, then builds 500 m a week up to 20 km. Under that, it starts at your usual. The long run stays between 5 and 20 km.";
 export const USUAL_LONG_LOCKED =
   "This season keeps the long runs it started with. You can change your usual long run when you start your next season.";
-export const USUAL_LONG_LOW = "RIO's long runs start at 9.5 km (5.9 mi). Your first Saturday will be 9.5 km.";
 export const USUAL_LONG_HIGH =
   "RIO's Saturday long runs go up to 20 km (12.4 mi), so your plan starts at 20 km.";
 
@@ -21,7 +20,7 @@ export function distanceUnits(units: unknown): DistanceUnits {
 }
 
 export function usualLongError(units: DistanceUnits): string {
-  return units === "km" ? "Enter a distance between 3 and 42 km." : "Enter a distance between 2 and 26 mi.";
+  return units === "km" ? "Enter a distance between 5 and 42 km." : "Enter a distance between 3.2 and 26 mi.";
 }
 
 export function usualLongPlaceholder(units: DistanceUnits): string {
@@ -40,10 +39,10 @@ export function parseUsualLong(text: string, units: DistanceUnits): number | { e
   if (!/^\d{1,2}(\.\d)?$/.test(trimmed)) return { error: message };
   const value = Number(trimmed);
   if (units === "km") {
-    if (value < 3 || value > 42) return { error: message };
+    if (value < 5 || value > 42) return { error: message };
     return Math.round(value * 1000);
   }
-  if (value < 2 || value > 26) return { error: message };
+  if (value < 3.2 || value > 26) return { error: message };
   return Math.round(value * 1609.344);
 }
 
@@ -66,7 +65,6 @@ export function usualLongNote(meters: number | null | undefined): string {
   if (meters == null || !Number.isFinite(meters) || meters <= 0) return "";
   const target = meters >= SIX_MILES_M ? meters - MILE_M : meters;
   const rung = Math.floor(target / 500) * 500;
-  if (rung < LONG_MIN_M) return USUAL_LONG_LOW;
   if (rung > LONG_MAX_M) return USUAL_LONG_HIGH;
   return "";
 }

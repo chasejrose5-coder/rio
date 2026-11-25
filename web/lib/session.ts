@@ -89,7 +89,7 @@ function longLadder(template: string): boolean {
   const match = /^aer_(\d+)_r0_x1$/.exec(template);
   if (!match) return false;
   const meters = Number(match[1]);
-  return meters >= 9500 && meters <= 20000 && (meters - 9500) % 500 === 0;
+  return meters >= 5000 && meters <= 20000 && meters % 500 === 0;
 }
 
 /** Same rule as engines/bike.py day_kind. */

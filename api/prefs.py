@@ -167,10 +167,7 @@ def usual_long_note(meters: int | None) -> str:
     """The sentence shown when the ladder cannot place the Chase target."""
     if meters is None:
         return ""
-    clamp = usual_long_clamp(meters)
-    if clamp == "low":
-        return "RIO's long runs start at 9.5 km (5.9 mi). Your first Saturday will be 9.5 km."
-    if clamp == "high":
+    if usual_long_clamp(meters) == "high":
         return "RIO's Saturday long runs go up to 20 km (12.4 mi), so your plan starts at 20 km."
     return ""
 

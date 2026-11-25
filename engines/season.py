@@ -14,9 +14,10 @@ Sunday–Saturday weeks.
 
 Quality days use the locked 800 m capacity weights. The phase menu is the
 allowed set. The six-day week places Tuesday and Thursday quality, one
-Saturday long run, and three aer_5000 recovery days. The long run starts
-at 9.5 km, or at a rung taken from the athlete's usual long run, and steps
-up 500 m a week to 20 km. The 10% distance cap counts easy and long running.
+Saturday long run, and three aer_5000 recovery days. With no usual long
+run saved, Saturday starts at 9.5 km. A saved usual can start as low as
+5 km. It steps up 500 m a week to 20 km. The 10% distance cap counts easy
+and long running.
 Quality stays at two hard days. When a quality day has more than one
 eligible template, the higher primary-capacity weight wins, and that
 session records capacity_weight.
@@ -44,17 +45,19 @@ _RISE_NUM = 11
 _RISE_DEN = 10
 
 # Saturday long run, shortest to longest. 500 m apart. Frozen menu ids.
-# The first training week uses the start rung. Later training weeks step
-# one rung up, hold at 20 km, or step one rung down on an easy week.
-# 8 km is not a Saturday long run.
-_LONG_MIN = 9500
+# No usual long run starts at 9.5 km. The ladder itself runs 5–20 km.
+# Later training weeks step one rung up, hold at 20 km, or step one rung
+# down on an easy week. They do not go below 5 km.
+_LONG_FLOOR = 5000
+_LONG_DEFAULT = 9500
 _LONG_MAX = 20000
 _LONG_STEP = 500
+_LONG_MIN = _LONG_FLOOR
 # Chase's mile, stated as 1.609 km, and 6 miles stated as 9.656 km.
 _MILE_M = 1609
 _SIX_MILES_M = 9656
 _LONG_LADDER = tuple(
-    f"aer_{meters}_r0_x1" for meters in range(_LONG_MIN, _LONG_MAX + 1, _LONG_STEP)
+    f"aer_{meters}_r0_x1" for meters in range(_LONG_FLOOR, _LONG_MAX + 1, _LONG_STEP)
 )
 _LONG_INDEX = {template_id: index for index, template_id in enumerate(_LONG_LADDER)}
 _LONG_RUNS = _LONG_LADDER
@@ -325,6 +328,13 @@ _OUTCOMES = {
     "rr_800_r0_x1": "Hit: the 800 m race is run on pace for {goal}. Next day is easy or off.",
 }
 
+for _meters in (5500, 6000, 6500, 7000, 7500, 8500, 9000):
+    _km = _meters / 1000
+    _label = f"{int(_km)} km" if _km == int(_km) else f"{_km:.1f} km"
+    _OUTCOMES.setdefault(
+        f"aer_{_meters}_r0_x1",
+        f"Hit: one continuous easy {_label}, talkable.",
+    )
 for _meters in range(15500, _LONG_MAX + 1, _LONG_STEP):
     _km = _meters / 1000
     _label = f"{int(_km)} km" if _km == int(_km) else f"{_km:.1f} km"
@@ -634,7 +644,7 @@ def _build_week(
     nxt,
     prev_long,
     need: int,
-    start_rung: int = _LONG_MIN,
+    start_rung: int = _LONG_DEFAULT,
 ) -> dict:
     phase = slot["phase"]
     codes: set[str] = set()
@@ -723,8 +733,8 @@ def _place(ids, phase, menu) -> list[tuple[str, str]]:
     if phase == 8:
         return _place_taper(ids, menu)
     quality = _quality_in(ids, menu)
-    longs = [template_id for template_id in ids if template_id in _LONG_RUNS]
-    if len(quality) != 2 or len(longs) != 1:
+    long_run = _long_in(ids)
+    if long_run is None or len(quality) != 2:
         raise ValueError("week does not have two quality sessions and one long run")
     placed = {
         "Sunday": _RECOVERY_ID,
@@ -732,7 +742,7 @@ def _place(ids, phase, menu) -> list[tuple[str, str]]:
         "Tuesday": quality[0],
         "Wednesday": _RECOVERY_ID,
         "Thursday": quality[1],
-        "Saturday": longs[0],
+        "Saturday": long_run,
     }
     return [(day, placed[day]) for day in _STANDARD_DAYS]
 
@@ -743,7 +753,7 @@ def _place_taper(ids, menu) -> list[tuple[str, str]]:
     quality: list[str] = []
     easy_count = 0
     for template_id in ids:
-        if template_id == "rr_800_r0_x1" or template_id in _LONG_RUNS:
+        if template_id == "rr_800_r0_x1" or _is_long_run(template_id):
             continue
         if template_id == _RECOVERY_ID or _family(template_id, menu) == "aerobic":
             easy_count += 1
@@ -786,14 +796,14 @@ def _cap_quality(ids, phase, menu) -> list[str]:
 def _ease(ids, phase, menu, prev_volume, prev_hard, floor) -> list[str]:
     """One easier step that keeps six sessions, two quality days, and the floor.
 
-    The long run moves one 500 m rung down. It does not jump back to 8 km,
-    and it does not go below 9.5 km.
+    The long run moves one 500 m rung down. It does not go below 5 km.
     """
     chosen = list(ids)
     long_run = _long_in(chosen)
     if long_run is not None:
         lower = _lower_long(long_run)
-        if lower != long_run and lower not in chosen:
+        # 5 km is also the easy day, so that rung is already in the week.
+        if lower != long_run and (lower == _RECOVERY_ID or lower not in chosen):
             trial = [lower if template_id == long_run else template_id for template_id in chosen]
             if _work(trial) >= floor and _fits(trial, prev_volume, prev_hard, menu):
                 chosen = trial
@@ -823,14 +833,14 @@ def _best(
     prev_long,
     base: int,
     need: int,
-    start_rung: int = _LONG_MIN,
+    start_rung: int = _LONG_DEFAULT,
 ) -> list[str]:
     """Six-session week that keeps both quality days and fits 10%.
 
     The long run is the next 500 m step. It does not skip ahead. The 10%
     distance cap is easy and long meters. If that step would break the cap,
     last week's distance stays. Easing walks down one rung at a time and
-    stops at 9.5 km.
+    stops at 5 km.
     """
     candidates = _candidates(required, phase, prev_long, base, need, start_rung)
     legal = [
@@ -850,11 +860,11 @@ def _candidates(
     prev_long: str | None,
     base: int,
     need: int,
-    start_rung: int = _LONG_MIN,
+    start_rung: int = _LONG_DEFAULT,
 ) -> list[list[str]]:
     """Two quality sessions, three easy 5 km runs, and one long run.
 
-    The first candidate is the 500 m step. The rest walk down to 9.5 km.
+    The first candidate is the 500 m step. The rest walk down to 5 km.
     Nothing above that step is offered, so a blocked step cannot skip ahead.
     """
     if phase >= 8:
@@ -1116,7 +1126,7 @@ def _natural_ids(slot: dict, menu) -> tuple[list[str], set[str]]:
     return ids, weighted
 
 
-def _natural_volume(slot: dict, menu, start_rung: int = _LONG_MIN) -> int:
+def _natural_volume(slot: dict, menu, start_rung: int = _LONG_DEFAULT) -> int:
     """Easy and long meters before the long run steps up.
 
     Phases 1–7 count three easy 5 km runs and the start rung. Quality meters
@@ -1161,8 +1171,26 @@ def _volume_needs(slots: list[dict], menu) -> list[int]:
     return needs
 
 
+def _is_long_run(template_id: str) -> bool:
+    """A Saturday rung other than the easy 5 km, which is also that easy day."""
+    return template_id in _LONG_INDEX and template_id != _RECOVERY_ID
+
+
 def _long_in(ids) -> str | None:
-    found = [template_id for template_id in ids if template_id in _LONG_INDEX]
+    """The Saturday long run. Three easy 5 km days are not it.
+
+    When Saturday itself is 5 km, the week holds four copies of that id.
+    The first three are the easy days.
+    """
+    skipped = 0
+    found: list[str] = []
+    for template_id in ids:
+        if template_id not in _LONG_INDEX:
+            continue
+        if template_id == _RECOVERY_ID and skipped < 3:
+            skipped += 1
+            continue
+        found.append(template_id)
     if not found:
         return None
     return found[-1]
@@ -1173,14 +1201,14 @@ def _template_for(meters: int) -> str:
 
 
 def _coerce_start_rung(long_start_m: object) -> int:
-    """A ladder rung. None is 9.5 km. Other values floor to 500 m, then clamp."""
+    """A ladder rung. None is 9.5 km. Other values floor to 500 m, then clamp to 5–20 km."""
     if long_start_m is None:
-        return _LONG_MIN
+        return _LONG_DEFAULT
     if isinstance(long_start_m, bool) or not isinstance(long_start_m, int):
         raise ValueError("long_start_m is not a whole number of meters")
     rung = (long_start_m // _LONG_STEP) * _LONG_STEP
-    if rung < _LONG_MIN:
-        return _LONG_MIN
+    if rung < _LONG_FLOOR:
+        return _LONG_FLOOR
     if rung > _LONG_MAX:
         return _LONG_MAX
     return rung
@@ -1199,10 +1227,10 @@ def long_run_start_meters(usual_long_m: object = None) -> int:
     A missing usual starts at 9.5 km. A usual of 6 miles (9.656 km) or more
     starts at that usual minus 1 mile (1.609 km). A shorter usual starts at
     itself. The rung is the greatest 500 m step that does not exceed the
-    target, then clamped to 9.5–20 km.
+    target, then clamped to 5–20 km.
     """
     if usual_long_m is None:
-        return _LONG_MIN
+        return _LONG_DEFAULT
     if isinstance(usual_long_m, bool) or not isinstance(usual_long_m, int):
         raise ValueError("usual_long_m is not a whole number of meters")
     if usual_long_m <= 0:
@@ -1211,12 +1239,10 @@ def long_run_start_meters(usual_long_m: object = None) -> int:
 
 
 def usual_long_clamp(usual_long_m: object) -> str | None:
-    """'low' when 9.5 km is above the target. 'high' when 20 km is below it."""
+    """'high' when the rounded target is above 20 km. The 5 km floor does not raise it."""
     if isinstance(usual_long_m, bool) or not isinstance(usual_long_m, int) or usual_long_m <= 0:
         return None
     rung = (_chase_target(usual_long_m) // _LONG_STEP) * _LONG_STEP
-    if rung < _LONG_MIN:
-        return "low"
     if rung > _LONG_MAX:
         return "high"
     return None
@@ -1231,7 +1257,7 @@ def _easy_long(ids, menu) -> int:
     )
 
 
-def _step_long(prev_long: str | None, start_rung: int = _LONG_MIN) -> str:
+def _step_long(prev_long: str | None, start_rung: int = _LONG_DEFAULT) -> str:
     """Next Saturday distance. The first training week is the start rung."""
     if prev_long not in _LONG_INDEX:
         return _LONG_LADDER[_LONG_INDEX[_template_for(start_rung)]]
@@ -1246,7 +1272,7 @@ def _lower_long(template_id: str) -> str:
     return _LONG_LADDER[max(index - 1, 0)]
 
 
-def _target_long(prev_long: str | None, _base: int, _need: int, start_rung: int = _LONG_MIN) -> str:
+def _target_long(prev_long: str | None, _base: int, _need: int, start_rung: int = _LONG_DEFAULT) -> str:
     """The next 500 m rung. A later week does not pull this one ahead."""
     return _step_long(prev_long, start_rung)
 
@@ -1301,7 +1327,7 @@ def _sessions(
             # Week 1 keeps only the days on or after the first day of training.
             if session_day < start:
                 continue
-            codes = _codes(template_id, phase, week, menu)
+            codes = _codes(template_id, phase, week, menu, day)
             sessions.append(
                 {
                     "week_number": number,
@@ -1330,7 +1356,7 @@ def _locked_sessions(plan: dict, through_week: int) -> list[dict]:
     ]
 
 
-def _codes(template_id: str, phase: int, week: dict, menu) -> list[str]:
+def _codes(template_id: str, phase: int, week: dict, menu, day: str = "") -> list[str]:
     family = _family(template_id, menu)
     codes = [f"phase_{phase}"]
     held = template_id in week["holds"]
@@ -1341,7 +1367,7 @@ def _codes(template_id: str, phase: int, week: dict, menu) -> list[str]:
         codes.append("phase_primary")
     elif family in _SECONDARY[phase]:
         codes.append("phase_secondary")
-    if template_id in _LONG_RUNS and phase < 8:
+    if day == _LONG_DAY and template_id in _LONG_INDEX and phase < 8:
         codes.append("weekly_aerobic_long_run")
     if phase >= 4 and family in _PRIORITY:
         codes.append(_PRIORITY[family])
@@ -1560,7 +1586,7 @@ def _check_shape(number: int, rows: list[dict], phase: int, menu, start: date) -
     if phase == 8:
         if len(rows) >= 6:
             raise ValueError(f"week {number} taper is not shorter than six sessions")
-        if any(template_id in _LONG_RUNS for template_id in ids):
+        if any(_is_long_run(template_id) for template_id in ids):
             raise ValueError(f"week {number} keeps a long run in the taper")
         for template_id in ids:
             if _family(template_id, menu) in _BANNED_PHASE_8:

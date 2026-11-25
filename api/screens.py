@@ -1170,8 +1170,8 @@ def _units_for(current: dict, patch: dict) -> str:
 
 def _usual_bounds(units: str) -> tuple[int, int, str]:
     if units == "km":
-        return 3000, 42000, "Enter a distance between 3 and 42 km."
-    return round(2 * 1609.344), round(26 * 1609.344), "Enter a distance between 2 and 26 mi."
+        return 5000, 42000, "Enter a distance between 5 and 42 km."
+    return round(3.2 * 1609.344), round(26 * 1609.344), "Enter a distance between 3.2 and 26 mi."
 
 
 def _validated_usual(value: object, units: str) -> int:

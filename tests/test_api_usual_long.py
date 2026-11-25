@@ -77,11 +77,11 @@ def test_a_local_usual_long_run_is_saved_in_meters_and_checked(tmp_path: Path) -
     if again.json()["prefs"]["usual_long_m"] != EIGHT_MILES:
         raise AssertionError(again.text)
     short = client.patch("/settings", json={"usual_long_m": 1000})
-    if short.status_code != 400 or "2 and 26 mi" not in short.json()["detail"]:
+    if short.status_code != 400 or "3.2 and 26 mi" not in short.json()["detail"]:
         raise AssertionError(short.text)
     client.patch("/settings", json={"pace_units": "km"})
-    low = client.patch("/settings", json={"usual_long_m": 2900, "pace_units": "km"})
-    if low.status_code != 400 or low.json()["detail"] != "Enter a distance between 3 and 42 km.":
+    low = client.patch("/settings", json={"usual_long_m": 4900, "pace_units": "km"})
+    if low.status_code != 400 or low.json()["detail"] != "Enter a distance between 5 and 42 km.":
         raise AssertionError(low.text)
     if client.get("/auth/me").json()["prefs"]["usual_long_m"] != EIGHT_MILES:
         raise AssertionError("a rejected distance replaced the saved one")
@@ -123,14 +123,14 @@ def test_a_hosted_usual_is_on_the_account_and_a_short_usual_is_flagged() -> None
     saved = client.patch("/settings", json={"usual_long_m": five})
     if saved.status_code != 200 or saved.json()["prefs"]["usual_long_m"] != five:
         raise AssertionError(saved.text)
-    if "9.5 km" not in saved.json()["prefs"]["usual_long_note"]:
+    if saved.json()["prefs"]["usual_long_note"]:
         raise AssertionError(saved.json()["prefs"])
-    if long_run_start_meters(five) != 9500:
+    if long_run_start_meters(five) != 8000:
         raise AssertionError(long_run_start_meters(five))
     made = client.post("/seasons", json=INPUTS)
-    if made.status_code != 200 or made.json()["plan"]["long_run_start_m"] != 9500:
+    if made.status_code != 200 or made.json()["plan"]["long_run_start_m"] != 8000:
         raise AssertionError(made.text)
-    if _saturday(made.json()["plan"]) != "aer_9500_r0_x1":
+    if _saturday(made.json()["plan"]) != "aer_8000_r0_x1":
         raise AssertionError(_saturday(made.json()["plan"]))
     removed = client.request("DELETE", "/seasons/past", json={**INPUTS, "confirm": True})
     if removed.status_code != 200:

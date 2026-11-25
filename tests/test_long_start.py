@@ -18,8 +18,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from engines.season import (
+    _LONG_FLOOR,
     _LONG_MAX,
-    _LONG_MIN,
     _MILE_M,
     _SIX_MILES_M,
     adapt,
@@ -70,16 +70,16 @@ def _assert_saturdays(plan: dict) -> None:
         meters = _saturday_meters(week)
         easy = any("extra_easy_week" in session["reason_codes"] for session in week)
         if phase == 8:
-            if meters is not None and meters >= _LONG_MIN:
+            if meters is not None:
                 raise AssertionError(f"taper week {number} kept a long run")
             continue
         if meters is None:
             raise AssertionError(f"week {number} has no Saturday long run")
-        if meters < _LONG_MIN or meters > _LONG_MAX or (meters - _LONG_MIN) % 500:
+        if meters < _LONG_FLOOR or meters > _LONG_MAX or (meters - _LONG_FLOOR) % 500:
             raise AssertionError(f"week {number} Saturday is {meters} m")
         if previous is not None:
             if easy:
-                if meters not in (previous, previous - 500) or meters < _LONG_MIN:
+                if meters not in (previous, previous - 500) or meters < _LONG_FLOOR:
                     raise AssertionError(f"easy week {number} moved from {previous} to {meters}")
             elif meters < previous:
                 raise AssertionError(f"week {number} Saturday dropped from {previous} to {meters}")
@@ -95,11 +95,14 @@ def test_chase_start_rung() -> None:
     if long_run_start_meters(None) != 9500 or usual_long_clamp(None) is not None:
         raise AssertionError("a missing usual did not start at 9.5 km")
     cases = (
-        (8000, 9500, "low"),
+        (5000, 5000, None),
+        (5400, 5000, None),
+        (8000, 8000, None),
+        (9000, 9000, None),
         (9500, 9500, None),
         (9655, 9500, None),
-        (_SIX_MILES_M, 9500, "low"),
-        (10_000, 9500, "low"),
+        (_SIX_MILES_M, 8000, None),
+        (10_000, 8000, None),
         (11_109, 9500, None),
         (12_000, 10_000, None),
         (15_000, 13_000, None),
@@ -109,12 +112,10 @@ def test_chase_start_rung() -> None:
     )
     for usual, rung, clamp in cases:
         found = long_run_start_meters(usual)
+        target = usual - _MILE_M if usual >= _SIX_MILES_M else usual
         if found != rung or usual_long_clamp(usual) != clamp:
             raise AssertionError(f"{usual} m -> {found} clamp {usual_long_clamp(usual)}")
-        if found > usual and clamp != "low":
-            raise AssertionError(f"{usual} m starts above the usual without a floor flag")
-        target = usual - _MILE_M if usual >= _SIX_MILES_M else usual
-        if found > target and clamp != "low":
+        if found > target:
             raise AssertionError(f"{usual} m rung {found} exceeds the target {target}")
 
 
@@ -136,7 +137,7 @@ def test_week_one_uses_the_rung_including_a_midweek_start() -> None:
 
 def test_saturday_never_drops_outside_an_easy_week() -> None:
     """Season lengths 1–52, every start weekday, and several usual long runs."""
-    usuals = (None, 9500, 12000, 15000, 18000, 20000)
+    usuals = (None, 5000, 6000, 8000, 9000, 9500, 12000, 15000, 18000, 20000)
     for weeks in range(1, 53):
         for weekday in range(7):
             start = START + timedelta(days=weekday)

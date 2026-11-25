@@ -25,7 +25,7 @@ from engines.season import (
 EXAM = ROOT / "tests" / "labeled_sessions.yml"
 START = date(2026, 4, 19)
 GOAL_DAY = date(2027, 3, 19)
-LONG_LADDER = [f"aer_{meters}_r0_x1" for meters in range(9500, 20001, 500)]
+LONG_LADDER = [f"aer_{meters}_r0_x1" for meters in range(5000, 20001, 500)]
 LONG_RUNS = set(LONG_LADDER)
 RECOVERY = "aer_5000_r0_x1"
 WEEK_DAYS = {
@@ -208,14 +208,17 @@ def test_plan_rules() -> None:
                 raise AssertionError("a session has a score")
         phase = phases[number - 1]
         if phase < 8:
-            longs = [template_id for template_id in ids if template_id in LONG_RUNS]
-            if len(longs) != 1:
-                raise AssertionError(f"week {number} has {longs}")
-            if "weekly_aerobic_long_run" not in _codes(week, longs[0]):
+            saturday = next(session for session in week if session["day_of_week"] == "Saturday")
+            if saturday["template_id"] not in LONG_RUNS:
+                raise AssertionError(f"week {number} Saturday is {saturday['template_id']}")
+            if "weekly_aerobic_long_run" not in saturday["reason_codes"]:
                 raise AssertionError(f"week {number} long run has no reason")
-            long_ids.add(longs[0])
+            easy = [session for session in week if session["day_of_week"] in ("Sunday", "Monday", "Wednesday")]
+            if any("weekly_aerobic_long_run" in session["reason_codes"] for session in easy):
+                raise AssertionError(f"week {number} marked an easy day as the long run")
+            long_ids.add(saturday["template_id"])
         else:
-            if any(template_id in LONG_RUNS for template_id in ids):
+            if any(template_id in LONG_RUNS and template_id != RECOVERY for template_id in ids):
                 raise AssertionError(f"taper week {number} kept a long run")
             if any(template_id.startswith(BANNED_TAPER) for template_id in ids):
                 raise AssertionError(f"taper week {number} has hard specific work")
@@ -240,10 +243,9 @@ def test_plan_rules() -> None:
         previous_volume = volume
         previous_hard = hard
 
-    if long_ids != LONG_RUNS:
+    expected_long = {f"aer_{meters}_r0_x1" for meters in range(9500, 20001, 500)}
+    if long_ids != expected_long:
         raise AssertionError(f"long runs used were {sorted(long_ids)}")
-    if "aer_8000_r0_x1" in long_ids:
-        raise AssertionError("8 km was used as a Saturday long run")
     if weeks[-1][-1]["template_id"] != "rr_800_r0_x1":
         raise AssertionError("the last session is not the 800")
     if "1:55.0" not in weeks[-1][-1]["target_outcome"]:
@@ -309,7 +311,7 @@ def _assert_week_shape(number: int, week: list[dict], phase: int, families: dict
     if phase == 8:
         if len(week) >= 6:
             raise AssertionError(f"taper week {number} is not shorter")
-        if any(template_id in LONG_RUNS for template_id in ids):
+        if any(template_id in LONG_RUNS and template_id != RECOVERY for template_id in ids):
             raise AssertionError(f"taper week {number} kept a long run")
         return
     if days != STANDARD_DAYS:
@@ -535,7 +537,7 @@ def test_saturday_long_run_buildup() -> None:
         if saturday is None:
             raise AssertionError(f"week {number} has no Saturday")
         template_id = saturday["template_id"]
-        if template_id not in LONG_RUNS or template_id == "aer_8000_r0_x1":
+        if template_id not in LONG_RUNS:
             raise AssertionError(f"week {number} Saturday is {template_id}")
         if "weekly_aerobic_long_run" not in saturday["reason_codes"]:
             raise AssertionError(f"week {number} long run has no reason")
@@ -585,7 +587,9 @@ def test_saturday_long_run_buildup() -> None:
     if any(session["template_id"] == "aer_20000_r0_x1" for week in short_weeks for session in week):
         raise AssertionError("a three-week season jumped to 20 km")
     for week in short_weeks:
-        if _phase(week) == 8 and any(session["template_id"] in LONG_RUNS for session in week):
+        if _phase(week) == 8 and any(
+            session["template_id"] in LONG_RUNS and session["template_id"] != RECOVERY for session in week
+        ):
             raise AssertionError("the short taper kept a long run")
 
 
@@ -597,7 +601,7 @@ def test_long_run_stays_or_steps_down_one_rung() -> None:
     # Previous easy+long is 23 km. 10.5 km of long (25.5 km with the easy days)
     # does not fit. 10 km (25 km) does. A longer rung is not chosen.
     kept = _best(quality, 1, 23000, 2, 0, menu, "aer_10000_r0_x1", base, 0)
-    if "aer_10500_r0_x1" in kept or "aer_12000_r0_x1" in kept or "aer_8000_r0_x1" in kept:
+    if "aer_10500_r0_x1" in kept or "aer_12000_r0_x1" in kept:
         raise AssertionError(f"a blocked step jumped to {kept}")
     if kept.count("aer_10000_r0_x1") != 1:
         raise AssertionError(f"the week did not keep 10 km: {kept}")
@@ -606,14 +610,17 @@ def test_long_run_stays_or_steps_down_one_rung() -> None:
     eased = _ease(week, 1, menu, None, None, 0)
     if "aer_11500_r0_x1" not in eased or "aer_12000_r0_x1" in eased:
         raise AssertionError(f"ease did not step down 500 m: {eased}")
-    if "aer_8000_r0_x1" in eased or "aer_9500_r0_x1" in eased:
+    if "aer_9500_r0_x1" in eased:
         raise AssertionError(f"ease jumped down the ladder: {eased}")
     held = _ease(week, 1, menu, None, None, 10**9)
     if "aer_12000_r0_x1" not in held:
         raise AssertionError("ease stepped down through the floor")
-    floor = _ease(quality + [RECOVERY, RECOVERY, RECOVERY, "aer_9500_r0_x1"], 1, menu, None, None, 0)
-    if "aer_9500_r0_x1" not in floor or "aer_8000_r0_x1" in floor:
-        raise AssertionError(f"ease went below 9.5 km: {floor}")
+    one = _ease(quality + [RECOVERY, RECOVERY, RECOVERY, "aer_5500_r0_x1"], 1, menu, None, None, 0)
+    if "aer_5000_r0_x1" not in one or "aer_5500_r0_x1" in one:
+        raise AssertionError(f"ease did not step from 5.5 km to 5 km: {one}")
+    floor = _ease(quality + [RECOVERY, RECOVERY, RECOVERY, "aer_5000_r0_x1"], 1, menu, None, None, 0)
+    if floor.count("aer_5000_r0_x1") != 4:
+        raise AssertionError(f"ease went below 5 km: {floor}")
 
 
 def test_seventeen_week_season() -> None:
@@ -631,7 +638,11 @@ def test_short_season() -> None:
     weeks = _weeks(plan)
     if [ _phase(week) for week in weeks ] != [8, 8]:
         raise AssertionError("14 days was not two taper weeks")
-    if any(session["template_id"] in LONG_RUNS for week in weeks for session in week):
+    if any(
+        session["template_id"] in LONG_RUNS and session["template_id"] != RECOVERY
+        for week in weeks
+        for session in week
+    ):
         raise AssertionError("the taper kept a long run")
     if weeks[1][-1]["template_id"] != "rr_800_r0_x1":
         raise AssertionError("the race is not in the last week")
@@ -686,8 +697,10 @@ def _assert_ten_percent(plan: dict) -> None:
             raise AssertionError(f"adapted week {number} broke the hard-load cap")
         phase = _phase(week)
         ids = _id_list(week)
-        if phase < 8 and sum(template_id in LONG_RUNS for template_id in ids) != 1:
-            raise AssertionError(f"adapted week {number} lost its one long run")
+        if phase < 8:
+            saturday = next(session for session in week if session["day_of_week"] == "Saturday")
+            if saturday["template_id"] not in LONG_RUNS:
+                raise AssertionError(f"adapted week {number} lost its one long run")
         if phase == 8 and any(template_id.startswith(BANNED_TAPER) for template_id in ids):
             raise AssertionError("adapted taper added hard specific work")
         _assert_week_shape(number, week, phase, menu)

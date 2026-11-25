@@ -235,9 +235,9 @@ export type Prescription = {
   checkIns: Region[];
 };
 
-/** Saturday long-run ladder from the season engine, 9.5 km through 20 km. */
+/** Saturday long-run ladder from the season engine, 5 km through 20 km. */
 const LONG_LADDER = new Set(
-  Array.from({ length: (20000 - 9500) / 500 + 1 }, (_, index) => `aer_${9500 + index * 500}_r0_x1`),
+  Array.from({ length: (20000 - 5000) / 500 + 1 }, (_, index) => `aer_${5000 + index * 500}_r0_x1`),
 );
 
 const RACE_ID = "rr_800_r0_x1";
