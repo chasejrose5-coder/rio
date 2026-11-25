@@ -12,6 +12,7 @@ from datetime import date
 
 from api.identity import Principal
 from engines.pace import canonical_easy_pace, easy_pace_phrase
+from engines.season import usual_long_clamp
 from ui.accounts import read_local
 from ui.cloud_store import stored_easy_pair
 from ui.settings import chosen_timezone, local_today, normalize
@@ -49,6 +50,7 @@ def account_prefs(principal: Principal, directory) -> dict:
             if key in profile:
                 raw[key] = profile[key]
         easy = _easy_from(profile.get("easy_pace"), profile.get("easy_pace_unit"))
+        raw["usual_long_m"] = profile.get("usual_long_m")
         principal.display_name = str(profile.get("display_name") or principal.display_name)
         principal.role = str(profile.get("role") or principal.role or "athlete")
         if profile.get("id"):
@@ -97,6 +99,7 @@ def account_prefs(principal: Principal, directory) -> dict:
     phrase = ""
     easy_pace = ""
     easy_unit = prefs["pace_units"] if prefs.get("pace_units") in ("mi", "km") else "mi"
+    usual = stored_usual_long_m(raw.get("usual_long_m"))
     if easy is not None:
         easy_pace, easy_unit = easy
         phrase = easy_pace_phrase(easy_pace, easy_unit)
@@ -107,6 +110,8 @@ def account_prefs(principal: Principal, directory) -> dict:
         "easy_pace": easy_pace,
         "easy_pace_unit": easy_unit,
         "easy_pace_phrase": phrase,
+        "usual_long_m": usual,
+        "usual_long_note": usual_long_note(usual),
         "profile": profile,
         "intro_seen": intro_seen,
         "strava_prompt_seen": strava_prompt_seen,
@@ -136,7 +141,38 @@ def prefs_payload(resolved: dict) -> dict:
         "show_ids": prefs.get("show_ids") is True,
         "compact": prefs.get("compact") is True,
         "theme": prefs.get("theme") if prefs.get("theme") in ("light", "dark", "system") else "system",
+        "usual_long_m": resolved.get("usual_long_m"),
+        "usual_long_note": resolved.get("usual_long_note") or "",
     }
+
+
+def stored_usual_long_m(value: object) -> int | None:
+    """A saved usual long run in meters, or None when it is missing or out of range."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        number = value
+    elif isinstance(value, float) and value.is_integer():
+        number = int(value)
+    elif isinstance(value, str) and value.isdigit():
+        number = int(value)
+    else:
+        return None
+    if 3000 <= number <= 42000:
+        return number
+    return None
+
+
+def usual_long_note(meters: int | None) -> str:
+    """The sentence shown when the ladder cannot place the Chase target."""
+    if meters is None:
+        return ""
+    clamp = usual_long_clamp(meters)
+    if clamp == "low":
+        return "RIO's long runs start at 9.5 km (5.9 mi). Your first Saturday will be 9.5 km."
+    if clamp == "high":
+        return "RIO's Saturday long runs go up to 20 km (12.4 mi), so your plan starts at 20 km."
+    return ""
 
 
 def distance_units(principal: Principal, directory) -> str:

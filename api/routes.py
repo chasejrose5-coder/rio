@@ -54,6 +54,7 @@ class GenerateBody(BaseModel):
     start_date: str
     goal_time: str
     goal_date: str
+    usual_long_m: int | None = None
 
 
 class ResultBody(BaseModel):
@@ -253,7 +254,12 @@ def current_season(request: Request) -> dict:
 def create_season(body: GenerateBody, request: Request) -> dict:
     who, resolved = _resolved(request)
     _current(request, who, resolved["today"])
-    season = generate(who, request.app.state.directory, resolved["today"], body.model_dump())
+    season = generate(
+        who,
+        request.app.state.directory,
+        resolved["today"],
+        body.model_dump(exclude_unset=True),
+    )
     payload = _body(request, who, resolved, season, committed=True)
     from api.strava_flow import status as strava_status
     from ui.plan_strava import should_offer_strava

@@ -251,6 +251,7 @@ test("a brand-new local account generates from Start and can dismiss Strava", as
   expect(patched).toBe(200);
 
   await page.getByLabel("Easy pace").fill("7:45");
+  await page.getByLabel("Usual long run").fill("8");
   await page.getByRole("button", { name: "Save easy pace" }).click();
   await expect(page.getByRole("heading", { name: "Start here" })).toBeVisible();
   await expect(page.getByText("On Start, enter your 800 m times and choose Generate season plan.")).toBeVisible();
@@ -260,6 +261,7 @@ test("a brand-new local account generates from Start and can dismiss Strava", as
 
   await expect(page).toHaveURL(/\/start$/);
   await expect(page.getByRole("heading", { name: "Start" })).toBeVisible();
+  await expect(page.getByLabel("Usual long run (mi)")).toHaveValue("8");
   await expect(page.getByLabel("Your 800 m time today")).toHaveValue("");
   await expect(page.getByLabel("Start date")).toHaveValue(today);
   await expect(page.getByLabel("Goal date")).toHaveValue(goal);
@@ -301,6 +303,12 @@ test("a brand-new local account generates from Start and can dismiss Strava", as
   await expect(page.getByText("readiness")).toHaveCount(0);
   const made = await currentInputs(page);
   expect(made).toMatchObject({ current_time: "2:05.00", start_date: today, goal_time: "1:58.00", goal_date: goal });
+  const rung = await page.evaluate(async () => {
+    const response = await fetch("http://localhost:8000/seasons/current", { credentials: "include" });
+    const body = await response.json();
+    return body?.plan?.long_run_start_m;
+  });
+  expect(rung).toBe(11000);
 
   await page.getByRole("button", { name: "Not now" }).click();
   await expect(page.getByRole("heading", { name: "Your plan is ready." })).toHaveCount(0);

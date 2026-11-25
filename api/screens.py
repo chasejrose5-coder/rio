@@ -803,6 +803,9 @@ def profile_view(season, resolved: dict, override: str | None = None) -> dict:
         "easy_pace": resolved["easy_pace"],
         "easy_pace_unit": resolved["easy_pace_unit"],
         "easy_pace_phrase": resolved["easy_pace_phrase"],
+        "usual_long_m": resolved.get("usual_long_m"),
+        "usual_long_note": resolved.get("usual_long_note") or "",
+        "usual_long_locked": season is not None,
     }
     if season is None:
         return {
@@ -1134,11 +1137,127 @@ def _reject_pace(unit: object) -> str:
     return str(unit)
 
 
+def usual_for_generate(principal: Principal, directory, payload: dict) -> int:
+    """The week-1 rung, saving a usual long run when the request sent one."""
+    from engines.season import long_run_start_meters
+
+    from api.prefs import account_prefs
+
+    current = account_prefs(principal, directory)
+    if "usual_long_m" in payload:
+        raw = payload.get("usual_long_m")
+        meters = None if raw is None else _validated_usual(raw, _distance_units(current))
+        _write_usual(principal, directory, meters)
+    else:
+        meters = current.get("usual_long_m")
+    return long_run_start_meters(meters)
+
+
+def _distance_units(resolved: dict) -> str:
+    prefs = resolved.get("prefs") if isinstance(resolved.get("prefs"), dict) else {}
+    return "km" if prefs.get("units") == "km" else "miles"
+
+
+def _units_for(current: dict, patch: dict) -> str:
+    """The unit on this save, or the one already stored."""
+    pace = patch.get("pace_units")
+    if pace == "km":
+        return "km"
+    if pace == "mi":
+        return "miles"
+    return _distance_units(current)
+
+
+def _usual_bounds(units: str) -> tuple[int, int, str]:
+    if units == "km":
+        return 3000, 42000, "Enter a distance between 3 and 42 km."
+    return round(2 * 1609.344), round(26 * 1609.344), "Enter a distance between 2 and 26 mi."
+
+
+def _validated_usual(value: object, units: str) -> int:
+    _low, _high, message = _usual_bounds(units)
+    if isinstance(value, bool) or not isinstance(value, int) or value < _low or value > _high:
+        raise ApiError(400, message)
+    return value
+
+
+def _prepare_usual(principal: Principal, directory, value: object, patch: dict) -> tuple[int | None, bool]:
+    """(meters to store, whether it differs). A locked season refuses a change."""
+    from api.prefs import account_prefs
+
+    current = account_prefs(principal, directory)
+    meters = None if value is None else _validated_usual(value, _units_for(current, patch))
+    if meters == current.get("usual_long_m"):
+        return meters, False
+    if _season_is_active(principal, directory, current["today"]):
+        raise ApiError(400, "Your usual long run applies when you start your next season.")
+    return meters, True
+
+
+def _season_is_active(principal: Principal, directory, today: date) -> bool:
+    from api.season_service import open_season
+
+    try:
+        open_season(principal, directory, today)
+    except ApiError as exc:
+        if exc.status == 404:
+            return False
+        raise
+    return True
+
+
+def _write_usual(principal: Principal, directory, meters: int | None) -> None:
+    if principal.kind == "local":
+        path = principal.accounts_path
+        local = read_local(path, principal.email) or {}
+        settings = dict(local.get("settings") or {})
+        if meters is None:
+            settings.pop("usual_long_m", None)
+        else:
+            settings["usual_long_m"] = meters
+        try:
+            write_local(
+                path,
+                principal.email,
+                principal.seal,
+                local.get("name") or "",
+                local.get("preferred") or "",
+                local.get("timezone") or "",
+                settings,
+            )
+        except AccountError as exc:
+            raise ApiError(400, str(exc)) from exc
+        return
+    token = principal.token
+    if not isinstance(token, str) or directory is None:
+        raise ApiError(401, "Sign in again.")
+    if hasattr(directory, "users"):
+        user = directory.users.get(principal.user_id)
+        if not isinstance(user, dict):
+            raise ApiError(401, "Sign in again.")
+        if meters is None:
+            user.pop("usual_long_m", None)
+        else:
+            user["usual_long_m"] = meters
+        return
+    if hasattr(directory, "_auth_user_update"):
+        try:
+            directory._auth_user_update(token, {"usual_long_m": meters})
+        except Exception as exc:
+            raise ApiError(400, "That setting could not be saved.") from exc
+        return
+    raise ApiError(400, "That setting could not be saved.")
+
+
 def apply_settings(principal: Principal, directory, patch: dict) -> dict:
     """Write the fields Settings and Profile already save. Unknown fields are ignored.
 
     A bad value is refused before any write. The plan is not touched.
+    usual_long_m is refused while a season is still open.
     """
+    usual_write: tuple[int | None, bool] | None = None
+    if "usual_long_m" in patch:
+        usual_write = _prepare_usual(principal, directory, patch.get("usual_long_m"), patch)
     known = (
         "pace_units",
         "timezone",
@@ -1157,8 +1276,12 @@ def apply_settings(principal: Principal, directory, patch: dict) -> dict:
         "theme",
     )
     sent = {key: patch[key] for key in known if key in patch and patch[key] is not None}
-    if not sent:
+    if not sent and usual_write is None:
         raise ApiError(400, "Nothing to save.")
+    if not sent:
+        if usual_write[1]:
+            _write_usual(principal, directory, usual_write[0])
+        return account_prefs(principal, directory)
     if "pace_units" in sent:
         _reject_pace(sent["pace_units"])
     if "timezone" in sent:
@@ -1194,6 +1317,8 @@ def apply_settings(principal: Principal, directory, patch: dict) -> dict:
         easy = stored_easy_pair(sent["easy_pace"], sent["easy_pace_unit"])
         if easy is None:
             raise ApiError(400, "Enter a pace like 7:25.")
+    if usual_write is not None and usual_write[1]:
+        _write_usual(principal, directory, usual_write[0])
     screen = {key: sent[key] for key in _SCREEN if key in sent}
     if principal.kind == "local":
         _write_local(principal, sent, easy)

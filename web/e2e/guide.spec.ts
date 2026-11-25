@@ -89,7 +89,7 @@ test("the guide explains the season in plain words and stays free of photos", as
   await expect(page.locator(".page-guide main").getByText("Creators")).toHaveCount(0);
   await expect(page.getByText("9.5 km").first()).toBeVisible();
   await expect(page.getByText(/steps up 500 m/).first()).toBeVisible();
-  await expect(page.getByText(/until 15 km/).first()).toBeVisible();
+  await expect(page.getByText(/until 20 km/).first()).toBeVisible();
   await expect(page.getByText(/at most 10%/).first()).toBeVisible();
   await expect(page.getByText("7:25", { exact: false }).first()).toBeVisible();
   await expect(page.locator("img")).toHaveCount(0);

@@ -226,7 +226,14 @@ def _open_hosted_row(principal: Principal, directory, row: dict) -> OpenSeason:
     except StateMissing:
         state = {}
         stored_ok = False
-    bases, source = resolve_bases(inputs, marks, state.get("quality_base") if isinstance(state, dict) else {})
+    stored_plan = row.get("plan") if isinstance(row.get("plan"), dict) else {}
+    long_start = stored_plan.get("long_run_start_m")
+    bases, source = resolve_bases(
+        inputs,
+        marks,
+        state.get("quality_base") if isinstance(state, dict) else {},
+        long_start if isinstance(long_start, int) else None,
+    )
     season = OpenSeason(
         inputs=inputs,
         plan=deepcopy(row.get("plan")),
@@ -323,11 +330,14 @@ def _load_local(principal: Principal, inputs: tuple[str, str, str, str]) -> Open
     marks = _marks(marks)
     if not isinstance(actuals, dict):
         actuals = {}
-    bases, source = resolve_bases(inputs, marks, stored_bases)
+    long_start = stored_plan.get("long_run_start_m") if isinstance(stored_plan, dict) else None
+    if isinstance(long_start, bool) or not isinstance(long_start, int):
+        long_start = None
+    bases, source = resolve_bases(inputs, marks, stored_bases, long_start)
     if isinstance(stored_plan, dict) and plan_has_sessions(stored_plan):
         plan = stored_plan
     else:
-        plan, bases = _replay(inputs, marks, actuals)
+        plan, bases = _replay(inputs, marks, actuals, long_start)
         source = "recomputed" if marks else "empty"
     season = OpenSeason(
         inputs=inputs,
@@ -347,11 +357,11 @@ def _load_local(principal: Principal, inputs: tuple[str, str, str, str]) -> Open
     return season
 
 
-def _replay(inputs: tuple, marks: dict, actuals: dict) -> tuple[dict, dict]:
+def _replay(inputs: tuple, marks: dict, actuals: dict, long_start_m: int | None = None) -> tuple[dict, dict]:
     """The adapted plan when the local record has marks and no stored plan."""
     from services.season_commit import adapt_from_result, attach_actuals
 
-    plan = sequence(*inputs)
+    plan = sequence(*inputs, long_start_m=long_start_m)
     bases: dict = {}
     scratch: dict = {}
     for week in sorted(marks):
@@ -501,8 +511,11 @@ def remember_note(principal: Principal, directory, today: date, day: str, note: 
 
 def generate(principal: Principal, directory, today: date, payload: dict) -> OpenSeason:
     inputs = parse_inputs(payload)
+    from api.screens import usual_for_generate
+
+    usual = usual_for_generate(principal, directory, payload)
     try:
-        plan = sequence(*inputs)
+        plan = sequence(*inputs, long_start_m=usual)
     except ValueError as exc:
         raise ApiError(400, str(exc)) from exc
     season = OpenSeason(
@@ -531,7 +544,7 @@ def clear_current(principal: Principal, directory, today: date, confirm: bool) -
         raise ApiError(400, "Confirm before clearing marks and actuals.")
     season = open_season(principal, directory, today)
     try:
-        plan = sequence(*season.inputs)
+        plan = sequence(*season.inputs, long_start_m=season.plan.get("long_run_start_m"))
     except ValueError as exc:
         raise ApiError(400, str(exc)) from exc
     previous = season.digest

@@ -20,6 +20,17 @@ import {
 } from "@/lib/start-form";
 import { commitRaceTime, maskRaceTime, raceTimeError } from "@/lib/time-mask";
 import type { CurrentSeason } from "@/lib/types";
+import {
+  USUAL_LONG_HELP,
+  USUAL_LONG_LABEL,
+  distanceUnits,
+  formatUsualLong,
+  parseUsualLong,
+  usualLongNote,
+  usualLongPlaceholder,
+  usualLongUnitLabel,
+  type DistanceUnits,
+} from "@/lib/usual-long";
 import { ErrorText } from "./ErrorText";
 
 const SCORE = "season plan has a score";
@@ -72,9 +83,11 @@ function StartBody() {
       <main>
         {different && link ? <DifferentSeason link={link} /> : null}
         <StartFields
-          key={`${athlete.today}|${behavior}`}
+          key={`${athlete.today}|${behavior}|${athlete.prefs.usual_long_m ?? ""}|${athlete.prefs.units ?? ""}`}
           today={athlete.today}
           behavior={behavior}
+          units={distanceUnits(athlete.prefs.units)}
+          usualMeters={typeof athlete.prefs.usual_long_m === "number" ? athlete.prefs.usual_long_m : null}
         />
         <PhotoCredit onPhoto>Photo by Bohdan Hyrovych on Pexels</PhotoCredit>
         <Footer onPhoto page="start" />
@@ -119,7 +132,17 @@ function DifferentSeason({ link }: { link: SeasonInputs }) {
   );
 }
 
-function StartFields({ today, behavior }: { today: string; behavior: string }) {
+function StartFields({
+  today,
+  behavior,
+  units,
+  usualMeters,
+}: {
+  today: string;
+  behavior: string;
+  units: DistanceUnits;
+  usualMeters: number | null;
+}) {
   const router = useRouter();
   const { refresh } = useAuth();
   const defaults = startFormDefaults(today, behavior);
@@ -127,6 +150,7 @@ function StartFields({ today, behavior }: { today: string; behavior: string }) {
   const [startDate, setStartDate] = useState(defaults.startDate);
   const [goalTime, setGoalTime] = useState(defaults.goalTime);
   const [goalDate, setGoalDate] = useState(defaults.goalDate);
+  const [usual, setUsual] = useState(usualMeters == null ? "" : formatUsualLong(usualMeters, units));
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -141,11 +165,17 @@ function StartFields({ today, behavior }: { today: string; behavior: string }) {
       setError(timeProblem);
       return;
     }
-    const submitted: SeasonInputs = {
+    const parsedUsual = parseUsualLong(usual, units);
+    if (parsedUsual && typeof parsedUsual === "object") {
+      setError(parsedUsual.error);
+      return;
+    }
+    const submitted: SeasonInputs & { usual_long_m: number | null } = {
       current_time: current,
       start_date: startDate.trim(),
       goal_time: goal,
       goal_date: goalDate.trim(),
+      usual_long_m: parsedUsual,
     };
     setBusy(true);
     setError("");
@@ -164,6 +194,9 @@ function StartFields({ today, behavior }: { today: string; behavior: string }) {
       setBusy(false);
     }
   }
+
+  const parsedPreview = parseUsualLong(usual, units);
+  const clampNote = typeof parsedPreview === "number" ? usualLongNote(parsedPreview) : "";
 
   return (
     <section className="rio-goal-card">
@@ -228,7 +261,23 @@ function StartFields({ today, behavior }: { today: string; behavior: string }) {
               onClick={openDatePicker}
             />
           </Field>
+          <Field
+            id="usual-long"
+            label={`${USUAL_LONG_LABEL} (${usualLongUnitLabel(units)})`}
+            help={USUAL_LONG_HELP}
+          >
+            <input
+              id="usual-long"
+              placeholder={usualLongPlaceholder(units)}
+              inputMode="decimal"
+              value={usual}
+              autoComplete="off"
+              aria-describedby="usual-long-help"
+              onChange={(event) => setUsual(event.target.value)}
+            />
+          </Field>
         </div>
+        {clampNote ? <p className="rio-field-help">{clampNote}</p> : null}
         <button className="rio-primary" type="submit" disabled={busy}>
           Generate season plan
         </button>

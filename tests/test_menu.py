@@ -46,6 +46,16 @@ NEW_IDS = {
     "aer_14000_r0_x1",
     "aer_14500_r0_x1",
     "aer_15000_r0_x1",
+    "aer_15500_r0_x1",
+    "aer_16000_r0_x1",
+    "aer_16500_r0_x1",
+    "aer_17000_r0_x1",
+    "aer_17500_r0_x1",
+    "aer_18000_r0_x1",
+    "aer_18500_r0_x1",
+    "aer_19000_r0_x1",
+    "aer_19500_r0_x1",
+    "aer_20000_r0_x1",
     "thr_1600_r90_x4",
     "thr_2400_r120_x2",
     "thr_5000_r0_x1",
@@ -105,18 +115,18 @@ def _keys(path: Path) -> list[str]:
 
 
 def test_menu_has_the_expanded_eighty_two() -> None:
-    """load_menu reads every recipe. The expansion is these 42 ids, and no close calls."""
+    """load_menu reads every recipe. The expansion is these 42 ids, plus the 20 km ladder."""
     menu = load_menu()
     files = sorted(MENU_DIR.glob("*.yml"))
     ids = [template["id"] for template in menu]
-    if len(menu) != 82 or len(files) != 82 or len(ids) != len(set(ids)):
+    if len(menu) != 92 or len(files) != 92 or len(ids) != len(set(ids)):
         raise AssertionError(f"{len(menu)} templates from {len(files)} files")
     if ids != sorted(ids):
         raise AssertionError("menu order is not id order")
     if set(NEW_IDS) - set(ids):
         raise AssertionError(f"missing {sorted(set(NEW_IDS) - set(ids))}")
-    if len(NEW_IDS) != 42:
-        raise AssertionError(f"the new list is {len(NEW_IDS)}, not 42")
+    if len(NEW_IDS) != 52:
+        raise AssertionError(f"the new list is {len(NEW_IDS)}, not 52")
     present = EXCLUDED_IDS & set(ids)
     if present:
         raise AssertionError(f"excluded ids were added: {sorted(present)}")

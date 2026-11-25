@@ -71,12 +71,16 @@ def plan_for_adapt(plan: dict) -> dict:
             value = session[key]
             row[key] = list(value) if key == "reason_codes" else value
         sessions.append(row)
-    return {
+    copied = {
         "ontology_version": plan.get("ontology_version"),
         "season_length_weeks": plan.get("season_length_weeks"),
         "start_date": plan.get("start_date"),
         "sessions": sessions,
     }
+    start = plan.get("long_run_start_m")
+    if isinstance(start, int) and not isinstance(start, bool):
+        copied["long_run_start_m"] = start
+    return copied
 
 
 def stored_slot(value: object) -> float | None:

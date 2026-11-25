@@ -61,6 +61,8 @@ def test_labels_follow_the_stored_session() -> None:
         raise AssertionError("the 12 km long run was not Long")
     if session_label("aer_15000_r0_x1") != "Long":
         raise AssertionError("the 15 km long run was not Long")
+    if session_label("aer_20000_r0_x1") != "Long":
+        raise AssertionError("the 20 km long run was not Long")
     if session_label("aer_10000_r0_x1", ["weekly_aerobic_long_run"]) != "Long":
         raise AssertionError("the weekly long-run code was ignored")
     if session_label("aer_10000_r0_x1") != "Easy":

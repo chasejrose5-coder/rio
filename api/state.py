@@ -116,14 +116,18 @@ def note_ok(note: object) -> bool:
     return True
 
 
-def recompute_quality_bases(inputs: tuple[str, str, str, str], marks: dict) -> dict[int, dict]:
+def recompute_quality_bases(
+    inputs: tuple[str, str, str, str],
+    marks: dict,
+    long_start_m: int | None = None,
+) -> dict[int, dict]:
     """Bases for the marks already stored, earliest week first.
 
     The returned dict is the one adapt_from_result fills. The plan it
     builds is not returned: the caller keeps the stored plan until the
-    next adapt replaces it.
+    next adapt replaces it. long_start_m is the rung stored on that plan.
     """
-    plan = sequence(*inputs)
+    plan = sequence(*inputs, long_start_m=long_start_m)
     bases: dict[int, dict] = {}
     scratch: dict = {}
     weeks = sorted(week for week in marks if isinstance(week, int) and not isinstance(week, bool))
@@ -135,16 +139,22 @@ def recompute_quality_bases(inputs: tuple[str, str, str, str], marks: dict) -> d
     return bases
 
 
-def resolve_bases(inputs: tuple[str, str, str, str], marks: dict, stored: object) -> tuple[dict, str]:
+def resolve_bases(
+    inputs: tuple[str, str, str, str],
+    marks: dict,
+    stored: object,
+    long_start_m: int | None = None,
+) -> tuple[dict, str]:
     """Stored bases, or a rebuild when the store has none.
 
-    The source is "stored", "recomputed", or "empty".
+    The source is "stored", "recomputed", or "empty". A rebuild uses the
+    long-run rung stored on the season, so a later usual does not rewrite it.
     """
     bases = decode_bases(stored)
     if bases:
         return bases, "stored"
     if marks:
-        return recompute_quality_bases(inputs, marks), "recomputed"
+        return recompute_quality_bases(inputs, marks, long_start_m), "recomputed"
     return {}, "empty"
 
 

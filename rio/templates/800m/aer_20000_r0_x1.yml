@@ -1,0 +1,7 @@
+id: "aer_20000_r0_x1"
+name: "Long easy, about 20 km"
+family: "aerobic"
+primary_stimulus: "aerobic"
+secondary_stimulus: "threshold"
+default_structure: "One continuous easy run, planned 20000 m. Still talkable. Not a long threshold. Longest aerobic row in this menu."
+constraints: "Once a week at most. Skip on meet week."

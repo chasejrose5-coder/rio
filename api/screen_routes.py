@@ -54,6 +54,7 @@ class SettingsBody(BaseModel):
     show_ids: bool | None = None
     compact: bool | None = None
     theme: str | None = None
+    usual_long_m: int | None = None
 
 
 def _preview(request: Request):
