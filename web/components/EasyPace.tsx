@@ -8,6 +8,15 @@ import { RequireUser } from "./RequireUser";
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { ErrorText } from "./ErrorText";
+import {
+  USUAL_LONG_HELP,
+  USUAL_LONG_LABEL,
+  distanceUnits,
+  parseUsualLong,
+  usualLongNote,
+  usualLongPlaceholder,
+  usualLongUnitLabel,
+} from "@/lib/usual-long";
 
 export function EasyPace() {
   return (
@@ -22,6 +31,7 @@ function EasyPaceForm() {
   const { refresh } = useAuth();
   const [pace, setPace] = useState("");
   const [unit, setUnit] = useState<"mi" | "km">("mi");
+  const [usual, setUsual] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [kicker, setKicker] = useState("");
@@ -47,10 +57,21 @@ function EasyPaceForm() {
       setError("Enter a pace like 7:25.");
       return;
     }
+    const units = distanceUnits(unit === "km" ? "km" : "miles");
+    const parsed = parseUsualLong(usual, units);
+    if (parsed && typeof parsed === "object") {
+      setError(parsed.error);
+      return;
+    }
     setBusy(true);
     setError("");
     try {
-      await api.patchSettings({ easy_pace: pace.trim(), easy_pace_unit: unit });
+      const body: Record<string, unknown> = { easy_pace: pace.trim(), easy_pace_unit: unit };
+      if (parsed != null) {
+        body.usual_long_m = parsed;
+        body.pace_units = unit;
+      }
+      await api.patchSettings(body);
       await refresh();
       router.replace("/");
     } catch (caught) {
@@ -59,6 +80,10 @@ function EasyPaceForm() {
       setBusy(false);
     }
   }
+
+  const units = distanceUnits(unit === "km" ? "km" : "miles");
+  const parsedUsual = parseUsualLong(usual, units);
+  const clampNote = typeof parsedUsual === "number" ? usualLongNote(parsedUsual) : "";
 
   return (
     <div className="page-plain">
@@ -77,6 +102,18 @@ function EasyPaceForm() {
           <label htmlFor="easy-pace">Easy pace</label>
           <input id="easy-pace" placeholder="7:25" value={pace} onChange={(event) => setPace(event.target.value)} />
           <p className="rio-easy-hint">Minutes and seconds, like 7:25.</p>
+          <label htmlFor="usual-long">{USUAL_LONG_LABEL}</label>
+          <input
+            id="usual-long"
+            inputMode="decimal"
+            placeholder={usualLongPlaceholder(units)}
+            value={usual}
+            onChange={(event) => setUsual(event.target.value)}
+          />
+          <p className="rio-easy-hint">
+            {USUAL_LONG_HELP} Optional. In {usualLongUnitLabel(units)}.
+          </p>
+          {clampNote ? <p className="rio-easy-hint">{clampNote}</p> : null}
           <fieldset>
             <legend>Unit</legend>
             <label>

@@ -44,6 +44,7 @@ test("easy days jog, swing, and stretch, and other days keep the drills", () => 
   assert.equal(easyText.includes("strides"), false);
   assert.equal(easyText.includes("Active drills"), false);
   assert.equal(sessionKind({ template_id: "aer_12000_r0_x1", day_of_week: "Saturday", reason_codes: ["weekly_aerobic_long_run"] }), "long");
+  assert.equal(sessionKind({ template_id: "aer_20000_r0_x1", day_of_week: "Saturday", reason_codes: [] }), "long");
 
   for (const session of [
     { template_id: "se_400_r90_x6", day_of_week: "Tuesday", reason_codes: ["phase_4"] },

@@ -53,7 +53,7 @@ _PHASE_CLOSE = (
     "taper, then phases 7, 6, and 5, and compresses phases 1–4.",
 )
 _TEN_PERCENT = (
-    "From one week to the next, planned distance and the number of hard "
+    "From one week to the next, easy and long-run distance and the number of hard "
     "sessions may rise by at most 10%. Hard sessions are the ones that are "
     "not easy runs. A rise fits when the new week times 10 is still no more "
     "than the previous week times 11.",
@@ -120,7 +120,7 @@ def phase_rows() -> list[tuple[str, str]]:
 # check of the full text still finds them. The page shows these instead.
 _SHOWN = {
     "10% rule": (
-        "From one week to the next, distance and the number of hard sessions "
+        "From one week to the next, easy and long-run distance and the number of hard sessions "
         "can rise by at most 10%. Hard sessions are the ones that are not "
         "easy runs. If a week would climb faster, the plan holds or picks an "
         "easier session. The taper may drop.",

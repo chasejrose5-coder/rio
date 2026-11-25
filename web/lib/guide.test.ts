@@ -34,7 +34,7 @@ test("the guide states the week, the paces, and the lines from the season rules"
   assert.ok(words >= 700, `guide is ${words} words`);
   assert.match(text, /9\.5 km/);
   assert.match(text, /500 m/);
-  assert.match(text, /15 km/);
+  assert.match(text, /20 km/);
   assert.match(text, /at most 10%/);
   assert.match(text, /Tuesday and Thursday/);
   assert.match(text, /Saturday is the long run/);

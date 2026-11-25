@@ -30,7 +30,7 @@ SUGGEST_AREAS = frozenset(
 )
 
 RACE_ID = "rr_800_r0_x1"
-_LONG_LADDER = {f"aer_{meters}_r0_x1" for meters in range(9500, 15001, 500)}
+_LONG_LADDER = {f"aer_{meters}_r0_x1" for meters in range(5000, 20001, 500)}
 RIDE_TYPES = frozenset({"Ride", "VirtualRide"})
 
 

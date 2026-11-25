@@ -73,7 +73,7 @@ test("the guide explains the season in plain words and stays free of photos", as
   await expect(page.getByText("A training block is one phase of the season.")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Today's workout" })).toBeVisible();
   await page.getByText("Long-run ladder").click();
-  await expect(page.getByText("8 km is outside the ladder.")).toBeVisible();
+  await expect(page.getByText("The ladder runs from 5 km to 20 km in 500 m steps.")).toBeVisible();
   await page.getByText("The eight phases").click();
   await expect(page.getByText("The short fast reps step up from phase 1.")).toBeVisible();
   await page.getByText("Counting the rise").click();
@@ -89,7 +89,7 @@ test("the guide explains the season in plain words and stays free of photos", as
   await expect(page.locator(".page-guide main").getByText("Creators")).toHaveCount(0);
   await expect(page.getByText("9.5 km").first()).toBeVisible();
   await expect(page.getByText(/steps up 500 m/).first()).toBeVisible();
-  await expect(page.getByText(/until 15 km/).first()).toBeVisible();
+  await expect(page.getByText(/until 20 km/).first()).toBeVisible();
   await expect(page.getByText(/at most 10%/).first()).toBeVisible();
   await expect(page.getByText("7:25", { exact: false }).first()).toBeVisible();
   await expect(page.locator("img")).toHaveCount(0);

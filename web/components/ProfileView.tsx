@@ -18,6 +18,17 @@ import {
 import type { ProfileResponse } from "@/lib/types";
 import { ErrorText, LoadError } from "./ErrorText";
 import { SaveLabel } from "./present/SaveLabel";
+import {
+  USUAL_LONG_HELP,
+  USUAL_LONG_LABEL,
+  USUAL_LONG_LOCKED,
+  distanceUnits,
+  formatUsualLong,
+  parseUsualLong,
+  usualLongNote,
+  usualLongPlaceholder,
+  usualLongUnitLabel,
+} from "@/lib/usual-long";
 
 type Mode = "loading" | "ready" | "error";
 
@@ -42,6 +53,8 @@ function ProfileBody() {
   const [goal, setGoal] = useState("");
   const [goalError, setGoalError] = useState("");
   const [goalBusy, setGoalBusy] = useState(false);
+  const [usual, setUsual] = useState("");
+  const [usualError, setUsualError] = useState("");
   const [seeded, setSeeded] = useState(false);
   const [arm, setArm] = useState(false);
   const [rise, setRise] = useState(false);
@@ -95,6 +108,9 @@ function ProfileBody() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPace(nextPace);
     setUnit(nextUnit === "km" ? "km" : "mi");
+    const savedUsual = source?.usual_long_m ?? athlete?.prefs.usual_long_m;
+    const usualUnits = distanceUnits(source?.prefs?.units || athlete?.prefs.units);
+    setUsual(typeof savedUsual === "number" ? formatUsualLong(savedUsual, usualUnits) : "");
     if (source?.ready) setGoal(source.shown_goal && source.shown_goal !== "—" ? source.shown_goal : "");
     setSeeded(true);
   }, [profile, athlete, mode, seeded]);
@@ -106,6 +122,10 @@ function ProfileBody() {
   const starting = fields.filter((field) => field.label === "Current 800 time" || field.label === "Start date");
   const goalDate = fields.filter((field) => field.label === "Goal date");
   const failed = mode === "error";
+  const usualUnits = distanceUnits(profile?.prefs?.units || athlete?.prefs.units);
+  const usualLocked = profile?.usual_long_locked === true || profile?.ready === true;
+  const parsedUsual = parseUsualLong(usual, usualUnits);
+  const usualClamp = typeof parsedUsual === "number" ? usualLongNote(parsedUsual) : profile?.usual_long_note || "";
 
   async function savePace(event: React.FormEvent) {
     event.preventDefault();
@@ -114,10 +134,22 @@ function ProfileBody() {
       setPaceError(PACE_ERROR);
       return;
     }
+    let usualMeters: number | null | undefined;
+    if (!usualLocked) {
+      const parsed = parseUsualLong(usual, usualUnits);
+      if (parsed && typeof parsed === "object") {
+        setUsualError(parsed.error);
+        return;
+      }
+      usualMeters = parsed;
+      setUsualError("");
+    }
     setPaceBusy(true);
     setPaceError("");
     try {
-      const saved = await api.patchSettings({ easy_pace: cleaned, easy_pace_unit: unit });
+      const body: Record<string, unknown> = { easy_pace: cleaned, easy_pace_unit: unit };
+      if (usualMeters !== undefined) body.usual_long_m = usualMeters;
+      const saved = await api.patchSettings(body);
       const nextPhrase = String(saved.prefs.easy_pace_phrase || "");
       setPace(String(saved.prefs.easy_pace || cleaned));
       setUnit(saved.prefs.easy_pace_unit === "km" ? "km" : "mi");
@@ -128,6 +160,9 @@ function ProfileBody() {
               easy_pace: String(saved.prefs.easy_pace || cleaned),
               easy_pace_unit: saved.prefs.easy_pace_unit === "km" ? "km" : "mi",
               easy_pace_phrase: nextPhrase,
+              usual_long_m:
+                typeof saved.prefs.usual_long_m === "number" ? saved.prefs.usual_long_m : current.usual_long_m,
+              usual_long_note: String(saved.prefs.usual_long_note || current.usual_long_note || ""),
             }
           : current,
       );
@@ -202,11 +237,27 @@ function ProfileBody() {
                   per kilometer
                 </label>
               </fieldset>
+              <label htmlFor="profile-usual-long">
+                {USUAL_LONG_LABEL} ({usualLongUnitLabel(usualUnits)})
+                <input
+                  id="profile-usual-long"
+                  inputMode="decimal"
+                  value={usual}
+                  placeholder={usualLongPlaceholder(usualUnits)}
+                  readOnly={usualLocked}
+                  aria-readonly={usualLocked}
+                  onChange={(event) => setUsual(event.target.value)}
+                />
+              </label>
+              <p className="rio-easy-hint">{USUAL_LONG_HELP}</p>
+              {usualError ? <ErrorText>{usualError}</ErrorText> : null}
+              {usualClamp ? <p className="rio-easy-hint">{usualClamp}</p> : null}
               <button className="rio-primary" type="submit" disabled={paceBusy} aria-busy={paceBusy}>
                 <SaveLabel busy={paceBusy} error={paceError}>
                   Save easy pace
                 </SaveLabel>
               </button>
+              {usualLocked ? <p className="rio-settings-note">{USUAL_LONG_LOCKED}</p> : null}
             </form>
             {profile?.ready ? (
               <>

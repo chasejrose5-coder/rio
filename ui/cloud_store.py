@@ -1336,7 +1336,7 @@ class SupabaseDirectory:
         if isinstance(profile, dict):
             meta = _metadata_dict(record) or {}
             profile = dict(profile)
-            for key in ("date_format", "start_date", "confirm_adapt", "show_ids", "compact", "preferred", "theme"):
+            for key in ("date_format", "start_date", "confirm_adapt", "show_ids", "compact", "preferred", "theme", "usual_long_m"):
                 if key in meta:
                     profile[key] = meta[key]
         return {
@@ -2029,6 +2029,9 @@ def _public_user(user: dict) -> dict:
     for key in ("date_format", "start_date", "confirm_adapt", "show_ids", "compact", "preferred", "theme"):
         if key in user:
             row[key] = user[key]
+    usual = user.get("usual_long_m")
+    if isinstance(usual, int) and not isinstance(usual, bool):
+        row["usual_long_m"] = usual
     return row
 
 

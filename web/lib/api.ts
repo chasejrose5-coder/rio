@@ -373,7 +373,13 @@ export const api = {
       body: JSON.stringify({ confirm: true }),
     }),
 
-  createSeason: (inputs: { current_time: string; start_date: string; goal_time: string; goal_date: string }) =>
+  createSeason: (inputs: {
+    current_time: string;
+    start_date: string;
+    goal_time: string;
+    goal_date: string;
+    usual_long_m?: number | null;
+  }) =>
     request<SeasonWrite>("/seasons", {
       method: "POST",
       body: JSON.stringify(inputs),

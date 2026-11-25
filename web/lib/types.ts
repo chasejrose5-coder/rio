@@ -46,6 +46,9 @@ export type Athlete = {
     compact?: boolean;
     preferred?: string;
     theme?: "light" | "dark" | "system";
+    units?: string;
+    usual_long_m?: number | null;
+    usual_long_note?: string;
     [key: string]: unknown;
   };
 };
@@ -576,6 +579,9 @@ export type ProfileResponse = {
   easy_pace?: string;
   easy_pace_unit?: string;
   easy_pace_phrase?: string;
+  usual_long_m?: number | null;
+  usual_long_note?: string;
+  usual_long_locked?: boolean;
   prefs?: {
     date_format?: string;
     compact?: boolean;

@@ -194,13 +194,13 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
     title: "The week",
     paragraphs: [
       "Tuesday and Thursday are quality days, unless that day is an easy run. Saturday is the long run. Sunday, Monday, and Wednesday are easy, and Friday is off.",
-      "The Saturday long run starts at 9.5 km and steps up 500 m a week until 15 km. From one week to the next, distance and hard sessions can rise by at most 10%.",
+      "With no usual long run saved, Saturday starts at 9.5 km and steps up 500 m a week until 20 km. A saved usual can start as low as 5 km. From one week to the next, easy and long-run distance and hard sessions can rise by at most 10%.",
     ],
     details: [
       {
         summary: "Long-run ladder",
         paragraphs: [
-          "The first training week uses 9.5 km. Later weeks step up 500 m, hold, or step back one rung, and the run stops at 15 km. 8 km is outside the ladder.",
+          "The ladder runs from 5 km to 20 km in 500 m steps. With no usual long run saved, the first training week uses 9.5 km. A saved usual starts at that distance, or a mile shorter when it is 6 miles or more, rounded down to a rung. Later weeks step up 500 m, hold at 20 km, or step back one rung on an easier week.",
           "The usual easy day is one continuous 5 km run. When a week would rise too fast, the plan can use a 4 km or a 10 km easy run instead.",
           "Hard sessions are the ones that are not easy runs. If a week would climb faster than 10%, the plan holds or picks an easier session. The taper may drop.",
         ],
@@ -247,13 +247,13 @@ export const GUIDE_SECTIONS: readonly GuideSection[] = [
     id: "ten-percent",
     title: "10% rule",
     paragraphs: [
-      "From one week to the next, distance and the number of hard sessions can rise by at most 10%. Hard sessions are the ones that are not easy runs. If a week would climb faster, the plan holds or picks an easier session. The taper may drop.",
+      "From one week to the next, easy and long-run distance and the number of hard sessions can rise by at most 10%. Hard sessions are the ones that are not easy runs. If a week would climb faster, the plan holds or picks an easier session. The taper may drop.",
     ],
     details: [
       {
         summary: "Counting the rise",
         paragraphs: [
-          "From one week to the next, planned distance and the number of hard sessions may rise by at most 10%. Hard sessions are the ones that are not easy runs. A rise fits when the new week times 10 is still no more than the previous week times 11.",
+          "From one week to the next, easy and long-run distance and the number of hard sessions may rise by at most 10%. Hard sessions are the ones that are not easy runs. A rise fits when the new week times 10 is still no more than the previous week times 11.",
           "If the week as written would climb faster, the plan holds or uses an easier session. The taper may drop. The same cap still applies after a mark changes later weeks.",
         ],
       },

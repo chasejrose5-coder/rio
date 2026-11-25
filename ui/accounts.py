@@ -680,6 +680,10 @@ def _clean_settings(value: object) -> dict:
         if isinstance(item, bool):
             cleaned[key] = item
             continue
+        if isinstance(item, int):
+            if 0 <= item <= 100_000:
+                cleaned[key] = item
+            continue
         if not isinstance(item, str):
             continue
         text = item.strip()
