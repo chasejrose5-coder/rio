@@ -753,10 +753,8 @@
 .rio-splash .rio-brand-owned { margin: 4px 0 8px; font-size: 13px; font-weight: 600; letter-spacing: 0.18em; line-height: 18px; }
 .rio-splash h1 { max-width: 16ch; margin: 0 0 6px; font-size: clamp(32px, 3.4vw, 48px); line-height: 1.02; font-weight: 800; }
 .rio-splash .rio-reason-line { margin: 0 0 4px; font-size: 18px; line-height: 24px; }
-.rio-splash-copy p,
-.rio-splash blockquote p { font-size: 16px; line-height: 22px; max-width: 46ch; }
-.rio-splash blockquote { margin: 4px 0 0; }
-.rio-splash-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 12px; }
+.rio-splash-copy p { font-size: 16px; line-height: 22px; max-width: 46ch; }
+.rio-splash-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 16px; }
 .rio-splash-go { width: auto; min-width: 10rem; margin: 0; }
 .rio-splash-login {
   display: inline-flex;
@@ -854,8 +852,7 @@
 .rio-splash.is-entering .rio-brand-owned { animation: rio-tag 500ms var(--rio-ease-out) 300ms both; }
 .rio-splash.is-entering h1 { animation: rio-mask 560ms var(--rio-ease-out) 650ms both; }
 .rio-splash.is-entering .rio-reason-line { animation: rio-up 400ms var(--rio-ease-out) 740ms both; }
-.rio-splash.is-entering .rio-splash-copy > p,
-.rio-splash.is-entering blockquote { animation: rio-up 400ms var(--rio-ease-out) 820ms both; }
+.rio-splash.is-entering .rio-splash-copy > p { animation: rio-up 400ms var(--rio-ease-out) 820ms both; }
 .rio-splash.is-entering .rio-splash-go { animation: rio-pop 240ms var(--rio-ease-out) 1300ms both; }
 .rio-splash.is-entering .rio-splash-strip { animation: rio-fade 320ms var(--rio-ease-out) 1300ms both; }
 .rio-splash.is-quiet .rio-splash-copy,
