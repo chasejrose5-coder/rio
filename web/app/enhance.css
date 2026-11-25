@@ -184,6 +184,11 @@
   .rio-v3 .rio-photo-credit,
   .rio-splash .rio-photo-credit { right: 12px; }
 }
+/* Home stat tiles fill the photo's bottom-right, where this pill is pinned.
+   The extra band keeps the same corner as the other heroes and clears the tiles. */
+.rio-v3.page-home .rio-hero {
+  padding-bottom: 64px;
+}
 
 .page-session.rio-v3 .rio-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); }
 .rio-v3 .rio-soft-card,
