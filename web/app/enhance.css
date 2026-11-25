@@ -419,6 +419,12 @@
 }
 @keyframes rio-bar-out { to { block-size: 0; opacity: 0; padding: 0; margin: 0; } }
 .rio-v3.page-home .rio-home-pair { display: grid; gap: 24px; align-items: start; }
+/* At 320 the home pair and the last plan day stick out. Wider breakpoints keep the merged columns. */
+@media (max-width: 359px) {
+  .rio-v3.page-home .rio-home-pair { grid-template-columns: minmax(0, 1fr); }
+  .rio-v3.page-plan .rio-cal-day { min-width: 0; }
+  .rio-v3.page-plan .rio-cal-label { overflow-wrap: anywhere; }
+}
 .rio-v3.page-home .rio-home-today { padding: 16px; }
 @media (min-width: 1024px) {
   .rio-v3.page-home .rio-home-pair { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-rows: auto auto; }

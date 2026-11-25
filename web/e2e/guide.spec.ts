@@ -103,6 +103,28 @@ test("the guide explains the season in plain words and stays free of photos", as
   await expect(meaning.getByRole("link", { name: GUIDE_LINK })).toHaveAttribute("href", "/guide#getting-started");
 });
 
+test("the guide contents chip follows a click and the section in view", async ({ page }) => {
+  await install(page);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/guide");
+  const contents = page.getByRole("navigation", { name: "Guide sections" });
+  const gettingStarted = contents.getByRole("link", { name: "Getting started" });
+  const paces = contents.getByRole("link", { name: "Paces" });
+  await expect(gettingStarted).toHaveAttribute("aria-current", "true");
+
+  await paces.click();
+  await expect(paces).toHaveAttribute("aria-current", "true");
+  await expect(gettingStarted).not.toHaveAttribute("aria-current", "true");
+
+  await page.goto("/guide");
+  await expect(gettingStarted).toHaveAttribute("aria-current", "true");
+  await page.evaluate(() => {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    window.scrollTo(0, Math.round(max * 0.55));
+  });
+  await expect(contents.locator("[aria-current='true']")).not.toHaveText("Getting started");
+});
+
 test("library, plan, and about link their notes to the matching guide section", async ({ page }) => {
   await install(page);
   await page.goto("/library");
